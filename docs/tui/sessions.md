@@ -59,8 +59,8 @@ The model and the permission mode come from the `init` event, so the bar names
 what the child confirms, and not what the flags asked for. The two can differ.
 
 The **status bar** at the bottom describes the whole program: how many sessions
-run, how many are busy, the total cost, the number of dropped events, and the
-keys.
+run, how many are busy, the total cost, how many are stored, the number of
+dropped events, and the keys.
 
 So a number that belongs to one session appears at the top, and a number that
 belongs to every session appears at the bottom.
