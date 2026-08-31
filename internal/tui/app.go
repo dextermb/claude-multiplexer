@@ -1490,7 +1490,19 @@ func (m Model) rightSegs(item row) []barSeg {
 			barMutedStyle,
 		})
 	}
-	return append(segs, barSeg{fmt.Sprintf("$%.4f", item.cost), barCostStyle})
+	segs = append(segs, barSeg{fmt.Sprintf("$%.4f", item.cost), barCostStyle})
+	if item.live && item.context > 0 {
+		segs = append(segs, barSeg{contextLabel(item), barMutedStyle})
+	}
+	return segs
+}
+
+func contextLabel(item row) string {
+	if limit := contextWindow(item.model); limit > 0 {
+		pct := item.context * 100 / limit
+		return fmt.Sprintf("ctx %s/%s (%d%%)", formatCount(item.context), formatCount(limit), pct)
+	}
+	return fmt.Sprintf("ctx %s", formatCount(item.context))
 }
 
 func renderRight(segs []barSeg) string {
