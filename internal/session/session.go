@@ -27,11 +27,15 @@ var (
 	ErrNotLive    = errors.New("session: not live")
 )
 
+// EffortLevels are the values --effort accepts, from least to most.
+var EffortLevels = []string{"low", "medium", "high", "xhigh", "max"}
+
 type Config struct {
 	Name            string
 	Dir             string
 	Model           string
 	PermissionMode  string
+	Effort          string
 	AllowedTools    []string
 	DisallowedTools []string
 	ResumeID        string
@@ -74,6 +78,9 @@ func (c Config) Args() []string {
 	}
 	if c.Model != "" {
 		args = append(args, "--model", c.Model)
+	}
+	if c.Effort != "" {
+		args = append(args, "--effort", c.Effort)
 	}
 	if len(c.AllowedTools) > 0 {
 		args = append(args, "--allowedTools", strings.Join(c.AllowedTools, ","))
@@ -121,6 +128,7 @@ type Snapshot struct {
 	Dir             string
 	Model           string
 	PermissionMode  string
+	Effort          string
 	State           State
 	ClaudeSessionID string
 	Cost            float64
@@ -157,6 +165,7 @@ type Session struct {
 	state           State
 	model           string
 	permissionMode  string
+	effort          string
 	claudeSessionID string
 	cost            float64
 	turns           int
@@ -168,6 +177,7 @@ type Session struct {
 	endedAt         time.Time
 	sent            bool
 	interruptSeq    int
+	controlSeq      int
 	err             error
 
 	idleSig chan struct{}
@@ -195,6 +205,7 @@ func New(cfg Config) (*Session, error) {
 		state:          StateStarting,
 		model:          cfg.Model,
 		permissionMode: cfg.PermissionMode,
+		effort:         cfg.Effort,
 	}, nil
 }
 
@@ -286,6 +297,49 @@ func (s *Session) DiscardQueued() {
 	s.q.clear()
 }
 
+func (s *Session) controlID(kind string) string {
+	s.mu.Lock()
+	s.controlSeq++
+	n := s.controlSeq
+	s.mu.Unlock()
+	return fmt.Sprintf("%s-%d", kind, n)
+}
+
+// SetModel switches the model of the running child; see docs/protocol.md.
+func (s *Session) SetModel(model string) error {
+	if s.cmd == nil {
+		return ErrNotStarted
+	}
+	if !s.State().Live() {
+		return ErrNotLive
+	}
+	if err := s.writer.SetModel(s.controlID("model"), model); err != nil {
+		return err
+	}
+	s.mu.Lock()
+	s.model = model
+	s.mu.Unlock()
+	return nil
+}
+
+// SetPermissionMode switches the permission mode of the running child; see
+// docs/protocol.md.
+func (s *Session) SetPermissionMode(mode string) error {
+	if s.cmd == nil {
+		return ErrNotStarted
+	}
+	if !s.State().Live() {
+		return ErrNotLive
+	}
+	if err := s.writer.SetPermissionMode(s.controlID("mode"), mode); err != nil {
+		return err
+	}
+	s.mu.Lock()
+	s.permissionMode = mode
+	s.mu.Unlock()
+	return nil
+}
+
 func (s *Session) State() State {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -300,6 +354,7 @@ func (s *Session) Snapshot() Snapshot {
 		Dir:             s.cfg.Dir,
 		Model:           s.model,
 		PermissionMode:  s.permissionMode,
+		Effort:          s.effort,
 		State:           s.state,
 		ClaudeSessionID: s.claudeSessionID,
 		Cost:            s.cost,

@@ -30,6 +30,7 @@ claude -p
   --verbose
   --permission-mode <mode>          auto by default
   [--model <model>]
+  [--effort <level>]                low, medium, high, xhigh, or max
   [--allowedTools A,B]
   [--disallowedTools A,B]
   [--session-id <uuid>]
@@ -42,8 +43,12 @@ claude -p
 under `-p` without it.
 
 The permission mode is one of `acceptEdits`, `auto`, `bypassPermissions`,
-`default`, `dontAsk`, or `plan`. A headless session cannot ask a human for
-permission, so the mode is fixed when the session starts.
+`default`, `dontAsk`, or `plan`. The mode sets the start value, but it is not
+fixed for the session: a control request changes it later (see below).
+
+The effort level sets a thinking-token budget. It is `low`, `medium`, `high`,
+`xhigh`, or `max`. Claude Code has no `--effort` default, so the flag is left
+off unless the session asks for a level.
 
 ## The init event arrives after the first input
 
@@ -168,6 +173,34 @@ Claude Code answers with a `control_response`, then ends the turn with a
 the next prompt. This was proven against Claude Code 2.1.176. The multiplexer
 ignores the `control_response`, because the `result` event is the signal it
 already acts on. See [sessions.md](./sessions.md).
+
+## The model and the mode change while the session runs
+
+Two more control requests change a running child. Each is proven against Claude
+Code 2.1.176:
+
+```json
+{"type":"control_request","request_id":"model-1","request":{"subtype":"set_model","model":"sonnet"}}
+{"type":"control_request","request_id":"mode-1","request":{"subtype":"set_permission_mode","mode":"plan"}}
+```
+
+`set_model` takes a full name or an alias (`opus`, `sonnet`, `haiku`).
+`set_permission_mode` takes one of the six modes and answers with the new mode.
+
+The writer sends each request with a counter in the id (`model-1`, `mode-2`).
+The multiplexer ignores the `control_response` and trusts the change, the same
+as it trusts the interrupt. So the session bar shows the new value at once. A
+later version that rejects a request would leave the bar wrong until the next
+`init` or `result` event, which is the same risk the interrupt already takes.
+
+## Effort does not change live
+
+There is no live effort switch. `set_effort` is not a request — Claude Code
+answers `Unsupported control request subtype`. So the multiplexer changes effort
+by a resume: it stops the child and starts it again with the new `--effort`
+level, and keeps the conversation through the session id. A resume needs a
+session id, so it fails on a session that has not run a turn yet. See
+[sessions.md](./sessions.md).
 
 ## The AskUserQuestion tool
 

@@ -56,6 +56,20 @@ func (w *Writer) SendInterrupt(requestID string) error {
 	}{"interrupt"})
 }
 
+func (w *Writer) SetModel(requestID, model string) error {
+	return w.SendControl(requestID, struct {
+		Subtype string `json:"subtype"`
+		Model   string `json:"model"`
+	}{"set_model", model})
+}
+
+func (w *Writer) SetPermissionMode(requestID, mode string) error {
+	return w.SendControl(requestID, struct {
+		Subtype string `json:"subtype"`
+		Mode    string `json:"mode"`
+	}{"set_permission_mode", mode})
+}
+
 func (w *Writer) SendControl(requestID string, request any) error {
 	payload, err := json.Marshal(request)
 	if err != nil {

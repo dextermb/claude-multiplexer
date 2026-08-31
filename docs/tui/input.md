@@ -62,11 +62,16 @@ the session again.
 
 ## The new session form
 
-The form asks for a directory, a name, a model, a permission mode, and a first
-prompt. The directory comes first, because it is the only required field. The
-first prompt is sent as soon as the session starts, and it takes a `/preset`
-name. See [templates.md](../templates.md). It defaults to the
+The form asks for a directory, a name, a model, a permission mode, an effort
+level, and a first prompt. The directory comes first, because it is the only
+required field. The first prompt is sent as soon as the session starts, and it
+takes a `/preset` name. See [templates.md](../templates.md). It defaults to the
 current directory. An empty name becomes the last element of the directory.
+
+The effort field is one of `low`, `medium`, `high`, `xhigh`, or `max`, or empty
+for the Claude Code default. The form checks the level before it starts. You can
+change the model, the mode, and the effort later with a key; see
+[keys.md](keys.md).
 
 The directory field completes as you type. The names that match appear under
 it, and `Tab` grows the path:

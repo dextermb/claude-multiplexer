@@ -40,6 +40,7 @@ type Spec struct {
 	Dir            string
 	Model          string
 	PermissionMode string
+	Effort         string
 	AllowedTools   []string
 	ResumeID       string
 }
@@ -134,6 +135,7 @@ func (m *Manager) Spawn(ctx context.Context, spec Spec) (string, error) {
 		Dir:            dir,
 		Model:          spec.Model,
 		PermissionMode: spec.PermissionMode,
+		Effort:         spec.Effort,
 		AllowedTools:   spec.AllowedTools,
 		ResumeID:       spec.ResumeID,
 		ClaudePath:     m.opts.ClaudePath,
@@ -155,6 +157,7 @@ func (m *Manager) Spawn(ctx context.Context, spec Spec) (string, error) {
 			Dir:            dir,
 			Model:          spec.Model,
 			PermissionMode: spec.PermissionMode,
+			Effort:         spec.Effort,
 			CreatedAt:      time.Now(),
 		},
 	}
@@ -243,6 +246,7 @@ func (m *Manager) rememberSession(item *entry, snap session.Snapshot) {
 	next.ClaudeSessionID = snap.ClaudeSessionID
 	next.Model = snap.Model
 	next.PermissionMode = snap.PermissionMode
+	next.Effort = snap.Effort
 	next.Turns = item.base.turns + snap.Turns
 	next.Cost = item.base.cost + snap.Cost
 	next.InputTokens = item.base.input + snap.InputTokens
@@ -348,6 +352,7 @@ func (m *Manager) Resume(ctx context.Context, meta Meta) (string, error) {
 		Dir:            meta.Dir,
 		Model:          meta.Model,
 		PermissionMode: meta.PermissionMode,
+		Effort:         meta.Effort,
 		ResumeID:       meta.ClaudeSessionID,
 	})
 }
@@ -369,6 +374,46 @@ func (m *Manager) Interrupt(name string, discardQueued bool) error {
 		item.sess.DiscardQueued()
 	}
 	return item.sess.Interrupt()
+}
+
+func (m *Manager) SetModel(name, model string) error {
+	item, err := m.entry(name)
+	if err != nil {
+		return err
+	}
+	return item.sess.SetModel(model)
+}
+
+func (m *Manager) SetPermissionMode(name, mode string) error {
+	item, err := m.entry(name)
+	if err != nil {
+		return err
+	}
+	return item.sess.SetPermissionMode(mode)
+}
+
+// ResumeWithEffort stops a running session and resumes it with a new effort
+// level, because Claude Code has no live effort switch; see docs/protocol.md.
+func (m *Manager) ResumeWithEffort(ctx context.Context, name, effort string) (string, error) {
+	item, err := m.entry(name)
+	if err != nil {
+		return "", err
+	}
+	snap := item.sess.Snapshot()
+	if snap.ClaudeSessionID == "" {
+		return "", fmt.Errorf("manager: session %q has not started a turn yet", name)
+	}
+	stopCtx, cancel := context.WithTimeout(ctx, session.DefaultStopGrace)
+	_ = item.sess.Stop(stopCtx)
+	cancel()
+	return m.Resume(ctx, Meta{
+		Name:            snap.Name,
+		Dir:             snap.Dir,
+		Model:           snap.Model,
+		PermissionMode:  snap.PermissionMode,
+		Effort:          effort,
+		ClaudeSessionID: snap.ClaudeSessionID,
+	})
 }
 
 func (m *Manager) Stop(ctx context.Context, name string) error {

@@ -13,6 +13,7 @@ type Meta struct {
 	Dir             string    `json:"dir"`
 	Model           string    `json:"model"`
 	PermissionMode  string    `json:"permission_mode"`
+	Effort          string    `json:"effort,omitempty"`
 	ClaudeSessionID string    `json:"claude_session_id"`
 	CreatedAt       time.Time `json:"created_at"`
 	LastActiveAt    time.Time `json:"last_active_at"`
@@ -28,6 +29,7 @@ func (m Meta) sameAs(other Meta) bool {
 	return m.ClaudeSessionID == other.ClaudeSessionID &&
 		m.Model == other.Model &&
 		m.PermissionMode == other.PermissionMode &&
+		m.Effort == other.Effort &&
 		m.Turns == other.Turns &&
 		m.Cost == other.Cost &&
 		m.InputTokens == other.InputTokens &&

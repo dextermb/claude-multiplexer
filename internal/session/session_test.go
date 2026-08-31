@@ -99,6 +99,7 @@ func TestConfigArgs(t *testing.T) {
 	cfg := Config{
 		Model:          "claude-opus-5",
 		PermissionMode: "plan",
+		Effort:         "high",
 		AllowedTools:   []string{"Read", "Bash(git *)"},
 		ResumeID:       "abc",
 		IncludePartial: true,
@@ -114,6 +115,7 @@ func TestConfigArgs(t *testing.T) {
 		"--verbose",
 		"--permission-mode plan",
 		"--model claude-opus-5",
+		"--effort high",
 		"--allowedTools Read,Bash(git *)",
 		"--resume abc",
 		"--include-partial-messages",
@@ -122,6 +124,14 @@ func TestConfigArgs(t *testing.T) {
 		if !strings.Contains(got, want) {
 			t.Errorf("args %q do not contain %q", got, want)
 		}
+	}
+}
+
+func TestConfigArgsOmitsEffortWhenEmpty(t *testing.T) {
+	var cfg Config
+	cfg.applyDefaults()
+	if strings.Contains(strings.Join(cfg.Args(), " "), "--effort") {
+		t.Fatalf("no effort must give no --effort flag, got %v", cfg.Args())
 	}
 }
 

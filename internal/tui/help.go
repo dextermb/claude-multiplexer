@@ -37,6 +37,10 @@ var bindings = []binding{
 	{"The output", "g  G  home  end", "Go to the top, and to the bottom", ""},
 	{"The output", "m", "Switch between rendered markdown and raw text", ""},
 
+	{"Settings of a running session", "M", "Change the model", ""},
+	{"Settings of a running session", "e", "Change the effort (the thinking budget)", ""},
+	{"Settings of a running session", "p", "Change the permission mode", ""},
+
 	{"The new session form", "tab", "Complete the path, or move to the next field", ""},
 	{"The new session form", "shift+tab", "Walk the suggested paths, or move back a field", ""},
 

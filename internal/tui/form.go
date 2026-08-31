@@ -10,6 +10,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 
 	"github.com/dextermb/claude-multiplexer/internal/manager"
+	"github.com/dextermb/claude-multiplexer/internal/session"
 )
 
 const (
@@ -17,11 +18,12 @@ const (
 	fieldName
 	fieldModel
 	fieldMode
+	fieldEffort
 	fieldFirst
 	fieldCount
 )
 
-var fieldLabels = [fieldCount]string{"Directory", "Name", "Model", "Permission mode", "First prompt"}
+var fieldLabels = [fieldCount]string{"Directory", "Name", "Model", "Permission mode", "Effort", "First prompt"}
 
 type formResult int
 
@@ -47,9 +49,10 @@ func newForm(dir, model, mode string) *form {
 		"taken from the directory",
 		"the Claude Code default",
 		mode,
+		"low, medium, high, xhigh, max",
 		"optional, and /preset works here",
 	}
-	values := [fieldCount]string{dir, "", model, mode, ""}
+	values := [fieldCount]string{dir, "", model, mode, "", ""}
 	for i := range f.inputs {
 		input := textinput.New()
 		input.Placeholder = placeholders[i]
@@ -208,9 +211,22 @@ func (f *form) validate() bool {
 		f.err = abs + " is not a directory"
 		return false
 	}
+	if effort := strings.TrimSpace(f.inputs[fieldEffort].Value()); effort != "" && !knownEffort(effort) {
+		f.err = "effort is one of " + strings.Join(session.EffortLevels, ", ")
+		return false
+	}
 	f.inputs[fieldDir].SetValue(abs)
 	f.err = ""
 	return true
+}
+
+func knownEffort(level string) bool {
+	for _, known := range session.EffortLevels {
+		if known == level {
+			return true
+		}
+	}
+	return false
 }
 
 func (f *form) spec() manager.Spec {
@@ -219,6 +235,7 @@ func (f *form) spec() manager.Spec {
 		Name:           strings.TrimSpace(f.inputs[fieldName].Value()),
 		Model:          strings.TrimSpace(f.inputs[fieldModel].Value()),
 		PermissionMode: strings.TrimSpace(f.inputs[fieldMode].Value()),
+		Effort:         strings.TrimSpace(f.inputs[fieldEffort].Value()),
 	}
 }
 
