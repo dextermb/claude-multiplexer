@@ -14,6 +14,7 @@ type row struct {
 	dir      string
 	model    string
 	mode     string
+	effort   string
 	live     bool
 	archived bool
 	state    session.State
@@ -33,6 +34,7 @@ func rowFromSnapshot(snap session.Snapshot) row {
 		dir:    snap.Dir,
 		model:  snap.Model,
 		mode:   snap.PermissionMode,
+		effort: snap.Effort,
 		live:   true,
 		state:  snap.State,
 		label:  snap.State.String(),
@@ -55,6 +57,7 @@ func rowFromMeta(meta manager.Meta) row {
 		dir:      meta.Dir,
 		model:    meta.Model,
 		mode:     meta.PermissionMode,
+		effort:   meta.Effort,
 		archived: meta.Archived,
 		label:    label,
 		turns:    meta.Turns,

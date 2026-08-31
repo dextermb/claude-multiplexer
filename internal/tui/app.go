@@ -83,6 +83,7 @@ type Model struct {
 	picker       *picker
 	fields       *fieldForm
 	question     *questionDialog
+	choice       *choiceDialog
 	pager        *pager
 	pending      string
 	sel          string
@@ -181,6 +182,13 @@ func resumeCmd(mgr *manager.Manager, meta manager.Meta) tea.Cmd {
 	return func() tea.Msg {
 		name, err := mgr.Resume(context.Background(), meta)
 		return spawnedMsg{name: name, err: err}
+	}
+}
+
+func resumeEffortCmd(mgr *manager.Manager, name, effort string) tea.Cmd {
+	return func() tea.Msg {
+		next, err := mgr.ResumeWithEffort(context.Background(), name, effort)
+		return spawnedMsg{name: next, err: err}
 	}
 }
 
@@ -472,6 +480,9 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.question != nil {
 		return m.questionKey(msg)
 	}
+	if m.choice != nil {
+		return m.choiceKey(msg)
+	}
 	if m.pager != nil {
 		return m.pagerKey(msg)
 	}
@@ -611,6 +622,12 @@ func (m Model) outputKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.output.GotoBottom()
 	case "m":
 		return m.toggleMarkdown()
+	case "M":
+		return m.openChoice(settingModel)
+	case "e":
+		return m.openChoice(settingEffort)
+	case "p":
+		return m.openChoice(settingMode)
 	case "?":
 		m.help = newHelp()
 		return m, textinput.Blink
@@ -649,6 +666,12 @@ func (m Model) sidebarKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.archiveSelected()
 	case "m":
 		return m.toggleMarkdown()
+	case "M":
+		return m.openChoice(settingModel)
+	case "e":
+		return m.openChoice(settingEffort)
+	case "p":
+		return m.openChoice(settingMode)
 	case "?":
 		m.help = newHelp()
 		return m, textinput.Blink
@@ -712,7 +735,7 @@ func (m Model) archiveSelected() (tea.Model, tea.Cmd) {
 }
 
 func (m Model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
-	if m.form != nil || m.confirm != "" || m.quitting || m.question != nil || m.pager != nil {
+	if m.form != nil || m.confirm != "" || m.quitting || m.question != nil || m.choice != nil || m.pager != nil {
 		return m, nil
 	}
 
@@ -974,6 +997,66 @@ func (m Model) askToStop() (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+func (m Model) openChoice(kind settingKind) (tea.Model, tea.Cmd) {
+	item, ok := m.selectedRow()
+	if !ok {
+		return m, nil
+	}
+	if !item.running() {
+		m.errText = "start the session before you change it"
+		return m, nil
+	}
+	current := item.model
+	switch kind {
+	case settingMode:
+		current = item.mode
+	case settingEffort:
+		current = item.effort
+	}
+	m.choice = newChoiceDialog(kind, item.name, current)
+	m.errText = ""
+	return m, nil
+}
+
+func (m Model) choiceKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	result, cmd := m.choice.Update(msg)
+	switch result {
+	case formCancelled:
+		m.choice = nil
+		return m, nil
+	case formSubmitted:
+		return m.submitChoice()
+	}
+	return m, cmd
+}
+
+func (m Model) submitChoice() (tea.Model, tea.Cmd) {
+	kind, name, value := m.choice.kind, m.choice.session, m.choice.chosen()
+	m.choice = nil
+	switch kind {
+	case settingModel:
+		return m.appliedSetting(m.mgr.SetModel(name, value), "model", value)
+	case settingMode:
+		return m.appliedSetting(m.mgr.SetPermissionMode(name, value), "mode", value)
+	case settingEffort:
+		m.errText = ""
+		m.status = "resuming " + name + " with " + value + " effort"
+		return m, resumeEffortCmd(m.mgr, name, value)
+	}
+	return m, nil
+}
+
+func (m Model) appliedSetting(err error, label, value string) (tea.Model, tea.Cmd) {
+	if err != nil {
+		m.errText = err.Error()
+		return m, nil
+	}
+	m.errText = ""
+	m.status = label + " → " + value
+	m.refresh()
+	return m, nil
+}
+
 func (m Model) openPicker() (tea.Model, tea.Cmd) {
 	m.reloadTemplates()
 	m.picker = newPicker(m.templates, m.templateDirs())
@@ -1062,6 +1145,7 @@ func (m Model) interrupt() (tea.Model, tea.Cmd) {
 	m.picker = nil
 	m.help = nil
 	m.question = nil
+	m.choice = nil
 	m.pager = nil
 	m.confirm = ""
 	m.prompt.Reset()
@@ -1333,6 +1417,9 @@ func (m Model) View() string {
 	if m.question != nil {
 		body = centre(m.width, m.bodyHeight(), m.question.View(m.width))
 	}
+	if m.choice != nil {
+		body = centre(m.width, m.bodyHeight(), m.choice.View(m.width))
+	}
 	if m.pager != nil {
 		body = centre(m.width, m.bodyHeight(), m.pager.View(m.width, m.bodyHeight()))
 	}
@@ -1516,10 +1603,19 @@ func (m Model) scrollIndicator() string {
 }
 
 func barDetails(item row) [][]string {
-	if item.model == "" {
-		return [][]string{{item.mode}, nil}
+	var full []string
+	if item.model != "" {
+		full = append(full, item.model)
 	}
-	return [][]string{{item.model, item.mode}, {item.model}, nil}
+	full = append(full, item.mode)
+	if item.effort != "" {
+		full = append(full, item.effort+" effort")
+	}
+	out := make([][]string, 0, len(full)+1)
+	for n := len(full); n >= 1; n-- {
+		out = append(out, full[:n])
+	}
+	return append(out, nil)
 }
 
 func plural(n int, word string) string {

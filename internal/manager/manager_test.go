@@ -508,6 +508,42 @@ func TestResumeKeepsTheNameAndAddsToTheSameTranscript(t *testing.T) {
 	}
 }
 
+func TestResumeWithEffortKeepsTheNameAndStoresTheLevel(t *testing.T) {
+	m := newTestManager(t)
+	name, err := m.Spawn(context.Background(), Spec{Name: "grind", Dir: t.TempDir()})
+	if err != nil {
+		t.Fatalf("Spawn: %v", err)
+	}
+	runOneTurn(t, m, name, "first")
+	waitForMeta(t, m, name)
+
+	resumed, err := m.ResumeWithEffort(context.Background(), name, "high")
+	if err != nil {
+		t.Fatalf("ResumeWithEffort: %v", err)
+	}
+	if resumed != "grind" {
+		t.Fatalf("resumed as %q, want the same name", resumed)
+	}
+	runOneTurn(t, m, resumed, "second")
+	waitFor(t, 10*time.Second, func() bool {
+		meta, err := ReadMeta(filepath.Join(m.Root(), "sessions", "grind", "meta.json"))
+		return err == nil && meta.Effort == "high" && meta.Turns == 2
+	})
+	retire(t, m, resumed)
+}
+
+func TestResumeWithEffortNeedsASessionThatHasRun(t *testing.T) {
+	m := newTestManager(t)
+	name, err := m.Spawn(context.Background(), Spec{Dir: t.TempDir()})
+	if err != nil {
+		t.Fatalf("Spawn: %v", err)
+	}
+	defer retire(t, m, name)
+	if _, err := m.ResumeWithEffort(context.Background(), name, "high"); err == nil {
+		t.Fatal("a session with no turn must not resume for effort")
+	}
+}
+
 func TestANewSessionNeverTakesAStoredName(t *testing.T) {
 	m := newTestManager(t)
 	dir := t.TempDir()

@@ -25,6 +25,9 @@ output.
 | `x` or `ctrl+x` | Stop the selected session, after a confirmation |
 | `pgup`, `pgdown` | Scroll the output by a page |
 | `m` | Switch between rendered markdown and raw text |
+| `M` | Change the model of a running session |
+| `e` | Change the effort of a running session |
+| `p` | Change the permission mode of a running session |
 | `?` | Show every key, with a search |
 | `ctrl+t` | Turn the mouse on or off |
 | `q` | Stop every session, and quit |
@@ -32,8 +35,22 @@ output.
 
 In the prompt box, `Tab` completes a `/preset` name before it moves the focus.
 
-`n`, `t`, `r`, `a`, `A`, `m`, `?`, `x`, and `q` work when the focus is the list. The `ctrl`
-forms work everywhere, so they still work while you type a prompt.
+`n`, `t`, `r`, `a`, `A`, `m`, `M`, `e`, `p`, `?`, `x`, and `q` work when the focus is the
+list or the output. The `ctrl` forms work everywhere, so they still work while you
+type a prompt.
+
+### Changing the model, effort, and mode
+
+`M`, `e`, and `p` each open a small dialog for a running session. The dialog
+lists the values, marks the current one, and applies your choice at once. `M`
+sets the model, `e` sets the effort, and `p` sets the permission mode. The
+session bar then shows the new value.
+
+The model and the permission mode change on the running child. The effort has no
+live switch in Claude Code, so `e` resumes the session with the new level: it
+stops the child and starts it again, and keeps the conversation. See
+[protocol.md](../protocol.md). Effort is also a field in the new session form,
+next to the model and the mode.
 
 ### While a session is busy
 
