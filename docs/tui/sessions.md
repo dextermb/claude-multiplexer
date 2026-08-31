@@ -60,10 +60,18 @@ what the child confirms, and not what the flags asked for. The two can differ.
 
 The tokens (`11.6k in 0.6k out`) add up every turn, so they show the total work
 billed. The context fill (`ctx 12.2k/200k (6%)`) is different: it shows how full
-the window is now. It is the token count of the last turn, not a sum. Each
-session is a separate child process, so each context fill is its own. When the
-model window is not known, the bar shows the raw count only (`ctx 12.2k`). The
-context fill shows for a live session only, because a stored session has no
+the window is now.
+
+The context fill comes from the last `assistant` message, not the `result`. One
+`assistant` message reports the usage of one request. Its `input`, `cache_read`,
+and `cache_creation` counts are the three parts of that one prompt, so their sum
+is the size of the context now. The `result` usage is a session total, and its
+cache-read count repeats the whole context every turn, so a sum of `result`
+usage grows far past the window and is wrong for this number.
+
+Each session is a separate child process, so each context fill is its own. When
+the model window is not known, the bar shows the raw count only (`ctx 12.2k`).
+The context fill shows for a live session only, because a stored session has no
 running context.
 
 The **status bar** at the bottom describes the whole program. The left side

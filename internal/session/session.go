@@ -510,6 +510,11 @@ func (s *Session) apply(ev protocol.Event) {
 		}
 		s.mu.Unlock()
 		s.setStateIf(StateStarting, StateIdle)
+	case ev.Type == protocol.TypeAssistant && ev.Message != nil && ev.Message.Usage != nil:
+		u := ev.Message.Usage
+		s.mu.Lock()
+		s.contextTokens = u.InputTokens + u.CacheReadInputTokens + u.CacheCreationInputTokens + u.OutputTokens
+		s.mu.Unlock()
 	case ev.Type == protocol.TypeResult && ev.Result != nil:
 		s.mu.Lock()
 		s.cost += ev.Result.TotalCostUSD
@@ -518,7 +523,6 @@ func (s *Session) apply(ev protocol.Event) {
 		if usage := ev.Result.Usage; usage != nil {
 			s.inputTokens += usage.InputTokens + usage.CacheReadInputTokens + usage.CacheCreationInputTokens
 			s.outputTokens += usage.OutputTokens
-			s.contextTokens = usage.InputTokens + usage.CacheReadInputTokens + usage.CacheCreationInputTokens + usage.OutputTokens
 		}
 		if ev.Result.SessionID != "" {
 			s.claudeSessionID = ev.Result.SessionID
