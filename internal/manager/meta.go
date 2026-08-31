@@ -10,6 +10,7 @@ import (
 
 type Meta struct {
 	Name            string    `json:"name"`
+	Title           string    `json:"title,omitempty"`
 	Dir             string    `json:"dir"`
 	Model           string    `json:"model"`
 	PermissionMode  string    `json:"permission_mode"`
@@ -27,6 +28,7 @@ type Meta struct {
 
 func (m Meta) sameAs(other Meta) bool {
 	return m.ClaudeSessionID == other.ClaudeSessionID &&
+		m.Title == other.Title &&
 		m.Model == other.Model &&
 		m.PermissionMode == other.PermissionMode &&
 		m.Effort == other.Effort &&

@@ -22,6 +22,7 @@ output.
 | `r` | Resume the selected session |
 | `a` | Archive the selected session, or bring it back |
 | `A` | Show or hide archived sessions |
+| `R` | Rename the selected session |
 | `x` or `ctrl+x` | Stop the selected session, after a confirmation |
 | `pgup`, `pgdown` | Scroll the output by a page |
 | `m` | Switch between rendered markdown and raw text |
@@ -35,9 +36,17 @@ output.
 
 In the prompt box, `Tab` completes a `/preset` name before it moves the focus.
 
-`n`, `t`, `r`, `a`, `A`, `m`, `M`, `e`, `p`, `?`, `x`, and `q` work when the focus is the
+`n`, `t`, `r`, `a`, `A`, `R`, `m`, `M`, `e`, `p`, `?`, `x`, and `q` work when the focus is the
 list or the output. The `ctrl` forms work everywhere, so they still work while you
 type a prompt.
+
+### Renaming a session
+
+`R` opens a small dialog with one text field, filled with the current name.
+Type a new title, then press `Enter`. An empty field clears the title, so the
+session shows its name again. A rename works on a live session and on a stored
+session. The name stays the key on disk; the title is only the display text.
+See [sessions.md](./sessions.md) and [manager.md](../manager.md).
 
 ### Changing the model, effort, and mode
 

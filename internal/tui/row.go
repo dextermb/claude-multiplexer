@@ -11,6 +11,7 @@ import (
 
 type row struct {
 	name     string
+	title    string
 	dir      string
 	model    string
 	mode     string
@@ -32,6 +33,7 @@ type row struct {
 func rowFromSnapshot(snap session.Snapshot) row {
 	return row{
 		name:    snap.Name,
+		title:   snap.Title,
 		dir:     snap.Dir,
 		model:   snap.Model,
 		mode:    snap.PermissionMode,
@@ -56,6 +58,7 @@ func rowFromMeta(meta manager.Meta) row {
 	}
 	return row{
 		name:     meta.Name,
+		title:    meta.Title,
 		dir:      meta.Dir,
 		model:    meta.Model,
 		mode:     meta.PermissionMode,
@@ -99,4 +102,12 @@ func rowGlyph(item row, frame int) string {
 
 func (r row) running() bool {
 	return r.live && r.state.Live()
+}
+
+// displayName is the title when the session has one, else the name.
+func (r row) displayName() string {
+	if r.title != "" {
+		return r.title
+	}
+	return r.name
 }
