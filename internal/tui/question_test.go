@@ -1,0 +1,153 @@
+package tui
+
+import (
+	"strings"
+	"testing"
+
+	"github.com/dextermb/claude-multiplexer/internal/manager"
+	"github.com/dextermb/claude-multiplexer/internal/protocol"
+)
+
+func colourQuestion(multi bool) []protocol.Question {
+	return []protocol.Question{{
+		Question:    "Which colour do you prefer?",
+		Header:      "Colour",
+		Options:     []protocol.Option{{Label: "Red"}, {Label: "Blue"}},
+		MultiSelect: multi,
+	}}
+}
+
+func TestQuestionSingleSelectFormatsTheAnswer(t *testing.T) {
+	d := newQuestionDialog("alpha", colourQuestion(false))
+	d.Update(key(" "))
+	res, _ := d.Update(key("enter"))
+	if res != formSubmitted {
+		t.Fatalf("enter with a choice must submit, got %v", res)
+	}
+	if got := d.answer(); got != "Colour: Red" {
+		t.Fatalf("answer = %q, want %q", got, "Colour: Red")
+	}
+}
+
+func TestQuestionSingleSelectIsExclusive(t *testing.T) {
+	d := newQuestionDialog("alpha", colourQuestion(false))
+	d.Update(key(" "))
+	d.Update(key("down"))
+	d.Update(key(" "))
+	if got := d.answer(); got != "Colour: Blue" {
+		t.Fatalf("answer = %q, want only Blue", got)
+	}
+}
+
+func TestQuestionMultiSelectKeepsEveryChoice(t *testing.T) {
+	d := newQuestionDialog("alpha", colourQuestion(true))
+	d.Update(key(" "))
+	d.Update(key("down"))
+	d.Update(key(" "))
+	if got := d.answer(); got != "Colour: Red, Blue" {
+		t.Fatalf("answer = %q, want both", got)
+	}
+}
+
+func TestQuestionFreeTextAnswer(t *testing.T) {
+	d := newQuestionDialog("alpha", colourQuestion(false))
+	d.Update(key("down"))
+	d.Update(key("down"))
+	d.Update(key("teal"))
+	res, _ := d.Update(key("enter"))
+	if res != formSubmitted {
+		t.Fatalf("enter with typed text must submit, got %v", res)
+	}
+	if got := d.answer(); got != "Colour: teal" {
+		t.Fatalf("answer = %q, want the typed value", got)
+	}
+}
+
+func TestQuestionChoiceWithNoteCombines(t *testing.T) {
+	d := newQuestionDialog("alpha", colourQuestion(false))
+	d.Update(key(" "))
+	d.Update(key("down"))
+	d.Update(key("down"))
+	d.Update(key("warmer"))
+	d.Update(key("enter"))
+	if got := d.answer(); got != "Colour: Red (warmer)" {
+		t.Fatalf("answer = %q, want the label and note", got)
+	}
+}
+
+func TestQuestionEmptyStepWillNotSubmit(t *testing.T) {
+	d := newQuestionDialog("alpha", colourQuestion(false))
+	res, _ := d.Update(key("enter"))
+	if res != formOpen {
+		t.Fatalf("enter with no choice must stay open, got %v", res)
+	}
+	if d.err == "" {
+		t.Fatal("an empty step must set an error")
+	}
+}
+
+func TestQuestionWalksEveryQuestion(t *testing.T) {
+	questions := []protocol.Question{
+		{Header: "Colour", Options: []protocol.Option{{Label: "Red"}}},
+		{Header: "Size", Options: []protocol.Option{{Label: "Large"}}},
+	}
+	d := newQuestionDialog("alpha", questions)
+	d.Update(key(" "))
+	if res, _ := d.Update(key("enter")); res != formOpen {
+		t.Fatal("the first answer must advance, not submit")
+	}
+	if d.step != 1 {
+		t.Fatalf("step = %d, want the second question", d.step)
+	}
+	d.Update(key(" "))
+	if res, _ := d.Update(key("enter")); res != formSubmitted {
+		t.Fatal("the last answer must submit")
+	}
+	if got := d.answer(); got != "Colour: Red\nSize: Large" {
+		t.Fatalf("answer = %q, want a line for each question", got)
+	}
+}
+
+func TestEventOpensTheQuestionDialogAndSubmitSends(t *testing.T) {
+	m, mgr := newTestModel(t, "")
+	m = start(t, m, 100, 30)
+	m, _ = step(t, m, key("esc"))
+	m = spawn(t, m, mgr, "alpha", t.TempDir())
+
+	m, _ = step(t, m, eventMsg(manager.Event{Session: "alpha", Questions: colourQuestion(false)}))
+	if m.question == nil {
+		t.Fatal("a question event must open the dialog")
+	}
+	if m.sel != "alpha" {
+		t.Fatalf("the dialog must select its session, sel = %q", m.sel)
+	}
+	if view := m.View(); !strings.Contains(visible(view), "Which colour do you prefer?") {
+		t.Fatalf("the view does not show the question:\n%s", visible(view))
+	}
+
+	m, _ = step(t, m, key(" "))
+	m, _ = step(t, m, key("enter"))
+	if m.question != nil {
+		t.Fatal("enter must close the dialog")
+	}
+	if got := m.queued["alpha"]; len(got) != 1 || got[0] != "Colour: Red" {
+		t.Fatalf("the answer must be sent, queued = %v", got)
+	}
+}
+
+func TestSecondQuestionWhileOneIsOpenIsNoted(t *testing.T) {
+	m, mgr := newTestModel(t, "")
+	m = start(t, m, 100, 30)
+	m, _ = step(t, m, key("esc"))
+	m = spawn(t, m, mgr, "alpha", t.TempDir())
+
+	m, _ = step(t, m, eventMsg(manager.Event{Session: "alpha", Questions: colourQuestion(false)}))
+	first := m.question
+	m, _ = step(t, m, eventMsg(manager.Event{Session: "alpha", Questions: colourQuestion(true)}))
+	if m.question != first {
+		t.Fatal("a second question must not replace the open one")
+	}
+	if !strings.Contains(m.status, "another question") {
+		t.Fatalf("status = %q, want a note about the waiting question", m.status)
+	}
+}

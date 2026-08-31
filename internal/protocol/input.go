@@ -50,6 +50,12 @@ func (w *Writer) SendUser(sessionID, text string) error {
 	return w.writeJSON(msg)
 }
 
+func (w *Writer) SendInterrupt(requestID string) error {
+	return w.SendControl(requestID, struct {
+		Subtype string `json:"subtype"`
+	}{"interrupt"})
+}
+
 func (w *Writer) SendControl(requestID string, request any) error {
 	payload, err := json.Marshal(request)
 	if err != nil {

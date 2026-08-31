@@ -34,6 +34,32 @@ presses instead. So a text fragment that holds a `/` also moves the focus to the
 prompt, and the pieces gather there in order. A single `/`, and quick typing
 with no `/` in it, stay as key presses for the list.
 
+## Answering a question
+
+A session asks the human a multiple-choice question with the `AskUserQuestion`
+tool. When that tool arrives, a dialog opens over the interface and the session
+that asked becomes the selected one. The dialog shows one question at a time,
+with its options and a text field.
+
+- `↑` and `↓` move through the options and the text field.
+- `Space` chooses the option under the cursor. A single-choice question keeps
+  only the last option. A multi-choice question keeps every option you mark.
+- Type in the text field to give a free answer next to the options, or in place
+  of them.
+- `Enter` sends the answer. With more than one question, it steps to the next
+  one first.
+- `Esc` dismisses the dialog without an answer.
+
+The answer goes back as the next prompt, one labelled line for each question,
+because the child already closed the tool call. See
+[protocol.md](../protocol.md). For example, a choice of `Blue` with a note reads
+`Colour: Blue (a lighter shade)`.
+
+The child answers the tool itself with an error, so that error and the model's
+follow-up line both stay in the transcript. A second question that arrives while
+the dialog is open is not shown. The status bar notes it, and the human can ask
+the session again.
+
 ## The new session form
 
 The form asks for a directory, a name, a model, a permission mode, and a first

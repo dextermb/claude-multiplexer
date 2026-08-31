@@ -1,0 +1,200 @@
+package tui
+
+import (
+	"fmt"
+	"strings"
+
+	"github.com/charmbracelet/bubbles/textinput"
+	tea "github.com/charmbracelet/bubbletea"
+
+	"github.com/dextermb/claude-multiplexer/internal/protocol"
+)
+
+type questionDialog struct {
+	session   string
+	questions []protocol.Question
+	step      int
+	cursor    int
+	chosen    []map[int]bool
+	text      []textinput.Model
+	err       string
+}
+
+func newQuestionDialog(session string, questions []protocol.Question) *questionDialog {
+	d := &questionDialog{session: session, questions: questions}
+	for range questions {
+		d.chosen = append(d.chosen, make(map[int]bool))
+		input := textinput.New()
+		input.Placeholder = "or type an answer"
+		input.CharLimit = 512
+		input.Width = 40
+		d.text = append(d.text, input)
+	}
+	d.syncFocus()
+	return d
+}
+
+func (d *questionDialog) current() protocol.Question { return d.questions[d.step] }
+
+func (d *questionDialog) textRow() int { return len(d.current().Options) }
+
+func (d *questionDialog) onText() bool { return d.cursor == d.textRow() }
+
+func (d *questionDialog) syncFocus() {
+	for i := range d.text {
+		d.text[i].Blur()
+	}
+	if d.onText() {
+		d.text[d.step].Focus()
+		d.text[d.step].CursorEnd()
+	}
+}
+
+func (d *questionDialog) Update(msg tea.Msg) (formResult, tea.Cmd) {
+	key, ok := msg.(tea.KeyMsg)
+	if !ok {
+		return formOpen, nil
+	}
+	switch key.String() {
+	case "esc":
+		return formCancelled, nil
+	case "up", "shift+tab":
+		d.move(-1)
+		return formOpen, nil
+	case "down", "tab":
+		d.move(1)
+		return formOpen, nil
+	case "enter":
+		if d.confirmStep() {
+			return formSubmitted, nil
+		}
+		return formOpen, nil
+	case " ":
+		if !d.onText() {
+			d.toggle(d.cursor)
+			return formOpen, nil
+		}
+	}
+	if d.onText() {
+		var cmd tea.Cmd
+		d.text[d.step], cmd = d.text[d.step].Update(msg)
+		return formOpen, cmd
+	}
+	return formOpen, nil
+}
+
+func (d *questionDialog) move(delta int) {
+	rows := d.textRow() + 1
+	d.cursor = (d.cursor + delta + rows) % rows
+	d.syncFocus()
+}
+
+func (d *questionDialog) toggle(option int) {
+	chosen := d.chosen[d.step]
+	if chosen[option] {
+		delete(chosen, option)
+		return
+	}
+	if !d.current().MultiSelect {
+		for key := range chosen {
+			delete(chosen, key)
+		}
+	}
+	chosen[option] = true
+}
+
+func (d *questionDialog) confirmStep() bool {
+	if len(d.chosen[d.step]) == 0 && strings.TrimSpace(d.text[d.step].Value()) == "" {
+		d.err = "choose an option or type an answer"
+		return false
+	}
+	d.err = ""
+	if d.step < len(d.questions)-1 {
+		d.step++
+		d.cursor = 0
+		d.syncFocus()
+		return false
+	}
+	return true
+}
+
+func (d *questionDialog) answer() string {
+	var lines []string
+	for i, question := range d.questions {
+		var labels []string
+		for j, option := range question.Options {
+			if d.chosen[i][j] {
+				labels = append(labels, option.Label)
+			}
+		}
+		value := strings.Join(labels, ", ")
+		if note := strings.TrimSpace(d.text[i].Value()); note != "" {
+			if value == "" {
+				value = note
+			} else {
+				value = fmt.Sprintf("%s (%s)", value, note)
+			}
+		}
+		key := question.Header
+		if key == "" {
+			key = question.Question
+		}
+		lines = append(lines, fmt.Sprintf("%s: %s", key, value))
+	}
+	return strings.Join(lines, "\n")
+}
+
+func (d *questionDialog) View(width int) string {
+	inner := width - 8
+	if inner < 40 {
+		inner = 40
+	}
+
+	question := d.current()
+	var b strings.Builder
+	if len(d.questions) > 1 {
+		b.WriteString(titleStyle.Render(fmt.Sprintf("Question %d of %d", d.step+1, len(d.questions))))
+	} else {
+		b.WriteString(titleStyle.Render("A question for you"))
+	}
+	b.WriteString("\n\n")
+	b.WriteString(questionTextStyle.Width(inner - 2).Render(question.Question))
+	b.WriteString("\n")
+	if question.MultiSelect {
+		b.WriteString(hintStyle.Render("choose one or more"))
+		b.WriteString("\n")
+	}
+	b.WriteString("\n")
+
+	rowWidth := inner - 4
+	for i, option := range question.Options {
+		mark := "○"
+		if d.chosen[d.step][i] {
+			mark = "◉"
+		}
+		row := fmt.Sprintf("%s %s", mark, option.Label)
+		if option.Description != "" {
+			room := rowWidth - len([]rune(row)) - 4
+			if room > 4 {
+				row += "  " + hintStyle.Render(truncate(option.Description, room))
+			}
+		}
+		if i == d.cursor {
+			b.WriteString(selectedRowStyle.Width(rowWidth).Render("▸ " + row))
+		} else {
+			b.WriteString(rowStyle.Width(rowWidth).Render("  " + row))
+		}
+		b.WriteString("\n")
+	}
+
+	b.WriteString("\n")
+	b.WriteString(fieldLabelStyle.Render("  "))
+	b.WriteString(d.text[d.step].View())
+	b.WriteString("\n")
+
+	if d.err != "" {
+		b.WriteString("\n" + errorStyle.Render(d.err))
+	}
+	b.WriteString("\n\n" + hintStyle.Render("↑↓ move · space choose · enter send · esc cancel"))
+	return modalStyle.Width(inner).Render(b.String())
+}

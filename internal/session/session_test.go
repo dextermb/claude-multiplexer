@@ -419,6 +419,120 @@ func TestNewRejectsAMissingDirectory(t *testing.T) {
 	}
 }
 
+func TestSessionInterruptEndsTheTurn(t *testing.T) {
+	s := newTestSession(t, Config{Name: "int", Env: []string{"FAKECLAUDE_MODE=interruptible"}})
+	c := collect(s)
+	if err := s.Start(context.Background()); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	if err := s.Send("one"); err != nil {
+		t.Fatalf("Send: %v", err)
+	}
+	waitForState(t, s, StateBusy, 5*time.Second)
+	if err := s.Interrupt(); err != nil {
+		t.Fatalf("Interrupt: %v", err)
+	}
+	waitForState(t, s, StateIdle, 5*time.Second)
+
+	stop, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_ = s.Stop(stop)
+	c.wait(t)
+
+	results := c.results()
+	if len(results) != 1 {
+		t.Fatalf("got %d results, want 1", len(results))
+	}
+	if results[0].Result != "interrupted: one" || !results[0].IsError {
+		t.Errorf("result = %q (is_error=%v), want the interrupted turn", results[0].Result, results[0].IsError)
+	}
+}
+
+func TestSessionInterruptFlushesTheQueue(t *testing.T) {
+	s := newTestSession(t, Config{Name: "flush", Env: []string{"FAKECLAUDE_MODE=interruptible"}})
+	c := collect(s)
+	if err := s.Start(context.Background()); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	if err := s.Send("one"); err != nil {
+		t.Fatalf("Send one: %v", err)
+	}
+	waitForState(t, s, StateBusy, 5*time.Second)
+	if err := s.Send("two"); err != nil {
+		t.Fatalf("Send two: %v", err)
+	}
+	if snap := s.Snapshot(); snap.Queued != 1 {
+		t.Fatalf("queue length = %d, want 1 while busy", snap.Queued)
+	}
+
+	if err := s.Interrupt(); err != nil {
+		t.Fatalf("Interrupt one: %v", err)
+	}
+	waitForTurns(t, s, 1, 5*time.Second)
+	if err := s.Interrupt(); err != nil {
+		t.Fatalf("Interrupt two: %v", err)
+	}
+	waitForTurns(t, s, 2, 5*time.Second)
+
+	stop, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_ = s.Stop(stop)
+	c.wait(t)
+
+	results := c.results()
+	if len(results) != 2 {
+		t.Fatalf("got %d results, want 2", len(results))
+	}
+	for i, want := range []string{"interrupted: one", "interrupted: two"} {
+		if results[i].Result != want {
+			t.Errorf("result %d = %q, want %q", i, results[i].Result, want)
+		}
+	}
+	if snap := s.Snapshot(); snap.Queued != 0 {
+		t.Errorf("queue length = %d, want 0", snap.Queued)
+	}
+}
+
+func TestSessionDiscardQueuedStopsTheQueuedPrompt(t *testing.T) {
+	s := newTestSession(t, Config{Name: "drop", Env: []string{"FAKECLAUDE_MODE=interruptible"}})
+	c := collect(s)
+	if err := s.Start(context.Background()); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	if err := s.Send("one"); err != nil {
+		t.Fatalf("Send one: %v", err)
+	}
+	waitForState(t, s, StateBusy, 5*time.Second)
+	if err := s.Send("two"); err != nil {
+		t.Fatalf("Send two: %v", err)
+	}
+	s.DiscardQueued()
+	if snap := s.Snapshot(); snap.Queued != 0 {
+		t.Fatalf("queue length = %d, want 0 after discard", snap.Queued)
+	}
+	if err := s.Interrupt(); err != nil {
+		t.Fatalf("Interrupt: %v", err)
+	}
+	waitForState(t, s, StateIdle, 5*time.Second)
+	time.Sleep(50 * time.Millisecond)
+	if snap := s.Snapshot(); snap.State != StateIdle {
+		t.Errorf("state = %v, want idle — the dropped prompt must not run", snap.State)
+	}
+
+	stop, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_ = s.Stop(stop)
+	c.wait(t)
+
+	results := c.results()
+	if len(results) != 1 {
+		t.Fatalf("got %d results, want 1 — the queued prompt was not dropped", len(results))
+	}
+	if results[0].Result != "interrupted: one" {
+		t.Errorf("result = %q, want the first turn only", results[0].Result)
+	}
+}
+
 func waitForState(t *testing.T, s *Session, want State, limit time.Duration) {
 	t.Helper()
 	deadline := time.Now().Add(limit)

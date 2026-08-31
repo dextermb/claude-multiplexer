@@ -7,7 +7,27 @@ For the keys that drive it, see [keys.md](./keys.md).
 
 The list holds two kinds of row. A **live** row is a session this program runs
 now. A **stored** row is work from an earlier run, read from disk. Live rows
-come first, then stored rows, newest first.
+come first, then stored rows, then archived rows. Within each group the order is
+stable, so a row does not jump as its state changes.
+
+## Reading a row
+
+A row starts with a state glyph in the state colour, then the name, then `⇢n`
+when `n` prompts wait in the queue. The glyph tells the state at a glance:
+
+| Glyph | State | Colour |
+|---|---|---|
+| `◌` | starting | blue |
+| `⠋` (animated) | busy | amber |
+| `●` | idle | green |
+| `●` | failed | red |
+| `○` | stored | gray |
+| `·` | archived | faint gray |
+
+The busy glyph is the dot spinner (`⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏`). It turns while any
+session runs a turn, and it is the same spinner the output pane shows for
+`thinking…`. The selected row is shown with a blue background, and the focused
+pane (the list, the prompt, or the output) carries a blue left edge.
 
 Select a stored row and the pane shows that conversation, replayed from its
 transcript. It is a record: you cannot type into it. Press `Enter` and the
@@ -32,8 +52,8 @@ A running session cannot be archived. Stop it first.
 
 The **session bar** sits above the output, and it describes the selected session
 only. The left side names it: the session, the model in use, and the permission
-mode. The right side gives the numbers: the state, the queue length, the number
-of turns, the duration of the last turn, the tokens, and the cost.
+mode. The right side gives the numbers: the state, the queue length, the tokens,
+and the cost.
 
 The model and the permission mode come from the `init` event, so the bar names
 what the child confirms, and not what the flags asked for. The two can differ.
@@ -51,13 +71,17 @@ The bar always fits on one line. When the window is too narrow, the two sides
 shed detail in turn, and the least useful item goes first:
 
 ```
- alpha · fake-model · auto                      idle · 1 turn · 7ms · $0.2500
- alpha · fake-model                     idle · 1 turn · 7ms · $0.2500
- alpha · fake-model         idle · 1 turn · $0.2500
- alpha           idle · 1 turn · $0.2500
- alpha  · $0.2500
+ alpha · fake-model · auto        idle · 11.6k in 0.6k out · $0.2500
+ alpha · fake-model               idle · 11.6k in 0.6k out
+ alpha · fake-model               idle
+ alpha                            idle
+ alpha
 ```
 
-The order is: the permission mode, the tokens, the model, the duration, the
-turn count, the queue length, and last of all the state. The name and the cost
-always stay. Only when the name alone cannot fit is it cut short.
+The right side sheds from the end: the cost first, then the tokens, then the
+queue length, and last of all the state, so that only the name remains. The
+left side sheds the permission mode, then the model. The name always stays, and
+only when the name alone cannot fit is it cut short.
+
+The per-session cost lives here, and it drops first. The total cost of every
+session lives in the status bar, and it stays.

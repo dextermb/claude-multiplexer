@@ -88,6 +88,15 @@ appending. The terminal interface does exactly this.
 A drop costs screen updates only. The transcript on disk stays complete, and the
 ring buffer in memory stays complete up to its 5000 lines.
 
+## Control
+
+`Send(name, text)` puts a prompt on the session queue. `Stop(ctx, name)` ends a
+session. `Interrupt(name, discardQueued)` stops the running turn without
+stopping the session. When `discardQueued` is true, it clears the prompt queue
+first, so the session stops until the next prompt. When false, it ends the turn
+and lets the next queued prompt go at once. See
+[Interrupt](./sessions.md#interrupt).
+
 ## Shutdown
 
 A session that ends stays in the list, so you can still read it. It becomes a

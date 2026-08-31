@@ -12,12 +12,6 @@ This file holds only the work that is not built. Delete it when nothing is left.
 
 ## Control
 
-- **Interrupt.** A key to stop a turn that is running, without stopping the
-  session. Two mechanisms exist. The first is a `control_request` line on
-  stdin. The second is a `SIGINT` signal to the child. The control protocol is
-  not a stable public interface, so this work must first prove what the
-  installed version accepts, and fall back to `SIGINT`, and then to a restart
-  with `--resume`.
 - **A configuration file** at `~/.multiplexier/config.json`, to hold the default
   model, the default permission mode, and the state directory. Every one of
   those is a flag today, and a flag is the wrong place for a setting you never
@@ -31,6 +25,11 @@ This file holds only the work that is not built. Delete it when nothing is left.
   mcp__mux__approve` points at an MCP tool that the multiplexer serves. Each
   request then appears in the interface, and the human answers with a key
   press. It needs an MCP server inside the multiplexer, which is why it waits.
+  This also needs a new `input required` state and its own indicator (a `◉`
+  glyph fits the circle set in [tui/sessions.md](../tui/sessions.md)). A
+  `control_request` event already reaches the app unparsed (`ev.Raw`), but its
+  schema is not modelled, so this work must first probe what the installed
+  version emits.
 - **A task router.** A queue, and dispatch to the first free session. This is a
   second product rather than a feature, so it needs its own plan.
 

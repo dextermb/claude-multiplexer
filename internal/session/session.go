@@ -165,6 +165,7 @@ type Session struct {
 	startedAt       time.Time
 	endedAt         time.Time
 	sent            bool
+	interruptSeq    int
 	err             error
 
 	idleSig chan struct{}
@@ -263,6 +264,24 @@ func (s *Session) Send(text string) error {
 	}
 	s.q.push(text)
 	return nil
+}
+
+func (s *Session) Interrupt() error {
+	if s.cmd == nil {
+		return ErrNotStarted
+	}
+	if s.State() != StateBusy {
+		return nil
+	}
+	s.mu.Lock()
+	s.interruptSeq++
+	n := s.interruptSeq
+	s.mu.Unlock()
+	return s.writer.SendInterrupt(fmt.Sprintf("int-%d", n))
+}
+
+func (s *Session) DiscardQueued() {
+	s.q.clear()
 }
 
 func (s *Session) State() State {
@@ -375,12 +394,12 @@ func (s *Session) writeLoop() {
 		case <-s.q.sig:
 		}
 		for {
+			if err := s.waitIdle(); err != nil {
+				return
+			}
 			text, ok := s.q.pop()
 			if !ok {
 				break
-			}
-			if err := s.waitIdle(); err != nil {
-				return
 			}
 			s.setState(StateBusy)
 			s.markSent()

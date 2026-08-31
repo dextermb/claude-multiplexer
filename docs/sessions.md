@@ -60,8 +60,12 @@ arrives only after the child reads input. Every later prompt waits for `idle`.
 
 `Send` puts the text on a queue and returns at once. It fails only when the
 session is not live. One writer goroutine takes the queue in order. For each
-item, it waits for a state that accepts a prompt, moves the state to `busy`, and
-writes one line to stdin.
+item, it first waits for a state that accepts a prompt, then takes the item,
+moves the state to `busy`, and writes one line to stdin.
+
+The wait comes before the take, so a queued prompt stays on the queue until the
+session is truly idle. `DiscardQueued` can therefore drop it in time — see
+[Interrupt](#interrupt).
 
 So the order of the prompts is the order of the calls to `Send`, and a caller
 never blocks. `Snapshot().Queued` reports the queue length.
@@ -103,6 +107,23 @@ session context to release any pending event, and waits for the channel to
 close. `DefaultStopGrace` is 5 seconds.
 
 `Wait` blocks until the session ends, and returns the first error.
+
+## Interrupt
+
+`Interrupt` stops the running turn without stopping the session. It writes a
+`control_request` with the subtype `interrupt` to stdin. See
+[protocol.md](./protocol.md). Claude Code answers with a `control_response`,
+ends the turn with a `result` event, and stays alive for the next prompt. This
+was proven against Claude Code 2.1.176.
+
+The `result` event moves the state from `busy` to `idle`, the same as a normal
+end of turn. So the writer wakes, and it sends the next queued prompt at once.
+`Interrupt` writes only while the state is `busy`, and does nothing otherwise.
+
+`DiscardQueued` clears the prompt queue. Call it before `Interrupt` to stop the
+turn and hold the session, because the writer waits for `idle` before it takes
+an item, so the cleared queue leaves nothing to send. Call `Interrupt` alone to
+end the turn and let the next queued prompt go at once.
 
 ## The transcript
 

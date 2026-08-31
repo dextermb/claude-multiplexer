@@ -49,7 +49,12 @@ type stoppedMsg struct {
 	name string
 	err  error
 }
+type interruptedMsg struct {
+	name string
+	err  error
+}
 type shutdownDoneMsg struct{}
+type spinTickMsg struct{}
 type archivedMsg struct {
 	name     string
 	archived bool
@@ -68,18 +73,24 @@ type Model struct {
 	showArchived bool
 	replays      map[string][]render.Line
 	partials     map[string]string
+	queued       map[string][]string
+	spinFrame    int
+	animating    bool
 	md           *markdown.Renderer
 	showRaw      bool
 	templates    []template.Template
 	help         *help
 	picker       *picker
 	fields       *fieldForm
+	question     *questionDialog
 	pending      string
 	sel          string
 	listOffset   int
 
 	output     viewport.Model
 	outputText string
+	content    string
+	selection  selRange
 	prompt     textarea.Model
 	form       *form
 	confirm    string
@@ -116,6 +127,7 @@ func New(opts Options) Model {
 	return Model{
 		replays:  make(map[string][]render.Line),
 		partials: make(map[string]string),
+		queued:   make(map[string][]string),
 		md:       markdown.New(),
 		opts:     opts,
 		mgr:      opts.Manager,
@@ -139,6 +151,12 @@ func (m Model) Init() tea.Cmd {
 		cmds = append(cmds, spawnCmd(m.mgr, manager.Spec{Dir: m.opts.InitialDir}))
 	}
 	return tea.Batch(cmds...)
+}
+
+func spinTick() tea.Cmd {
+	return tea.Tick(spinInterval, func(time.Time) tea.Msg {
+		return spinTickMsg{}
+	})
 }
 
 func waitEvent(sub *manager.Subscription) tea.Cmd {
@@ -188,6 +206,12 @@ func stopCmd(mgr *manager.Manager, name string) tea.Cmd {
 	}
 }
 
+func interruptCmd(mgr *manager.Manager, name string, discard bool) tea.Cmd {
+	return func() tea.Msg {
+		return interruptedMsg{name: name, err: mgr.Interrupt(name, discard)}
+	}
+}
+
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
@@ -216,8 +240,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.refresh()
 		return m, nil
+	case interruptedMsg:
+		if msg.err != nil {
+			m.errText = msg.err.Error()
+		}
+		m.refresh()
+		return m, nil
 	case shutdownDoneMsg:
 		return m, tea.Quit
+	case spinTickMsg:
+		return m.handleSpin()
 	case tea.MouseMsg:
 		return m.handleMouse(msg)
 	case tea.KeyMsg:
@@ -241,7 +273,7 @@ func (m Model) resize(width, height int) (tea.Model, tea.Cmd) {
 
 	m.output.Width = m.outputWidth()
 	m.output.Height = m.outputHeight()
-	m.prompt.SetWidth(width)
+	m.prompt.SetWidth(width - gutterWidth)
 	m.rebuildOutput()
 
 	return m, m.maybeOpenForm()
@@ -273,6 +305,9 @@ func (m Model) handleEvent(ev manager.Event) (tea.Model, tea.Cmd) {
 	gap := m.lastSeq != 0 && ev.Seq != m.lastSeq+1
 	m.lastSeq = ev.Seq
 	m.setPartial(ev.Session, ev.Partial)
+	if hasPrompt(ev.Lines) {
+		m.dropQueued(ev.Session)
+	}
 	m.refresh()
 
 	switch {
@@ -283,10 +318,82 @@ func (m Model) handleEvent(ev manager.Event) (tea.Model, tea.Cmd) {
 	case ev.Session == m.sel:
 		m.setContent()
 	}
-	if ev.Closed {
-		return m, tea.Batch(waitEvent(m.sub), reloadStored(m.mgr))
+	cmds := []tea.Cmd{waitEvent(m.sub)}
+	if cmd := m.maybeAskQuestion(ev); cmd != nil {
+		cmds = append(cmds, cmd)
 	}
-	return m, waitEvent(m.sub)
+	if spin := m.ensureAnimating(); spin != nil {
+		cmds = append(cmds, spin)
+	}
+	if ev.Closed {
+		cmds = append(cmds, reloadStored(m.mgr))
+	}
+	return m, tea.Batch(cmds...)
+}
+
+func hasPrompt(lines []render.Line) bool {
+	for _, line := range lines {
+		if line.Class == render.ClassPrompt {
+			return true
+		}
+	}
+	return false
+}
+
+func (m *Model) dropQueued(name string) {
+	if len(m.queued[name]) == 0 {
+		return
+	}
+	rest := m.queued[name][1:]
+	if len(rest) == 0 {
+		delete(m.queued, name)
+		return
+	}
+	m.queued[name] = rest
+}
+
+func (m *Model) maybeAskQuestion(ev manager.Event) tea.Cmd {
+	if len(ev.Questions) == 0 {
+		return nil
+	}
+	if m.question != nil {
+		m.status = "another question waits for " + ev.Session
+		return nil
+	}
+	m.sel = ev.Session
+	m.rebuildOutput()
+	m.question = newQuestionDialog(ev.Session, ev.Questions)
+	m.prompt.Blur()
+	return textinput.Blink
+}
+
+func (m Model) questionKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	result, cmd := m.question.Update(msg)
+	switch result {
+	case formCancelled:
+		m.question = nil
+		m.status = "question dismissed"
+		return m, nil
+	case formSubmitted:
+		return m.submitQuestion()
+	}
+	return m, cmd
+}
+
+func (m Model) submitQuestion() (tea.Model, tea.Cmd) {
+	name := m.question.session
+	text := m.question.answer()
+	m.question = nil
+	if err := m.mgr.Send(name, text); err != nil {
+		m.errText = err.Error()
+		return m, nil
+	}
+	m.errText = ""
+	m.status = "answered"
+	m.queued[name] = append(m.queued[name], text)
+	m.refresh()
+	m.setContent()
+	return m, m.ensureAnimating()
 }
 
 func (m Model) handleSpawned(msg spawnedMsg) (tea.Model, tea.Cmd) {
@@ -359,6 +466,9 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.help = nil
 		}
 		return m, cmd
+	}
+	if m.question != nil {
+		return m.questionKey(msg)
 	}
 	if m.picker != nil {
 		return m.pickerKey(msg)
@@ -435,6 +545,9 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 func (m Model) promptKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "esc":
+		if next, cmd, ok := m.stopBusy(); ok {
+			return next, cmd
+		}
 		m.focus = focusSidebar
 		m.prompt.Blur()
 		return m, nil
@@ -451,8 +564,12 @@ func (m Model) promptKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) outputKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	m.clearSelection()
 	switch msg.String() {
 	case "esc":
+		if next, cmd, ok := m.stopBusy(); ok {
+			return next, cmd
+		}
 		m.focus = focusSidebar
 		return m, nil
 	case "enter", "i":
@@ -574,15 +691,15 @@ func (m Model) archiveSelected() (tea.Model, tea.Cmd) {
 }
 
 func (m Model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
-	if m.form != nil || m.confirm != "" || m.quitting {
-		return m, nil
-	}
-	if msg.Action != tea.MouseActionPress {
+	if m.form != nil || m.confirm != "" || m.quitting || m.question != nil {
 		return m, nil
 	}
 
 	switch msg.Button {
 	case tea.MouseButtonWheelUp, tea.MouseButtonWheelDown:
+		if msg.Action != tea.MouseActionPress {
+			return m, nil
+		}
 		if msg.X < sidebarWidth {
 			if msg.Button == tea.MouseButtonWheelUp {
 				return m.move(-1)
@@ -593,28 +710,137 @@ func (m Model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 		m.output, cmd = m.output.Update(msg)
 		return m, cmd
 	case tea.MouseButtonLeft:
+		return m.handleLeftMouse(msg)
+	}
+	return m, nil
+}
+
+func (m Model) handleLeftMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
+	switch msg.Action {
+	case tea.MouseActionPress:
 		if msg.Y >= m.bodyHeight() && msg.Y < m.bodyHeight()+promptHeight {
+			m.clearSelection()
 			m.focus = focusPrompt
 			m.prompt.Focus()
 			return m, textarea.Blink
 		}
+		if p, ok := m.outputPos(msg.X, msg.Y); ok {
+			m.focus = focusOutput
+			m.prompt.Blur()
+			m.selection = selRange{active: true, dragging: true, anchor: p, cursor: p}
+			m.setContent()
+			return m, nil
+		}
 		if msg.X >= sidebarWidth {
+			m.clearSelection()
 			m.focus = focusOutput
 			m.prompt.Blur()
 			return m, nil
 		}
-		if msg.X < sidebarWidth {
-			index := m.listOffset + msg.Y - titleHeight
-			if msg.Y >= titleHeight && index >= 0 && index < len(m.rows) {
-				m.sel = m.rows[index].name
-				m.focus = focusSidebar
-				m.prompt.Blur()
-				m.rebuildOutput()
-			}
-			return m, nil
+		m.clearSelection()
+		index := m.listOffset + msg.Y - titleHeight
+		if msg.Y >= titleHeight && index >= 0 && index < len(m.rows) {
+			m.sel = m.rows[index].name
+			m.focus = focusSidebar
+			m.prompt.Blur()
+			m.rebuildOutput()
 		}
+		return m, nil
+	case tea.MouseActionMotion:
+		if m.selection.dragging {
+			if p, ok := m.outputPos(msg.X, msg.Y); ok {
+				m.selection.cursor = p
+				m.setContent()
+			}
+		}
+		return m, nil
+	case tea.MouseActionRelease:
+		if m.selection.dragging {
+			m.selection.dragging = false
+			if p, ok := m.outputPos(msg.X, msg.Y); ok {
+				m.selection.cursor = p
+			}
+			if m.selection.empty() {
+				m.selection.active = false
+			}
+			m.copySelection()
+			m.setContent()
+		}
+		return m, nil
 	}
 	return m, nil
+}
+
+func (m Model) outputPos(x, y int) (pos, bool) {
+	if x < sidebarWidth+gutterWidth {
+		return pos{}, false
+	}
+	row := y - barHeight
+	if row < 0 || row >= m.outputHeight() {
+		return pos{}, false
+	}
+	return pos{line: m.output.YOffset + row, col: x - sidebarWidth - gutterWidth}, true
+}
+
+func (m *Model) clearSelection() {
+	if !m.selection.active {
+		return
+	}
+	m.selection = selRange{}
+	m.setContent()
+}
+
+func (m *Model) copySelection() {
+	if m.selection.empty() {
+		return
+	}
+	a, b := m.selection.bounds()
+	text := selectedText(plainLines(m.content), a, b)
+	if strings.TrimSpace(text) == "" {
+		return
+	}
+	if err := copyToClipboard(text); err != nil {
+		m.errText = "could not copy: " + err.Error()
+		return
+	}
+	m.errText = ""
+	m.status = "copied " + plural(strings.Count(text, "\n")+1, "line")
+}
+
+func (m Model) highlight(content string) string {
+	if !m.selection.active || m.selection.empty() {
+		return content
+	}
+	a, b := m.selection.bounds()
+	styled := strings.Split(content, "\n")
+	plain := plainLines(content)
+	for i := a.line; i <= b.line && i < len(styled) && i < len(plain); i++ {
+		if i < 0 {
+			continue
+		}
+		runes := []rune(plain[i])
+		from, to := 0, len(runes)
+		if i == a.line {
+			from = a.col
+		}
+		if i == b.line {
+			to = b.col
+		}
+		if from < 0 {
+			from = 0
+		}
+		if from > len(runes) {
+			from = len(runes)
+		}
+		if to > len(runes) {
+			to = len(runes)
+		}
+		if to < from {
+			to = from
+		}
+		styled[i] = string(runes[:from]) + selectionStyle.Render(string(runes[from:to])) + string(runes[to:])
+	}
+	return strings.Join(styled, "\n")
 }
 
 func (m Model) move(delta int) (tea.Model, tea.Cmd) {
@@ -653,12 +879,20 @@ func (m Model) toggleFocus() (tea.Model, tea.Cmd) {
 
 func (m Model) send() (tea.Model, tea.Cmd) {
 	text := strings.TrimSpace(m.prompt.Value())
-	if text == "" {
-		return m, nil
-	}
 	item, ok := m.selectedRow()
 	if !ok {
+		if text == "" {
+			return m, nil
+		}
 		m.errText = "no session is selected"
+		return m, nil
+	}
+	if text == "" {
+		if item.state == session.StateBusy && len(m.queued[m.sel]) > 0 {
+			m.errText = ""
+			m.status = "sending now…"
+			return m, interruptCmd(m.mgr, m.sel, false)
+		}
 		return m, nil
 	}
 	if !item.running() {
@@ -667,6 +901,19 @@ func (m Model) send() (tea.Model, tea.Cmd) {
 	}
 	m.prompt.Reset()
 	return m.dispatch(text)
+}
+
+func (m Model) stopBusy() (tea.Model, tea.Cmd, bool) {
+	item, ok := m.selectedRow()
+	if !ok || item.state != session.StateBusy {
+		return m, nil, false
+	}
+	delete(m.queued, m.sel)
+	m.errText = ""
+	m.status = "interrupted"
+	m.refresh()
+	m.setContent()
+	return m, interruptCmd(m.mgr, m.sel, true), true
 }
 
 func (m Model) dispatch(text string) (tea.Model, tea.Cmd) {
@@ -686,8 +933,10 @@ func (m Model) dispatch(text string) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 	m.errText = ""
+	m.queued[m.sel] = append(m.queued[m.sel], text)
 	m.refresh()
-	return m, nil
+	m.setContent()
+	return m, m.ensureAnimating()
 }
 
 func (m Model) askToStop() (tea.Model, tea.Cmd) {
@@ -791,6 +1040,7 @@ func (m Model) interrupt() (tea.Model, tea.Cmd) {
 	m.fields = nil
 	m.picker = nil
 	m.help = nil
+	m.question = nil
 	m.confirm = ""
 	m.prompt.Reset()
 	m.status = "press ctrl+c again to quit"
@@ -895,7 +1145,7 @@ func (m Model) visibleRows() int {
 }
 
 func (m Model) outputWidth() int {
-	width := m.width - sidebarWidth
+	width := m.width - sidebarWidth - gutterWidth
 	if width < 10 {
 		return 10
 	}
@@ -903,6 +1153,7 @@ func (m Model) outputWidth() int {
 }
 
 func (m *Model) rebuildOutput() {
+	m.selection = selRange{}
 	if m.sel == "" {
 		m.outputText = ""
 		m.output.SetContent("")
@@ -933,22 +1184,74 @@ func (m *Model) setPartial(name, text string) {
 
 func (m *Model) setContent() {
 	atBottom := m.output.AtBottom()
-	m.output.SetContent(m.outputText + m.partialView())
+	m.content = m.outputText + m.liveView()
+	m.output.SetContent(m.highlight(m.content))
 	if atBottom {
 		m.output.GotoBottom()
 	}
 }
 
-func (m Model) partialView() string {
-	partial := m.partials[m.sel]
-	if partial == "" {
+func (m Model) liveView() string {
+	var parts []string
+	if partial := m.partials[m.sel]; partial != "" {
+		parts = append(parts, classStyle(render.ClassText).Width(m.outputWidth()).Render(partial+cursorMark))
+	}
+	for _, text := range m.queued[m.sel] {
+		parts = append(parts, m.wrap(render.PromptLines(text)))
+	}
+	if m.thinkingSelected() {
+		parts = append(parts, spinnerStyle.Render(spinnerFrame(m.spinFrame)+" thinking…"))
+	}
+	if len(parts) == 0 {
 		return ""
 	}
-	chunk := classStyle(render.ClassText).Width(m.outputWidth()).Render(partial + cursorMark)
+	body := strings.Join(parts, "\n")
 	if m.outputText == "" {
-		return chunk
+		return body
 	}
-	return "\n" + chunk
+	return "\n" + body
+}
+
+func (m Model) thinkingSelected() bool {
+	if m.sel == "" || m.partials[m.sel] != "" {
+		return false
+	}
+	if len(m.queued[m.sel]) > 0 {
+		return true
+	}
+	item, ok := m.selectedRow()
+	return ok && item.state == session.StateBusy
+}
+
+func (m Model) spinning() bool {
+	return m.thinkingSelected() || m.anyBusy()
+}
+
+func (m Model) anyBusy() bool {
+	for _, item := range m.rows {
+		if item.live && item.state == session.StateBusy {
+			return true
+		}
+	}
+	return false
+}
+
+func (m *Model) ensureAnimating() tea.Cmd {
+	if m.animating || !m.spinning() {
+		return nil
+	}
+	m.animating = true
+	return spinTick()
+}
+
+func (m Model) handleSpin() (tea.Model, tea.Cmd) {
+	if !m.spinning() {
+		m.animating = false
+		return m, nil
+	}
+	m.spinFrame++
+	m.setContent()
+	return m, spinTick()
 }
 
 func (m *Model) linesFor(name string) []render.Line {
@@ -985,8 +1288,9 @@ func (m Model) View() string {
 	if !m.ready {
 		return "starting…"
 	}
-	body := lipgloss.JoinHorizontal(lipgloss.Top, m.sidebarView(),
-		lipgloss.JoinVertical(lipgloss.Left, m.barView(), m.outputView()))
+	right := withEdge(lipgloss.JoinVertical(lipgloss.Left, m.barView(), m.outputView()),
+		m.focus == focusOutput)
+	body := lipgloss.JoinHorizontal(lipgloss.Top, m.sidebarView(), right)
 	if m.form != nil {
 		body = centre(m.width, m.bodyHeight(), m.form.View(m.width))
 	}
@@ -996,48 +1300,63 @@ func (m Model) View() string {
 	if m.fields != nil {
 		body = centre(m.width, m.bodyHeight(), m.fields.View(m.width))
 	}
+	if m.question != nil {
+		body = centre(m.width, m.bodyHeight(), m.question.View(m.width))
+	}
 	if m.help != nil {
 		body = centre(m.width, m.bodyHeight(), m.help.View(m.width, m.bodyHeight()))
 	}
 	if m.confirm != "" {
 		body = centre(m.width, m.bodyHeight(), m.confirmView())
 	}
-	return lipgloss.JoinVertical(lipgloss.Left, body, m.promptView(), m.statusView())
+	prompt := withEdge(m.promptView(), m.focus == focusPrompt)
+	return lipgloss.JoinVertical(lipgloss.Left, body, prompt, m.statusView())
+}
+
+func withEdge(block string, on bool) string {
+	ch := " "
+	if on {
+		ch = focusEdgeStyle.Render(edgeMark)
+	}
+	height := lipgloss.Height(block)
+	edge := make([]string, height)
+	for i := range edge {
+		edge[i] = ch
+	}
+	return lipgloss.JoinHorizontal(lipgloss.Top, strings.Join(edge, "\n"), block)
 }
 
 func (m Model) sidebarView() string {
 	rows := make([]string, 0, m.bodyHeight())
-	rows = append(rows, titleStyle.Width(sidebarWidth-1).Render("SESSIONS"))
 
 	visible := m.visibleRows()
-	for i := m.listOffset; i < len(m.rows) && len(rows) <= visible; i++ {
+	for i := m.listOffset; i < len(m.rows) && len(rows) < visible; i++ {
 		rows = append(rows, m.sessionRow(m.rows[i]))
 	}
 	for len(rows) < m.bodyHeight() {
-		rows = append(rows, strings.Repeat(" ", sidebarWidth-1))
+		rows = append(rows, strings.Repeat(" ", sidebarInner))
 	}
-	return sidebarStyle.Width(sidebarWidth - 1).Height(m.bodyHeight()).Render(strings.Join(rows, "\n"))
+	block := sidebarStyle.Width(sidebarInner).Height(m.bodyHeight()).Render(strings.Join(rows, "\n"))
+	return withEdge(block, m.focus == focusSidebar)
 }
 
 func (m Model) sessionRow(item row) string {
-	badge := item.label
+	width := sidebarInner
+	badge := ""
 	if item.queued > 0 {
-		badge = fmt.Sprintf("%s+%d", badge, item.queued)
+		badge = fmt.Sprintf(" ⇢%d", item.queued)
 	}
-	width := sidebarWidth - 1
-	nameWidth := width - len(badge) - 3
-	if nameWidth < 3 {
-		nameWidth = 3
+	nameWidth := width - 2 - lipgloss.Width(badge)
+	if nameWidth < 1 {
+		nameWidth = 1
 	}
-	marker := "  "
+	rest := " " + pad(item.name, nameWidth) + badge
+	glyph := rowGlyph(item, m.spinFrame)
 	if item.name == m.sel {
-		marker = "▸ "
+		return item.style().Background(lipgloss.Color("62")).Render(glyph) +
+			selectedRowStyle.Width(width-1).Render(rest)
 	}
-	text := marker + pad(item.name, nameWidth) + " "
-	if item.name == m.sel {
-		return selectedRowStyle.Width(width).Render(text + badge)
-	}
-	return rowStyle.Width(width).Render(text + item.style().Render(badge))
+	return item.style().Render(glyph) + rowStyle.Width(width-1).Render(rest)
 }
 
 func (m Model) outputView() string {
@@ -1067,10 +1386,9 @@ func (m Model) barView() string {
 		}
 	}
 
-	right := barRight(item, nil, false)
-	room := maxInt(3, width-lipgloss.Width(right)-1)
+	room := maxInt(3, width-1)
 	left := barLeft(truncate(item.name, room), nil)
-	return barLine(width, left, right, maxInt(0, width-lipgloss.Width(left)-lipgloss.Width(right)))
+	return barLine(width, left, "", maxInt(0, width-lipgloss.Width(left)))
 }
 
 func barLadder(lefts, rights int) [][2]int {
@@ -1104,53 +1422,53 @@ func barLeft(name string, details []string) string {
 	return left
 }
 
+type barSeg struct {
+	text  string
+	style lipgloss.Style
+}
+
 func (m Model) barRights(item row) []string {
-	stats := m.barStats(item)
-	out := make([]string, 0, len(stats)+1)
-	for _, group := range stats {
-		out = append(out, barRight(item, group, true))
+	segs := m.rightSegs(item)
+	out := make([]string, 0, len(segs)+1)
+	for n := len(segs); n >= 0; n-- {
+		out = append(out, renderRight(segs[:n]))
 	}
-	return append(out, barRight(item, nil, false))
+	return out
 }
 
-func barRight(item row, stats []string, withState bool) string {
-	var right string
-	if withState {
-		right = item.style().Background(barBackground).Render(item.label)
-	}
-	if len(stats) > 0 {
-		right += barMutedStyle.Render(" · " + strings.Join(stats, " · "))
-	}
-	return right + barCostStyle.Render(fmt.Sprintf(" · $%.4f ", item.cost))
-}
-
-func (m Model) barStats(item row) [][]string {
-	var stats []string
+func (m Model) rightSegs(item row) []barSeg {
+	segs := []barSeg{{item.label, item.style().Background(barBackground)}}
 	if m.showRaw {
-		stats = append(stats, "raw")
+		segs = append(segs, barSeg{"raw", barMutedStyle})
 	}
 	if scroll := m.scrollIndicator(); scroll != "" {
-		stats = append(stats, scroll)
+		segs = append(segs, barSeg{scroll, barMutedStyle})
 	}
 	if item.queued > 0 {
-		stats = append(stats, fmt.Sprintf("+%d queued", item.queued))
-	}
-	if item.turns > 0 {
-		stats = append(stats, plural(item.turns, "turn"))
-	}
-	if item.last > 0 {
-		stats = append(stats, formatDuration(item.last))
+		segs = append(segs, barSeg{fmt.Sprintf("⇢%d", item.queued), barMutedStyle})
 	}
 	if item.input+item.output > 0 {
-		stats = append(stats, fmt.Sprintf("%s in %s out",
-			formatCount(item.input), formatCount(item.output)))
+		segs = append(segs, barSeg{
+			fmt.Sprintf("%s in %s out", formatCount(item.input), formatCount(item.output)),
+			barMutedStyle,
+		})
 	}
+	return append(segs, barSeg{fmt.Sprintf("$%.4f", item.cost), barCostStyle})
+}
 
-	options := make([][]string, 0, len(stats)+1)
-	for size := len(stats); size >= 0; size-- {
-		options = append(options, stats[:size])
+func renderRight(segs []barSeg) string {
+	if len(segs) == 0 {
+		return ""
 	}
-	return options
+	var b strings.Builder
+	for i, seg := range segs {
+		if i > 0 {
+			b.WriteString(barMutedStyle.Render(" · "))
+		}
+		b.WriteString(seg.style.Render(seg.text))
+	}
+	b.WriteString(barStyle.Render(" "))
+	return b.String()
 }
 
 func (m Model) scrollIndicator() string {
@@ -1175,17 +1493,7 @@ func plural(n int, word string) string {
 }
 
 func formatCount(n int) string {
-	if n >= 1000 {
-		return fmt.Sprintf("%.1fk", float64(n)/1000)
-	}
-	return fmt.Sprintf("%d", n)
-}
-
-func formatDuration(d time.Duration) string {
-	if d >= time.Second {
-		return d.Round(100 * time.Millisecond).String()
-	}
-	return d.Round(time.Millisecond).String()
+	return fmt.Sprintf("%.1fk", float64(n)/1000)
 }
 
 func maxInt(a, b int) int {
@@ -1206,6 +1514,13 @@ func (m Model) promptView() string {
 	}
 	if item, ok := m.selectedRow(); ok && !item.running() {
 		return hintStyle.Render(label+" — not running, press Enter to resume") + "\n" + m.prompt.View()
+	}
+	if item, ok := m.selectedRow(); ok && item.state == session.StateBusy && m.focus == focusPrompt {
+		hint := label + " — esc stops"
+		if len(m.queued[m.sel]) > 0 {
+			hint += " · enter sends queued"
+		}
+		return hintStyle.Render(hint) + "\n" + m.prompt.View()
 	}
 	if m.focus == focusPrompt {
 		return promptLabelStyle.Render(label+" ⌁ ") + "\n" + m.prompt.View()

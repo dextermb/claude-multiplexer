@@ -45,13 +45,15 @@ type Spec struct {
 }
 
 type Event struct {
-	Seq      uint64
-	Session  string
-	Kind     session.EventKind
-	Lines    []render.Line
-	Partial  string
-	Snapshot session.Snapshot
-	Closed   bool
+	Seq        uint64
+	Session    string
+	Kind       session.EventKind
+	Lines      []render.Line
+	Partial    string
+	Snapshot   session.Snapshot
+	Closed     bool
+	Questions  []protocol.Question
+	QuestionID string
 }
 
 type entry struct {
@@ -198,12 +200,15 @@ func (m *Manager) pump(item *entry) {
 		partial := trackPartial(item, ev)
 		snap := item.sess.Snapshot()
 		m.rememberSession(item, snap)
+		qid, questions, _ := ev.Protocol.AskUserQuestion()
 		m.bus.Publish(Event{
-			Session:  ev.Session,
-			Kind:     ev.Kind,
-			Lines:    lines,
-			Partial:  partial,
-			Snapshot: snap,
+			Session:    ev.Session,
+			Kind:       ev.Kind,
+			Lines:      lines,
+			Partial:    partial,
+			Snapshot:   snap,
+			Questions:  questions,
+			QuestionID: qid,
 		})
 	}
 	final := item.sess.Snapshot()
@@ -353,6 +358,17 @@ func (m *Manager) Send(name, text string) error {
 		return err
 	}
 	return item.sess.Send(text)
+}
+
+func (m *Manager) Interrupt(name string, discardQueued bool) error {
+	item, err := m.entry(name)
+	if err != nil {
+		return err
+	}
+	if discardQueued {
+		item.sess.DiscardQueued()
+	}
+	return item.sess.Interrupt()
 }
 
 func (m *Manager) Stop(ctx context.Context, name string) error {

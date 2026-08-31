@@ -16,6 +16,10 @@ type inputLine struct {
 			Text string `json:"text"`
 		} `json:"content"`
 	} `json:"message"`
+	RequestID string `json:"request_id"`
+	Request   struct {
+		Subtype string `json:"subtype"`
+	} `json:"request"`
 }
 
 func main() {
@@ -44,6 +48,10 @@ func main() {
 		os.Exit(0)
 	case "exit-after-init":
 		emitInit(sessionID)
+		os.Exit(0)
+	case "interruptible":
+		emitInit(sessionID)
+		runInterruptible(sessionID)
 		os.Exit(0)
 	}
 
@@ -133,6 +141,62 @@ func main() {
 			"total_cost_usd": 0.25,
 			"session_id":     sessionID,
 		})
+	}
+}
+
+func runInterruptible(sessionID string) {
+	scanner := bufio.NewScanner(os.Stdin)
+	scanner.Buffer(make([]byte, 0, 64*1024), 16<<20)
+	busy := false
+	pending := ""
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" {
+			continue
+		}
+		var in inputLine
+		if err := json.Unmarshal([]byte(line), &in); err != nil {
+			continue
+		}
+		switch in.Type {
+		case "user":
+			var text string
+			for _, block := range in.Message.Content {
+				if block.Type == "text" {
+					text = block.Text
+				}
+			}
+			pending = text
+			busy = true
+			emit(map[string]any{
+				"type":       "assistant",
+				"session_id": sessionID,
+				"message": map[string]any{
+					"role":    "assistant",
+					"model":   "fake-model",
+					"content": []map[string]any{{"type": "text", "text": "start: " + text}},
+				},
+			})
+		case "control_request":
+			emit(map[string]any{
+				"type":     "control_response",
+				"response": map[string]any{"subtype": "success", "request_id": in.RequestID},
+			})
+			if in.Request.Subtype != "interrupt" || !busy {
+				continue
+			}
+			busy = false
+			emit(map[string]any{
+				"type":           "result",
+				"subtype":        "error_during_execution",
+				"is_error":       true,
+				"duration_ms":    3,
+				"num_turns":      1,
+				"result":         "interrupted: " + pending,
+				"total_cost_usd": 0.1,
+				"session_id":     sessionID,
+			})
+		}
 	}
 }
 

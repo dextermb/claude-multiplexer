@@ -155,6 +155,41 @@ carries empty `thinking`, `id`, and `name` fields. Claude Code forwards them to
 the API, and the API answers `400 messages.0.content.1.text.thinking: Extra
 inputs are not permitted`.
 
+## The interrupt control request
+
+The writer stops a running turn with a control request:
+
+```json
+{"type":"control_request","request_id":"int-1","request":{"subtype":"interrupt"}}
+```
+
+Claude Code answers with a `control_response`, then ends the turn with a
+`result` event whose subtype is `error_during_execution`, and stays alive for
+the next prompt. This was proven against Claude Code 2.1.176. The multiplexer
+ignores the `control_response`, because the `result` event is the signal it
+already acts on. See [sessions.md](./sessions.md).
+
+## The AskUserQuestion tool
+
+The model asks the human a multiple-choice question with the `AskUserQuestion`
+tool. In headless mode the child does not wait for the human. It emits the
+`tool_use` block, and at once it answers the block itself:
+
+```json
+{"type":"assistant","message":{"content":[{"type":"tool_use","id":"toolu_…","name":"AskUserQuestion","input":{"questions":[…]}}]}}
+{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"toolu_…","is_error":true,"content":"Answer questions?"}]}}
+```
+
+The model then recovers with a line of text and ends the turn with a normal
+`result`. This was proven against Claude Code 2.1.176. So the supervisor gets no
+window to send its own `tool_result`, and no flag makes the child wait.
+
+`Event.AskUserQuestion` reads the questions and the block id from the `tool_use`
+block. Each question holds a `question`, a `header`, a list of `options` (each
+with a `label` and a `description`), and a `multiSelect` flag. Because the child
+already closed the tool call, the multiplexer gives the human answer back as the
+next prompt, not as a `tool_result`. See [tui/input.md](./tui/input.md).
+
 ## Line limits
 
 `Reader` reads a line of any length up to 16 MiB, because a tool result can be

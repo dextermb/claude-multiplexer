@@ -67,9 +67,29 @@ func rowFromMeta(meta manager.Meta) row {
 
 func (r row) style() lipgloss.Style {
 	if !r.live {
+		if r.archived {
+			return lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+		}
 		return lipgloss.NewStyle().Foreground(lipgloss.Color("242"))
 	}
 	return stateStyle(r.state)
+}
+
+func rowGlyph(item row, frame int) string {
+	if !item.live {
+		if item.archived {
+			return "·"
+		}
+		return "○"
+	}
+	switch item.state {
+	case session.StateStarting:
+		return "◌"
+	case session.StateBusy:
+		return spinnerFrame(frame)
+	default:
+		return "●"
+	}
 }
 
 func (r row) running() bool {

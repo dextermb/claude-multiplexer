@@ -151,16 +151,13 @@ func TestTheSidebarListsEverySessionAndMarksTheSelectedOne(t *testing.T) {
 	m = spawn(t, m, mgr, "beta", dir)
 
 	view := m.View()
-	for _, want := range []string{"SESSIONS", "alpha", "beta"} {
+	for _, want := range []string{"alpha", "beta"} {
 		if !strings.Contains(view, want) {
 			t.Errorf("view has no %q:\n%s", want, view)
 		}
 	}
 	if m.sel != "beta" {
 		t.Fatalf("selected = %q, want the newest session", m.sel)
-	}
-	if !strings.Contains(view, "▸ beta") {
-		t.Errorf("the selected row has no marker:\n%s", view)
 	}
 }
 
@@ -512,9 +509,14 @@ func TestTheSessionBarShowsTheNumbers(t *testing.T) {
 	m.refresh()
 
 	bar := m.barView()
-	for _, want := range []string{"alpha", "fake-model", "auto", "idle", "1 turn", "7ms", "$0.2500"} {
+	for _, want := range []string{"alpha", "fake-model", "auto", "idle", "$0.2500"} {
 		if !strings.Contains(bar, want) {
 			t.Errorf("the bar has no %q:\n%s", want, bar)
+		}
+	}
+	for _, gone := range []string{"turn", "ms"} {
+		if strings.Contains(bar, gone) {
+			t.Errorf("the bar still shows %q:\n%s", gone, bar)
 		}
 	}
 	if lipgloss.Width(bar) != m.outputWidth() {
@@ -555,11 +557,16 @@ func TestTheSessionBarDropsDetailsBeforeTheName(t *testing.T) {
 		if !strings.Contains(bar, "alpha") {
 			t.Errorf("width %d: the name must survive:\n%s", width, bar)
 		}
-		if !strings.Contains(bar, "$0.2500") {
-			t.Errorf("width %d: the cost must survive:\n%s", width, bar)
+		if width == 140 {
+			if !strings.Contains(bar, "fake-model") {
+				t.Errorf("a wide bar must name the model:\n%s", bar)
+			}
+			if !strings.Contains(bar, "$0.2500") {
+				t.Errorf("a wide bar must show the cost:\n%s", bar)
+			}
 		}
-		if width == 140 && !strings.Contains(bar, "fake-model") {
-			t.Errorf("a wide bar must name the model:\n%s", bar)
+		if width == 44 && strings.Contains(bar, "$0.2500") {
+			t.Errorf("a narrow bar must drop the cost first:\n%s", bar)
 		}
 	}
 }

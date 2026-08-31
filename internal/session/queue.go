@@ -40,3 +40,9 @@ func (q *queue) len() int {
 	defer q.mu.Unlock()
 	return len(q.items)
 }
+
+func (q *queue) clear() {
+	q.mu.Lock()
+	q.items = nil
+	q.mu.Unlock()
+}

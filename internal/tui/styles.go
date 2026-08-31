@@ -1,6 +1,8 @@
 package tui
 
 import (
+	"time"
+
 	"github.com/charmbracelet/lipgloss"
 
 	"github.com/dextermb/claude-multiplexer/internal/render"
@@ -9,13 +11,26 @@ import (
 
 const cursorMark = "▌"
 
+const spinInterval = 120 * time.Millisecond
+
+var spinnerFrames = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
+
+func spinnerFrame(n int) string {
+	return spinnerFrames[n%len(spinnerFrames)]
+}
+
 const (
 	sidebarWidth = 26
 	promptHeight = 3
 	statusHeight = 1
-	titleHeight  = 1
+	titleHeight  = 0
 	barHeight    = 1
+	gutterWidth  = 1
+
+	sidebarInner = sidebarWidth - 1 - gutterWidth
 )
+
+const edgeMark = "▎"
 
 var (
 	titleStyle = lipgloss.NewStyle().
@@ -31,7 +46,7 @@ var (
 	selectedRowStyle = lipgloss.NewStyle().
 				Bold(true).
 				Foreground(lipgloss.Color("15")).
-				Background(lipgloss.Color("238"))
+				Background(lipgloss.Color("62"))
 
 	rowStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("252"))
 
@@ -51,6 +66,10 @@ var (
 
 	promptLabelStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("62")).Bold(true)
 
+	spinnerStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
+
+	focusEdgeStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("62"))
+
 	modalStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("62")).
@@ -58,7 +77,13 @@ var (
 
 	fieldLabelStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
 
+	questionTextStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("15")).Bold(true)
+
 	emptyStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("244")).Padding(2, 4)
+
+	selectionStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("15")).
+			Background(lipgloss.Color("62"))
 
 	barBackground = lipgloss.Color("237")
 

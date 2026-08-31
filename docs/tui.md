@@ -8,25 +8,26 @@ in `internal/tui`. It talks only to the manager, which is described in
 
 ```
 ┌──────────────────────────┬──────────────────────────────────────────────┐
-│ SESSIONS                 │ api · claude-opus-4-8 · auto                 │
-│ ▸ api               busy │        busy · 3 turns · 1.4s · 11.6k in · $… │
-│   docs           idle +2 ├──────────────────────────────────────────────┤
-│   worker          failed │ › write the summary                          │
-│   invoices       stored  │ ● 2127c615 · claude-opus-4-8 · 31 tools      │
-│   landing        stored  │ → Bash echo hello                            │
+│ ● api                    │▎api · claude-opus-4-8 · auto                 │
+│ ⠹ docs               ⇢2  │        busy · 11.6k in 0.6k out · $0.0669    │
+│ ● worker                 ├──────────────────────────────────────────────┤
+│ ○ invoices               │ › write the summary                          │
+│ · landing                │ ● 2127c615 · claude-opus-4-8 · 31 tools      │
+│                          │ → Bash echo hello                            │
 │                          │ ← hello                                      │
-│                          │ ✓ success · 1.4s · $0.0669 · 1 turn          │
+│                          │ ✓ success · $0.0669                          │
 ├──────────────────────────┴──────────────────────────────────────────────┤
-│ api ⌁                                                                   │
+│ api                                                                     │
 │ > write the summary                                                     │
 ├─────────────────────────────────────────────────────────────────────────┤
-│ 3 sessions · 1 busy · $0.0881 · n new · x stop · tab focus · q quit     │
+│ 3 sessions · 1 busy · $0.0881 · 1 stored   n new · t preset · ? keys    │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-The sidebar is 26 columns. Each row shows the name, the state, and `+n` when
-prompts wait in the queue. The colour follows the state: blue for `starting`,
-green for `idle`, orange for `busy`, red for `failed`, and grey for `exited`.
+The sidebar is 26 columns. Each row shows a state glyph, the name, and `⇢n`
+when prompts wait in the queue. The selected row has a highlighted background,
+and the focused pane carries a blue left edge. The palette is the Tailwind gray
+and blue scale. See [tui/sessions.md](tui/sessions.md) for the glyph legend.
 
 ## The pages
 

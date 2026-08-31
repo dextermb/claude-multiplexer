@@ -28,15 +28,23 @@ What the assistant says is rendered as markdown, so a heading, a list, and a
 code fence all read as themselves. Press `m` for the raw text. See
 [markdown.md](../markdown.md).
 
-Your own prompt appears in the pane because Claude Code echoes it back. See
-[protocol.md](../protocol.md). So the pane reads as a conversation, and the
-prompt is in the transcript for a later replay.
+Your prompt appears the moment you send it. The interface holds a copy and
+shows it at once, so there is no wait for the round trip through Claude Code.
+Claude Code then echoes the prompt back through the stream. See
+[protocol.md](../protocol.md). When the echo lands, the interface drops the held
+copy, so the prompt is never shown twice. The echoed prompt is in the transcript
+for a later replay, and the pane reads as a conversation.
 
 The class travels with the line from the renderer, through the manager buffer,
 to the screen. The one-shot `run` command prints the same lines with no colour,
 because it usually writes to a pipe.
 
 ## Text as it arrives
+
+Before the first word arrives, the pane shows a spinner and the word
+`thinking…` below your prompt. It marks the gap between the send and the first
+token, so the session never looks stuck. The spinner shows while the session is
+busy and no text streams yet. The first token replaces it.
 
 The pane shows the answer while the model writes it. The unfinished text sits
 below the settled lines and ends with a `▌`, so you can tell what is still

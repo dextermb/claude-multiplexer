@@ -75,7 +75,7 @@ func (r Renderer) protocolLines(ev protocol.Event) []Line {
 	case ev.Type == protocol.TypeAssistant && ev.Message != nil:
 		return r.messageLines(ev.Message)
 	case ev.Type == protocol.TypeUser && ev.IsReplay && ev.Message != nil:
-		return promptLines(ev.Message.Content.Text())
+		return PromptLines(ev.Message.Content.Text())
 	case ev.Type == protocol.TypeUser && ev.Message != nil:
 		return r.messageLines(ev.Message)
 	case ev.Type == protocol.TypeResult && ev.Result != nil:
@@ -89,7 +89,7 @@ func (r Renderer) protocolLines(ev protocol.Event) []Line {
 	return nil
 }
 
-func promptLines(text string) []Line {
+func PromptLines(text string) []Line {
 	text = strings.TrimRight(text, "\n")
 	if text == "" {
 		return nil
