@@ -244,6 +244,7 @@ func (m *Manager) rememberSession(item *entry, snap session.Snapshot) {
 	}
 	next := item.meta
 	next.ClaudeSessionID = snap.ClaudeSessionID
+	next.Title = snap.Title
 	next.Model = snap.Model
 	next.PermissionMode = snap.PermissionMode
 	next.Effort = snap.Effort
@@ -390,6 +391,25 @@ func (m *Manager) SetPermissionMode(name, mode string) error {
 		return err
 	}
 	return item.sess.SetPermissionMode(mode)
+}
+
+// SetTitle renames a session. A live session takes the new title and persists it
+// on its next turn; a stored session gets it written straight to its meta.
+func (m *Manager) SetTitle(name, title string) error {
+	m.mu.Lock()
+	item, live := m.entries[name]
+	m.mu.Unlock()
+	if live {
+		item.sess.SetTitle(title)
+		return nil
+	}
+	path := metaPath(m.opts.Root, name)
+	meta, err := ReadMeta(path)
+	if err != nil {
+		return err
+	}
+	meta.Title = title
+	return writeMeta(path, meta)
 }
 
 // ResumeWithEffort stops a running session and resumes it with a new effort

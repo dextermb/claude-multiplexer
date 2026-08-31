@@ -605,6 +605,65 @@ func TestArchiveHidesASessionAndGivesItBack(t *testing.T) {
 	}
 }
 
+func TestSetTitleRenamesALiveSessionAndPersistsIt(t *testing.T) {
+	m := newTestManager(t)
+	name, err := m.Spawn(context.Background(), Spec{Name: "old", Dir: t.TempDir()})
+	if err != nil {
+		t.Fatalf("Spawn: %v", err)
+	}
+	runOneTurn(t, m, name, "hello")
+
+	if err := m.SetTitle(name, "My work"); err != nil {
+		t.Fatalf("SetTitle: %v", err)
+	}
+	snap, err := m.Snapshot(name)
+	if err != nil {
+		t.Fatalf("Snapshot: %v", err)
+	}
+	if snap.Title != "My work" {
+		t.Fatalf("snapshot title = %q, want %q", snap.Title, "My work")
+	}
+
+	waitFor(t, 10*time.Second, func() bool {
+		meta, err := ReadMeta(filepath.Join(m.Root(), "sessions", name, "meta.json"))
+		return err == nil && meta.Title == "My work"
+	})
+
+	if err := m.SetTitle(name, ""); err != nil {
+		t.Fatalf("SetTitle clear: %v", err)
+	}
+	snap, _ = m.Snapshot(name)
+	if snap.Title != "" {
+		t.Fatalf("cleared title = %q, want empty", snap.Title)
+	}
+}
+
+func TestSetTitleRenamesAStoredSession(t *testing.T) {
+	m := newTestManager(t)
+	name, err := m.Spawn(context.Background(), Spec{Name: "kept", Dir: t.TempDir()})
+	if err != nil {
+		t.Fatalf("Spawn: %v", err)
+	}
+	runOneTurn(t, m, name, "hello")
+	waitForMeta(t, m, name)
+	retire(t, m, name)
+
+	if err := m.SetTitle(name, "Archived work"); err != nil {
+		t.Fatalf("SetTitle: %v", err)
+	}
+	meta, err := ReadMeta(filepath.Join(m.Root(), "sessions", name, "meta.json"))
+	if err != nil {
+		t.Fatalf("ReadMeta: %v", err)
+	}
+	if meta.Title != "Archived work" {
+		t.Fatalf("stored title = %q, want %q", meta.Title, "Archived work")
+	}
+
+	if err := m.SetTitle("nope", "x"); err == nil {
+		t.Fatal("SetTitle on an unknown session must fail")
+	}
+}
+
 func TestPartialTextGrowsAndThenClears(t *testing.T) {
 	m := newTestManager(t)
 	sub := m.Subscribe(4096)

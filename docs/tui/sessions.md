@@ -12,8 +12,10 @@ stable, so a row does not jump as its state changes.
 
 ## Reading a row
 
-A row starts with a state glyph in the state colour, then the name, then `⇢n`
-when `n` prompts wait in the queue. The glyph tells the state at a glance:
+A row starts with a state glyph in the state colour, then the display name, then
+`⇢n` when `n` prompts wait in the queue. The display name is the title when the
+session has one, and the name when it does not. Press `R` to set the title; see
+[keys.md](./keys.md). The glyph tells the state at a glance:
 
 | Glyph | State | Colour |
 |---|---|---|
@@ -51,8 +53,8 @@ A running session cannot be archived. Stop it first.
 ## The two bars
 
 The **session bar** sits above the output, and it describes the selected session
-only. The left side names it: the session, the model in use, and the permission
-mode. The right side gives the numbers: the state, the queue length, the tokens,
+only. The left side names it: the display name (the title or the name), the
+model in use, and the permission mode. The right side gives the numbers: the state, the queue length, the tokens,
 the cost, and the context fill.
 
 The model and the permission mode come from the `init` event, so the bar names

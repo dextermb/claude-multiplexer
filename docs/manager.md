@@ -29,9 +29,9 @@ A session that finishes at least one turn is written to
 its directory is removed when it ends. So a mistake, or a start that failed,
 never reaches the list you see tomorrow.
 
-`Meta` holds the name, the directory, the model, the permission mode, the Claude
-session identifier, the lifetime turn count and cost, the tokens, and the
-archive flag. The counts are lifetime totals: a resumed session adds to them,
+`Meta` holds the name, the title, the directory, the model, the permission mode,
+the Claude session identifier, the lifetime turn count and cost, the tokens, and
+the archive flag. The counts are lifetime totals: a resumed session adds to them,
 and does not restart them.
 
 | Method | What it does |
@@ -40,6 +40,7 @@ and does not restart them.
 | `Replay(name)` | The transcript of a stored session, rendered, capped to the line limit. |
 | `Resume(ctx, meta)` | Start a child with `--resume`, under the same name and the same transcript. |
 | `Archive(name, on)` | Set or clear the archive flag. It refuses a session that still runs. |
+| `SetTitle(name, title)` | Rename a session. A live session takes it at once; a stored one gets it written to its meta. |
 | `Meta(name)` | The record for one session. |
 
 A resumed session starts with its past output already in the line buffer,
@@ -64,11 +65,16 @@ the settled text then reaches the line buffer as a normal line. A subscriber
 therefore sees the text grow, and then sees it replaced once by the finished
 message.
 
-## Names
+## Names and titles
 
 A session name must be unique, because it is the key everywhere. `Spawn` takes
 the wanted name, or the last element of the directory when the name is empty.
 When that name is taken, it appends `-2`, then `-3`, and so on.
+
+A title is separate from the name. A title is display text, set by `SetTitle`,
+and it does not need to be unique. The interface shows the title when it is set,
+and the name when it is not. The name stays fixed, so a rename moves no files and
+rekeys nothing.
 
 The state of each session lives under `<root>/sessions/<name>/`, which holds
 `transcript.jsonl` and `meta.json`. The root is `~/.multiplexier` by default.

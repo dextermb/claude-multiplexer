@@ -125,6 +125,7 @@ type Event struct {
 
 type Snapshot struct {
 	Name            string
+	Title           string
 	Dir             string
 	Model           string
 	PermissionMode  string
@@ -163,6 +164,7 @@ type Session struct {
 
 	mu              sync.Mutex
 	state           State
+	title           string
 	model           string
 	permissionMode  string
 	effort          string
@@ -340,6 +342,16 @@ func (s *Session) SetPermissionMode(mode string) error {
 	return nil
 }
 
+// SetTitle changes the display title of the session. The title is local
+// metadata and does not touch the child, so it works whatever the state.
+func (s *Session) SetTitle(title string) {
+	s.mu.Lock()
+	s.title = title
+	state := s.state
+	s.mu.Unlock()
+	s.emit(Event{Kind: KindState, State: state, Prev: state})
+}
+
 func (s *Session) State() State {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -351,6 +363,7 @@ func (s *Session) Snapshot() Snapshot {
 	defer s.mu.Unlock()
 	return Snapshot{
 		Name:            s.cfg.Name,
+		Title:           s.title,
 		Dir:             s.cfg.Dir,
 		Model:           s.model,
 		PermissionMode:  s.permissionMode,

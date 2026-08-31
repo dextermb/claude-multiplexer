@@ -21,6 +21,7 @@ var bindings = []binding{
 	{"Sessions", "r", "Resume the selected session", "r resume"},
 	{"Sessions", "a", "Archive the selected session, or bring it back", "a archive"},
 	{"Sessions", "A", "Show or hide archived sessions", ""},
+	{"Sessions", "R", "Rename the selected session", ""},
 	{"Sessions", "x  ctrl+x", "Stop the selected session, after a confirmation", "x stop"},
 
 	{"Moving", "j  k  up  down", "Move through the list, or scroll the output", ""},

@@ -84,6 +84,7 @@ type Model struct {
 	fields       *fieldForm
 	question     *questionDialog
 	choice       *choiceDialog
+	rename       *renameDialog
 	pager        *pager
 	pending      string
 	sel          string
@@ -483,6 +484,9 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.choice != nil {
 		return m.choiceKey(msg)
 	}
+	if m.rename != nil {
+		return m.renameKey(msg)
+	}
 	if m.pager != nil {
 		return m.pagerKey(msg)
 	}
@@ -664,6 +668,8 @@ func (m Model) sidebarKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.resumeSelected()
 	case "a":
 		return m.archiveSelected()
+	case "R":
+		return m.openRename()
 	case "m":
 		return m.toggleMarkdown()
 	case "M":
@@ -735,7 +741,7 @@ func (m Model) archiveSelected() (tea.Model, tea.Cmd) {
 }
 
 func (m Model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
-	if m.form != nil || m.confirm != "" || m.quitting || m.question != nil || m.choice != nil || m.pager != nil {
+	if m.form != nil || m.confirm != "" || m.quitting || m.question != nil || m.choice != nil || m.rename != nil || m.pager != nil {
 		return m, nil
 	}
 
@@ -1046,6 +1052,48 @@ func (m Model) submitChoice() (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+func (m Model) openRename() (tea.Model, tea.Cmd) {
+	item, ok := m.selectedRow()
+	if !ok {
+		m.errText = "no session is selected"
+		return m, nil
+	}
+	m.rename = newRenameDialog(item.name, item.title)
+	m.errText = ""
+	return m, textinput.Blink
+}
+
+func (m Model) renameKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	result, cmd := m.rename.Update(msg)
+	switch result {
+	case formCancelled:
+		m.rename = nil
+		return m, nil
+	case formSubmitted:
+		return m.submitRename()
+	}
+	return m, cmd
+}
+
+func (m Model) submitRename() (tea.Model, tea.Cmd) {
+	name, title := m.rename.session, m.rename.value()
+	m.rename = nil
+	if err := m.mgr.SetTitle(name, title); err != nil {
+		m.errText = err.Error()
+		return m, nil
+	}
+	for i := range m.stored {
+		if m.stored[i].Name == name {
+			m.stored[i].Title = title
+		}
+	}
+	m.errText = ""
+	m.status = "renamed " + name
+	m.refresh()
+	m.rebuildOutput()
+	return m, nil
+}
+
 func (m Model) appliedSetting(err error, label, value string) (tea.Model, tea.Cmd) {
 	if err != nil {
 		m.errText = err.Error()
@@ -1146,6 +1194,7 @@ func (m Model) interrupt() (tea.Model, tea.Cmd) {
 	m.help = nil
 	m.question = nil
 	m.choice = nil
+	m.rename = nil
 	m.pager = nil
 	m.confirm = ""
 	m.prompt.Reset()
@@ -1420,6 +1469,9 @@ func (m Model) View() string {
 	if m.choice != nil {
 		body = centre(m.width, m.bodyHeight(), m.choice.View(m.width))
 	}
+	if m.rename != nil {
+		body = centre(m.width, m.bodyHeight(), m.rename.View(m.width))
+	}
 	if m.pager != nil {
 		body = centre(m.width, m.bodyHeight(), m.pager.View(m.width, m.bodyHeight()))
 	}
@@ -1470,7 +1522,7 @@ func (m Model) sessionRow(item row) string {
 	if nameWidth < 1 {
 		nameWidth = 1
 	}
-	rest := " " + pad(item.name, nameWidth) + badge
+	rest := " " + pad(item.displayName(), nameWidth) + badge
 	glyph := rowGlyph(item, m.spinFrame)
 	if item.name == m.sel {
 		return item.style().Background(lipgloss.Color("62")).Render(glyph) +
@@ -1503,7 +1555,7 @@ func (m Model) barView() string {
 
 	lefts, rights := barDetails(item), m.barRights(item)
 	for _, pair := range barLadder(len(lefts), len(rights)) {
-		left := barLeft(item.name, lefts[pair[0]])
+		left := barLeft(item.displayName(), lefts[pair[0]])
 		right := rights[pair[1]]
 		if gap := width - lipgloss.Width(left) - lipgloss.Width(right); gap >= 0 {
 			return barLine(width, left, right, gap)
@@ -1511,7 +1563,7 @@ func (m Model) barView() string {
 	}
 
 	room := maxInt(3, width-1)
-	left := barLeft(truncate(item.name, room), nil)
+	left := barLeft(truncate(item.displayName(), room), nil)
 	return barLine(width, left, "", maxInt(0, width-lipgloss.Width(left)))
 }
 
