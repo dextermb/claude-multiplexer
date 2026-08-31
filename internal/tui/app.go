@@ -83,12 +83,14 @@ type Model struct {
 	picker       *picker
 	fields       *fieldForm
 	question     *questionDialog
+	pager        *pager
 	pending      string
 	sel          string
 	listOffset   int
 
 	output     viewport.Model
 	outputText string
+	shownLines []render.Line
 	content    string
 	selection  selRange
 	prompt     textarea.Model
@@ -470,6 +472,9 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.question != nil {
 		return m.questionKey(msg)
 	}
+	if m.pager != nil {
+		return m.pagerKey(msg)
+	}
 	if m.picker != nil {
 		return m.pickerKey(msg)
 	}
@@ -563,6 +568,14 @@ func (m Model) promptKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
+func (m Model) pagerKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	open, cmd := m.pager.Update(msg)
+	if !open {
+		m.pager = nil
+	}
+	return m, cmd
+}
+
 func (m Model) outputKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	m.clearSelection()
 	switch msg.String() {
@@ -572,7 +585,15 @@ func (m Model) outputKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		m.focus = focusSidebar
 		return m, nil
-	case "enter", "i":
+	case "enter":
+		if entries := collectExpandables(m.shownLines); len(entries) > 0 {
+			m.pager = newPager(entries, m.width, m.bodyHeight())
+			return m, nil
+		}
+		m.focus = focusPrompt
+		m.prompt.Focus()
+		return m, textarea.Blink
+	case "i":
 		m.focus = focusPrompt
 		m.prompt.Focus()
 		return m, textarea.Blink
@@ -691,7 +712,7 @@ func (m Model) archiveSelected() (tea.Model, tea.Cmd) {
 }
 
 func (m Model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
-	if m.form != nil || m.confirm != "" || m.quitting || m.question != nil {
+	if m.form != nil || m.confirm != "" || m.quitting || m.question != nil || m.pager != nil {
 		return m, nil
 	}
 
@@ -1041,6 +1062,7 @@ func (m Model) interrupt() (tea.Model, tea.Cmd) {
 	m.picker = nil
 	m.help = nil
 	m.question = nil
+	m.pager = nil
 	m.confirm = ""
 	m.prompt.Reset()
 	m.status = "press ctrl+c again to quit"
@@ -1156,15 +1178,19 @@ func (m *Model) rebuildOutput() {
 	m.selection = selRange{}
 	if m.sel == "" {
 		m.outputText = ""
+		m.shownLines = nil
 		m.output.SetContent("")
 		return
 	}
-	m.outputText = m.wrap(m.linesFor(m.sel))
+	lines := m.linesFor(m.sel)
+	m.shownLines = append([]render.Line(nil), lines...)
+	m.outputText = m.wrap(lines)
 	m.setContent()
 	m.output.GotoBottom()
 }
 
 func (m *Model) appendOutput(lines []render.Line) {
+	m.shownLines = append(m.shownLines, lines...)
 	chunk := m.wrap(lines)
 	if m.outputText == "" {
 		m.outputText = chunk
@@ -1279,7 +1305,11 @@ func (m Model) wrap(lines []render.Line) string {
 			wrapped = append(wrapped, m.md.Render(line.Text, width))
 			continue
 		}
-		wrapped = append(wrapped, classStyle(line.Class).Width(width).Render(line.Text))
+		text := line.Text
+		if line.Full != "" {
+			text += "  ⏎"
+		}
+		wrapped = append(wrapped, classStyle(line.Class).Width(width).Render(text))
 	}
 	return strings.Join(wrapped, "\n")
 }
@@ -1302,6 +1332,9 @@ func (m Model) View() string {
 	}
 	if m.question != nil {
 		body = centre(m.width, m.bodyHeight(), m.question.View(m.width))
+	}
+	if m.pager != nil {
+		body = centre(m.width, m.bodyHeight(), m.pager.View(m.width, m.bodyHeight()))
 	}
 	if m.help != nil {
 		body = centre(m.width, m.bodyHeight(), m.help.View(m.width, m.bodyHeight()))
@@ -1356,7 +1389,11 @@ func (m Model) sessionRow(item row) string {
 		return item.style().Background(lipgloss.Color("62")).Render(glyph) +
 			selectedRowStyle.Width(width-1).Render(rest)
 	}
-	return item.style().Render(glyph) + rowStyle.Width(width-1).Render(rest)
+	nameStyle := rowStyle
+	if item.archived {
+		nameStyle = rowMutedStyle
+	}
+	return item.style().Render(glyph) + nameStyle.Width(width-1).Render(rest)
 }
 
 func (m Model) outputView() string {
@@ -1537,32 +1574,52 @@ func (m Model) statusView() string {
 	if m.errText != "" {
 		return statusStyle.Width(m.width).Render(errorStyle.Render(truncate(m.errText, m.width-2)))
 	}
-	var live, busy, stored int
+	var live, busy int
 	for _, item := range m.rows {
-		switch {
-		case !item.live:
-			stored++
-		case item.state == session.StateBusy:
-			live++
+		if !item.live {
+			continue
+		}
+		live++
+		if item.state == session.StateBusy {
 			busy++
-		default:
-			live++
 		}
 	}
-	parts := []string{
-		plural(live, "session"),
-		fmt.Sprintf("%d busy", busy),
-		fmt.Sprintf("$%.4f", m.mgr.TotalCost()),
+
+	left := []barSeg{{plural(live, "session"), statusMutedStyle}}
+	if busy > 0 {
+		left = append(left, barSeg{fmt.Sprintf("%d busy", busy), statusMutedStyle})
 	}
-	if stored > 0 {
-		parts = append(parts, fmt.Sprintf("%d stored", stored))
-	}
-	if drops := m.sub.Dropped(); drops > 0 {
-		parts = append(parts, fmt.Sprintf("%d drops", drops))
-	}
+	left = append(left, barSeg{fmt.Sprintf("$%.4f", m.mgr.TotalCost()), statusCostStyle})
 	if m.status != "" {
-		parts = append(parts, m.status)
+		left = append(left, barSeg{m.status, statusMutedStyle})
 	}
-	parts = append(parts, statusHints())
-	return statusStyle.Width(m.width).Render(truncate(strings.Join(parts, " · "), m.width-2))
+	right := statusMutedStyle.Render(statusHints())
+
+	return statusStyle.Width(m.width).Render(statusLine(m.width-2, left, right))
+}
+
+func statusSegs(segs []barSeg) string {
+	parts := make([]string, len(segs))
+	for i, seg := range segs {
+		parts[i] = seg.style.Render(seg.text)
+	}
+	return strings.Join(parts, statusMutedStyle.Render(" · "))
+}
+
+func statusLine(width int, left []barSeg, right string) string {
+	full := statusSegs(left)
+	if gap := width - lipgloss.Width(full) - lipgloss.Width(right); gap >= 0 {
+		return statusFill(full, right, gap)
+	}
+	for n := len(left); n >= 1; n-- {
+		side := statusSegs(left[:n])
+		if gap := width - lipgloss.Width(side); gap >= 0 {
+			return statusFill(side, "", gap)
+		}
+	}
+	return statusMutedStyle.Render(truncate(left[0].text, width))
+}
+
+func statusFill(left, right string, gap int) string {
+	return left + statusMutedStyle.Render(strings.Repeat(" ", gap)) + right
 }

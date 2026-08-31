@@ -17,6 +17,7 @@ import (
 
 	"github.com/dextermb/claude-multiplexer/internal/manager"
 	"github.com/dextermb/claude-multiplexer/internal/render"
+	"github.com/dextermb/claude-multiplexer/internal/session"
 )
 
 var fakeClaude string
@@ -625,9 +626,22 @@ func TestTheStatusBarCountsTheSessions(t *testing.T) {
 	m = spawn(t, m, mgr, "beta", dir)
 
 	status := m.statusView()
-	for _, want := range []string{"2 sessions", "busy", "$0.0000", "q quit"} {
+	for _, want := range []string{"2 sessions", "$0.0000", "q quit"} {
 		if !strings.Contains(status, want) {
 			t.Errorf("status %q has no %q", status, want)
 		}
+	}
+	if strings.Contains(status, "busy") {
+		t.Errorf("status %q shows a busy count when no session is busy", status)
+	}
+
+	for i := range m.rows {
+		if m.rows[i].live {
+			m.rows[i].state = session.StateBusy
+			break
+		}
+	}
+	if busy := m.statusView(); !strings.Contains(busy, "1 busy") {
+		t.Errorf("status %q has no %q with one busy session", busy, "1 busy")
 	}
 }

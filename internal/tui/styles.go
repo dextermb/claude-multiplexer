@@ -50,6 +50,8 @@ var (
 
 	rowStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("252"))
 
+	rowMutedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+
 	hintStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
 
 	pickedPathStyle = lipgloss.NewStyle().
@@ -61,6 +63,14 @@ var (
 			Foreground(lipgloss.Color("252")).
 			Background(lipgloss.Color("236")).
 			Padding(0, 1)
+
+	statusMutedStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("244")).
+				Background(lipgloss.Color("236"))
+
+	statusCostStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("108")).
+			Background(lipgloss.Color("236"))
 
 	errorStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("203")).Bold(true)
 

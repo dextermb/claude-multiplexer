@@ -13,6 +13,8 @@ output.
 | `j`, `k`, `up`, `down` | Move through the list, or scroll the output |
 | `Enter` | Type into a live session, or resume one that is not running |
 | `Enter` (in the prompt) | Send the prompt, or send a queued prompt now while busy |
+| `Enter` (in the output) | Open a large result, or move to the prompt when there is none |
+| `i` (in the output) | Move to the prompt |
 | `ctrl+j` | Add a new line inside the prompt |
 | `Esc` | Stop a running turn, or leave the prompt or the output, or close the form or a dialog |
 | `n` or `ctrl+n` | Open the new session form |
@@ -71,6 +73,17 @@ The pane follows the newest line while you sit at the bottom. As soon as you
 scroll up it holds your place, and new output no longer moves the text under
 you. The session bar then shows how far up you are, such as `↑ 62%`. Press `G`
 to return to the bottom and start following again.
+
+### Opening a large result
+
+A big tool result does not fill the pane. The pane shows a short summary, such
+as `← 4213 lines`, with a `⏎` mark to show that it opens. See
+[output.md](output.md).
+
+Give the output pane the focus, then press `Enter`. A dialog lists every result
+that opens. Move with `j` and `k`, then press `Enter` to page the one you want.
+The same scroll keys work inside it. Press `Esc` to step back to the list, and
+`Esc` again to close.
 
 ## The mouse
 

@@ -58,9 +58,19 @@ and the cost.
 The model and the permission mode come from the `init` event, so the bar names
 what the child confirms, and not what the flags asked for. The two can differ.
 
-The **status bar** at the bottom describes the whole program: how many sessions
-run, how many are busy, the total cost, how many are stored, the number of
-dropped events, and the keys.
+The **status bar** at the bottom describes the whole program. The left side
+gives the state: how many sessions run, how many are busy, and the total cost.
+A transient message (for example `copied 3 lines`) also appears on the left, for
+its moment. The right side gives the keys, and the keys stay in one place.
+
+The bar is a footer, so its palette is muted. The default text is grey, and
+colour marks only the cost, which keeps the green of the session bar so the same
+number reads the same in both places. The busy count is hidden when no session
+is busy, so a zero never shows.
+
+When the window is too narrow for both sides, the keys go first. Then the left
+side sheds from its end (the message, then the cost, then the busy count), and
+the session count always stays.
 
 So a number that belongs to one session appears at the top, and a number that
 belongs to every session appears at the bottom.

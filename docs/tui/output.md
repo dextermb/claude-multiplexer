@@ -39,6 +39,20 @@ The class travels with the line from the renderer, through the manager buffer,
 to the screen. The one-shot `run` command prints the same lines with no colour,
 because it usually writes to a pipe.
 
+## A large result is collapsed, and opens on demand
+
+A tool result of more than one line does not fill the pane. The renderer shows a
+short summary, such as `← 4213 lines`, and keeps the whole body on the line in a
+`Full` field. A summary line carries a `⏎` mark, so you can see that it opens.
+
+The body travels with the line, so the pane holds it without a second read of
+the transcript. Only a collapsed line carries a body, and the buffer caps the
+line count, so the extra memory is bounded.
+
+Press `Enter` in the output pane to open a result. A dialog lists every result
+that carries a body, newest last. Choose one to page it in a scrollable view.
+See [keys.md](keys.md) for the keys.
+
 ## Text as it arrives
 
 Before the first word arrives, the pane shows a spinner and the word

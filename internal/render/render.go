@@ -29,6 +29,9 @@ const (
 type Line struct {
 	Class Class
 	Text  string
+	// Full holds the whole body when Text is only a collapsed summary. It is
+	// empty for a plain line. See docs/tui/output.md.
+	Full string
 }
 
 func Text(lines []Line) []string {
@@ -52,17 +55,17 @@ func (r Renderer) Lines(ev session.Event) []Line {
 		if !r.Verbose {
 			return nil
 		}
-		return []Line{{ClassMeta, fmt.Sprintf("[%s -> %s]", ev.Prev, ev.State)}}
+		return []Line{{Class: ClassMeta, Text: fmt.Sprintf("[%s -> %s]", ev.Prev, ev.State)}}
 	case session.KindStderr:
 		if strings.TrimSpace(ev.Line) == "" {
 			return nil
 		}
-		return []Line{{ClassStderr, "stderr: " + ev.Line}}
+		return []Line{{Class: ClassStderr, Text: "stderr: " + ev.Line}}
 	case session.KindError:
 		if ev.Line != "" {
-			return []Line{{ClassError, fmt.Sprintf("! %v: %s", ev.Err, r.clip(ev.Line))}}
+			return []Line{{Class: ClassError, Text: fmt.Sprintf("! %v: %s", ev.Err, r.clip(ev.Line))}}
 		}
-		return []Line{{ClassError, fmt.Sprintf("! %v", ev.Err)}}
+		return []Line{{Class: ClassError, Text: fmt.Sprintf("! %v", ev.Err)}}
 	}
 	return nil
 }
@@ -70,7 +73,7 @@ func (r Renderer) Lines(ev session.Event) []Line {
 func (r Renderer) protocolLines(ev protocol.Event) []Line {
 	switch {
 	case ev.IsInit() && ev.Init != nil:
-		return []Line{{ClassMeta, fmt.Sprintf("● %s · %s · %d tools · %s",
+		return []Line{{Class: ClassMeta, Text: fmt.Sprintf("● %s · %s · %d tools · %s",
 			ev.Init.SessionID, ev.Init.Model, len(ev.Init.Tools), ev.Init.PermissionMode)}}
 	case ev.Type == protocol.TypeAssistant && ev.Message != nil:
 		return r.messageLines(ev.Message)
@@ -79,12 +82,12 @@ func (r Renderer) protocolLines(ev protocol.Event) []Line {
 	case ev.Type == protocol.TypeUser && ev.Message != nil:
 		return r.messageLines(ev.Message)
 	case ev.Type == protocol.TypeResult && ev.Result != nil:
-		return []Line{{ClassMeta, r.resultLine(ev.Result)}}
+		return []Line{{Class: ClassMeta, Text: r.resultLine(ev.Result)}}
 	case ev.Type == protocol.TypeStreamEvent:
 		return nil
 	}
 	if r.Verbose {
-		return []Line{{ClassMeta, fmt.Sprintf("· %s", ev.Type)}}
+		return []Line{{Class: ClassMeta, Text: fmt.Sprintf("· %s", ev.Type)}}
 	}
 	return nil
 }
@@ -100,7 +103,7 @@ func PromptLines(text string) []Line {
 		if i == 0 {
 			prefix = "› "
 		}
-		out = append(out, Line{ClassPrompt, prefix + line})
+		out = append(out, Line{Class: ClassPrompt, Text: prefix + line})
 	}
 	return out
 }
@@ -111,39 +114,48 @@ func (r Renderer) messageLines(msg *protocol.Message) []Line {
 		switch block.Type {
 		case "text":
 			if text := strings.TrimRight(block.Text, "\n"); text != "" {
-				out = append(out, Line{ClassText, text})
+				out = append(out, Line{Class: ClassText, Text: text})
 			}
 		case "thinking":
 			if r.Verbose && block.Thinking != "" {
-				out = append(out, Line{ClassThinking, "  thinking: " + r.clip(block.Thinking)})
+				out = append(out, Line{Class: ClassThinking, Text: "  thinking: " + r.clip(block.Thinking)})
 			}
 		case "tool_use":
-			out = append(out, Line{ClassToolUse,
-				fmt.Sprintf("→ %s %s", block.Name, r.clip(summariseInput(block.Input)))})
+			out = append(out, Line{Class: ClassToolUse,
+				Text: fmt.Sprintf("→ %s %s", block.Name, r.clip(summariseInput(block.Input)))})
 		case "tool_result":
-			out = append(out, Line{ClassToolResult, r.toolResultLine(block)})
+			text, full := r.toolResultLine(block)
+			out = append(out, Line{Class: ClassToolResult, Text: text, Full: full})
 		}
 	}
 	return out
 }
 
-func (r Renderer) toolResultLine(block protocol.Block) string {
+// toolResultLine returns the line shown in the pane and, when that line is only
+// a collapsed summary, the whole body so the pane can open it. A body that is
+// shown in full returns an empty second value.
+func (r Renderer) toolResultLine(block protocol.Block) (string, string) {
 	text := block.Content.Text()
 	mark := "←"
 	if block.IsError {
 		mark = "←!"
 	}
 	if r.Verbose {
-		return fmt.Sprintf("%s %s", mark, text)
+		return fmt.Sprintf("%s %s", mark, text), ""
 	}
-	lines := strings.Count(strings.TrimRight(text, "\n"), "\n") + 1
 	if strings.TrimSpace(text) == "" {
-		return fmt.Sprintf("%s result", mark)
+		return fmt.Sprintf("%s result", mark), ""
 	}
+	trimmed := strings.TrimRight(text, "\n")
+	lines := strings.Count(trimmed, "\n") + 1
 	if lines == 1 {
-		return fmt.Sprintf("%s %s", mark, r.clip(text))
+		clipped := r.clip(text)
+		if clipped != strings.TrimSpace(text) {
+			return fmt.Sprintf("%s %s", mark, clipped), trimmed
+		}
+		return fmt.Sprintf("%s %s", mark, clipped), ""
 	}
-	return fmt.Sprintf("%s %d lines", mark, lines)
+	return fmt.Sprintf("%s %d lines", mark, lines), trimmed
 }
 
 func (r Renderer) resultLine(res *protocol.Result) string {
