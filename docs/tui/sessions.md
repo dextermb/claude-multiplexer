@@ -53,10 +53,18 @@ A running session cannot be archived. Stop it first.
 The **session bar** sits above the output, and it describes the selected session
 only. The left side names it: the session, the model in use, and the permission
 mode. The right side gives the numbers: the state, the queue length, the tokens,
-and the cost.
+the cost, and the context fill.
 
 The model and the permission mode come from the `init` event, so the bar names
 what the child confirms, and not what the flags asked for. The two can differ.
+
+The tokens (`11.6k in 0.6k out`) add up every turn, so they show the total work
+billed. The context fill (`ctx 12.2k/200k (6%)`) is different: it shows how full
+the window is now. It is the token count of the last turn, not a sum. Each
+session is a separate child process, so each context fill is its own. When the
+model window is not known, the bar shows the raw count only (`ctx 12.2k`). The
+context fill shows for a live session only, because a stored session has no
+running context.
 
 The **status bar** at the bottom describes the whole program. The left side
 gives the state: how many sessions run, how many are busy, and the total cost.
@@ -81,6 +89,7 @@ The bar always fits on one line. When the window is too narrow, the two sides
 shed detail in turn, and the least useful item goes first:
 
 ```
+ alpha · fake-model · auto        idle · 11.6k in 0.6k out · $0.2500 · ctx 12.2k/200k (6%)
  alpha · fake-model · auto        idle · 11.6k in 0.6k out · $0.2500
  alpha · fake-model               idle · 11.6k in 0.6k out
  alpha · fake-model               idle
@@ -88,10 +97,10 @@ shed detail in turn, and the least useful item goes first:
  alpha
 ```
 
-The right side sheds from the end: the cost first, then the tokens, then the
-queue length, and last of all the state, so that only the name remains. The
-left side sheds the permission mode, then the model. The name always stays, and
-only when the name alone cannot fit is it cut short.
+The right side sheds from the end: the context fill first, then the cost, then
+the tokens, then the queue length, and last of all the state, so that only the
+name remains. The left side sheds the permission mode, then the model. The name
+always stays, and only when the name alone cannot fit is it cut short.
 
-The per-session cost lives here, and it drops first. The total cost of every
-session lives in the status bar, and it stays.
+The context fill and the per-session cost both live here, and they drop first.
+The total cost of every session lives in the status bar, and it stays.

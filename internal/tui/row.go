@@ -24,24 +24,26 @@ type row struct {
 	last     time.Duration
 	input    int
 	output   int
+	context  int
 	meta     manager.Meta
 }
 
 func rowFromSnapshot(snap session.Snapshot) row {
 	return row{
-		name:   snap.Name,
-		dir:    snap.Dir,
-		model:  snap.Model,
-		mode:   snap.PermissionMode,
-		live:   true,
-		state:  snap.State,
-		label:  snap.State.String(),
-		queued: snap.Queued,
-		turns:  snap.Turns,
-		cost:   snap.Cost,
-		last:   snap.LastDuration,
-		input:  snap.InputTokens,
-		output: snap.OutputTokens,
+		name:    snap.Name,
+		dir:     snap.Dir,
+		model:   snap.Model,
+		mode:    snap.PermissionMode,
+		live:    true,
+		state:   snap.State,
+		label:   snap.State.String(),
+		queued:  snap.Queued,
+		turns:   snap.Turns,
+		cost:    snap.Cost,
+		last:    snap.LastDuration,
+		input:   snap.InputTokens,
+		output:  snap.OutputTokens,
+		context: snap.ContextTokens,
 	}
 }
 

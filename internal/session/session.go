@@ -129,6 +129,7 @@ type Snapshot struct {
 	LastDuration    time.Duration
 	InputTokens     int
 	OutputTokens    int
+	ContextTokens   int
 	StartedAt       time.Time
 	EndedAt         time.Time
 	Err             error
@@ -162,6 +163,7 @@ type Session struct {
 	lastDuration    time.Duration
 	inputTokens     int
 	outputTokens    int
+	contextTokens   int
 	startedAt       time.Time
 	endedAt         time.Time
 	sent            bool
@@ -306,6 +308,7 @@ func (s *Session) Snapshot() Snapshot {
 		LastDuration:    s.lastDuration,
 		InputTokens:     s.inputTokens,
 		OutputTokens:    s.outputTokens,
+		ContextTokens:   s.contextTokens,
 		StartedAt:       s.startedAt,
 		EndedAt:         s.endedAt,
 		Err:             s.err,
@@ -460,6 +463,7 @@ func (s *Session) apply(ev protocol.Event) {
 		if usage := ev.Result.Usage; usage != nil {
 			s.inputTokens += usage.InputTokens + usage.CacheReadInputTokens + usage.CacheCreationInputTokens
 			s.outputTokens += usage.OutputTokens
+			s.contextTokens = usage.InputTokens + usage.CacheReadInputTokens + usage.CacheCreationInputTokens + usage.OutputTokens
 		}
 		if ev.Result.SessionID != "" {
 			s.claudeSessionID = ev.Result.SessionID
