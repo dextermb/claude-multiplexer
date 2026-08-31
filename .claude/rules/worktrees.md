@@ -28,20 +28,40 @@ Start a worktree for any effort that adds or changes code and runs tests:
 A one-line edit that you commit at once does not need a worktree. When in doubt,
 start one. A worktree is cheap, and a broken shared build is not.
 
+# The tooling
+
+Three `just` recipes do the mechanics. Use them, so every worktree lands in the
+same place and follows the same flow:
+
+- `just worktree <name>` — start a worktree on a new branch off master, at the
+  sibling path `../claude-multiplexer-<name>`.
+- `just worktrees` — list the worktrees and their branches.
+- `just collapse <name>` — merge a committed, green worktree back into master,
+  run the tests once more, then remove the worktree and delete its branch.
+
+`collapse` stops if the worktree still holds uncommitted work, or if the tests
+fail after the merge, so a broken result never lands on master.
+
+Plain `go build`, `go test`, and `just test` work inside a worktree. An editor
+that runs `gopls` from the main worktree may warn that the worktree "is not
+included in your workspace" — this warning is benign. Trust `go test`, or drop a
+`go.work` file (it is ignored by git) if the editor must see the worktree.
+
 # The shape of the work
 
-1. **Branch.** Create a worktree on a new branch, off the main branch, named for
-   the effort.
+1. **Branch.** `just worktree <name>` creates a worktree on a new branch, off the
+   main branch, named for the effort.
 2. **Build.** Do all of the work in that worktree. Write the code, write the
    tests, and update the docs, the same as any change.
 3. **Green.** Run the tests in the worktree. The feature is complete only when
    the tests pass and the docs are current. See [plans.md](./plans.md) and
    [documentation.md](./documentation.md).
-4. **Merge.** Bring the branch back into the main worktree. Settle any collision
-   with other work here, at the merge, and run the tests once more in the main
-   worktree to confirm the merged result is green.
-5. **Collapse.** Remove the worktree and delete its branch once the merge is in.
-   Leave no empty worktree behind.
+4. **Merge.** `just collapse <name>` brings the branch back into the main
+   worktree. Settle any collision with other work here, at the merge. The recipe
+   runs the tests once more in the main worktree to confirm the merged result is
+   green.
+5. **Collapse.** `just collapse <name>` also removes the worktree and deletes its
+   branch once the merge is in. Leave no empty worktree behind.
 
 # Rules
 

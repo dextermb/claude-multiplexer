@@ -79,6 +79,32 @@ tidy:
 # Run every check before a commit.
 check: fmt-check vet test-repeat
 
+# Start a worktree on a new branch off master, for one effort. Example: just worktree add-auth
+worktree NAME:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    dir="../$(basename "$(git rev-parse --show-toplevel)")-{{NAME}}"
+    git worktree add -b "{{NAME}}" "$dir" master
+    echo "ready: $dir on branch {{NAME}} — do the work there, then 'just collapse {{NAME}}'"
+
+# List the worktrees and their branches.
+worktrees:
+    git worktree list
+
+# Merge a green, committed worktree back into master, then remove it. Run from the main worktree on master.
+collapse NAME:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    dir="../$(basename "$(git rev-parse --show-toplevel)")-{{NAME}}"
+    if [ -n "$(git -C "$dir" status --porcelain)" ]; then
+        echo "commit the work in $dir before you collapse it"; exit 1
+    fi
+    git merge "{{NAME}}"
+    go test ./...
+    git worktree remove "$dir"
+    git branch -d "{{NAME}}"
+    echo "collapsed {{NAME}} into master"
+
 # Remove the build output and the coverage profile.
 clean:
     rm -rf bin coverage.out
