@@ -1562,6 +1562,9 @@ func (m Model) barRights(item row) []string {
 
 func (m Model) rightSegs(item row) []barSeg {
 	segs := []barSeg{{item.label, item.style().Background(barBackground)}}
+	if item.live && item.context > 0 {
+		segs = append(segs, barSeg{contextLabel(item), barMutedStyle})
+	}
 	if m.showRaw {
 		segs = append(segs, barSeg{"raw", barMutedStyle})
 	}
@@ -1577,11 +1580,7 @@ func (m Model) rightSegs(item row) []barSeg {
 			barMutedStyle,
 		})
 	}
-	segs = append(segs, barSeg{fmt.Sprintf("$%.4f", item.cost), barCostStyle})
-	if item.live && item.context > 0 {
-		segs = append(segs, barSeg{contextLabel(item), barMutedStyle})
-	}
-	return segs
+	return append(segs, barSeg{fmt.Sprintf("$%.4f", item.cost), barCostStyle})
 }
 
 func contextLabel(item row) string {

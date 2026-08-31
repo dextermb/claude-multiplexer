@@ -89,18 +89,20 @@ The bar always fits on one line. When the window is too narrow, the two sides
 shed detail in turn, and the least useful item goes first:
 
 ```
- alpha · fake-model · auto        idle · 11.6k in 0.6k out · $0.2500 · ctx 12.2k/200k (6%)
- alpha · fake-model · auto        idle · 11.6k in 0.6k out · $0.2500
- alpha · fake-model               idle · 11.6k in 0.6k out
+ alpha · fake-model · auto        idle · ctx 12.2k/200k (6%) · 11.6k in 0.6k out · $0.2500
+ alpha · fake-model · auto        idle · ctx 12.2k/200k (6%) · 11.6k in 0.6k out
+ alpha · fake-model               idle · ctx 12.2k/200k (6%)
  alpha · fake-model               idle
  alpha                            idle
  alpha
 ```
 
-The right side sheds from the end: the context fill first, then the cost, then
-the tokens, then the queue length, and last of all the state, so that only the
+The right side sheds from the end: the cost first, then the tokens, then the
+queue length, then the context fill, and last of all the state, so that only the
 name remains. The left side sheds the permission mode, then the model. The name
 always stays, and only when the name alone cannot fit is it cut short.
 
-The context fill and the per-session cost both live here, and they drop first.
-The total cost of every session lives in the status bar, and it stays.
+The context fill sits next to the state, so it stays until the bar is almost
+empty. Seeing it is the point of the feature, so it outlives the cost and the
+tokens. The per-session cost drops early. The total cost of every session lives
+in the status bar, and it stays.
