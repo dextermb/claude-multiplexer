@@ -90,15 +90,20 @@ type Model struct {
 	sel          string
 	listOffset   int
 
-	output     viewport.Model
-	outputText string
-	shownLines []render.Line
-	content    string
-	selection  selRange
-	prompt     textarea.Model
-	form       *form
-	confirm    string
-	focus      focusArea
+	output      viewport.Model
+	outputText  string
+	shownLines  []render.Line
+	content     string
+	selection   selRange
+	prompt      textarea.Model
+	pathMatches []pathMatch
+	pathPicked  int
+	pathStem    string
+	pathValue   string
+	pathBase    string
+	form        *form
+	confirm     string
+	focus       focusArea
 
 	width     int
 	height    int
@@ -129,17 +134,18 @@ func New(opts Options) Model {
 	prompt.SetHeight(promptRowsMin)
 
 	return Model{
-		replays:  make(map[string][]render.Line),
-		partials: make(map[string]string),
-		queued:   make(map[string][]string),
-		md:       markdown.New(),
-		opts:     opts,
-		mgr:      opts.Manager,
-		sub:      opts.Manager.Subscribe(manager.DefaultSubscriberBuffer),
-		output:   viewport.New(0, 0),
-		prompt:   prompt,
-		focus:    focusSidebar,
-		mouseOn:  true,
+		replays:    make(map[string][]render.Line),
+		partials:   make(map[string]string),
+		queued:     make(map[string][]string),
+		md:         markdown.New(),
+		opts:       opts,
+		mgr:        opts.Manager,
+		sub:        opts.Manager.Subscribe(manager.DefaultSubscriberBuffer),
+		output:     viewport.New(0, 0),
+		prompt:     prompt,
+		pathPicked: -1,
+		focus:      focusSidebar,
+		mouseOn:    true,
 	}
 }
 
@@ -230,6 +236,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return next, cmd
 	}
 	model.syncPromptHeight()
+	model.syncMentions()
 	return model, cmd
 }
 
@@ -587,6 +594,9 @@ func (m Model) promptKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		var cmd tea.Cmd
 		m.prompt, cmd = m.prompt.Update(tea.KeyMsg{Type: tea.KeyEnter})
 		return m, cmd
+	}
+	if next, cmd, ok := m.mentionKey(msg); ok {
+		return next, cmd
 	}
 	var cmd tea.Cmd
 	m.prompt, cmd = m.prompt.Update(msg)
@@ -1171,13 +1181,20 @@ func (m Model) fillPrompt(text string) (tea.Model, tea.Cmd) {
 
 func (m Model) complete() (tea.Model, tea.Cmd) {
 	m.reloadTemplates()
-	names := completionNames(m.templates, m.prompt.Value())
-	if len(names) == 0 {
-		return m.toggleFocus()
+	if names := completionNames(m.templates, m.prompt.Value()); len(names) > 0 {
+		m.prompt.SetValue(names[0] + " ")
+		m.prompt.CursorEnd()
+		return m, nil
 	}
-	m.prompt.SetValue(names[0] + " ")
-	m.prompt.CursorEnd()
-	return m, nil
+	if m.pathPicked >= 0 {
+		if next, ok := m.walkMention(1); ok {
+			return next, nil
+		}
+	}
+	if next, ok := m.completeMention(); ok {
+		return next, nil
+	}
+	return m.toggleFocus()
 }
 
 func (m *Model) reloadTemplates() {
@@ -1713,6 +1730,9 @@ func (m Model) promptView() string {
 	label := "prompt"
 	if m.sel != "" {
 		label = m.sel
+	}
+	if hint, ok := m.mentionHint(); ok {
+		return hint + "\n" + m.prompt.View()
 	}
 	if names := completionNames(m.templates, m.prompt.Value()); len(names) > 0 && m.focus == focusPrompt {
 		return hintStyle.Render(truncate(strings.Join(names, "  ")+"   tab completes", m.width-2)) +

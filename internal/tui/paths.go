@@ -10,18 +10,51 @@ import (
 
 const maxPathMatches = 6
 
+type pathMatch struct {
+	name string
+	dir  bool
+}
+
 func completePath(input string) (string, []string) {
 	expanded := expandHome(input)
 	dir, prefix := splitPath(expanded)
 
-	entries, err := os.ReadDir(dirToRead(dir))
-	if err != nil {
+	matches := matchEntries(dirToRead(dir), prefix, true)
+	if len(matches) == 0 {
 		return input, nil
 	}
+	names := matchNames(matches)
+	if len(names) == 1 {
+		return dir + names[0] + string(filepath.Separator), names
+	}
+	return dir + commonPrefix(names), names
+}
 
-	var names []string
+// completeEntry offers files as well as directories, and reads a relative input against base.
+func completeEntry(base, input string) (string, []pathMatch) {
+	expanded := expandHome(input)
+	dir, prefix := splitPath(expanded)
+
+	matches := matchEntries(resolveDir(base, dir), prefix, false)
+	if len(matches) == 0 {
+		return input, nil
+	}
+	names := matchNames(matches)
+	if len(names) == 1 {
+		return dir + names[0] + matchSuffix(matches[0]), matches
+	}
+	return dir + commonPrefix(names), matches
+}
+
+func matchEntries(dir, prefix string, dirsOnly bool) []pathMatch {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil
+	}
+
+	var matches []pathMatch
 	for _, entry := range entries {
-		if !entry.IsDir() {
+		if dirsOnly && !entry.IsDir() {
 			continue
 		}
 		name := entry.Name()
@@ -31,17 +64,35 @@ func completePath(input string) (string, []string) {
 		if !strings.HasPrefix(strings.ToLower(name), strings.ToLower(prefix)) {
 			continue
 		}
-		names = append(names, name)
+		matches = append(matches, pathMatch{name: name, dir: entry.IsDir()})
 	}
-	sort.Strings(names)
-	if len(names) == 0 {
-		return input, nil
-	}
+	sort.Slice(matches, func(i, j int) bool { return matches[i].name < matches[j].name })
+	return matches
+}
 
-	if len(names) == 1 {
-		return dir + names[0] + string(filepath.Separator), names
+func matchNames(matches []pathMatch) []string {
+	names := make([]string, 0, len(matches))
+	for _, match := range matches {
+		names = append(names, match.name)
 	}
-	return dir + commonPrefix(names), names
+	return names
+}
+
+func matchSuffix(match pathMatch) string {
+	if match.dir {
+		return string(filepath.Separator)
+	}
+	return " "
+}
+
+func resolveDir(base, dir string) string {
+	switch {
+	case dir == "":
+		return dirToRead(base)
+	case filepath.IsAbs(dir), base == "":
+		return dirToRead(dir)
+	}
+	return filepath.Join(base, dir)
 }
 
 func expandHome(input string) string {

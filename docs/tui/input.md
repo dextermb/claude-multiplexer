@@ -2,6 +2,45 @@
 
 The prompt box, a file dropped on the window, and the new session form.
 
+## The size of the box
+
+The box holds two rows of text, and it grows to four as you type. It counts the
+rows the terminal shows, so a line that wraps grows the box in the same way a
+new line does. Above four rows the box stops, and the text scrolls inside it.
+Remove the lines and the box shrinks again.
+
+The output pane gives up the rows the box takes, and it takes them back. The
+window height never changes.
+
+## Naming a file with `@`
+
+Start a word with `@` and the box suggests paths. The names that match appear
+under the label, six at a time, and the count of the rest follows them.
+
+The path is read against the directory of the selected session, because that is
+where the prompt is going. `@/tmp` names an absolute path, `@notes.md` names a
+file next to the session, and `@~` is your home directory. A name that starts
+with a dot is offered only once you type the dot.
+
+The `@` and the path stay in the prompt as you send it, because Claude Code
+reads `@path` as a reference to a file.
+
+- `Tab` grows the path. One match completes in full, and several grow the path
+  as far as they agree. A directory gets a separator, so you can carry on into
+  the next level. A file gets a space, because there is nothing more to
+  complete.
+- With nothing left to grow, `Tab` moves the focus, as it always did.
+- `Shift+Tab` walks the names instead. It starts at the last name and steps
+  backwards, it wraps around, and `Tab` steps the other way. The name you are
+  on is marked under the box.
+- Type anything to stop the walk.
+
+Two limits:
+
+- The completion runs only when the cursor sits at the end of the prompt.
+- A name that holds a space goes in as it is, and the space breaks the word. A
+  dropped path is quoted instead, because a drop is not one word.
+
 ## Dropping a file
 
 Drag a file or a folder onto the window and its path goes into the prompt,

@@ -16,6 +16,7 @@ output.
 | `Enter` (in the output) | Open a large result, or move to the prompt when there is none |
 | `i` (in the output) | Move to the prompt |
 | `ctrl+j` | Add a new line inside the prompt |
+| `Shift+Tab` (in the prompt) | Walk the paths that match an `@` word |
 | `Esc` | Stop a running turn, or leave the prompt or the output, or close the form or a dialog |
 | `n` or `ctrl+n` | Open the new session form |
 | `t` or `ctrl+p` | Open the preset prompts |
@@ -34,7 +35,8 @@ output.
 | `q` | Stop every session, and quit |
 | `ctrl+c` | Clear the prompt. Press it again to quit |
 
-In the prompt box, `Tab` completes a `/preset` name before it moves the focus.
+In the prompt box, `Tab` completes a `/preset` name, then an `@` path, before it
+moves the focus. See [input.md](input.md).
 
 `n`, `t`, `r`, `a`, `A`, `R`, `m`, `M`, `e`, `p`, `?`, `x`, and `q` work when the focus is the
 list or the output. The `ctrl` forms work everywhere, so they still work while you
