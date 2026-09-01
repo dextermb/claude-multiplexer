@@ -126,7 +126,7 @@ func New(opts Options) Model {
 	prompt.Prompt = "> "
 	prompt.ShowLineNumbers = false
 	prompt.CharLimit = 0
-	prompt.SetHeight(promptHeight - 1)
+	prompt.SetHeight(promptRowsMin)
 
 	return Model{
 		replays:  make(map[string][]render.Line),
@@ -224,6 +224,16 @@ func interruptCmd(mgr *manager.Manager, name string, discard bool) tea.Cmd {
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	next, cmd := m.update(msg)
+	model, ok := next.(Model)
+	if !ok {
+		return next, cmd
+	}
+	model.syncPromptHeight()
+	return model, cmd
+}
+
+func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		return m.resize(msg.Width, msg.Height)
@@ -768,7 +778,7 @@ func (m Model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 func (m Model) handleLeftMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	switch msg.Action {
 	case tea.MouseActionPress:
-		if msg.Y >= m.bodyHeight() && msg.Y < m.bodyHeight()+promptHeight {
+		if msg.Y >= m.bodyHeight() && msg.Y < m.bodyHeight()+m.promptHeight() {
 			m.clearSelection()
 			m.focus = focusPrompt
 			m.prompt.Focus()
@@ -1276,7 +1286,7 @@ func (m Model) selectedRow() (row, bool) {
 }
 
 func (m Model) bodyHeight() int {
-	height := m.height - promptHeight - statusHeight
+	height := m.height - m.promptHeight() - statusHeight
 	if height < 1 {
 		return 1
 	}
