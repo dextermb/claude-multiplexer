@@ -22,7 +22,7 @@ func spinnerFrame(n int) string {
 const (
 	sidebarWidth   = 26
 	promptHintRows = 1
-	promptRowsMin  = 2
+	promptRowsMin  = 1
 	promptRowsMax  = 4
 	statusHeight   = 1
 	titleHeight    = 0

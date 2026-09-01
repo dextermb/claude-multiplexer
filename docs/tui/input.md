@@ -4,7 +4,7 @@ The prompt box, a file dropped on the window, and the new session form.
 
 ## The size of the box
 
-The box holds two rows of text, and it grows to four as you type. It counts the
+The box holds one row of text, and it grows to four as you type. It counts the
 rows the terminal shows, so a line that wraps grows the box in the same way a
 new line does. Above four rows the box stops, and the text scrolls inside it.
 Remove the lines and the box shrinks again.

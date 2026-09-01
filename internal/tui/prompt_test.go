@@ -25,10 +25,14 @@ func newline(t *testing.T, m Model) Model {
 	return m
 }
 
-func TestThePromptBoxStartsAtTwoRows(t *testing.T) {
+func TestThePromptBoxStartsAtOneRow(t *testing.T) {
 	m := promptModel(t)
-	if got := m.promptHeight(); got != 3 {
-		t.Fatalf("prompt block is %d rows, want 3", got)
+	if got := m.promptHeight(); got != 2 {
+		t.Fatalf("prompt block is %d rows, want 2", got)
+	}
+	m, _ = step(t, m, key("hello"))
+	if got := m.promptHeight(); got != 2 {
+		t.Fatalf("one line gave %d rows, want 2", got)
 	}
 }
 
@@ -42,14 +46,17 @@ func TestThePromptBoxGrowsWithNewLinesAndStopsAtFour(t *testing.T) {
 	if got := m.promptHeight(); got != 3 {
 		t.Fatalf("two lines gave %d rows, want 3", got)
 	}
+	if got := m.bodyHeight(); got != body-1 {
+		t.Fatalf("body is %d rows, want %d", got, body-1)
+	}
 
 	m = newline(t, m)
 	m, _ = step(t, m, key("three"))
 	if got := m.promptHeight(); got != 4 {
 		t.Fatalf("three lines gave %d rows, want 4", got)
 	}
-	if got := m.bodyHeight(); got != body-1 {
-		t.Fatalf("body is %d rows, want %d", got, body-1)
+	if got := m.bodyHeight(); got != body-2 {
+		t.Fatalf("body is %d rows, want %d", got, body-2)
 	}
 
 	m = newline(t, m)
@@ -71,8 +78,8 @@ func TestTheOutputPaneGivesBackTheRowsThePromptTakes(t *testing.T) {
 
 	m = newline(t, m)
 	m = newline(t, m)
-	if got := m.output.Height; got != height-1 {
-		t.Fatalf("the output pane is %d rows, want %d", got, height-1)
+	if got := m.output.Height; got != height-2 {
+		t.Fatalf("the output pane is %d rows, want %d", got, height-2)
 	}
 	if got := lines(m.View()); got != 30 {
 		t.Fatalf("the view is %d rows, want 30", got)
@@ -97,8 +104,8 @@ func TestThePromptBoxShrinksAgain(t *testing.T) {
 	}
 	m.prompt.SetValue("")
 	m, _ = step(t, m, key("a"))
-	if got := m.promptHeight(); got != 3 {
-		t.Fatalf("an emptied prompt gave %d rows, want 3", got)
+	if got := m.promptHeight(); got != 2 {
+		t.Fatalf("an emptied prompt gave %d rows, want 2", got)
 	}
 }
 
@@ -109,7 +116,7 @@ func TestWrappedRowsCountsTheDisplayRows(t *testing.T) {
 		width int
 		want  int
 	}{
-		{"empty", "", 20, 1},
+		{"empty", "", 20, promptRowsMin},
 		{"one short line", "hello", 20, 1},
 		{"two lines", "hello\nworld", 20, 2},
 		{"a word wraps whole", "hello world again", 12, 2},
