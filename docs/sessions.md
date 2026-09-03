@@ -36,8 +36,12 @@ a child that dies with no clear reason.
    send |                     | child exits         | result
         v                     v                     |
       busy ----------------> exited                 |
-        |                                           |
-        +-------------------------------------------+
+        |  \                                        |
+        |   \ question: interrupt, then result      |
+        |    v                                      |
+        |  waiting ---------------------------------+
+        |    ^  |
+        |    +--+  send: the answer moves waiting to busy
         |
         | decode failure, write failure, or a non-zero exit code
         v
@@ -47,6 +51,9 @@ a child that dies with no clear reason.
 - `starting` — the process runs, and no prompt has gone yet.
 - `idle` — the session accepts a prompt.
 - `busy` — a turn is in progress. A further prompt waits in the queue.
+- `waiting` — the model asked a question. The session interrupted the turn, and
+  it waits for the human answer. It accepts a prompt, the same as `idle`. See
+  [protocol.md](./protocol.md).
 - `exited` — the child stopped in a clean way.
 - `failed` — the child stopped with an error, or the stream broke.
 
@@ -119,6 +126,10 @@ was proven against Claude Code 2.1.176.
 The `result` event moves the state from `busy` to `idle`, the same as a normal
 end of turn. So the writer wakes, and it sends the next queued prompt at once.
 `Interrupt` writes only while the state is `busy`, and does nothing otherwise.
+
+The session also interrupts itself when the model asks a question. That
+interrupt ends the turn in `waiting`, not `idle`. See
+[protocol.md](./protocol.md).
 
 `DiscardQueued` clears the prompt queue. Call it before `Interrupt` to stop the
 turn and hold the session, because the writer waits for `idle` before it takes

@@ -53,6 +53,10 @@ func main() {
 		emitInit(sessionID)
 		runInterruptible(sessionID)
 		os.Exit(0)
+	case "question":
+		emitInit(sessionID)
+		runQuestion(sessionID)
+		os.Exit(0)
 	}
 
 	replay := false
@@ -193,6 +197,112 @@ func runInterruptible(sessionID string) {
 				"duration_ms":    3,
 				"num_turns":      1,
 				"result":         "interrupted: " + pending,
+				"total_cost_usd": 0.1,
+				"session_id":     sessionID,
+			})
+		}
+	}
+}
+
+func runQuestion(sessionID string) {
+	scanner := bufio.NewScanner(os.Stdin)
+	scanner.Buffer(make([]byte, 0, 64*1024), 16<<20)
+	busy := false
+	asked := false
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" {
+			continue
+		}
+		var in inputLine
+		if err := json.Unmarshal([]byte(line), &in); err != nil {
+			continue
+		}
+		switch in.Type {
+		case "user":
+			var text string
+			for _, block := range in.Message.Content {
+				if block.Type == "text" {
+					text = block.Text
+				}
+			}
+			if !asked {
+				asked = true
+				busy = true
+				emit(map[string]any{
+					"type":       "assistant",
+					"session_id": sessionID,
+					"message": map[string]any{
+						"role":  "assistant",
+						"model": "fake-model",
+						"content": []map[string]any{{
+							"type": "tool_use",
+							"id":   "toolu_1",
+							"name": "AskUserQuestion",
+							"input": map[string]any{"questions": []map[string]any{{
+								"question": "Which colour do you prefer?",
+								"header":   "Colour",
+								"options": []map[string]any{
+									{"label": "Red", "description": "You prefer red."},
+									{"label": "Blue", "description": "You prefer blue."},
+								},
+								"multiSelect": false,
+							}}},
+						}},
+					},
+				})
+				emit(map[string]any{
+					"type":       "user",
+					"session_id": sessionID,
+					"message": map[string]any{
+						"role": "user",
+						"content": []map[string]any{{
+							"type":        "tool_result",
+							"tool_use_id": "toolu_1",
+							"is_error":    true,
+							"content":     "Answer questions?",
+						}},
+					},
+				})
+				continue
+			}
+			busy = true
+			emit(map[string]any{
+				"type":       "assistant",
+				"session_id": sessionID,
+				"message": map[string]any{
+					"role":    "assistant",
+					"model":   "fake-model",
+					"content": []map[string]any{{"type": "text", "text": "answered: " + text}},
+				},
+			})
+			emit(map[string]any{
+				"type":           "result",
+				"subtype":        "success",
+				"is_error":       false,
+				"duration_ms":    5,
+				"num_turns":      1,
+				"result":         "answered: " + text,
+				"total_cost_usd": 0.2,
+				"session_id":     sessionID,
+			})
+			busy = false
+		case "control_request":
+			emit(map[string]any{
+				"type":     "control_response",
+				"response": map[string]any{"subtype": "success", "request_id": in.RequestID},
+			})
+			if in.Request.Subtype != "interrupt" || !busy {
+				continue
+			}
+			busy = false
+			emit(map[string]any{
+				"type":           "result",
+				"subtype":        "error_during_execution",
+				"is_error":       true,
+				"duration_ms":    3,
+				"num_turns":      1,
+				"result":         "interrupted",
 				"total_cost_usd": 0.1,
 				"session_id":     sessionID,
 			})

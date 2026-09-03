@@ -58,10 +58,10 @@ func (d *questionDialog) Update(msg tea.Msg) (formResult, tea.Cmd) {
 	switch key.String() {
 	case "esc":
 		return formCancelled, nil
-	case "up", "shift+tab":
+	case "up":
 		d.move(-1)
 		return formOpen, nil
-	case "down", "tab":
+	case "down":
 		d.move(1)
 		return formOpen, nil
 	case "enter":

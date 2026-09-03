@@ -115,23 +115,24 @@ func TestEventOpensTheQuestionDialogAndSubmitSends(t *testing.T) {
 	m = spawn(t, m, mgr, "alpha", t.TempDir())
 
 	m, _ = step(t, m, eventMsg(manager.Event{Session: "alpha", Questions: colourQuestion(false)}))
-	if m.question == nil {
-		t.Fatal("a question event must open the dialog")
-	}
-	if m.sel != "alpha" {
-		t.Fatalf("the dialog must select its session, sel = %q", m.sel)
+	if m.questions["alpha"] == nil {
+		t.Fatal("a question event must open the dialog for its session")
 	}
 	if view := m.View(); !strings.Contains(visible(view), "Which colour do you prefer?") {
 		t.Fatalf("the view does not show the question:\n%s", visible(view))
 	}
 
+	m.focus = focusOutput
 	m, _ = step(t, m, key(" "))
 	m, _ = step(t, m, key("enter"))
-	if m.question != nil {
+	if m.questions["alpha"] != nil {
 		t.Fatal("enter must close the dialog")
 	}
 	if got := m.queued["alpha"]; len(got) != 1 || got[0] != "Colour: Red" {
 		t.Fatalf("the answer must be sent, queued = %v", got)
+	}
+	if m.focus != focusPrompt {
+		t.Fatalf("the answer must return the focus to the prompt, focus = %v", m.focus)
 	}
 }
 
@@ -142,12 +143,46 @@ func TestSecondQuestionWhileOneIsOpenIsNoted(t *testing.T) {
 	m = spawn(t, m, mgr, "alpha", t.TempDir())
 
 	m, _ = step(t, m, eventMsg(manager.Event{Session: "alpha", Questions: colourQuestion(false)}))
-	first := m.question
+	first := m.questions["alpha"]
 	m, _ = step(t, m, eventMsg(manager.Event{Session: "alpha", Questions: colourQuestion(true)}))
-	if m.question != first {
+	if m.questions["alpha"] != first {
 		t.Fatal("a second question must not replace the open one")
 	}
 	if !strings.Contains(m.status, "another question") {
 		t.Fatalf("status = %q, want a note about the waiting question", m.status)
+	}
+}
+
+func TestQuestionDoesNotStealSelection(t *testing.T) {
+	m, mgr := newTestModel(t, "")
+	m = start(t, m, 100, 30)
+	m, _ = step(t, m, key("esc"))
+	m = spawn(t, m, mgr, "alpha", t.TempDir())
+	m = spawn(t, m, mgr, "beta", t.TempDir())
+	m.sel = "alpha"
+
+	m, _ = step(t, m, eventMsg(manager.Event{Session: "beta", Questions: colourQuestion(false)}))
+	if m.sel != "alpha" {
+		t.Fatalf("a question must not steal the selection, sel = %q", m.sel)
+	}
+	if m.questions["beta"] == nil {
+		t.Fatal("the question must attach to the session that asked")
+	}
+	if view := m.View(); strings.Contains(visible(view), "Which colour do you prefer?") {
+		t.Fatal("the pane of another session must not show the question")
+	}
+}
+
+func TestQuestionIgnoresKeysUntilItsPaneHasFocus(t *testing.T) {
+	m, mgr := newTestModel(t, "")
+	m = start(t, m, 100, 30)
+	m, _ = step(t, m, key("esc"))
+	m = spawn(t, m, mgr, "alpha", t.TempDir())
+
+	m, _ = step(t, m, eventMsg(manager.Event{Session: "alpha", Questions: colourQuestion(false)}))
+	m.focus = focusSidebar
+	m, _ = step(t, m, key(" "))
+	if got := m.questions["alpha"].chosen[0]; len(got) != 0 {
+		t.Fatal("a key must not reach the dialog while the pane is not focused")
 	}
 }

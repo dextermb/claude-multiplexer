@@ -82,7 +82,7 @@ type Model struct {
 	help         *help
 	picker       *picker
 	fields       *fieldForm
-	question     *questionDialog
+	questions    map[string]*questionDialog
 	choice       *choiceDialog
 	rename       *renameDialog
 	pager        *pager
@@ -137,6 +137,7 @@ func New(opts Options) Model {
 		replays:    make(map[string][]render.Line),
 		partials:   make(map[string]string),
 		queued:     make(map[string][]string),
+		questions:  make(map[string]*questionDialog),
 		md:         markdown.New(),
 		opts:       opts,
 		mgr:        opts.Manager,
@@ -387,23 +388,26 @@ func (m *Model) maybeAskQuestion(ev manager.Event) tea.Cmd {
 	if len(ev.Questions) == 0 {
 		return nil
 	}
-	if m.question != nil {
+	if m.questions[ev.Session] != nil {
 		m.status = "another question waits for " + ev.Session
 		return nil
 	}
-	m.sel = ev.Session
-	m.rebuildOutput()
-	m.question = newQuestionDialog(ev.Session, ev.Questions)
-	m.prompt.Blur()
+	m.questions[ev.Session] = newQuestionDialog(ev.Session, ev.Questions)
+	m.status = ev.Session + " asks a question"
 	return textinput.Blink
 }
 
 func (m Model) questionKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	result, cmd := m.question.Update(msg)
+	switch msg.String() {
+	case "tab", "shift+tab":
+		return m.toggleFocus()
+	}
+	result, cmd := m.questions[m.sel].Update(msg)
 	switch result {
 	case formCancelled:
-		m.question = nil
+		delete(m.questions, m.sel)
 		m.status = "question dismissed"
+		m.setContent()
 		return m, nil
 	case formSubmitted:
 		return m.submitQuestion()
@@ -412,9 +416,9 @@ func (m Model) questionKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) submitQuestion() (tea.Model, tea.Cmd) {
-	name := m.question.session
-	text := m.question.answer()
-	m.question = nil
+	name := m.sel
+	text := m.questions[name].answer()
+	delete(m.questions, name)
 	if err := m.mgr.Send(name, text); err != nil {
 		m.errText = err.Error()
 		return m, nil
@@ -424,7 +428,9 @@ func (m Model) submitQuestion() (tea.Model, tea.Cmd) {
 	m.queued[name] = append(m.queued[name], text)
 	m.refresh()
 	m.setContent()
-	return m, m.ensureAnimating()
+	m.focus = focusPrompt
+	m.prompt.Focus()
+	return m, tea.Batch(m.ensureAnimating(), textarea.Blink)
 }
 
 func (m Model) handleSpawned(msg spawnedMsg) (tea.Model, tea.Cmd) {
@@ -498,7 +504,7 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, cmd
 	}
-	if m.question != nil {
+	if q := m.questions[m.sel]; q != nil && m.focus == focusOutput {
 		return m.questionKey(msg)
 	}
 	if m.choice != nil {
@@ -764,7 +770,7 @@ func (m Model) archiveSelected() (tea.Model, tea.Cmd) {
 }
 
 func (m Model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
-	if m.form != nil || m.confirm != "" || m.quitting || m.question != nil || m.choice != nil || m.rename != nil || m.pager != nil {
+	if m.form != nil || m.confirm != "" || m.quitting || m.questions[m.sel] != nil || m.choice != nil || m.rename != nil || m.pager != nil {
 		return m, nil
 	}
 
@@ -1222,7 +1228,7 @@ func (m Model) interrupt() (tea.Model, tea.Cmd) {
 	m.fields = nil
 	m.picker = nil
 	m.help = nil
-	m.question = nil
+	m.questions = map[string]*questionDialog{}
 	m.choice = nil
 	m.rename = nil
 	m.pager = nil
@@ -1493,9 +1499,6 @@ func (m Model) View() string {
 	if m.fields != nil {
 		body = centre(m.width, m.bodyHeight(), m.fields.View(m.width))
 	}
-	if m.question != nil {
-		body = centre(m.width, m.bodyHeight(), m.question.View(m.width))
-	}
 	if m.choice != nil {
 		body = centre(m.width, m.bodyHeight(), m.choice.View(m.width))
 	}
@@ -1566,6 +1569,9 @@ func (m Model) sessionRow(item row) string {
 }
 
 func (m Model) outputView() string {
+	if q := m.questions[m.sel]; q != nil {
+		return centre(m.outputWidth(), m.outputHeight(), q.View(m.outputWidth()))
+	}
 	if len(m.rows) == 0 {
 		text := "No sessions yet.\n\nPress n to start one.\nPress ctrl+c to quit."
 		if len(m.stored) > 0 {

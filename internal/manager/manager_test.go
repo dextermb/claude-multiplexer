@@ -248,6 +248,37 @@ func TestManagerShowsThePromptInTheOutput(t *testing.T) {
 	}
 }
 
+func TestManagerPausesAndPublishesAQuestion(t *testing.T) {
+	t.Setenv("FAKECLAUDE_MODE", "question")
+	m := newTestManager(t)
+	sub := m.Subscribe(4096)
+	defer sub.Close()
+
+	name, err := m.Spawn(context.Background(), Spec{Name: "ask", Dir: t.TempDir()})
+	if err != nil {
+		t.Fatalf("Spawn: %v", err)
+	}
+	if err := m.Send(name, "start"); err != nil {
+		t.Fatalf("Send: %v", err)
+	}
+
+	waitFor(t, 10*time.Second, func() bool {
+		snap, err := m.Snapshot(name)
+		return err == nil && snap.State == session.StateWaiting
+	})
+
+	var asked bool
+	for len(sub.C) > 0 {
+		ev := <-sub.C
+		if len(ev.Questions) > 0 && ev.Questions[0].Header == "Colour" {
+			asked = true
+		}
+	}
+	if !asked {
+		t.Fatal("the pump did not publish the question")
+	}
+}
+
 func TestManagerMakesEveryNameUnique(t *testing.T) {
 	m := newTestManager(t)
 	dir := t.TempDir()

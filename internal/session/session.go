@@ -178,6 +178,7 @@ type Session struct {
 	startedAt       time.Time
 	endedAt         time.Time
 	sent            bool
+	askedQuestion   bool
 	interruptSeq    int
 	controlSeq      int
 	err             error
@@ -488,7 +489,7 @@ func (s *Session) waitIdle() error {
 		state, sent := s.state, s.sent
 		s.mu.Unlock()
 		switch {
-		case state == StateIdle:
+		case state == StateIdle || state == StateWaiting:
 			return nil
 		case state == StateStarting && !sent:
 			// Claude Code emits init only after it reads input; see docs/protocol.md.
@@ -511,6 +512,12 @@ func (s *Session) ClaudeSessionID() string {
 }
 
 func (s *Session) apply(ev protocol.Event) {
+	if _, _, ok := ev.AskUserQuestion(); ok {
+		s.mu.Lock()
+		s.askedQuestion = true
+		s.mu.Unlock()
+		_ = s.Interrupt()
+	}
 	switch {
 	case ev.IsInit() && ev.Init != nil:
 		s.mu.Lock()
@@ -540,8 +547,14 @@ func (s *Session) apply(ev protocol.Event) {
 		if ev.Result.SessionID != "" {
 			s.claudeSessionID = ev.Result.SessionID
 		}
+		asked := s.askedQuestion
+		s.askedQuestion = false
 		s.mu.Unlock()
-		s.setState(StateIdle)
+		if asked {
+			s.setState(StateWaiting)
+		} else {
+			s.setState(StateIdle)
+		}
 	}
 }
 
@@ -575,7 +588,7 @@ func (s *Session) markSent() {
 }
 
 func (s *Session) afterState(prev, next State) {
-	if next == StateIdle {
+	if next == StateIdle || next == StateWaiting {
 		select {
 		case s.idleSig <- struct{}{}:
 		default:
