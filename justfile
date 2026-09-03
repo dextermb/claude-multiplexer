@@ -13,6 +13,20 @@ build:
 install:
     go install {{main}}
 
+# Build the binary under NAME into ~/.local/bin, and add that directory to PATH.
+install-as NAME="cmux":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    dir="$HOME/.local/bin"
+    mkdir -p "$dir"
+    go build -o "$dir/{{NAME}}" {{main}}
+    echo "built: $dir/{{NAME}}"
+    case ":$PATH:" in
+        *":$dir:"*) echo "$dir is already on PATH" ;;
+        *) echo "export PATH=\"$dir:\$PATH\"" >> "$HOME/.zshrc"
+           echo "added $dir to PATH in ~/.zshrc — open a new shell or run: export PATH=\"$dir:\$PATH\"" ;;
+    esac
+
 # Start the terminal user interface.
 tui *ARGS:
     go run {{main}} {{ARGS}}
