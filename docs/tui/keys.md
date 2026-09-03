@@ -131,6 +131,11 @@ To use the terminal selection instead (for example, to select across both
 panes), press `ctrl+t` to release the mouse, select and copy, then press
 `ctrl+t` again.
 
+The wheel reports each notch as an escape sequence. A fast roll fills the input
+buffer, so the terminal splits one sequence across two reads, and the parser
+then reads the tail as ordinary key presses. The interface drops those
+fragments, so a wheel roll never leaves stray characters in the prompt.
+
 ## Quitting
 
 `ctrl+c` takes two presses. The first one clears the prompt, closes the new

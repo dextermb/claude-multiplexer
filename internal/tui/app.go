@@ -281,6 +281,9 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.MouseMsg:
 		return m.handleMouse(msg)
 	case tea.KeyMsg:
+		if isMouseArtifact(msg) {
+			return m, nil
+		}
 		if msg.Paste {
 			return m.handlePaste(string(msg.Runes))
 		}
