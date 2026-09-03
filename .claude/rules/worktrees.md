@@ -34,13 +34,25 @@ Three `just` recipes do the mechanics. Use them, so every worktree lands in the
 same place and follows the same flow:
 
 - `just worktree <name>` — start a worktree on a new branch off master, at the
-  sibling path `../claude-multiplexer-<name>`.
+  path `.worktrees/<name>` in the repository.
 - `just worktrees` — list the worktrees and their branches.
 - `just collapse <name>` — merge a committed, green worktree back into master,
   run the tests once more, then remove the worktree and delete its branch.
 
 `collapse` stops if the worktree still holds uncommitted work, or if the tests
 fail after the merge, so a broken result never lands on master.
+
+Both recipes find `.worktrees/` from the main worktree, not from the current
+directory, so the path is the same wherever you start them. Run `collapse` from
+the main worktree, because it merges the branch into the checked-out master.
+
+# Where the worktrees live
+
+Every worktree is a subdirectory of `.worktrees/` in the repository, so the
+whole effort stays in one place and the parent directory stays clean. Git
+ignores `.worktrees/`, and the Go tool ignores a directory whose name starts
+with a dot, so `go build ./...` and `go test ./...` in the main worktree do not
+see the files of another effort.
 
 Plain `go build`, `go test`, and `just test` work inside a worktree. An editor
 that runs `gopls` from the main worktree may warn that the worktree "is not
@@ -50,7 +62,7 @@ included in your workspace" — this warning is benign. Trust `go test`, or drop
 # The shape of the work
 
 1. **Branch.** `just worktree <name>` creates a worktree on a new branch, off the
-   main branch, named for the effort.
+   main branch, named for the effort, at `.worktrees/<name>`.
 2. **Build.** Do all of the work in that worktree. Write the code, write the
    tests, and update the docs, the same as any change.
 3. **Green.** Run the tests in the worktree. The feature is complete only when

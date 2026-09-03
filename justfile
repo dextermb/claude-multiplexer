@@ -97,7 +97,8 @@ check: fmt-check vet test-repeat
 worktree NAME:
     #!/usr/bin/env bash
     set -euo pipefail
-    dir="../$(basename "$(git rev-parse --show-toplevel)")-{{NAME}}"
+    root="$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")"
+    dir="$root/.worktrees/{{NAME}}"
     git worktree add -b "{{NAME}}" "$dir" master
     echo "ready: $dir on branch {{NAME}} — do the work there, then 'just collapse {{NAME}}'"
 
@@ -109,7 +110,8 @@ worktrees:
 collapse NAME:
     #!/usr/bin/env bash
     set -euo pipefail
-    dir="../$(basename "$(git rev-parse --show-toplevel)")-{{NAME}}"
+    root="$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")"
+    dir="$root/.worktrees/{{NAME}}"
     if [ -n "$(git -C "$dir" status --porcelain)" ]; then
         echo "commit the work in $dir before you collapse it"; exit 1
     fi

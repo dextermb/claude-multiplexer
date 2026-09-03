@@ -3,3 +3,6 @@ coverage.out
 .DS_Store
 go.work
 go.work.sum
+
+# The worktrees started by "just worktree".
+.worktrees/
