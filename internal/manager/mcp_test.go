@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -333,6 +334,91 @@ func TestASessionWithoutTheGrantCannotPromptAnother(t *testing.T) {
 	if snap.Turns != 0 {
 		t.Fatal("a session without the grant prompted its neighbour")
 	}
+}
+
+func TestAControlSessionCreatesASession(t *testing.T) {
+	t.Setenv("FAKECLAUDE_MODE", "mcp")
+	m := withMCP(t)
+
+	if _, err := m.Spawn(context.Background(), Spec{Dir: t.TempDir(), Name: "boss", Control: true}); err != nil {
+		t.Fatalf("Spawn boss: %v", err)
+	}
+	dir := t.TempDir()
+	runOneTurn(t, m, "boss", `create_session {"path":"`+dir+`","name":"api"}`)
+
+	waitFor(t, 10*time.Second, func() bool { return liveNamed(m, "api") })
+}
+
+func TestCreateSessionNeedsAPath(t *testing.T) {
+	t.Setenv("FAKECLAUDE_MODE", "mcp")
+	m := withMCP(t)
+
+	if _, err := m.Spawn(context.Background(), Spec{Dir: t.TempDir(), Name: "boss", Control: true}); err != nil {
+		t.Fatalf("Spawn boss: %v", err)
+	}
+	runOneTurn(t, m, "boss", `create_session {"path":"   "}`)
+
+	if !mentions(t, m, "boss", "needs a directory path") {
+		t.Fatal("boss did not see the no-path error")
+	}
+	if len(m.Snapshots()) != 1 {
+		t.Fatal("a create with no path started a session")
+	}
+}
+
+func TestCreateSessionRejectsAMissingPath(t *testing.T) {
+	t.Setenv("FAKECLAUDE_MODE", "mcp")
+	m := withMCP(t)
+
+	if _, err := m.Spawn(context.Background(), Spec{Dir: t.TempDir(), Name: "boss", Control: true}); err != nil {
+		t.Fatalf("Spawn boss: %v", err)
+	}
+	missing := filepath.Join(t.TempDir(), "nope")
+	runOneTurn(t, m, "boss", `create_session {"path":"`+missing+`"}`)
+
+	if !mentions(t, m, "boss", "not a directory") {
+		t.Fatal("boss did not see the not-a-directory error")
+	}
+	if len(m.Snapshots()) != 1 {
+		t.Fatal("a create with a missing path started a session")
+	}
+}
+
+func TestASessionWithoutTheGrantCannotCreate(t *testing.T) {
+	t.Setenv("FAKECLAUDE_MODE", "mcp")
+	m := withMCP(t)
+
+	if _, err := m.Spawn(context.Background(), Spec{Dir: t.TempDir(), Name: "boss"}); err != nil {
+		t.Fatalf("Spawn boss: %v", err)
+	}
+	runOneTurn(t, m, "boss", `create_session {"path":"`+t.TempDir()+`","name":"api"}`)
+
+	if liveNamed(m, "api") {
+		t.Fatal("a session without the grant created a neighbour")
+	}
+}
+
+func liveNamed(m *Manager, name string) bool {
+	for _, snap := range m.Snapshots() {
+		if snap.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
+func mentions(t *testing.T, m *Manager, name, want string) bool {
+	t.Helper()
+	messages, err := m.Messages(name, 20)
+	if err != nil {
+		t.Fatalf("Messages: %v", err)
+	}
+	for _, item := range messages {
+		if strings.Contains(item.Text, want) {
+			return true
+		}
+	}
+	return false
 }
 
 func contains(items []string, want string) bool {

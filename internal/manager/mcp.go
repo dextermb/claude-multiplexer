@@ -264,6 +264,23 @@ func (b *bridge) Archive(name string, archived bool, by string) error {
 	return nil
 }
 
+func (b *bridge) Create(dir, name, by string) (string, error) {
+	abs, err := filepath.Abs(dir)
+	if err != nil {
+		return "", err
+	}
+	info, err := os.Stat(abs)
+	if err != nil || !info.IsDir() {
+		return "", fmt.Errorf("%w: %s", ErrNotDirectory, dir)
+	}
+	created, err := b.m.Spawn(context.Background(), Spec{Dir: abs, Name: name})
+	if err != nil {
+		return "", err
+	}
+	b.m.notify(created, by+" created "+created, true)
+	return created, nil
+}
+
 func (b *bridge) List() []mcp.Session { return b.m.List() }
 
 func (b *bridge) Messages(name string, limit int) ([]mcp.Message, error) {

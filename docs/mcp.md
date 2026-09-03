@@ -21,6 +21,12 @@ reaches the model as `mcp__mux__…`.
 | `send_message` | `session`, `text` | Queues a prompt for another session, and returns the queue length. | control |
 | `stop_session` | `session` | Ends another child in a clean way. Its transcript is kept. | control |
 | `archive_session` | `session`, `restore` | Takes a stopped session out of the list, or with `restore` brings it back. | control |
+| `create_session` | `path`, `name` | Starts a new session in a directory. Returns the name it takes. | control |
+
+`create_session` takes a directory path and an optional name. The directory
+must exist. The manager makes the name unique, and it falls back to the last
+element of the path when the name is empty, so the tool returns the real name
+the session takes. The new session starts without the control grant.
 
 `get_messages` reads the transcript on disk, so it answers for a stored session
 as well as a live one. It returns one entry for each user prompt, each assistant
@@ -31,7 +37,7 @@ wants.
 ## The grant
 
 A session gets `rename_session`, `list_sessions`, and `get_messages` always.
-It gets the three control tools **only** when it is started with control.
+It gets the four control tools **only** when it is started with control.
 
 - In the new session form, set the `Control` field to `yes`.
 - On the command line, `multiplexier --dir <path> --control`.
@@ -55,6 +61,8 @@ next to the model. See [tui/sessions.md](./tui/sessions.md).
 - `stop_session` on the calling session itself. The child would die before the
   tool result returned.
 - `archive_session` on a session that still runs. Stop it first.
+- `create_session` with no path, or with a path that is not a directory that
+  exists.
 
 ## Two agents can talk in a circle
 
@@ -154,6 +162,10 @@ archive_session          Manager.Archive writes meta.json
 ```
 
 So the screen is true within one event, and the interface polls nothing.
+
+`create_session` publishes a notice in the same way. The new session soon
+streams its own events, but the notice names who created it and reloads the
+list at once, so the row appears without a wait.
 
 **A notice event carries no output and no streaming text.** The interface must
 therefore keep it off the normal path, which treats empty streaming text as the

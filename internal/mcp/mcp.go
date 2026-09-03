@@ -20,19 +20,21 @@ const (
 	ToolSend     = "send_message"
 	ToolStop     = "stop_session"
 	ToolArchive  = "archive_session"
+	ToolCreate   = "create_session"
 )
 
 // OpenTools go to every session. ControlTools go only to a session that holds
 // the control grant.
 var (
 	OpenTools    = []string{ToolRename, ToolList, ToolMessages}
-	ControlTools = []string{ToolSend, ToolStop, ToolArchive}
+	ControlTools = []string{ToolSend, ToolStop, ToolArchive, ToolCreate}
 )
 
 var (
 	ErrSelfSend = errors.New("mcp: a session cannot send a prompt to itself")
 	ErrSelfStop = errors.New("mcp: a session cannot stop itself")
 	ErrNoTarget = errors.New("mcp: this tool needs a session name")
+	ErrNoPath   = errors.New("mcp: this tool needs a directory path")
 )
 
 // AllowedTools names the tools a session may call, in the form Claude Code
@@ -84,6 +86,7 @@ type Sessions interface {
 	SendFrom(target, from, text string) (int, error)
 	Stop(ctx context.Context, name, by string) error
 	Archive(name string, archived bool, by string) error
+	Create(dir, name, by string) (string, error)
 	List() []Session
 	Messages(name string, limit int) ([]Message, error)
 }

@@ -24,6 +24,7 @@ const (
 var (
 	ErrUnknownSession = errors.New("manager: unknown session")
 	ErrNoDirectory    = errors.New("manager: a session needs a directory")
+	ErrNotDirectory   = errors.New("manager: the path is not a directory")
 	ErrStillLive      = errors.New("manager: the session is still live")
 )
 

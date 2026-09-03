@@ -3,6 +3,7 @@ package mcp
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -34,6 +35,11 @@ type archiveIn struct {
 	Restore bool   `json:"restore,omitempty" jsonschema:"true to bring an archived session back into the list"`
 }
 
+type createIn struct {
+	Path string `json:"path" jsonschema:"the directory the new session works in"`
+	Name string `json:"name,omitempty" jsonschema:"an optional name for the new session"`
+}
+
 type okOut struct {
 	OK      bool   `json:"ok"`
 	Message string `json:"message"`
@@ -52,6 +58,12 @@ type listOut struct {
 type messagesOut struct {
 	Session  string    `json:"session"`
 	Messages []Message `json:"messages"`
+}
+
+type createOut struct {
+	OK      bool   `json:"ok"`
+	Name    string `json:"name"`
+	Message string `json:"message"`
 }
 
 func (s *Server) build(caller string, control bool) *sdk.Server {
@@ -154,6 +166,21 @@ func (s *Server) build(caller string, control bool) *sdk.Server {
 			return nil, okOut{OK: true, Message: target + " is back in the list"}, nil
 		}
 		return nil, okOut{OK: true, Message: target + " is archived"}, nil
+	})
+
+	sdk.AddTool(server, &sdk.Tool{
+		Name:        ToolCreate,
+		Description: "Start a new session in a directory. Give a path, and an optional name. It returns the name the session takes.",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, in createIn) (*sdk.CallToolResult, createOut, error) {
+		path := strings.TrimSpace(in.Path)
+		if path == "" {
+			return nil, createOut{}, ErrNoPath
+		}
+		created, err := s.sessions.Create(path, strings.TrimSpace(in.Name), caller)
+		if err != nil {
+			return nil, createOut{}, err
+		}
+		return nil, createOut{OK: true, Name: created, Message: "started " + created}, nil
 	})
 
 	return server

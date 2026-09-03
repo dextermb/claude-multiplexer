@@ -18,6 +18,7 @@ type fakeSessions struct {
 	sent     []string
 	stopped  []string
 	archived map[string]bool
+	created  []string
 	list     []mcp.Session
 	messages map[string][]mcp.Message
 	failStop error
@@ -52,6 +53,14 @@ func (f *fakeSessions) Stop(_ context.Context, name, by string) error {
 func (f *fakeSessions) Archive(name string, archived bool, by string) error {
 	f.archived[name] = archived
 	return nil
+}
+
+func (f *fakeSessions) Create(dir, name, by string) (string, error) {
+	if name == "" {
+		name = "session"
+	}
+	f.created = append(f.created, by+"->"+name+"@"+dir)
+	return name, nil
 }
 
 func (f *fakeSessions) List() []mcp.Session { return f.list }
@@ -315,4 +324,19 @@ func TestAllowedToolsFollowTheGrant(t *testing.T) {
 	if len(control) != len(mcp.OpenTools)+len(mcp.ControlTools) {
 		t.Fatalf("control tools = %v", control)
 	}
+	if !contains(control, "mcp__mux__create_session") {
+		t.Fatalf("control tools lack create_session: %v", control)
+	}
+	if contains(open, "mcp__mux__create_session") {
+		t.Fatalf("open tools include create_session: %v", open)
+	}
+}
+
+func contains(items []string, want string) bool {
+	for _, item := range items {
+		if item == want {
+			return true
+		}
+	}
+	return false
 }
