@@ -41,6 +41,27 @@ Two limits:
 - A name that holds a space goes in as it is, and the space breaks the word. A
   dropped path is quoted instead, because a drop is not one word.
 
+## Running a bash command with `!`
+
+Start a prompt with `!` to run a bash command. The command runs in the
+directory of the selected session, because that is where the session works. The
+session must run first, because the output goes into the session.
+
+- `!command` runs the command and shows the output in the session. Claude does
+  not see the output.
+- `!!command` runs the command, then sends the command and its output to Claude
+  as the next prompt. So the next turn can use the output.
+
+The session shows the command on a header line, then one line for each line of
+the output. If the command fails, the session adds the error on a last line.
+
+The output of `!command` is a local record. A resume does not show it again,
+because it is not part of Claude's transcript. The output of `!!command` reaches
+Claude as the next prompt, so the normal prompt echo shows it once.
+
+The command runs off the interface thread, so a slow command does not hold the
+interface. The status bar shows `running command…` until the command stops.
+
 ## Dropping a file
 
 Drag a file or a folder onto the window and its path goes into the prompt,

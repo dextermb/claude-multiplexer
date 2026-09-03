@@ -24,6 +24,7 @@ const (
 	ClassMeta
 	ClassStderr
 	ClassError
+	ClassBash
 )
 
 type Line struct {
@@ -90,6 +91,20 @@ func (r Renderer) protocolLines(ev protocol.Event) []Line {
 		return []Line{{Class: ClassMeta, Text: fmt.Sprintf("· %s", ev.Type)}}
 	}
 	return nil
+}
+
+// BashLines renders a bash command and its output for the session pane; see docs/tui/input.md.
+func BashLines(command, output string, err error) []Line {
+	out := []Line{{Class: ClassBash, Text: "! " + command}}
+	if body := strings.TrimRight(output, "\n"); body != "" {
+		for _, line := range strings.Split(body, "\n") {
+			out = append(out, Line{Class: ClassBash, Text: line})
+		}
+	}
+	if err != nil {
+		out = append(out, Line{Class: ClassError, Text: "! " + err.Error()})
+	}
+	return out
 }
 
 func PromptLines(text string) []Line {

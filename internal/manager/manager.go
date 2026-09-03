@@ -555,6 +555,15 @@ func (m *Manager) Lines(name string) []render.Line {
 	return item.lines.all()
 }
 
+func (m *Manager) AppendLines(name string, lines []render.Line) error {
+	item, err := m.entry(name)
+	if err != nil {
+		return err
+	}
+	item.lines.append(lines)
+	return nil
+}
+
 func (m *Manager) Stderr(name string) []string {
 	item, err := m.entry(name)
 	if err != nil {

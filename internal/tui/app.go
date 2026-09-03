@@ -280,6 +280,8 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 	case spinTickMsg:
 		return m.handleSpin()
+	case bashResultMsg:
+		return m.handleBash(msg)
 	case tea.MouseMsg:
 		return m.handleMouse(msg)
 	case tea.KeyMsg:
@@ -1018,6 +1020,9 @@ func (m Model) stopBusy() (tea.Model, tea.Cmd, bool) {
 }
 
 func (m Model) dispatch(text string) (tea.Model, tea.Cmd) {
+	if command, feed, ok := parseBang(text); ok {
+		return m.runBash(command, feed)
+	}
 	if name, args, ok := template.ParseInvocation(text); ok {
 		m.reloadTemplates()
 		if tpl, found := template.Find(m.templates, name); found {
