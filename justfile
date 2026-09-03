@@ -133,6 +133,10 @@ clean-state:
 test-real:
     MULTIPLEXIER_REAL=1 go test ./internal/tui/ -run TestRealSessionThroughTheInterface -v -timeout 300s
 
+# Warning: this drives one real session that calls the mux tools, and it costs money.
+probe-mcp:
+    MULTIPLEXIER_REAL=1 go test ./internal/manager/ -run TestRealSessionCallsTheTools -v -timeout 300s
+
 # Warning: this calls the real Claude API and it costs money.
 smoke:
     go run {{main}} run --dir /tmp --model claude-haiku-4-5-20251001 "Reply with exactly one word: pong"

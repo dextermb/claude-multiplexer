@@ -24,12 +24,12 @@ This file holds only the work that is not built. Delete it when nothing is left.
 - **A permission prompt for each request.** `--permission-prompt-tool
   mcp__mux__approve` points at an MCP tool that the multiplexer serves. Each
   request then appears in the interface, and the human answers with a key
-  press. It needs an MCP server inside the multiplexer, which is why it waits.
-  This also needs a new `input required` state and its own indicator (a `◉`
-  glyph fits the circle set in [tui/sessions.md](../tui/sessions.md)). A
-  `control_request` event already reaches the app unparsed (`ev.Raw`), but its
-  schema is not modelled, so this work must first probe what the installed
-  version emits.
+  press. The MCP server this needs is built — see [mcp.md](../mcp.md) — so what
+  is left is the tool itself, a new `input required` state, and its own
+  indicator (a `◉` glyph fits the circle set in
+  [tui/sessions.md](../tui/sessions.md)). A `control_request` event already
+  reaches the app unparsed (`ev.Raw`), but its schema is not modelled, so this
+  work must first probe what the installed version emits.
 - **A task router.** A queue, and dispatch to the first free session. This is a
   second product rather than a feature, so it needs its own plan.
 

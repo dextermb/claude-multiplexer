@@ -18,6 +18,7 @@ type row struct {
 	effort   string
 	live     bool
 	archived bool
+	control  bool
 	state    session.State
 	label    string
 	queued   int
@@ -64,6 +65,7 @@ func rowFromMeta(meta manager.Meta) row {
 		mode:     meta.PermissionMode,
 		effort:   meta.Effort,
 		archived: meta.Archived,
+		control:  meta.Control,
 		label:    label,
 		turns:    meta.Turns,
 		cost:     meta.Cost,

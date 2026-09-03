@@ -19,11 +19,12 @@ const (
 	fieldModel
 	fieldMode
 	fieldEffort
+	fieldControl
 	fieldFirst
 	fieldCount
 )
 
-var fieldLabels = [fieldCount]string{"Directory", "Name", "Model", "Permission mode", "Effort", "First prompt"}
+var fieldLabels = [fieldCount]string{"Directory", "Name", "Model", "Permission mode", "Effort", "Control", "First prompt"}
 
 type formResult int
 
@@ -50,9 +51,10 @@ func newForm(dir, model, mode string) *form {
 		"the Claude Code default",
 		mode,
 		"low, medium, high, xhigh, max",
+		"no — yes lets it drive other sessions",
 		"optional, and /preset works here",
 	}
-	values := [fieldCount]string{dir, "", model, mode, "", ""}
+	values := [fieldCount]string{dir, "", model, mode, "", "", ""}
 	for i := range f.inputs {
 		input := textinput.New()
 		input.Placeholder = placeholders[i]
@@ -236,7 +238,16 @@ func (f *form) spec() manager.Spec {
 		Model:          strings.TrimSpace(f.inputs[fieldModel].Value()),
 		PermissionMode: strings.TrimSpace(f.inputs[fieldMode].Value()),
 		Effort:         strings.TrimSpace(f.inputs[fieldEffort].Value()),
+		Control:        affirmative(f.inputs[fieldControl].Value()),
 	}
+}
+
+func affirmative(value string) bool {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "y", "yes", "true", "on", "1":
+		return true
+	}
+	return false
 }
 
 func (f *form) firstPrompt() string {

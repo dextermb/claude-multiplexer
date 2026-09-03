@@ -57,6 +57,10 @@ func main() {
 		emitInit(sessionID)
 		runQuestion(sessionID)
 		os.Exit(0)
+	case "mcp":
+		emitInit(sessionID)
+		runMCP(sessionID)
+		os.Exit(0)
 	}
 
 	replay := false

@@ -22,6 +22,7 @@ type Meta struct {
 	Cost            float64   `json:"cost_usd"`
 	InputTokens     int       `json:"input_tokens"`
 	OutputTokens    int       `json:"output_tokens"`
+	Control         bool      `json:"control,omitempty"`
 	Archived        bool      `json:"archived"`
 	ArchivedAt      time.Time `json:"archived_at,omitempty"`
 }
@@ -32,6 +33,7 @@ func (m Meta) sameAs(other Meta) bool {
 		m.Model == other.Model &&
 		m.PermissionMode == other.PermissionMode &&
 		m.Effort == other.Effort &&
+		m.Control == other.Control &&
 		m.Turns == other.Turns &&
 		m.Cost == other.Cost &&
 		m.InputTokens == other.InputTokens &&
@@ -62,6 +64,10 @@ func ReadMeta(path string) (Meta, error) {
 
 func metaPath(root, name string) string {
 	return filepath.Join(root, "sessions", name, "meta.json")
+}
+
+func mcpConfigPath(root, name string) string {
+	return filepath.Join(root, "sessions", name, "mcp.json")
 }
 
 func transcriptPath(root, name string) string {

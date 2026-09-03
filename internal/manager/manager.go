@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/dextermb/claude-multiplexer/internal/mcp"
 	"github.com/dextermb/claude-multiplexer/internal/protocol"
 	"github.com/dextermb/claude-multiplexer/internal/render"
 	"github.com/dextermb/claude-multiplexer/internal/session"
@@ -43,6 +44,7 @@ type Spec struct {
 	Effort         string
 	AllowedTools   []string
 	ResumeID       string
+	Control        bool
 }
 
 type Event struct {
@@ -55,6 +57,10 @@ type Event struct {
 	Closed     bool
 	Questions  []protocol.Question
 	QuestionID string
+	// Notice describes a change made outside the session stream, for example by
+	// an MCP tool. Reload says the stored list changed. See docs/mcp.md.
+	Notice string
+	Reload bool
 }
 
 type entry struct {
@@ -63,7 +69,17 @@ type entry struct {
 	meta    Meta
 	path    string
 	base    totals
-	partial strings.Builder
+	token   string
+	control bool
+
+	partialMu sync.Mutex
+	partial   strings.Builder
+}
+
+func (e *entry) partialText() string {
+	e.partialMu.Lock()
+	defer e.partialMu.Unlock()
+	return e.partial.String()
 }
 
 type totals struct {
@@ -76,6 +92,7 @@ type totals struct {
 type Manager struct {
 	opts Options
 	bus  *Bus
+	mcp  *mcp.Server
 
 	mu      sync.Mutex
 	entries map[string]*entry
@@ -143,21 +160,30 @@ func (m *Manager) Spawn(ctx context.Context, spec Spec) (string, error) {
 		IncludePartial: true,
 		TranscriptPath: transcriptPath(m.opts.Root, name),
 	}
-	sess, err := session.New(cfg)
+	token, err := m.equipTools(&cfg, name, spec.Control)
 	if err != nil {
 		return "", err
 	}
 
+	sess, err := session.New(cfg)
+	if err != nil {
+		m.releaseTools(token)
+		return "", err
+	}
+
 	item := &entry{
-		sess:  sess,
-		lines: newLineBuffer(m.opts.MaxLines),
-		path:  metaPath(m.opts.Root, name),
+		sess:    sess,
+		lines:   newLineBuffer(m.opts.MaxLines),
+		path:    metaPath(m.opts.Root, name),
+		token:   token,
+		control: spec.Control,
 		meta: Meta{
 			Name:           name,
 			Dir:            dir,
 			Model:          spec.Model,
 			PermissionMode: spec.PermissionMode,
 			Effort:         spec.Effort,
+			Control:        spec.Control,
 			CreatedAt:      time.Now(),
 		},
 	}
@@ -187,6 +213,7 @@ func (m *Manager) Spawn(ctx context.Context, spec Spec) (string, error) {
 		delete(m.entries, name)
 		m.order = removeName(m.order, name)
 		m.mu.Unlock()
+		m.releaseTools(token)
 		return "", err
 	}
 
@@ -214,6 +241,7 @@ func (m *Manager) pump(item *entry) {
 			QuestionID: qid,
 		})
 	}
+	m.releaseTools(item.token)
 	final := item.sess.Snapshot()
 	if final.Turns == 0 {
 		_ = os.RemoveAll(sessionDir(m.opts.Root, item.meta.Name))
@@ -226,6 +254,8 @@ func (m *Manager) pump(item *entry) {
 }
 
 func trackPartial(item *entry, ev session.Event) string {
+	item.partialMu.Lock()
+	defer item.partialMu.Unlock()
 	if ev.Kind != session.KindProtocol {
 		return item.partial.String()
 	}
@@ -248,6 +278,7 @@ func (m *Manager) rememberSession(item *entry, snap session.Snapshot) {
 	next.Model = snap.Model
 	next.PermissionMode = snap.PermissionMode
 	next.Effort = snap.Effort
+	next.Control = item.control
 	next.Turns = item.base.turns + snap.Turns
 	next.Cost = item.base.cost + snap.Cost
 	next.InputTokens = item.base.input + snap.InputTokens
@@ -354,6 +385,7 @@ func (m *Manager) Resume(ctx context.Context, meta Meta) (string, error) {
 		Model:          meta.Model,
 		PermissionMode: meta.PermissionMode,
 		Effort:         meta.Effort,
+		Control:        meta.Control,
 		ResumeID:       meta.ClaudeSessionID,
 	})
 }
@@ -432,6 +464,7 @@ func (m *Manager) ResumeWithEffort(ctx context.Context, name, effort string) (st
 		Model:           snap.Model,
 		PermissionMode:  snap.PermissionMode,
 		Effort:          effort,
+		Control:         item.control,
 		ClaudeSessionID: snap.ClaudeSessionID,
 	})
 }
@@ -477,6 +510,9 @@ func (m *Manager) Shutdown(ctx context.Context) {
 	}
 	wg.Wait()
 	m.pumps.Wait()
+	if m.mcp != nil {
+		_ = m.mcp.Close(ctx)
+	}
 }
 
 func (m *Manager) Names() []string {

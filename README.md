@@ -67,6 +67,9 @@ plain text, and it never renders markdown.
   `/linear ENG-123`. A new session can start with one.
 - **Files by drag.** Drop a file on the window and its path goes into the
   prompt, unescaped and quoted where needed.
+- **Sessions that talk.** A session can name itself, list its neighbours, and
+  read their recent messages. Give it the control grant and it can also prompt,
+  stop, and archive them. See [docs/mcp.md](docs/mcp.md).
 - **Costs in view.** Each session shows its turns, its last duration, its
   tokens, and its cost. The bottom bar totals them.
 
@@ -77,7 +80,8 @@ State goes under `~/.multiplexier/sessions/<name>/`:
 | File | What it holds |
 |---|---|
 | `transcript.jsonl` | Every event of the conversation, as JSON Lines |
-| `meta.json` | The directory, the model, the Claude session id, the totals, and the archive flag |
+| `meta.json` | The directory, the model, the Claude session id, the totals, the control grant, and the archive flag |
+| `mcp.json` | Where the session reaches the multiplexer's own tools, and the token that names it |
 
 `multiplexier --root <path>` moves that directory. `just clean-state` removes it.
 
@@ -91,6 +95,7 @@ State goes under `~/.multiplexier/sessions/<name>/`:
 | [docs/manager.md](docs/manager.md) | Sessions in memory, the event bus, storage, and archiving |
 | [docs/sessions.md](docs/sessions.md) | One child process: its states, its queue, and its transcript |
 | [docs/protocol.md](docs/protocol.md) | The stream-json wire format, and what Claude Code really sends |
+| [docs/mcp.md](docs/mcp.md) | The tools a session can call: renaming itself, and driving its neighbours |
 
 `docs/plans/` holds the thinking that came before the code. It records what is
 still ahead. It is not a specification, so do not follow it.

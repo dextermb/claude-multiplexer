@@ -13,9 +13,10 @@ stable, so a row does not jump as its state changes.
 ## Reading a row
 
 A row starts with a state glyph in the state colour, then the display name, then
-`⇢n` when `n` prompts wait in the queue. The display name is the title when the
-session has one, and the name when it does not. Press `R` to set the title; see
-[keys.md](./keys.md). The glyph tells the state at a glance:
+`⇄` when the session may drive its neighbours, then `⇢n` when `n` prompts wait
+in the queue. The display name is the title when the session has one, and the
+name when it does not. Press `R` to set the title; see [keys.md](./keys.md).
+The glyph tells the state at a glance:
 
 | Glyph | State | Colour |
 |---|---|---|
@@ -29,6 +30,9 @@ session has one, and the name when it does not. Press `R` to set the title; see
 
 A `waiting` row asked a question and holds for the answer. See
 [input.md](./input.md).
+
+A row marked `⇄` can prompt, stop, and archive the other sessions. Give a
+session that mark only when you mean it. See [mcp.md](../mcp.md).
 
 The busy glyph is the dot spinner (`⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏`). It turns while any
 session runs a turn, and it is the same spinner the output pane shows for
@@ -57,9 +61,10 @@ A running session cannot be archived. Stop it first.
 ## The two bars
 
 The **session bar** sits above the output, and it describes the selected session
-only. The left side names it: the display name (the title or the name), the
-model in use, and the permission mode. The right side gives the numbers: the state, the queue length, the tokens,
-the cost, and the context fill.
+only. The left side names it: the display name (the title or the name),
+`control` when the session holds that grant, the model in use, and the
+permission mode. The right side gives the numbers: the state, the queue length,
+the tokens, the cost, and the context fill.
 
 The model and the permission mode come from the `init` event, so the bar names
 what the child confirms, and not what the flags asked for. The two can differ.
@@ -82,8 +87,9 @@ running context.
 
 The **status bar** at the bottom describes the whole program. The left side
 gives the state: how many sessions run, how many are busy, and the total cost.
-A transient message (for example `copied 3 lines`) also appears on the left, for
-its moment. The right side gives the keys, and the keys stay in one place.
+A transient message (for example `copied 3 lines`, or `docs archived landing`
+when a session did it through a tool) also appears on the left, for its moment.
+The right side gives the keys, and the keys stay in one place.
 
 The bar is a footer, so its palette is muted. The default text is grey, and
 colour marks only the cost, which keeps the green of the session bar so the same
@@ -113,8 +119,10 @@ shed detail in turn, and the least useful item goes first:
 
 The right side sheds from the end: the cost first, then the tokens, then the
 queue length, then the context fill, and last of all the state, so that only the
-name remains. The left side sheds the permission mode, then the model. The name
-always stays, and only when the name alone cannot fit is it cut short.
+name remains. The left side sheds the effort, then the permission mode, then
+the model, and `control` last of all, because a session that can stop your work
+is worth the space. The name always stays, and only when the name alone cannot
+fit is it cut short.
 
 The context fill sits next to the state, so it stays until the bar is almost
 empty. Seeing it is the point of the feature, so it outlives the cost and the

@@ -34,6 +34,7 @@ type Options struct {
 	DefaultModel          string
 	DefaultPermissionMode string
 	InitialDir            string
+	InitialControl        bool
 }
 
 type eventMsg manager.Event
@@ -159,7 +160,7 @@ func Run(opts Options) error {
 func (m Model) Init() tea.Cmd {
 	cmds := []tea.Cmd{waitEvent(m.sub), textarea.Blink, reloadStored(m.mgr)}
 	if m.opts.InitialDir != "" {
-		cmds = append(cmds, spawnCmd(m.mgr, manager.Spec{Dir: m.opts.InitialDir}))
+		cmds = append(cmds, spawnCmd(m.mgr, manager.Spec{Dir: m.opts.InitialDir, Control: m.opts.InitialControl}))
 	}
 	return tea.Batch(cmds...)
 }
@@ -336,6 +337,9 @@ func (m Model) handleStored(msg storedMsg) (tea.Model, tea.Cmd) {
 func (m Model) handleEvent(ev manager.Event) (tea.Model, tea.Cmd) {
 	gap := m.lastSeq != 0 && ev.Seq != m.lastSeq+1
 	m.lastSeq = ev.Seq
+	if ev.Notice != "" || ev.Reload {
+		return m.handleNotice(ev)
+	}
 	m.setPartial(ev.Session, ev.Partial)
 	if hasPrompt(ev.Lines) {
 		m.dropQueued(ev.Session)
@@ -359,6 +363,24 @@ func (m Model) handleEvent(ev manager.Event) (tea.Model, tea.Cmd) {
 	}
 	if ev.Closed {
 		cmds = append(cmds, reloadStored(m.mgr))
+	}
+	return m, tea.Batch(cmds...)
+}
+
+// handleNotice takes a change an MCP tool made. It must not reach the normal
+// path, because that path clears the streaming text of a session whose event
+// carries none. See docs/mcp.md.
+func (m Model) handleNotice(ev manager.Event) (tea.Model, tea.Cmd) {
+	if ev.Notice != "" {
+		m.status = ev.Notice
+	}
+	m.refresh()
+	cmds := []tea.Cmd{waitEvent(m.sub)}
+	if ev.Reload {
+		cmds = append(cmds, reloadStored(m.mgr))
+	}
+	if ev.Session == m.sel {
+		m.setContent()
 	}
 	return m, tea.Batch(cmds...)
 }
@@ -1256,8 +1278,11 @@ func textinputBlink() tea.Cmd {
 
 func (m *Model) refresh() {
 	rows := make([]row, 0, len(m.stored)+4)
+	grants := m.mgr.Grants()
 	for _, snap := range m.mgr.Snapshots() {
-		rows = append(rows, rowFromSnapshot(snap))
+		item := rowFromSnapshot(snap)
+		item.control = grants[snap.Name]
+		rows = append(rows, item)
 	}
 	for _, meta := range m.stored {
 		if meta.Archived && !m.showArchived {
@@ -1553,8 +1578,11 @@ func (m Model) sidebarView() string {
 func (m Model) sessionRow(item row) string {
 	width := sidebarInner
 	badge := ""
+	if item.control {
+		badge = " ⇄"
+	}
 	if item.queued > 0 {
-		badge = fmt.Sprintf(" ⇢%d", item.queued)
+		badge += fmt.Sprintf(" ⇢%d", item.queued)
 	}
 	nameWidth := width - 2 - lipgloss.Width(badge)
 	if nameWidth < 1 {
@@ -1708,6 +1736,9 @@ func (m Model) scrollIndicator() string {
 
 func barDetails(item row) [][]string {
 	var full []string
+	if item.control {
+		full = append(full, "control")
+	}
 	if item.model != "" {
 		full = append(full, item.model)
 	}

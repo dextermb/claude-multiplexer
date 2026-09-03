@@ -233,6 +233,24 @@ with a `label` and a `description`), and a `multiSelect` flag. Because the child
 already closed the tool call, the multiplexer gives the human answer back as the
 next prompt, not as a `tool_result`.
 
+## The multiplexer serves the child an MCP server
+
+The command line above carries two more flags for every session the interface
+supervises: `--mcp-config <file>` and `--allowedTools mcp__mux__…`. They point
+the child at an HTTP server inside the multiplexer, so the Claude in a session
+can name itself and read its neighbours.
+
+That channel runs beside this one, and it is not stream-json. It is described in
+[mcp.md](./mcp.md), together with what Claude Code 2.1.176 was proven to do with
+it.
+
+The `init` event reports each MCP server it connected to, and the decoder reads
+that list as `protocol.Init.MCPServers`:
+
+```json
+{"type":"system","subtype":"init","mcp_servers":[{"name":"mux","status":"connected"}]}
+```
+
 ## Line limits
 
 `Reader` reads a line of any length up to 16 MiB, because a tool result can be

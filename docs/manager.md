@@ -30,9 +30,9 @@ its directory is removed when it ends. So a mistake, or a start that failed,
 never reaches the list you see tomorrow.
 
 `Meta` holds the name, the title, the directory, the model, the permission mode,
-the Claude session identifier, the lifetime turn count and cost, the tokens, and
-the archive flag. The counts are lifetime totals: a resumed session adds to them,
-and does not restart them.
+the Claude session identifier, the lifetime turn count and cost, the tokens, the
+control grant, and the archive flag. The counts are lifetime totals: a resumed
+session adds to them, and does not restart them.
 
 | Method | What it does |
 |---|---|
@@ -42,6 +42,9 @@ and does not restart them.
 | `Archive(name, on)` | Set or clear the archive flag. It refuses a session that still runs. |
 | `SetTitle(name, title)` | Rename a session. A live session takes it at once; a stored one gets it written to its meta. |
 | `Meta(name)` | The record for one session. |
+| `Messages(name, limit)` | The recent conversation, read from the transcript. It answers for a stored session too. |
+| `List()` | Every session, live and stored, in the shape the tools return. |
+| `Grants()` | Which live sessions may drive their neighbours. |
 
 A resumed session starts with its past output already in the line buffer,
 followed by a `— resumed —` marker. So the pane reads as one conversation, and
@@ -94,6 +97,25 @@ appending. The terminal interface does exactly this.
 A drop costs screen updates only. The transcript on disk stays complete, and the
 ring buffer in memory stays complete up to its 5000 lines.
 
+## The tools a session can call
+
+The manager runs one MCP server for every session, and `StartMCP` starts it.
+Each session gets a token, a configuration file at
+`<root>/sessions/<name>/mcp.json`, and the tool names on `--allowedTools`. The
+manager holds the map from token to session, and it drops the token when the
+session ends. The full tool set is in [mcp.md](./mcp.md).
+
+`Spec.Control` decides whether a session may drive its neighbours. It is stored
+in `Meta`, so a resume keeps it, and `Grants()` reports it for the live rows.
+
+`SendFrom(target, from, text)` is `Send` with provenance. It marks the pane of
+the target with `← prompt from <from>` before it queues the prompt, so the human
+sees which agent asked. The keys use `Send`, which adds no mark.
+
+A change that a tool makes to `meta.json` has no session event behind it. The
+manager therefore publishes an event carrying `Notice` and `Reload`, and the
+interface acts on that instead of a timer. See [mcp.md](./mcp.md).
+
 ## Control
 
 `Send(name, text)` puts a prompt on the session queue. `Stop(ctx, name)` ends a
@@ -122,5 +144,7 @@ type Event struct {
     Lines    []render.Line     // the rendered output, with a class for each line
     Snapshot session.Snapshot  // the state of the session after the event
     Closed   bool              // the session ended, and no more events follow
+    Notice   string            // a change made outside the session stream
+    Reload   bool              // the stored list changed, so read it again
 }
 ```

@@ -126,6 +126,7 @@ func tuiCommand(argv []string) int {
 		"default permission mode: acceptEdits, auto, bypassPermissions, default, dontAsk, or plan")
 	claudePath := fs.String("claude", session.DefaultClaudePath, "path to the claude binary")
 	dir := fs.String("dir", "", "start one session in this directory at once")
+	control := fs.Bool("control", false, "let the session started by --dir drive the other sessions")
 	maxLines := fs.Int("max-lines", manager.DefaultMaxLines, "output lines kept in memory for each session")
 	verbose := fs.Bool("v", false, "show state changes, thinking, and full tool results")
 	if err := fs.Parse(argv); err != nil {
@@ -145,6 +146,11 @@ func tuiCommand(argv []string) int {
 		return 1
 	}
 
+	if err := mgr.StartMCP(); err != nil {
+		fmt.Fprintf(os.Stderr, "multiplexier: %v\n", err)
+		return 1
+	}
+
 	initialDir := *dir
 	if initialDir != "" {
 		abs, err := filepath.Abs(initialDir)
@@ -160,6 +166,7 @@ func tuiCommand(argv []string) int {
 		DefaultModel:          *model,
 		DefaultPermissionMode: *mode,
 		InitialDir:            initialDir,
+		InitialControl:        *control,
 	}); err != nil {
 		fmt.Fprintf(os.Stderr, "multiplexier: %v\n", err)
 		return 1
