@@ -1478,6 +1478,11 @@ func (m Model) wrap(lines []render.Line) string {
 		if line.Full != "" {
 			text += "  ⏎"
 		}
+		if line.Class == render.ClassPrompt && !m.showRaw {
+			styled := inlineEmphasis(text, classStyle(render.ClassPrompt))
+			wrapped = append(wrapped, lipgloss.NewStyle().Width(width).Render(styled))
+			continue
+		}
 		wrapped = append(wrapped, classStyle(line.Class).Width(width).Render(text))
 	}
 	return strings.Join(wrapped, "\n")

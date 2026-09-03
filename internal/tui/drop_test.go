@@ -297,8 +297,8 @@ func TestTheOutputRendersMarkdownAndTheKeyShowsTheRawText(t *testing.T) {
 	m.rebuildOutput()
 
 	rendered := visible(m.outputText)
-	if got := strings.Count(rendered, "**three**"); got != 1 {
-		t.Fatalf("the asterisks appear %d times, want only the prompt line:\n%s", got, rendered)
+	if got := strings.Count(rendered, "**three**"); got != 0 {
+		t.Fatalf("the asterisks appear %d times, want none once the prompt and reply render:\n%s", got, rendered)
 	}
 	if got := strings.Count(rendered, "three"); got != 2 {
 		t.Fatalf("three appears %d times, want the prompt and the reply:\n%s", got, rendered)
@@ -328,7 +328,7 @@ func TestTheOutputRendersMarkdownAndTheKeyShowsTheRawText(t *testing.T) {
 	if m.showRaw {
 		t.Fatal("m must turn the markdown back on")
 	}
-	if got := strings.Count(visible(m.outputText), "**three**"); got != 1 {
+	if got := strings.Count(visible(m.outputText), "**three**"); got != 0 {
 		t.Fatalf("the markdown did not come back, the asterisks appear %d times", got)
 	}
 }

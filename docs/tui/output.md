@@ -15,7 +15,7 @@ recedes:
 
 | Class | What it is | Colour |
 |---|---|---|
-| `ClassPrompt` | What you asked, marked `› ` | Violet, bold |
+| `ClassPrompt` | What you asked, marked `› ` | Violet, bold, with inline emphasis (see [markdown.md](../markdown.md)) |
 | `ClassText` | What the assistant says | Rendered as markdown |
 | `ClassToolUse` | A tool call, such as `→ Bash ls` | Blue |
 | `ClassToolResult` | What the tool returned | Muted |

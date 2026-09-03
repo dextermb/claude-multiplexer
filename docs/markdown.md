@@ -7,18 +7,37 @@ the renderer and the style.
 
 ## What is rendered, and what is not
 
-Only assistant text is treated as markdown. That is the class `ClassText`
-described in [tui.md](./tui.md).
+Assistant text is treated as full markdown. That is the class `ClassText`
+described in [tui.md](./tui.md). A prompt gets inline emphasis only.
 
 | Line | Treated as markdown |
 |---|---|
-| What the assistant says | Yes |
-| Your prompt | No |
+| What the assistant says | Yes, full markdown |
+| Your prompt | Inline emphasis only |
 | A tool call, and its result | No |
 | The init line, the turn result, and errors | No |
 
 A tool result is a log, a diff, or a file. Markdown would fold its blank lines
 and eat its asterisks, so it goes to the screen exactly as it arrived.
+
+## A prompt gets inline emphasis only
+
+A prompt keeps its identity: the violet colour, the bold weight, and the `› `
+marker. On top of that, three inline forms render:
+
+| Markup | Result |
+|---|---|
+| `_italic_` or `*italic*` | italic |
+| `**bold**` or `__bold__` | bold |
+| `` `code` `` | a code span |
+
+A prompt is not a full markdown document. A heading mark, a list mark, or a code
+fence stays as plain text. So `## notes` in a prompt shows the `##`, and does not
+become a heading.
+
+An underscore in a word does not open emphasis, so `some_var_name` stays plain.
+A mark that does not close, such as a lone `_`, also stays plain. The whole
+prompt renders on the code path in `internal/tui/inline.go`.
 
 ## Every heading is bold, and nothing more
 
