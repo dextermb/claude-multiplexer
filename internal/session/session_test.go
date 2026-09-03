@@ -503,6 +503,46 @@ func TestSessionInterruptFlushesTheQueue(t *testing.T) {
 	}
 }
 
+func TestSessionWaitsAfterAQuestion(t *testing.T) {
+	s := newTestSession(t, Config{Name: "ask", Env: []string{"FAKECLAUDE_MODE=question"}})
+	c := collect(s)
+	if err := s.Start(context.Background()); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	if err := s.Send("start"); err != nil {
+		t.Fatalf("Send: %v", err)
+	}
+
+	waitForState(t, s, StateWaiting, 5*time.Second)
+
+	if err := s.Send("Colour: Blue"); err != nil {
+		t.Fatalf("Send answer: %v", err)
+	}
+	waitForTurns(t, s, 2, 5*time.Second)
+
+	stop, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_ = s.Stop(stop)
+	c.wait(t)
+
+	wantStates := []State{StateBusy, StateWaiting, StateBusy, StateIdle, StateExited}
+	if got := c.states(); !containsInOrder(got, wantStates) {
+		t.Errorf("states = %v, want %v in that order", got, wantStates)
+	}
+
+	var answered bool
+	for _, ev := range c.events {
+		if ev.Kind == KindProtocol && ev.Protocol.Type == protocol.TypeAssistant {
+			if ev.Protocol.Text() == "answered: Colour: Blue" {
+				answered = true
+			}
+		}
+	}
+	if !answered {
+		t.Error("the answer did not run a turn")
+	}
+}
+
 func TestSessionDiscardQueuedStopsTheQueuedPrompt(t *testing.T) {
 	s := newTestSession(t, Config{Name: "drop", Env: []string{"FAKECLAUDE_MODE=interruptible"}})
 	c := collect(s)

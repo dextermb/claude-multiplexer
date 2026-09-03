@@ -141,6 +141,8 @@ func stateStyle(state session.State) lipgloss.Style {
 		return lipgloss.NewStyle().Foreground(lipgloss.Color("42"))
 	case session.StateBusy:
 		return lipgloss.NewStyle().Foreground(lipgloss.Color("214"))
+	case session.StateWaiting:
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("213"))
 	case session.StateStarting:
 		return lipgloss.NewStyle().Foreground(lipgloss.Color("39"))
 	case session.StateFailed:

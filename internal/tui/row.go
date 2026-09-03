@@ -95,6 +95,8 @@ func rowGlyph(item row, frame int) string {
 		return "◌"
 	case session.StateBusy:
 		return spinnerFrame(frame)
+	case session.StateWaiting:
+		return "?"
 	default:
 		return "●"
 	}

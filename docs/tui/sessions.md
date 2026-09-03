@@ -22,9 +22,13 @@ session has one, and the name when it does not. Press `R` to set the title; see
 | `◌` | starting | blue |
 | `⠋` (animated) | busy | amber |
 | `●` | idle | green |
+| `?` | waiting | magenta |
 | `●` | failed | red |
 | `○` | stored | gray |
 | `·` | archived | faint gray |
+
+A `waiting` row asked a question and holds for the answer. See
+[input.md](./input.md).
 
 The busy glyph is the dot spinner (`⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏`). It turns while any
 session runs a turn, and it is the same spinner the output pane shows for
