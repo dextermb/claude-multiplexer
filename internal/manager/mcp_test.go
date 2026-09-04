@@ -730,3 +730,126 @@ func TestUnsetEditorThroughTheToolCarriesANotice(t *testing.T) {
 		t.Fatalf("notice = %q", ev.Notice)
 	}
 }
+
+func TestSetWorkingDirTakesARelativePath(t *testing.T) {
+	m := withMCP(t)
+	dir := t.TempDir()
+	work := filepath.Join(dir, ".worktrees", "feature")
+	if err := os.MkdirAll(work, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	name, err := m.Spawn(context.Background(), Spec{Dir: dir, Name: "api"})
+	if err != nil {
+		t.Fatalf("Spawn: %v", err)
+	}
+
+	got, err := m.SetWorkingDir(name, ".worktrees/feature")
+	if err != nil {
+		t.Fatalf("SetWorkingDir: %v", err)
+	}
+	if got != work {
+		t.Fatalf("path = %q, want %q", got, work)
+	}
+	if dirs := m.WorkingDirs(); dirs[name] != work {
+		t.Fatalf("WorkingDirs()[%q] = %q, want %q", name, dirs[name], work)
+	}
+	meta, err := ReadMeta(metaPath(m.opts.Root, name))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if meta.WorkingDir != work {
+		t.Fatalf("the record holds %q, want %q", meta.WorkingDir, work)
+	}
+}
+
+func TestSetWorkingDirRefusesAPathThatIsNotADirectory(t *testing.T) {
+	m := withMCP(t)
+	dir := t.TempDir()
+	file := filepath.Join(dir, "notes.md")
+	if err := os.WriteFile(file, []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	name, err := m.Spawn(context.Background(), Spec{Dir: dir, Name: "api"})
+	if err != nil {
+		t.Fatalf("Spawn: %v", err)
+	}
+
+	if _, err := m.SetWorkingDir(name, "notes.md"); err == nil {
+		t.Fatal("a file is not a directory, so it must give an error")
+	}
+	if _, err := m.SetWorkingDir(name, "nowhere"); err == nil {
+		t.Fatal("a path that is not there must give an error")
+	}
+	if dirs := m.WorkingDirs(); dirs[name] != "" {
+		t.Fatalf("WorkingDirs()[%q] = %q, want none", name, dirs[name])
+	}
+}
+
+func TestUnsetWorkingDirClearsTheRecord(t *testing.T) {
+	m := withMCP(t)
+	dir := t.TempDir()
+	work := filepath.Join(dir, "sub")
+	if err := os.Mkdir(work, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	name, err := m.Spawn(context.Background(), Spec{Dir: dir, Name: "api"})
+	if err != nil {
+		t.Fatalf("Spawn: %v", err)
+	}
+	if _, err := m.SetWorkingDir(name, "sub"); err != nil {
+		t.Fatalf("SetWorkingDir: %v", err)
+	}
+
+	changed, err := m.UnsetWorkingDir(name)
+	if err != nil {
+		t.Fatalf("UnsetWorkingDir: %v", err)
+	}
+	if !changed {
+		t.Fatal("the session had a working directory, so the call must change it")
+	}
+	if dirs := m.WorkingDirs(); dirs[name] != "" {
+		t.Fatalf("WorkingDirs()[%q] = %q, want none", name, dirs[name])
+	}
+	meta, err := ReadMeta(metaPath(m.opts.Root, name))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if meta.WorkingDir != "" {
+		t.Fatalf("the record holds %q, want none", meta.WorkingDir)
+	}
+
+	if changed, err = m.UnsetWorkingDir(name); err != nil || changed {
+		t.Fatalf("a second call changed %v (err %v), want false", changed, err)
+	}
+}
+
+func TestTheWorkingDirThroughTheToolCarriesANotice(t *testing.T) {
+	m := withMCP(t)
+	dir := t.TempDir()
+	work := filepath.Join(dir, "sub")
+	if err := os.Mkdir(work, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	name, err := m.Spawn(context.Background(), Spec{Dir: dir, Name: "api"})
+	if err != nil {
+		t.Fatalf("Spawn: %v", err)
+	}
+	sub := m.Subscribe(256)
+	defer sub.Close()
+
+	tools := &bridge{m: m}
+	if _, err := tools.SetWorkingDir("sub", name); err != nil {
+		t.Fatalf("SetWorkingDir: %v", err)
+	}
+	ev := awaitNotice(t, sub)
+	if !strings.Contains(ev.Notice, "api set its working directory to "+work) {
+		t.Fatalf("notice = %q", ev.Notice)
+	}
+
+	if _, err := tools.UnsetWorkingDir(name); err != nil {
+		t.Fatalf("UnsetWorkingDir: %v", err)
+	}
+	if ev = awaitNotice(t, sub); !strings.Contains(ev.Notice, "api cleared its working directory") {
+		t.Fatalf("notice = %q", ev.Notice)
+	}
+}

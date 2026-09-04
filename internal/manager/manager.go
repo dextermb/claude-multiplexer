@@ -541,6 +541,54 @@ func (m *Manager) SetPermissionMode(name, mode string) error {
 	return item.sess.SetPermissionMode(mode)
 }
 
+// SetWorkingDir points a session at the directory a tool of that session names,
+// so the interface opens it instead of the directory the session started in. A
+// relative path is resolved against that directory. See docs/mcp.md.
+func (m *Manager) SetWorkingDir(name, path string) (string, error) {
+	item, err := m.entry(name)
+	if err != nil {
+		return "", err
+	}
+	meta := item.metaCopy()
+	full := path
+	if !filepath.IsAbs(full) {
+		full = filepath.Join(meta.Dir, full)
+	}
+	full = filepath.Clean(full)
+	info, err := os.Stat(full)
+	if err != nil {
+		return "", err
+	}
+	if !info.IsDir() {
+		return "", fmt.Errorf("%s: not a directory", full)
+	}
+	meta.WorkingDir = full
+	item.setMeta(meta)
+	if err := writeMeta(item.path, meta); err != nil {
+		return "", err
+	}
+	return full, nil
+}
+
+// UnsetWorkingDir takes the working directory off a session, and reports
+// whether it had one.
+func (m *Manager) UnsetWorkingDir(name string) (bool, error) {
+	item, err := m.entry(name)
+	if err != nil {
+		return false, err
+	}
+	meta := item.metaCopy()
+	if meta.WorkingDir == "" {
+		return false, nil
+	}
+	meta.WorkingDir = ""
+	item.setMeta(meta)
+	if err := writeMeta(item.path, meta); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 // SetTitle renames a session. A live session takes the new title and persists it
 // on its next turn; a stored session gets it written straight to its meta.
 func (m *Manager) SetTitle(name, title string) error {
