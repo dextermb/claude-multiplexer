@@ -15,30 +15,7 @@ install:
 
 # Build the binary under NAME into ~/.local/bin, and add that directory to PATH.
 install-as NAME="cmux":
-    #!/usr/bin/env bash
-    set -euo pipefail
-    cd {{quote(justfile_directory())}}
-    dir="$HOME/.local/bin"
-    target="$dir/{{NAME}}"
-    mkdir -p "$dir"
-    rm -f "$target"
-    go build -o "$target" {{main}}
-    head="$(git rev-parse HEAD)"
-    built="$(go version -m "$target" | sed -n 's/^.*vcs\.revision=//p')"
-    if [ "$built" != "$head" ]; then
-        echo "the binary reports ${built:-no revision}, but this tree is at $head — the build did not take"
-        exit 1
-    fi
-    echo "built: $target at ${head:0:7}"
-    case ":$PATH:" in
-        *":$dir:"*) echo "$dir is already on PATH" ;;
-        *) echo "export PATH=\"$dir:\$PATH\"" >> "$HOME/.zshrc"
-           echo "added $dir to PATH in ~/.zshrc — open a new shell or run: export PATH=\"$dir:\$PATH\"" ;;
-    esac
-    found="$(command -v {{NAME}} || true)"
-    if [ -n "$found" ] && [ "$found" != "$target" ]; then
-        echo "warning: {{NAME}} on PATH is $found, so it hides the binary you just built"
-    fi
+    scripts/install-as.sh {{NAME}} {{main}}
 
 # Start the terminal user interface.
 tui *ARGS:
@@ -108,12 +85,7 @@ check: fmt-check vet test-repeat
 
 # Start a worktree on a new branch off master, for one effort. Example: just worktree add-auth
 worktree NAME:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    root="$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")"
-    dir="$root/.worktrees/{{NAME}}"
-    git worktree add -b "{{NAME}}" "$dir" master
-    echo "ready: $dir on branch {{NAME}} — do the work there, then 'just collapse {{NAME}}'"
+    scripts/worktree.sh {{NAME}}
 
 # List the worktrees and their branches.
 worktrees:
@@ -121,25 +93,7 @@ worktrees:
 
 # Merge a green, committed worktree back into master, then remove it. Run from the main worktree on master.
 collapse NAME:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    root="$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")"
-    dir="$root/.worktrees/{{NAME}}"
-    if [ -n "$(git -C "$dir" status --porcelain)" ]; then
-        echo "commit the work in $dir before you collapse it"; exit 1
-    fi
-    if ! git merge --no-ff --no-commit "{{NAME}}"; then
-        git merge --abort
-        echo "the merge of {{NAME}} has conflicts — settle them by hand, then commit and collapse again"; exit 1
-    fi
-    if ! go test ./...; then
-        git merge --abort
-        echo "the tests fail after the merge, so nothing landed on master — fix {{NAME}} in $dir and collapse again"; exit 1
-    fi
-    git commit --no-edit
-    git worktree remove "$dir"
-    git branch -d "{{NAME}}"
-    echo "collapsed {{NAME}} into master"
+    scripts/collapse.sh {{NAME}}
 
 # Remove the build output and the coverage profile.
 clean:
