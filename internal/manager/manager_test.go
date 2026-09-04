@@ -206,6 +206,36 @@ func TestManagerSurvivesASlowSubscriber(t *testing.T) {
 	}
 }
 
+func TestSnapshotTurnsDoNotLeadTheBufferedLines(t *testing.T) {
+	m := newTestManager(t)
+	name, err := m.Spawn(context.Background(), Spec{Dir: t.TempDir()})
+	if err != nil {
+		t.Fatalf("Spawn: %v", err)
+	}
+	const turns = 8
+	for i := 0; i < turns; i++ {
+		if err := m.Send(name, fmt.Sprintf("prompt %d", i)); err != nil {
+			t.Fatalf("Send: %v", err)
+		}
+	}
+	deadline := time.Now().Add(20 * time.Second)
+	for {
+		snap, err := m.Snapshot(name)
+		if err != nil {
+			t.Fatalf("Snapshot: %v", err)
+		}
+		if got := len(m.Lines(name)); snap.Turns > got {
+			t.Fatalf("the turn count %d leads the %d buffered lines", snap.Turns, got)
+		}
+		if snap.Turns >= turns {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("only %d of %d turns after 20s", snap.Turns, turns)
+		}
+	}
+}
+
 func TestManagerShowsThePromptInTheOutput(t *testing.T) {
 	m := newTestManager(t)
 	name, err := m.Spawn(context.Background(), Spec{Name: "echo", Dir: t.TempDir()})
