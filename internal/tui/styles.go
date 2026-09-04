@@ -41,6 +41,7 @@ const edgeMark = "▎"
 const (
 	foldOpenMark = "▾"
 	foldShutMark = "▸"
+	controlMark  = "⇄"
 )
 
 var (

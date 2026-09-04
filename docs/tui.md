@@ -8,12 +8,12 @@ in `internal/tui`. It talks only to the manager, which is described in
 
 ```
 ┌──────────────────────────┬──────────────────────────────────────────────┐
-│ ▾ multiplexer         2  │▎api · claude-opus-4-8 · auto                 │
-│  ● api                   │        busy · 11.6k in 0.6k out · $0.0669    │
-│  ⠹ docs             ⇢2   ├──────────────────────────────────────────────┤
-│ ▾ landing             2  │ › write the summary                          │
-│  ● worker                │ ● 2127c615 · claude-opus-4-8 · 31 tools      │
-│  ○ invoices              │ → Bash echo hello                            │
+│ ▾ ⇄ boss              3  │▎api · claude-opus-4-8 · auto                 │
+│  ● boss                  │        busy · 11.6k in 0.6k out · $0.0669    │
+│  ⠹ api              ⇢2   ├──────────────────────────────────────────────┤
+│  ○ invoices              │ › write the summary                          │
+│ ▾ multiplexer         1  │ ● 2127c615 · claude-opus-4-8 · 31 tools      │
+│  ● docs                  │ → Bash echo hello                            │
 │ ▸ notes             · 1  │ ← hello                                      │
 │                          │ ✓ success · $0.0669                          │
 ├──────────────────────────┴──────────────────────────────────────────────┤
@@ -24,8 +24,9 @@ in `internal/tui`. It talks only to the manager, which is described in
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-The sidebar is 26 columns. The sessions are grouped by directory, under a
-header that names it and counts its rows. Each row shows a state glyph, the
+The sidebar is 26 columns. The sessions are grouped under a header that names
+the group and counts its rows: one group for each directory, and one for the
+work of each control session. Each row shows a state glyph, the
 name, and `⇢n` when prompts wait in the queue. The selected row has a
 highlighted background, and the focused pane carries a blue left edge. The
 palette is the Tailwind gray and blue scale. See

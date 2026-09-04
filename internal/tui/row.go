@@ -14,6 +14,7 @@ type row struct {
 	title    string
 	dir      string
 	group    string
+	parent   string
 	model    string
 	mode     string
 	effort   string
@@ -71,6 +72,7 @@ func rowFromMeta(meta manager.Meta) row {
 		effort:   meta.Effort,
 		archived: meta.Archived,
 		control:  meta.Control,
+		parent:   meta.Parent,
 		label:    label,
 		turns:    meta.Turns,
 		cost:     meta.Cost,

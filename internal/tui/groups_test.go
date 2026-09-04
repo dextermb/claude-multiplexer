@@ -16,8 +16,14 @@ func groupModel(t *testing.T, height int, rows ...row) Model {
 	m, _ := newTestModel(t, "")
 	m, _ = step(t, m, tea.WindowSizeMsg{Width: 100, Height: height})
 	m.form = nil
+	children := make(map[string]bool, len(rows))
+	for _, item := range rows {
+		if item.parent != "" {
+			children[item.parent] = true
+		}
+	}
 	for i := range rows {
-		rows[i].group = rows[i].dir
+		rows[i].group = m.rowGroup(rows[i], children)
 	}
 	m.rows, m.groups = groupRows(rows, m.folded)
 	m.buildLines()
@@ -95,7 +101,7 @@ func TestAFoldedGroupHidesItsRows(t *testing.T) {
 		liveRow("web", "/work/two", session.StateIdle),
 	)
 
-	m.setFold("/work/one", true)
+	m.setFold(dirPrefix+"/work/one", true)
 
 	if len(m.lines) != 3 {
 		t.Fatalf("lines = %d, want the two headers and the one row left", len(m.lines))
@@ -108,7 +114,7 @@ func TestAFoldedGroupHidesItsRows(t *testing.T) {
 		t.Errorf("a folded group must keep its header, and its neighbours:\n%s", view)
 	}
 
-	m.setFold("/work/one", false)
+	m.setFold(dirPrefix+"/work/one", false)
 	if len(m.lines) != 5 {
 		t.Fatalf("lines = %d after unfolding, want every row back", len(m.lines))
 	}
@@ -123,12 +129,12 @@ func TestFoldingTheSelectedGroupTakesTheSelectionOut(t *testing.T) {
 		t.Fatalf("selected = %q, want the first row", m.sel)
 	}
 
-	m.setFold("/work/one", true)
+	m.setFold(dirPrefix+"/work/one", true)
 	if m.sel != "web" {
 		t.Fatalf("selected = %q, want the row of the next group", m.sel)
 	}
 
-	m.setFold("/work/two", true)
+	m.setFold(dirPrefix+"/work/two", true)
 	if m.sel != "web" {
 		t.Fatalf("selected = %q, want the selection to stay when every group is folded", m.sel)
 	}
@@ -145,7 +151,7 @@ func TestFoldingTheLastGroupTakesTheSelectionBack(t *testing.T) {
 		t.Fatalf("selected = %q, want web", m.sel)
 	}
 
-	m.setFold("/work/two", true)
+	m.setFold(dirPrefix+"/work/two", true)
 	if m.sel != "api" {
 		t.Fatalf("selected = %q, want the row before the folded group", m.sel)
 	}
@@ -164,7 +170,7 @@ func TestMovingStepsOverAHeaderAndOverAFoldedGroup(t *testing.T) {
 		t.Fatalf("selected = %q, want the row of the next group", m.sel)
 	}
 
-	m.setFold("/work/three", true)
+	m.setFold(dirPrefix+"/work/three", true)
 	next, _ = m.move(1)
 	m = next.(Model)
 	if m.sel != "docs" {
@@ -184,7 +190,7 @@ func TestTheHeaderOfAFoldedGroupShowsTheMostUrgentRow(t *testing.T) {
 		liveRow("docs", "/work/one", session.StateWaiting),
 		liveRow("web", "/work/two", session.StateIdle),
 	)
-	m.setFold("/work/one", true)
+	m.setFold(dirPrefix+"/work/one", true)
 
 	header := visible(m.groupHeader(m.groups[0]))
 	if !strings.Contains(header, foldShutMark) {
@@ -267,7 +273,7 @@ func TestZFoldsTheGroupOfTheSelectedSession(t *testing.T) {
 
 	next, _ := m.sidebarKey(key("z"))
 	m = next.(Model)
-	if !m.folded["/work/one"] {
+	if !m.folded[dirPrefix+"/work/one"] {
 		t.Fatal("z must fold the group of the selected session")
 	}
 	if m.sel != "web" {
@@ -276,7 +282,7 @@ func TestZFoldsTheGroupOfTheSelectedSession(t *testing.T) {
 
 	next, _ = m.sidebarKey(key("z"))
 	m = next.(Model)
-	if m.folded["/work/two"] != true {
+	if !m.folded[dirPrefix+"/work/two"] {
 		t.Fatal("z must fold the group the selection moved to")
 	}
 }

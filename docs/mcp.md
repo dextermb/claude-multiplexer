@@ -30,6 +30,11 @@ must exist. The manager makes the name unique, and it falls back to the last
 element of the path when the name is empty, so the tool returns the real name
 the session takes. The new session starts without the control grant.
 
+The manager writes the name of the caller into the record of the new session,
+as its creator. The sidebar groups a session under the control session that
+created it, and the record keeps that group after a restart. See
+[tui/sessions.md](./tui/sessions.md) and [manager.md](./manager.md).
+
 `get_messages` reads the transcript on disk, so it answers for a stored session
 as well as a live one. It returns one entry for each user prompt, each assistant
 message, and each result. A tool call becomes the short line `[used Bash]`,

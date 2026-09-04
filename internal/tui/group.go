@@ -11,9 +11,16 @@ import (
 
 const maxLabelDepth = 8
 
+// A group key names a directory or the control session that created the rows.
+const (
+	dirPrefix = "dir:"
+	byPrefix  = "by:"
+)
+
 type group struct {
 	key      string
 	label    string
+	creator  bool
 	folded   bool
 	rank     int
 	count    int
@@ -163,8 +170,43 @@ func rowRank(item row) int {
 	return 1
 }
 
-// groupRows keys every row on its repository, orders the groups so that a live
-// one comes first, and keeps the order of the rows inside each group.
+// headsGroup is true for the control session at the top of the group of the
+// sessions it created.
+func headsGroup(item row) bool {
+	return item.group == byPrefix+item.name
+}
+
+// labelGroups names every group: a creator group takes the display name of the
+// control session, and a directory group takes the tail of its path.
+func labelGroups(rows []row) map[string]string {
+	shown := make(map[string]string, len(rows))
+	for _, item := range rows {
+		shown[item.name] = item.displayName()
+	}
+	labels := make(map[string]string, len(rows))
+	var roots []string
+	for _, item := range rows {
+		if _, done := labels[item.group]; done {
+			continue
+		}
+		if creator, ok := strings.CutPrefix(item.group, byPrefix); ok {
+			labels[item.group] = creator
+			if name, live := shown[creator]; live {
+				labels[item.group] = name
+			}
+			continue
+		}
+		labels[item.group] = ""
+		roots = append(roots, strings.TrimPrefix(item.group, dirPrefix))
+	}
+	for root, label := range groupLabels(roots) {
+		labels[dirPrefix+root] = label
+	}
+	return labels
+}
+
+// groupRows keys every row on its group, orders the groups so that a live one
+// comes first, and keeps the order of the rows inside each group.
 func groupRows(rows []row, folded map[string]bool) ([]row, []group) {
 	if len(rows) == 0 {
 		return rows, nil
@@ -172,14 +214,17 @@ func groupRows(rows []row, folded map[string]bool) ([]row, []group) {
 	var groups []group
 	index := make(map[string]int, len(rows))
 	lead := make(map[string]int, len(rows))
-	keys := make([]string, 0, len(rows))
 	for _, item := range rows {
 		at, ok := index[item.group]
 		if !ok {
 			at = len(groups)
 			index[item.group] = at
-			keys = append(keys, item.group)
-			groups = append(groups, group{key: item.group, rank: rowRank(item), folded: folded[item.group]})
+			groups = append(groups, group{
+				key:     item.group,
+				creator: strings.HasPrefix(item.group, byPrefix),
+				rank:    rowRank(item),
+				folded:  folded[item.group],
+			})
 			lead[item.group] = urgency(item) + 1
 		}
 		groups[at].count++
@@ -195,7 +240,7 @@ func groupRows(rows []row, folded map[string]bool) ([]row, []group) {
 			groups[at].state = item.state
 		}
 	}
-	labels := groupLabels(keys)
+	labels := labelGroups(rows)
 	for i := range groups {
 		groups[i].label = labels[groups[i].key]
 	}
@@ -207,7 +252,13 @@ func groupRows(rows []row, folded map[string]bool) ([]row, []group) {
 	}
 	sorted := make([]row, len(rows))
 	copy(sorted, rows)
-	sort.SliceStable(sorted, func(i, j int) bool { return order[sorted[i].group] < order[sorted[j].group] })
+	sort.SliceStable(sorted, func(i, j int) bool {
+		left, right := order[sorted[i].group], order[sorted[j].group]
+		if left != right {
+			return left < right
+		}
+		return headsGroup(sorted[i]) && !headsGroup(sorted[j])
+	})
 	return sorted, groups
 }
 
