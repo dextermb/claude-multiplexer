@@ -14,7 +14,7 @@ that target.
 | `l` | The list | `ctrl+l` |
 | `o` | The output pane | `ctrl+o` |
 
-A sequence waits 250 ms for the second key. After that the target is forgotten,
+A sequence waits 1 second for the second key. After that the target is forgotten,
 and the next key acts on its own. `Esc` cancels the sequence at once. An unknown
 second key also cancels it, and the status bar shows a short notice, such as
 `no key s w`.
