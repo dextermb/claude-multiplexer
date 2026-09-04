@@ -95,8 +95,9 @@ it: the search reads the keys, what they do, and the group names, so `scroll`
 finds the four keys that scroll and `ctrl+j` finds itself. Press `esc` to close.
 
 The list in this page and the list on the screen come from one table in the
-code, so they cannot drift apart. The status bar shows only three of these keys
-(`n new · t preset · ? keys`), and it reads them from the same table.
+code, so they cannot drift apart. The status bar shows a short set of these keys
+(`n new · t preset · r resume · a archive · x stop · ? keys · q quit`), and it
+reads them from the same table.
 
 ### Scrolling the output
 

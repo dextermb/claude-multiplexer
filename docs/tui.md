@@ -7,27 +7,24 @@ in `internal/tui`. It talks only to the manager, which is described in
 ## The layout
 
 ```
-┌──────────────────────────┬──────────────────────────────────────────────┐
-│ ▾ ⇄ boss              3  │▎api · claude-opus-4-8 · auto                 │
-│  ● boss                  │        busy · 11.6k in 0.6k out · $0.0669    │
-│  ⠹ api              ⇢2   ├──────────────────────────────────────────────┤
-│  ○ invoices              │ › write the summary                          │
-│ ▾ multiplexer         1  │ ● 2127c615 · claude-opus-4-8 · 31 tools      │
-│  ● docs                  │ → Bash echo hello                            │
-│ ▸ notes             · 1  │ ← hello                                      │
-│                          │ ✓ success · $0.0669                          │
-├──────────────────────────┴──────────────────────────────────────────────┤
-│ api                                                                     │
-│ > write the summary                                                     │
-├─────────────────────────────────────────────────────────────────────────┤
-│ 3 sessions · 1 busy · $0.0881 · 1 stored   n new · t preset · ? keys    │
-└─────────────────────────────────────────────────────────────────────────┘
+▎▾ ⇄ boss               3│  api · claude-opus-4-8 · auto     busy · ⇢2 · 4.2k in 0.3k out · $0.0212
+▎ ● boss                 │ › write the summary
+▎ ⠋ api                ⇢2│ ● 2127c615 · claude-opus-4-8 · 31 tools
+▎ ○ invoices             │ → Bash echo hello
+▎▾ multiplexer          1│ ← hello
+▎ ● docs                 │ ← 4213 lines  ⏎
+▎▸ notes              ○ 1│ The loader has three problems▌
+▎                        │
+▎                        │
+ api — press Enter or Tab to type
+ > Type a prompt, then press Enter
+ 3 sessions · 1 busy · $0.0881   n new · t preset · r resume · a archive · x stop · ? keys · q quit
 ```
 
 The sidebar is 26 columns. The sessions are grouped under a header that names
-the group and counts its rows: one group for each directory, and one for the
-work of each control session. Each row shows a state glyph, the
-name, and `⇢n` when prompts wait in the queue. The selected row has a
+the group and counts its rows: one group for each repository, and one for the
+work of each control session. Each row shows a state glyph, the display name,
+and `⇢n` when prompts wait in the queue. The selected row has a
 highlighted background, and the focused pane carries a blue left edge. The
 palette is the Tailwind gray and blue scale. See
 [tui/sessions.md](tui/sessions.md) for the groups, the folds, and the glyph
