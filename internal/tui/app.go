@@ -678,7 +678,7 @@ func (m Model) openJobs() (tea.Model, tea.Cmd) {
 	if !ok {
 		return m, nil
 	}
-	m.jobsModal = newJobsModal(item.displayName(), item.jobList, m.width, m.bodyHeight())
+	m.jobsModal = newJobsModal(item.displayName(), item.jobList, m.baseOutputWidth(), m.outputHeight())
 	return m, nil
 }
 
@@ -693,7 +693,7 @@ func (m Model) outputKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case "enter":
 		if entries := collectExpandables(m.shownLines); len(entries) > 0 {
-			m.pager = newPager(entries, m.width, m.bodyHeight())
+			m.pager = newPager(entries, m.baseOutputWidth(), m.outputHeight())
 			return m, nil
 		}
 		m.focus = focusPrompt
@@ -1817,41 +1817,56 @@ func (m Model) View() string {
 	if !m.ready {
 		return "starting…"
 	}
+	body := lipgloss.JoinHorizontal(lipgloss.Top, m.sidebarView(), withEdge(m.paneView(), m.focus == focusOutput))
+	if dialog, ok := m.bodyDialogView(); ok {
+		body = dialog
+	}
+	prompt := withEdge(m.promptView(), m.focus == focusPrompt)
+	return lipgloss.JoinVertical(lipgloss.Left, body, prompt, m.statusView())
+}
+
+// A session dialog draws in the pane, not over the whole body; see docs/tui.md.
+func (m Model) paneView() string {
+	if dialog, ok := m.sessionDialogView(); ok {
+		return lipgloss.JoinVertical(lipgloss.Left, m.barView(), dialog)
+	}
 	pane := lipgloss.JoinVertical(lipgloss.Left, m.barView(), m.outputView())
 	if m.showSidePanel() {
 		pane = lipgloss.JoinHorizontal(lipgloss.Top, pane, m.sidePanelView())
 	}
-	right := withEdge(pane, m.focus == focusOutput)
-	body := lipgloss.JoinHorizontal(lipgloss.Top, m.sidebarView(), right)
-	if m.form != nil {
-		body = centre(m.width, m.bodyHeight(), m.form.View(m.width))
+	return pane
+}
+
+func (m Model) sessionDialogView() (string, bool) {
+	width, height := m.baseOutputWidth(), m.outputHeight()
+	switch {
+	case m.confirm != "":
+		return centre(width, height, m.confirmView(width)), true
+	case m.jobsModal != nil:
+		return centre(width, height, m.jobsModal.View(width, height)), true
+	case m.pager != nil:
+		return centre(width, height, m.pager.View(width, height)), true
+	case m.rename != nil:
+		return centre(width, height, m.rename.View(width)), true
+	case m.choice != nil:
+		return centre(width, height, m.choice.View(width)), true
 	}
-	if m.picker != nil {
-		body = centre(m.width, m.bodyHeight(), m.picker.View(m.width))
+	return "", false
+}
+
+func (m Model) bodyDialogView() (string, bool) {
+	width, height := m.width, m.bodyHeight()
+	switch {
+	case m.help != nil:
+		return centre(width, height, m.help.View(width, height)), true
+	case m.fields != nil:
+		return centre(width, height, m.fields.View(width)), true
+	case m.picker != nil:
+		return centre(width, height, m.picker.View(width)), true
+	case m.form != nil:
+		return centre(width, height, m.form.View(width)), true
 	}
-	if m.fields != nil {
-		body = centre(m.width, m.bodyHeight(), m.fields.View(m.width))
-	}
-	if m.choice != nil {
-		body = centre(m.width, m.bodyHeight(), m.choice.View(m.width))
-	}
-	if m.rename != nil {
-		body = centre(m.width, m.bodyHeight(), m.rename.View(m.width))
-	}
-	if m.pager != nil {
-		body = centre(m.width, m.bodyHeight(), m.pager.View(m.width, m.bodyHeight()))
-	}
-	if m.jobsModal != nil {
-		body = centre(m.width, m.bodyHeight(), m.jobsModal.View(m.width, m.bodyHeight()))
-	}
-	if m.help != nil {
-		body = centre(m.width, m.bodyHeight(), m.help.View(m.width, m.bodyHeight()))
-	}
-	if m.confirm != "" {
-		body = centre(m.width, m.bodyHeight(), m.confirmView())
-	}
-	prompt := withEdge(m.promptView(), m.focus == focusPrompt)
-	return lipgloss.JoinVertical(lipgloss.Left, body, prompt, m.statusView())
+	return "", false
 }
 
 func withEdge(block string, on bool) string {
@@ -2205,8 +2220,8 @@ func (m Model) promptView() string {
 	return hintStyle.Render(label+" — press Enter or Tab to type") + "\n" + m.prompt.View()
 }
 
-func (m Model) confirmView() string {
-	return modalStyle.Render(fmt.Sprintf("Stop session %q?\n\n%s",
+func (m Model) confirmView(width int) string {
+	return modalStyle.Width(modalInner(width)).Render(fmt.Sprintf("Stop session %q?\n\n%s",
 		m.confirm, hintStyle.Render("y stop · any other key cancel")))
 }
 
