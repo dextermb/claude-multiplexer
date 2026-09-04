@@ -7,7 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-const sequenceTimeout = 250 * time.Millisecond
+const sequenceTimeout = time.Second
 
 type sequenceTimeoutMsg struct{ gen int }
 
