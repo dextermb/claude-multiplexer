@@ -58,9 +58,9 @@ func TestEquipToolsWritesTheConfigAndNamesTheTools(t *testing.T) {
 	if err := json.Unmarshal(data, &doc); err != nil {
 		t.Fatalf("parse config: %v", err)
 	}
-	entry, ok := doc.MCPServers["mux"]
+	entry, ok := doc.MCPServers[mcp.ServerName]
 	if !ok {
-		t.Fatalf("no mux server in %s", data)
+		t.Fatalf("no %s server in %s", mcp.ServerName, data)
 	}
 	if entry.URL != m.MCPURL() {
 		t.Fatalf("url = %q, want %q", entry.URL, m.MCPURL())

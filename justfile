@@ -107,7 +107,7 @@ clean-state:
 test-real:
     MULTIPLEXIER_REAL=1 go test ./internal/tui/ -run TestRealSessionThroughTheInterface -v -timeout 300s
 
-# Warning: this drives one real session that calls the mux tools, and it costs money.
+# Warning: this drives one real session that calls the cmux tools, and it costs money.
 probe-mcp:
     MULTIPLEXIER_REAL=1 go test ./internal/manager/ -run TestRealSessionCallsTheTools -v -timeout 300s
 

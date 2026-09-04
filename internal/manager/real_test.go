@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dextermb/claude-multiplexer/internal/mcp"
 	"github.com/dextermb/claude-multiplexer/internal/protocol"
 	"github.com/dextermb/claude-multiplexer/internal/render"
 	"github.com/dextermb/claude-multiplexer/internal/session"
@@ -42,7 +43,7 @@ func TestRealSessionCallsTheTools(t *testing.T) {
 		t.Fatalf("Spawn: %v", err)
 	}
 
-	if err := m.Send(name, `Call the tool mcp__mux__rename_session with the title "Billing rewrite". Answer with one word when it is done.`); err != nil {
+	if err := m.Send(name, `Call the tool mcp__cmux__rename_session with the title "Billing rewrite". Answer with one word when it is done.`); err != nil {
 		t.Fatalf("Send: %v", err)
 	}
 	waitFor(t, 120*time.Second, func() bool {
@@ -64,16 +65,16 @@ func TestRealSessionCallsTheTools(t *testing.T) {
 		t.Fatalf("the child did not continue after the tool: %s", snap.State)
 	}
 	for _, line := range m.Lines(name) {
-		if strings.HasPrefix(line.Text, "●") || strings.Contains(line.Text, "mux") {
+		if strings.HasPrefix(line.Text, "●") || strings.Contains(line.Text, mcp.ServerName) {
 			t.Logf("line: %s", line.Text)
 		}
 	}
 	if status := mcpStatus(t, m, name); status != "connected" {
-		t.Fatalf("the child reported the mux server as %q", status)
+		t.Fatalf("the child reported the %s server as %q", mcp.ServerName, status)
 	}
 }
 
-// mcpStatus reads what the init event said about the mux server.
+// mcpStatus reads what the init event said about the server of the multiplexer.
 func mcpStatus(t *testing.T, m *Manager, name string) string {
 	t.Helper()
 	file, err := os.Open(transcriptPath(m.Root(), name))
@@ -91,7 +92,7 @@ func mcpStatus(t *testing.T, m *Manager, name string) string {
 			continue
 		}
 		for _, server := range ev.Init.MCPServers {
-			if server.Name == "mux" {
+			if server.Name == mcp.ServerName {
 				return server.Status
 			}
 		}
