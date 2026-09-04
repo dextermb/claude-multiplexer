@@ -41,6 +41,9 @@ type Job struct {
 	ID          string
 	Description string
 	TaskType    string
+	Command     string
+	Summary     string
+	OutputPath  string
 	Status      JobStatus
 	StartedAt   time.Time
 	EndedAt     time.Time

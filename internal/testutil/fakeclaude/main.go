@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -78,16 +79,10 @@ func main() {
 	if !lazy {
 		emitInit(sessionID)
 	}
-	if os.Getenv("FAKECLAUDE_MODE") == "jobs" {
-		emit(map[string]any{
-			"type":        "system",
-			"subtype":     "task_started",
-			"task_id":     "job-1",
-			"tool_use_id": "toolu_1",
-			"description": "sleep and echo",
-			"task_type":   "local_bash",
-			"session_id":  sessionID,
-		})
+	jobsMode := os.Getenv("FAKECLAUDE_MODE") == "jobs"
+	jobFile := ""
+	if jobsMode {
+		jobFile = startFakeJob(sessionID)
 	}
 
 	scanner := bufio.NewScanner(os.Stdin)
@@ -116,6 +111,9 @@ func main() {
 		}
 		if text == "quit" {
 			os.Exit(0)
+		}
+		if jobsMode && text == "finish job" {
+			finishFakeJob(sessionID, jobFile)
 		}
 		if replay {
 			emit(map[string]any{
@@ -382,4 +380,80 @@ func emit(v any) {
 		return
 	}
 	fmt.Println(string(line))
+}
+
+const (
+	fakeJobID     = "job-1"
+	fakeJobToolID = "toolu_1"
+	fakeJobDesc   = "sleep and echo"
+	fakeJobCmd    = "sh -c 'echo first; sleep 1; echo second'"
+)
+
+// startFakeJob drives the whole background job path: the Bash call, the
+// task_started event, and the tool_result that names a real output file.
+func startFakeJob(sessionID string) string {
+	root, err := os.MkdirTemp("", "fakeclaude-jobs")
+	if err != nil {
+		return ""
+	}
+	dir := filepath.Join(root, "tasks")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return ""
+	}
+	path := filepath.Join(dir, fakeJobID+".output")
+	if err := os.WriteFile(path, []byte("first\n"), 0o644); err != nil {
+		return ""
+	}
+
+	emit(map[string]any{
+		"type":       "assistant",
+		"session_id": sessionID,
+		"message": map[string]any{
+			"role": "assistant",
+			"content": []any{map[string]any{
+				"type": "tool_use", "id": fakeJobToolID, "name": "Bash",
+				"input": map[string]any{"command": fakeJobCmd, "run_in_background": true},
+			}},
+		},
+	})
+	emit(map[string]any{
+		"type":        "system",
+		"subtype":     "task_started",
+		"task_id":     fakeJobID,
+		"tool_use_id": fakeJobToolID,
+		"description": fakeJobDesc,
+		"task_type":   "local_bash",
+		"session_id":  sessionID,
+	})
+	emit(map[string]any{
+		"type":       "user",
+		"session_id": sessionID,
+		"message": map[string]any{
+			"role": "user",
+			"content": []any{map[string]any{
+				"type": "tool_result", "tool_use_id": fakeJobToolID,
+				"content": "Command running in background with ID: " + fakeJobID +
+					". Output is being written to: " + path +
+					". You will be notified when it completes.",
+			}},
+		},
+	})
+	return path
+}
+
+func finishFakeJob(sessionID, path string) {
+	if path != "" {
+		_ = os.WriteFile(path, []byte("first\nsecond\n"), 0o644)
+	}
+	emit(map[string]any{
+		"type": "system", "subtype": "task_updated", "task_id": fakeJobID,
+		"patch":      map[string]any{"status": "completed", "end_time": 1788536131991},
+		"session_id": sessionID,
+	})
+	emit(map[string]any{
+		"type": "system", "subtype": "task_notification", "task_id": fakeJobID,
+		"tool_use_id": fakeJobToolID, "status": "completed", "output_file": path,
+		"summary":    "Background command \"" + fakeJobDesc + "\" completed (exit code 0)",
+		"session_id": sessionID,
+	})
 }

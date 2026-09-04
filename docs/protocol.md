@@ -4,6 +4,12 @@
 mode. The two processes exchange one JSON object for each line. The package
 `internal/protocol` holds the encoder and the decoder.
 
+## The pages
+
+| Page | Read it for |
+|---|---|
+| [protocol/jobs.md](protocol/jobs.md) | A background job: its three events, and the file its output goes to |
+
 ## Why a child process, and not something else
 
 Two other shapes were considered and rejected.
@@ -236,26 +242,9 @@ next prompt, not as a `tool_result`.
 
 ## Background jobs
 
-Claude Code can run a shell command in the background. A `Bash` tool call with
-`run_in_background: true` in its input starts a job. The job keeps running after
-the turn ends. Claude Code then pushes three `system` events for the job, each
-with a `task_id`. The multiplexer reads these events, and it does not parse the
-tool result text. This was proven against Claude Code 2.1.176.
-
-| Subtype | Fields | Meaning |
-|---|---|---|
-| `task_started` | `task_id`, `tool_use_id`, `description`, `task_type` | The job started. |
-| `task_updated` | `task_id`, `patch` (`status`, `end_time`) | The status changed. |
-| `task_notification` | `task_id`, `tool_use_id`, `status`, `summary`, `output_file` | The job stopped. |
-
-The `patch.status` values seen are `completed` (exit 0) and `killed`. A
-`task_notification` on a kill carries the status `stopped`. `Event.Task` holds
-the union of the three shapes, with a `Patch` sub-struct for `task_updated`.
-
-The session turns these events into `Job` records; see [sessions.md](./sessions.md).
-The `BashOutput` tool result also carries `<status>`, `<exit_code>`, and
-`<output>` tags, but the multiplexer does not read them, because the three push
-events carry the same status in a structured form.
+A `Bash` call with `run_in_background: true` starts a job. Claude Code pushes
+three `system` events for it, and it writes the output to a file. See
+[protocol/jobs.md](protocol/jobs.md).
 
 ## The multiplexer serves the child an MCP server
 

@@ -58,6 +58,7 @@ type interruptedMsg struct {
 }
 type shutdownDoneMsg struct{}
 type spinTickMsg struct{}
+type jobTickMsg struct{}
 type archivedMsg struct {
 	name     string
 	archived bool
@@ -176,6 +177,12 @@ func (m Model) Init() tea.Cmd {
 	return tea.Batch(cmds...)
 }
 
+func jobTick() tea.Cmd {
+	return tea.Tick(jobRefresh, func(time.Time) tea.Msg {
+		return jobTickMsg{}
+	})
+}
+
 func spinTick() tea.Cmd {
 	return tea.Tick(spinInterval, func(time.Time) tea.Msg {
 		return spinTickMsg{}
@@ -291,6 +298,12 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 	case spinTickMsg:
 		return m.handleSpin()
+	case jobTickMsg:
+		if m.jobsModal == nil {
+			return m, nil
+		}
+		_, cmd := m.jobsModal.Update(msg)
+		return m, cmd
 	case bashResultMsg:
 		return m.handleBash(msg)
 	case tea.MouseMsg:
@@ -1413,6 +1426,7 @@ func (m *Model) refresh() {
 	}
 	m.rows, m.groups = groupRows(rows, m.folded)
 	m.buildLines()
+	m.syncJobsModal()
 
 	if m.selLine() < 0 {
 		m.selectFirst()
@@ -1421,6 +1435,19 @@ func (m *Model) refresh() {
 		m.sel = ""
 	}
 	m.clampOffset()
+}
+
+// syncJobsModal gives the open jobs dialog the jobs of its session, so a
+// running job grows while you read it. See docs/tui/sessions.md.
+func (m *Model) syncJobsModal() {
+	if m.jobsModal == nil {
+		return
+	}
+	item, ok := m.selectedRow()
+	if !ok {
+		return
+	}
+	m.jobsModal.setJobs(item.jobList)
 }
 
 // rowGroup keys a row on the control session that created it, or that it

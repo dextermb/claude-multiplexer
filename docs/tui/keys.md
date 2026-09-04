@@ -32,7 +32,7 @@ output.
 | `M` | Change the model of a running session |
 | `e` | Change the effort of a running session |
 | `p` | Change the permission mode of a running session |
-| `J` | Show the background jobs of the selected session |
+| `J` | Show the background jobs of the selected session, and open the output of one |
 | `?` | Show every key, with a search |
 | `ctrl+t` | Turn the mouse on or off |
 | `q` | Stop every session, and quit |
@@ -134,8 +134,16 @@ The same scroll keys work inside it. Press `Esc` to step back to the list, and
 ### Showing background jobs
 
 Press `J` from the list or the output to open the jobs dialog for the selected
-session. It lists every background job, the running ones first, then the
-finished ones. The same scroll keys work inside it. Press `esc` to close. See
+session. It has two levels, the same shape as the result pager above.
+
+The first level lists every background job, the running ones first, then the
+finished ones. Move with `j` and `k`, or with the arrow keys, and jump to an end
+with `g` and `G`. Press `Enter` to open the job under the cursor.
+
+The second level shows that job and its output. The same scroll keys work
+inside it. Press `Esc` to step back to the list, and `Esc` again to close.
+
+The dialog is live, so a running job grows while you read it. See
 [sessions.md](./sessions.md).
 
 ## The mouse
