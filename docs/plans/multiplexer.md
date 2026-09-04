@@ -1,4 +1,4 @@
-# multiplexier — what is still ahead
+# multiplexer — what is still ahead
 
 **Status:** the multiplexer works, and it is verified against Claude Code
 2.1.176. What it does is described in [protocol.md](../protocol.md),

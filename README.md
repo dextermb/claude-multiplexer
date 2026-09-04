@@ -1,9 +1,14 @@
-# multiplexier
+# multiplexer
 
-`multiplexier` supervises many Claude Code sessions at the same time. Each
+The multiplexer supervises many Claude Code sessions at the same time. Each
 session is a `claude` child process in headless mode, with its own directory and
 its own conversation. One terminal interface shows them all: a list of sessions,
 the output of the selected one, and a prompt box.
+
+The binary is spelled `multiplexier`, and so is the state directory. The word
+in the prose is `multiplexer`, which is the word people type. Where both
+spellings work, such as the settings file and the template directories,
+`multiplexer` is read first.
 
 The list groups the sessions: one group for each repository, and one group for
 the work of each control session. A glyph gives the state of each row, and the

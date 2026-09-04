@@ -7,7 +7,7 @@ not need one; when in doubt, a plan is cheap insurance against building the wron
 thing.
 
 Plans live in `docs/plans/<topic>.md`, one file per effort, kebab-case name. See
-`docs/plans/multiplexier.md` for the shape.
+`docs/plans/multiplexer.md` for the shape.
 
 **Do not** start implementing your plan without confirming with the user.
 
