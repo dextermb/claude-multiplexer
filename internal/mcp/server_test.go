@@ -464,7 +464,7 @@ func TestConfigNamesTheServerAndTheToken(t *testing.T) {
 		t.Fatalf("config: %v", err)
 	}
 	text := string(data)
-	for _, want := range []string{`"mux"`, `"http"`, server.URL(), "Bearer abc123"} {
+	for _, want := range []string{`"cmux"`, `"http"`, server.URL(), "Bearer abc123"} {
 		if !strings.Contains(text, want) {
 			t.Errorf("config is missing %q:\n%s", want, text)
 		}
@@ -476,17 +476,17 @@ func TestAllowedToolsFollowTheGrant(t *testing.T) {
 	if len(open) != len(mcp.OpenTools) {
 		t.Fatalf("open tools = %v", open)
 	}
-	if open[0] != "mcp__mux__rename_session" {
+	if open[0] != "mcp__cmux__rename_session" {
 		t.Fatalf("qualified name = %q", open[0])
 	}
 	control := mcp.AllowedTools(true)
 	if len(control) != len(mcp.OpenTools)+len(mcp.ControlTools) {
 		t.Fatalf("control tools = %v", control)
 	}
-	if !contains(control, "mcp__mux__create_session") {
+	if !contains(control, "mcp__cmux__create_session") {
 		t.Fatalf("control tools lack create_session: %v", control)
 	}
-	if contains(open, "mcp__mux__create_session") {
+	if contains(open, "mcp__cmux__create_session") {
 		t.Fatalf("open tools include create_session: %v", open)
 	}
 }

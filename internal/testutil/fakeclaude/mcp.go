@@ -98,10 +98,12 @@ func callTool(client *sdk.ClientSession, text string) string {
 }
 
 type mcpConfig struct {
-	MCPServers map[string]struct {
-		URL     string            `json:"url"`
-		Headers map[string]string `json:"headers"`
-	} `json:"mcpServers"`
+	MCPServers map[string]mcpServer `json:"mcpServers"`
+}
+
+type mcpServer struct {
+	URL     string            `json:"url"`
+	Headers map[string]string `json:"headers"`
 }
 
 func dialMCP() (*sdk.ClientSession, error) {
@@ -122,9 +124,13 @@ func dialMCP() (*sdk.ClientSession, error) {
 	if err := json.Unmarshal(data, &cfg); err != nil {
 		return nil, err
 	}
-	entry, ok := cfg.MCPServers["mux"]
-	if !ok {
-		return nil, fmt.Errorf("no mux server in %s", path)
+	if len(cfg.MCPServers) == 0 {
+		return nil, fmt.Errorf("no server in %s", path)
+	}
+	var entry mcpServer
+	for _, server := range cfg.MCPServers {
+		entry = server
+		break
 	}
 
 	client := sdk.NewClient(&sdk.Implementation{Name: "fakeclaude", Version: "0"}, nil)
