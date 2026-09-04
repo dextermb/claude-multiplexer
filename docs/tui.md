@@ -29,8 +29,9 @@ when prompts wait in the queue. The selected row has a highlighted background,
 and the focused pane carries a blue left edge. The palette is the Tailwind gray
 and blue scale. See [tui/sessions.md](tui/sessions.md) for the glyph legend.
 
-When the selected session keeps a task list, a panel on the right of the pane
-shows it, and the output shrinks to make room. See [tui/tasks.md](tui/tasks.md).
+When the selected session has background jobs or a task list, a panel on the
+right of the pane shows them, and the output shrinks to make room. See
+[tui/tasks.md](tui/tasks.md).
 
 ## The pages
 
@@ -40,7 +41,7 @@ shows it, and the output shrinks to make room. See [tui/tasks.md](tui/tasks.md).
 | [tui/keys.md](tui/keys.md) | Every key, the searchable key list, scrolling, the mouse, and quitting |
 | [tui/input.md](tui/input.md) | The prompt box, dropping a file, and the new session form |
 | [tui/output.md](tui/output.md) | The colour of each line, streaming text, and the layout rule |
-| [tui/tasks.md](tui/tasks.md) | The task panel: the list a session keeps, its glyphs, and when it shows |
+| [tui/tasks.md](tui/tasks.md) | The side panel: the session's jobs and task list, their glyphs, and when it shows |
 
 Two things live outside this folder, because they are not only about the
 screen. Preset prompts are in [templates.md](./templates.md), and what is

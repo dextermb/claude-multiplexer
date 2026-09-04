@@ -1409,20 +1409,27 @@ func (m Model) baseOutputWidth() int {
 }
 
 func (m Model) outputWidth() int {
-	if m.showTaskPanel() {
+	if m.showSidePanel() {
 		return m.baseOutputWidth() - taskPanelWidth
 	}
 	return m.baseOutputWidth()
 }
 
-// showTaskPanel says whether the task panel has room beside the output. It reads
+// showSidePanel says whether the side panel has room beside the output. It reads
 // baseOutputWidth, not outputWidth, because outputWidth depends on it. See
 // docs/tui/tasks.md.
-func (m Model) showTaskPanel() bool {
-	if len(m.todos[m.sel]) == 0 {
+func (m Model) showSidePanel() bool {
+	if len(m.todos[m.sel]) == 0 && len(m.selectedJobs()) == 0 {
 		return false
 	}
 	return m.baseOutputWidth()-taskPanelWidth >= minOutputWithPanel
+}
+
+func (m Model) selectedJobs() []session.Job {
+	if item, ok := m.selectedRow(); ok {
+		return item.jobList
+	}
+	return nil
 }
 
 func (m *Model) rebuildOutput() {
@@ -1577,8 +1584,8 @@ func (m Model) View() string {
 		return "starting…"
 	}
 	pane := lipgloss.JoinVertical(lipgloss.Left, m.barView(), m.outputView())
-	if m.showTaskPanel() {
-		pane = lipgloss.JoinHorizontal(lipgloss.Top, pane, m.taskPanelView())
+	if m.showSidePanel() {
+		pane = lipgloss.JoinHorizontal(lipgloss.Top, pane, m.sidePanelView())
 	}
 	right := withEdge(pane, m.focus == focusOutput)
 	body := lipgloss.JoinHorizontal(lipgloss.Top, m.sidebarView(), right)
@@ -1683,25 +1690,51 @@ func (m Model) outputView() string {
 	return m.output.View()
 }
 
-func (m Model) taskPanelView() string {
-	todos := m.todos[m.sel]
-	done := 0
-	for _, todo := range todos {
-		if todo.Status == protocol.TodoCompleted {
-			done++
+func (m Model) sidePanelView() string {
+	var rows []string
+	if jobs := orderJobs(m.selectedJobs()); len(jobs) > 0 {
+		running := 0
+		for _, job := range jobs {
+			if job.Status.Running() {
+				running++
+			}
+		}
+		rows = append(rows, taskHeaderStyle.Render(fmt.Sprintf("Jobs · %d/%d", running, len(jobs))), "")
+		for _, job := range jobs {
+			rows = append(rows, m.panelJobRow(job))
 		}
 	}
-	rows := []string{
-		taskHeaderStyle.Render(fmt.Sprintf("Tasks · %d/%d", done, len(todos))),
-		"",
-	}
-	item, ok := m.selectedRow()
-	busy := ok && item.live && item.state == session.StateBusy
-	for _, todo := range todos {
-		rows = append(rows, m.taskRow(todo, busy))
+	if todos := m.todos[m.sel]; len(todos) > 0 {
+		if len(rows) > 0 {
+			rows = append(rows, "")
+		}
+		done := 0
+		for _, todo := range todos {
+			if todo.Status == protocol.TodoCompleted {
+				done++
+			}
+		}
+		rows = append(rows, taskHeaderStyle.Render(fmt.Sprintf("Tasks · %d/%d", done, len(todos))), "")
+		item, ok := m.selectedRow()
+		busy := ok && item.live && item.state == session.StateBusy
+		for _, todo := range todos {
+			rows = append(rows, m.taskRow(todo, busy))
+		}
 	}
 	block := strings.Join(rows, "\n")
 	return taskPanelStyle.Width(taskPanelWidth - 1).Height(m.bodyHeight()).Render(block)
+}
+
+func (m Model) panelJobRow(job session.Job) string {
+	desc := job.Description
+	if desc == "" {
+		desc = job.ID
+	}
+	textStyle := rowStyle
+	if !job.Status.Running() {
+		textStyle = rowMutedStyle
+	}
+	return jobStyle(job.Status).Render(jobGlyph(job.Status)) + " " + textStyle.Render(truncate(desc, taskPanelInner-2))
 }
 
 func (m Model) taskRow(todo protocol.Todo, busy bool) string {
