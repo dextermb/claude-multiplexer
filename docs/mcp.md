@@ -63,7 +63,8 @@ answers with the path it wrote.
 The interface reads that file each time the human presses `s d`, so a change
 takes effect at once, with no restart. `--editor` and `$EDITOR` still sit above
 the file, so a program started with `--editor` opens what the flag names, and
-the tool cannot change that. See [config.md](./config.md).
+the tool cannot change that. The tool writes the settings file of the
+multiplexer, never the settings of Claude Code. See [config.md](./config.md).
 
 ## The grant
 

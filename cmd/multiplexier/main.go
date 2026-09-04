@@ -177,6 +177,7 @@ func tuiCommand(argv []string) int {
 		Manager:               mgr,
 		Config:                editorFlags,
 		ConfigPaths:           configPaths,
+		ClaudePaths:           config.ClaudePaths(),
 		DefaultModel:          *model,
 		DefaultPermissionMode: *mode,
 		InitialDir:            initialDir,

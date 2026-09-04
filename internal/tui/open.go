@@ -66,7 +66,7 @@ func (m Model) editorSettings() (config.Config, error) {
 	if err != nil {
 		return config.Config{}, err
 	}
-	return config.Resolve(m.opts.Config, file), nil
+	return config.Resolve(m.opts.Config, file, config.LoadClaude(m.opts.ClaudePaths...)), nil
 }
 
 func (m Model) launch(what, dir string, target open.Target) (tea.Model, tea.Cmd) {

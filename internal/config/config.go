@@ -1,5 +1,6 @@
 // Package config reads the settings file, and resolves a setting from the
-// flag, the environment, and that file. See docs/config.md.
+// flag, the environment, that file, and the settings of Claude Code. See
+// docs/config.md.
 package config
 
 import (
@@ -90,9 +91,16 @@ func Load(paths ...string) (Config, error) {
 	return Config{}, nil
 }
 
-// Resolve puts the flags first, then the environment, then the file.
-func Resolve(flags, file Config) Config {
+// Resolve puts the flags first, then the environment, then the settings file,
+// then the settings of Claude Code.
+func Resolve(flags, file, claude Config) Config {
 	out := file
+	if out.Editor == "" {
+		out.Editor = claude.Editor
+	}
+	if out.EditorTerminal == nil {
+		out.EditorTerminal = claude.EditorTerminal
+	}
 	if editor := firstOf(flags.Editor, os.Getenv("VISUAL"), os.Getenv("EDITOR")); editor != "" {
 		out.Editor = editor
 	}
