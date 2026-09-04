@@ -48,6 +48,21 @@ marks.
 
 So a document with headings keeps its structure, and the pane keeps one voice.
 
+## A character the highlighter cannot read
+
+Chroma highlights a code fence with the lexer for its language. A character that
+the lexer cannot classify becomes an `Error` token, and glamour's dark style
+paints that token white on bright red.
+
+A pipe is legal in a shell, but not in JSON, TOML, or a makefile. So a fence
+tagged with one of those languages painted every pipe red, which read as a
+warning the pane never meant.
+
+The renderer therefore gives the `Error` token the colour of plain code text and
+no background. An unclassified character now looks like the rest of the fence.
+The style is copied first, because glamour holds one chroma style behind a
+pointer and every renderer shares it.
+
 ## The raw toggle
 
 Press `m` to switch the pane between rendered markdown and the exact text that
