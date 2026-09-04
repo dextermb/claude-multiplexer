@@ -1,7 +1,9 @@
 package tui
 
 import (
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -38,6 +40,8 @@ func recordLaunches(t *testing.T) *[]launched {
 
 func openModel(t *testing.T, editor string) (Model, string) {
 	t.Helper()
+	t.Setenv("VISUAL", "")
+	t.Setenv("EDITOR", "")
 	m, mgr := newTestModel(t, "")
 	m.opts.Config = config.Config{Editor: editor}
 	m = start(t, m, 160, 30)
@@ -185,5 +189,88 @@ func TestTheDetachedLauncherReportsAMissingProgram(t *testing.T) {
 	})()
 	if opened := msg.(openedMsg); opened.err == nil {
 		t.Fatal("a program that does not start must give an error")
+	}
+}
+
+// settingsFile writes a settings file, and points the model at it.
+func settingsFile(t *testing.T, m Model, body string) Model {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "config.json")
+	if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	m.opts.ConfigPaths = []string{path}
+	return m
+}
+
+func TestTheEditorKeyReadsTheSettingsFile(t *testing.T) {
+	seen := recordLaunches(t)
+	m, dir := openModel(t, "")
+	m = settingsFile(t, m, `{"editor": "zed"}`)
+
+	m, cmd := chord(t, m, "s", "d")
+	m = run(t, m, cmd)
+
+	if len(*seen) != 1 {
+		t.Fatalf("launched %d programs, want 1", len(*seen))
+	}
+	if got := (*seen)[0].line; got != "zed "+dir {
+		t.Fatalf("command = %q, want %q", got, "zed "+dir)
+	}
+}
+
+func TestTheEditorKeyFollowsAFileWrittenAfterTheStart(t *testing.T) {
+	seen := recordLaunches(t)
+	m, dir := openModel(t, "")
+	m = settingsFile(t, m, `{"editor": "zed"}`)
+
+	m, cmd := chord(t, m, "s", "d")
+	m = run(t, m, cmd)
+
+	if err := os.WriteFile(m.opts.ConfigPaths[0], []byte(`{"editor": "nvim"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	m, cmd = chord(t, m, "s", "d")
+	m = run(t, m, cmd)
+
+	if len(*seen) != 2 {
+		t.Fatalf("launched %d programs, want 2", len(*seen))
+	}
+	second := (*seen)[1]
+	if second.line != "nvim "+dir {
+		t.Fatalf("command = %q, want %q", second.line, "nvim "+dir)
+	}
+	if !second.terminal {
+		t.Error("nvim must take the terminal")
+	}
+}
+
+func TestTheFlagStillBeatsTheSettingsFile(t *testing.T) {
+	seen := recordLaunches(t)
+	m, dir := openModel(t, "code")
+	m = settingsFile(t, m, `{"editor": "zed"}`)
+
+	m, cmd := chord(t, m, "s", "d")
+	m = run(t, m, cmd)
+
+	if got := (*seen)[0].line; got != "code "+dir {
+		t.Fatalf("command = %q, want the flag %q", got, "code "+dir)
+	}
+}
+
+func TestABadSettingsFileShowsTheReason(t *testing.T) {
+	seen := recordLaunches(t)
+	m, _ := openModel(t, "")
+	m = settingsFile(t, m, "{editor: zed}")
+
+	m, cmd := chord(t, m, "s", "d")
+	if cmd != nil {
+		t.Fatal("a file that does not parse must start nothing")
+	}
+	if len(*seen) != 0 {
+		t.Fatalf("launched %d programs, want none", len(*seen))
+	}
+	if !strings.Contains(m.errText, "config.json") {
+		t.Fatalf("errText = %q, want the name of the file in it", m.errText)
 	}
 }

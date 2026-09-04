@@ -19,6 +19,7 @@ reaches the model as `mcp__mux__…`.
 | `list_sessions` | `live_only` | Every session, running and stored: name, title, directory, state, model, turns, cost, and the archive flag. | open |
 | `get_messages` | `session`, `limit` | The recent messages of a session, oldest last. 20 by default, 200 at most. | open |
 | `list_jobs` | `session` | The background jobs of a session: id, description, task type, and status. An empty session means the caller. | open |
+| `set_editor` | `editor`, `terminal` | Sets the editor the human opens a directory with, in the settings file. | open |
 | `send_message` | `session`, `text` | Queues a prompt for another session, and returns the queue length. | control |
 | `stop_session` | `session` | Ends another child in a clean way. Its transcript is kept. | control |
 | `archive_session` | `session`, `restore` | Takes a stopped session out of the list, or with `restore` brings it back. | control |
@@ -53,10 +54,21 @@ turn. The tool marks the pane with `← stop job <id> from <caller>`, the same w
 `send_message` marks a prompt. It finds the job by its id first, so it never
 interrupts a turn for a job that does not exist or already stopped.
 
+`set_editor` writes the settings file of the multiplexer, and makes that file
+when there is none. `editor` is the command line, such as `code -n`.
+`terminal` says whether that editor draws in the terminal. A call must give at
+least one of the two, and a field it does not give keeps its value. The tool
+answers with the path it wrote.
+
+The interface reads that file each time the human presses `s d`, so a change
+takes effect at once, with no restart. `--editor` and `$EDITOR` still sit above
+the file, so a program started with `--editor` opens what the flag names, and
+the tool cannot change that. See [config.md](./config.md).
+
 ## The grant
 
-A session gets `rename_session`, `list_sessions`, `get_messages`, and
-`list_jobs` always. It gets the five control tools **only** when it is started
+A session gets `rename_session`, `list_sessions`, `get_messages`, `list_jobs`,
+and `set_editor` always. It gets the five control tools **only** when it is started
 with control.
 
 - In the new session form, set the `Control` field to `yes`.

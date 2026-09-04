@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/mcp"
 	"github.com/dextermb/claude-multiplexer/internal/protocol"
 	"github.com/dextermb/claude-multiplexer/internal/render"
@@ -377,12 +378,54 @@ func (b *bridge) Messages(name string, limit int) ([]mcp.Message, error) {
 
 func (b *bridge) Jobs(name string) ([]mcp.Job, error) { return b.m.Jobs(name) }
 
+func (b *bridge) SetEditor(editor string, terminal *bool, by string) (string, error) {
+	path, err := b.m.SetEditor(editor, terminal)
+	if err != nil {
+		return "", err
+	}
+	b.m.notify(by, by+" "+editorNotice(editor, terminal), false)
+	return path, nil
+}
+
+func editorNotice(editor string, terminal *bool) string {
+	if editor == "" {
+		if terminal != nil && *terminal {
+			return "made the editor a terminal editor"
+		}
+		return "made the editor a window editor"
+	}
+	return "set the editor to " + editor
+}
+
 func (b *bridge) StopJob(target, jobID, by string) (int, error) {
 	return b.m.StopJobFrom(target, by, jobID)
 }
 
 // notify publishes a change that no session event follows, so the interface
 // learns of it without a timer. See docs/mcp.md.
+// SetEditor writes the editor settings, so a session can name the editor the
+// human opens a directory with. See docs/config.md.
+func (m *Manager) SetEditor(editor string, terminal *bool) (string, error) {
+	path := config.Target(m.opts.ConfigPaths...)
+	if path == "" {
+		return "", errors.New("manager: no settings file to write")
+	}
+	current, err := config.Load(path)
+	if err != nil {
+		return "", err
+	}
+	if editor != "" {
+		current.Editor = editor
+	}
+	if terminal != nil {
+		current.EditorTerminal = terminal
+	}
+	if err := config.Write(path, current); err != nil {
+		return "", err
+	}
+	return path, nil
+}
+
 func (m *Manager) notify(name, notice string, reload bool) {
 	m.bus.Publish(Event{Session: name, Notice: notice, Reload: reload})
 }

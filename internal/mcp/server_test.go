@@ -23,6 +23,9 @@ type fakeSessions struct {
 	messages    map[string][]mcp.Message
 	jobs        map[string][]mcp.Job
 	stoppedJobs []string
+	editor      string
+	terminal    *bool
+	editorPath  string
 	failStop    error
 	failStopJob error
 }
@@ -34,6 +37,17 @@ func newFakeSessions() *fakeSessions {
 		messages: make(map[string][]mcp.Message),
 		jobs:     make(map[string][]mcp.Job),
 	}
+}
+
+func (f *fakeSessions) SetEditor(editor string, terminal *bool, by string) (string, error) {
+	if editor != "" {
+		f.editor = editor
+	}
+	if terminal != nil {
+		f.terminal = terminal
+	}
+	f.editorPath = "/tmp/config.json"
+	return f.editorPath, nil
 }
 
 func (f *fakeSessions) SetTitle(name, title string) error {
@@ -415,4 +429,88 @@ func contains(items []string, want string) bool {
 		}
 	}
 	return false
+}
+
+func TestSetEditorToolWritesBothFields(t *testing.T) {
+	sessions := newFakeSessions()
+	server := startServer(t, sessions)
+	token, err := server.Register("docs", false)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+
+	client := connect(t, server, token)
+	result := call(t, client, mcp.ToolSetEditor, map[string]any{"editor": "code -n", "terminal": false})
+	if result.IsError {
+		t.Fatalf("set_editor failed: %s", resultText(result))
+	}
+	if sessions.editor != "code -n" {
+		t.Fatalf("editor = %q, want %q", sessions.editor, "code -n")
+	}
+	if sessions.terminal == nil || *sessions.terminal {
+		t.Fatalf("terminal = %v, want false", sessions.terminal)
+	}
+	if !strings.Contains(resultText(result), "/tmp/config.json") {
+		t.Fatalf("the answer does not name the file:\n%s", resultText(result))
+	}
+}
+
+func TestSetEditorToolKeepsTheFieldItIsNotGiven(t *testing.T) {
+	sessions := newFakeSessions()
+	server := startServer(t, sessions)
+	token, err := server.Register("docs", false)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+
+	client := connect(t, server, token)
+	if result := call(t, client, mcp.ToolSetEditor, map[string]any{"terminal": true}); result.IsError {
+		t.Fatalf("set_editor failed: %s", resultText(result))
+	}
+	if sessions.editor != "" {
+		t.Fatalf("editor = %q, want it untouched", sessions.editor)
+	}
+	if sessions.terminal == nil || !*sessions.terminal {
+		t.Fatalf("terminal = %v, want true", sessions.terminal)
+	}
+}
+
+func TestSetEditorToolNeedsOneField(t *testing.T) {
+	sessions := newFakeSessions()
+	server := startServer(t, sessions)
+	token, err := server.Register("docs", false)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+
+	client := connect(t, server, token)
+	result := call(t, client, mcp.ToolSetEditor, map[string]any{})
+	if !result.IsError {
+		t.Fatal("a call with no field must be an error")
+	}
+	if sessions.editorPath != "" {
+		t.Fatal("a call with no field must write nothing")
+	}
+}
+
+func TestEverySessionGetsTheEditorTool(t *testing.T) {
+	server := startServer(t, newFakeSessions())
+	token, err := server.Register("docs", false)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+
+	client := connect(t, server, token)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	tools, err := client.ListTools(ctx, nil)
+	if err != nil {
+		t.Fatalf("list tools: %v", err)
+	}
+	for _, tool := range tools.Tools {
+		if tool.Name == mcp.ToolSetEditor {
+			return
+		}
+	}
+	t.Fatal("a session without the grant must still see set_editor")
 }
