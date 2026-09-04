@@ -22,14 +22,14 @@ import (
 	"github.com/dextermb/claude-multiplexer/internal/tui"
 )
 
-const usage = `multiplexier — a Claude Code multiplexer
+const usage = `multiplexer — a Claude Code multiplexer
 
 Usage:
-  multiplexier [flags]              Start the terminal user interface.
-  multiplexier run [flags] PROMPT   Start one session, send one prompt, print the stream.
-  multiplexier templates [flags]    List the preset prompts, and the fields each one takes.
+  multiplexer [flags]               Start the terminal user interface.
+  multiplexer run [flags] PROMPT    Start one session, send one prompt, print the stream.
+  multiplexer templates [flags]     List the preset prompts, and the fields each one takes.
 
-Run "multiplexier -h" or "multiplexier run -h" for the flags.
+Run "multiplexer -h" or "multiplexer run -h" for the flags.
 `
 
 func main() {
@@ -60,12 +60,12 @@ func templatesCommand(argv []string) int {
 
 	stateRoot, err := resolveRoot(*root)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "multiplexier: %v\n", err)
+		fmt.Fprintf(os.Stderr, "multiplexer: %v\n", err)
 		return 1
 	}
 	sessionDir, err := filepath.Abs(*dir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "multiplexier: %v\n", err)
+		fmt.Fprintf(os.Stderr, "multiplexer: %v\n", err)
 		return 1
 	}
 
@@ -142,7 +142,7 @@ func tuiCommand(argv []string) int {
 
 	configPaths, editorFlags, err := settings(*configPath, *editor, *editorTerminal, *blockCap)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "multiplexier: %v\n", err)
+		fmt.Fprintf(os.Stderr, "multiplexer: %v\n", err)
 		return 2
 	}
 
@@ -156,12 +156,12 @@ func tuiCommand(argv []string) int {
 		DefaultPermissionMode: *mode,
 	})
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "multiplexier: %v\n", err)
+		fmt.Fprintf(os.Stderr, "multiplexer: %v\n", err)
 		return 1
 	}
 
 	if err := mgr.StartMCP(); err != nil {
-		fmt.Fprintf(os.Stderr, "multiplexier: %v\n", err)
+		fmt.Fprintf(os.Stderr, "multiplexer: %v\n", err)
 		return 1
 	}
 
@@ -169,7 +169,7 @@ func tuiCommand(argv []string) int {
 	if initialDir != "" {
 		abs, err := filepath.Abs(initialDir)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "multiplexier: %v\n", err)
+			fmt.Fprintf(os.Stderr, "multiplexer: %v\n", err)
 			return 2
 		}
 		initialDir = abs
@@ -185,7 +185,7 @@ func tuiCommand(argv []string) int {
 		InitialDir:            initialDir,
 		InitialControl:        *control,
 	}); err != nil {
-		fmt.Fprintf(os.Stderr, "multiplexier: %v\n", err)
+		fmt.Fprintf(os.Stderr, "multiplexer: %v\n", err)
 		return 1
 	}
 	return 0
@@ -240,13 +240,13 @@ func runCommand(argv []string) int {
 
 	prompt, err := readPrompt(fs.Args())
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "multiplexier: %v\n", err)
+		fmt.Fprintf(os.Stderr, "multiplexer: %v\n", err)
 		return 2
 	}
 
 	absDir, err := filepath.Abs(*dir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "multiplexier: %v\n", err)
+		fmt.Fprintf(os.Stderr, "multiplexer: %v\n", err)
 		return 2
 	}
 
@@ -265,7 +265,7 @@ func runCommand(argv []string) int {
 
 	s, err := session.New(cfg)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "multiplexier: %v\n", err)
+		fmt.Fprintf(os.Stderr, "multiplexer: %v\n", err)
 		return 1
 	}
 
@@ -273,11 +273,11 @@ func runCommand(argv []string) int {
 	defer stop()
 
 	if err := s.Start(ctx); err != nil {
-		fmt.Fprintf(os.Stderr, "multiplexier: %v\n", err)
+		fmt.Fprintf(os.Stderr, "multiplexer: %v\n", err)
 		return 1
 	}
 	if err := s.Send(prompt); err != nil {
-		fmt.Fprintf(os.Stderr, "multiplexier: %v\n", err)
+		fmt.Fprintf(os.Stderr, "multiplexer: %v\n", err)
 		return 1
 	}
 
@@ -286,7 +286,7 @@ func runCommand(argv []string) int {
 	shutdown, cancel := context.WithTimeout(context.Background(), session.DefaultStopGrace)
 	defer cancel()
 	if err := s.Stop(shutdown); err != nil && !errors.Is(err, context.Canceled) {
-		fmt.Fprintf(os.Stderr, "multiplexier: %v\n", err)
+		fmt.Fprintf(os.Stderr, "multiplexer: %v\n", err)
 		if code == 0 {
 			code = 1
 		}

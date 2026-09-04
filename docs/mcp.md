@@ -124,7 +124,7 @@ always. It gets the five control tools **only** when it is started with
 control.
 
 - In the new session form, set the `Control` field to `yes`.
-- On the command line, `multiplexier --dir <path> --control`.
+- On the command line, `multiplexer --dir <path> --control`.
 
 The grant is stored in `meta.json`, so a resumed session keeps what it had.
 
