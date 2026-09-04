@@ -87,7 +87,7 @@ child never leaves the directory it started in, but the agent inside it may
 move into a worktree. It says so with a tool, and the record keeps the answer
 in `working_dir`, so the interface opens the right place and a resumed session
 keeps it. The directory a session started in never changes. See
-[mcp.md](./mcp.md).
+[mcp/tools.md](./mcp/tools.md).
 
 The state of each session lives under `<root>/sessions/<name>/`, which holds
 `transcript.jsonl` and `meta.json`. With no `--root`, the root is
@@ -145,7 +145,7 @@ The manager runs one MCP server for every session, and `StartMCP` starts it.
 Each session gets a token, a configuration file at
 `<root>/sessions/<name>/mcp.json`, and the tool names on `--allowedTools`. The
 manager holds the map from token to session, and it drops the token when the
-session ends. The full tool set is in [mcp.md](./mcp.md).
+session ends. The full tool set is in [mcp/tools.md](./mcp/tools.md).
 
 `Spec.Control` decides whether a session may drive its neighbours. It is stored
 in `Meta`, so a resume keeps it, and `Grants()` reports it for the live rows.
@@ -161,7 +161,7 @@ sees which agent asked. The keys use `Send`, which adds no mark.
 
 A change that a tool makes to `meta.json` has no session event behind it. The
 manager therefore publishes an event carrying `Notice` and `Reload`, and the
-interface acts on that instead of a timer. See [mcp.md](./mcp.md).
+interface acts on that instead of a timer. See [mcp/notices.md](./mcp/notices.md).
 
 ## Control
 

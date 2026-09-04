@@ -84,7 +84,7 @@ A session can write these two fields itself, with the `set_editor` tool, and
 take them out again with `unset_editor`. `set_editor` makes the file when there
 is none, and `unset_editor` makes none. The interface reads the file at each
 `s d`, so the next one opens the new editor. A flag still wins, because the
-flag sits above the file. See [mcp.md](mcp.md).
+flag sits above the file. See [mcp/tools.md](mcp/tools.md).
 
 ## The block cap
 
@@ -107,7 +107,7 @@ error, from the flag and from the tool.
 A session can write the cap itself, with the `set_block_cap` tool, and take it
 out again with `unset_block_cap`. The interface reads the file again at each
 notice, so a new cap reaches the pane at once, and the pane draws itself again.
-See [mcp.md](mcp.md).
+See [mcp/tools.md](mcp/tools.md).
 
 ## The terminal editor, and the window editor
 

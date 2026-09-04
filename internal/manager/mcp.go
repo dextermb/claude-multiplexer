@@ -19,7 +19,7 @@ import (
 
 // StartMCP starts the server that serves the multiplexer's own tools to each
 // session. Call it before the first Spawn, because a session that starts
-// earlier never learns the address. See docs/mcp.md.
+// earlier never learns the address. See docs/mcp/transport.md.
 func (m *Manager) StartMCP() error {
 	if m.mcp != nil {
 		return nil
@@ -99,7 +99,7 @@ func (m *Manager) SendFrom(target, from, text string) (int, error) {
 }
 
 // Jobs reports the background jobs of a live session. A stored session has no
-// running jobs, so it returns an empty list. See docs/mcp.md.
+// running jobs, so it returns an empty list. See docs/mcp/tools.md.
 func (m *Manager) Jobs(name string) ([]mcp.Job, error) {
 	item, err := m.entry(name)
 	if err != nil {
@@ -124,7 +124,7 @@ func (m *Manager) Jobs(name string) ([]mcp.Job, error) {
 
 // StopJobFrom interrupts a session and queues an instruction to kill one
 // background job, so the agent runs KillShell on the exact shell. The interrupt
-// ends the turn at once, so the instruction runs next. See docs/mcp.md.
+// ends the turn at once, so the instruction runs next. See docs/mcp/tools.md.
 func (m *Manager) StopJobFrom(target, from, jobID string) (int, error) {
 	item, err := m.entry(target)
 	if err != nil {
@@ -620,7 +620,7 @@ func (m *Manager) UnsetBlockCap() (string, bool, error) {
 }
 
 // notify publishes a change that no session event follows, so the interface
-// learns of it without a timer. See docs/mcp.md.
+// learns of it without a timer. See docs/mcp/notices.md.
 func (m *Manager) notify(name, notice string, reload bool) {
 	m.bus.Publish(Event{Session: name, Notice: notice, Reload: reload})
 }
