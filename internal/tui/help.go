@@ -30,6 +30,8 @@ var bindings = []binding{
 	{"The session (s)", "s", "s a", "Archive the selected session, or bring it back", "a archive"},
 	{"The session (s)", "s", "s x", "Stop the selected session, after a confirmation", "x stop"},
 	{"The session (s)", "s", "s j", "Show the background jobs of the selected session", "j jobs"},
+	{"The session (s)", "s", "s f", "Open the working directory in the file manager", "f folder"},
+	{"The session (s)", "s", "s d", "Open the working directory in the editor", "d editor"},
 	{"The session (s)", "s", "s m", "Change the model", "m model"},
 	{"The session (s)", "s", "s e", "Change the effort (the thinking budget)", "e effort"},
 	{"The session (s)", "s", "s p", "Change the permission mode", "p mode"},

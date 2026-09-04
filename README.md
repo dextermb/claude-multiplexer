@@ -109,11 +109,17 @@ State goes under `~/.multiplexier/sessions/<name>/`:
 
 `multiplexier --root <path>` moves that directory. `just clean-state` removes it.
 
+The settings live apart from the state, in
+`~/.config/multiplexer/config.json`. They name the editor that `s d` opens on
+the working directory of a session. `--config <path>` names another file. See
+[docs/config.md](docs/config.md).
+
 ## Documentation
 
 | Page | Read it for |
 |---|---|
 | [docs/tui.md](docs/tui.md) | The interface: the layout, and a page for each part of it |
+| [docs/config.md](docs/config.md) | The settings file, the editor, and the file manager |
 | [docs/templates.md](docs/templates.md) | Writing a preset prompt, its fields, and the three ways in |
 | [docs/markdown.md](docs/markdown.md) | What is rendered, the heading rule, and the raw toggle |
 | [docs/manager.md](docs/manager.md) | Sessions in memory, the event bus, storage, and archiving |

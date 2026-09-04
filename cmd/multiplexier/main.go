@@ -13,6 +13,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/manager"
 	"github.com/dextermb/claude-multiplexer/internal/protocol"
 	"github.com/dextermb/claude-multiplexer/internal/render"
@@ -129,7 +130,17 @@ func tuiCommand(argv []string) int {
 	control := fs.Bool("control", false, "let the session started by --dir drive the other sessions")
 	maxLines := fs.Int("max-lines", manager.DefaultMaxLines, "output lines kept in memory for each session")
 	verbose := fs.Bool("v", false, "show state changes, thinking, and full tool results")
+	configPath := fs.String("config", "", "settings file (default ~/.config/multiplexer/config.json)")
+	editor := fs.String("editor", "", "editor for the working directory (default $VISUAL, then $EDITOR)")
+	editorTerminal := fs.String("editor-terminal", "auto",
+		"does the editor draw in the terminal: yes, no, or auto")
 	if err := fs.Parse(argv); err != nil {
+		return 2
+	}
+
+	settings, err := loadConfig(*configPath, *editor, *editorTerminal)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "multiplexier: %v\n", err)
 		return 2
 	}
 
@@ -163,6 +174,7 @@ func tuiCommand(argv []string) int {
 
 	if err := tui.Run(tui.Options{
 		Manager:               mgr,
+		Config:                settings,
 		DefaultModel:          *model,
 		DefaultPermissionMode: *mode,
 		InitialDir:            initialDir,
@@ -172,6 +184,35 @@ func tuiCommand(argv []string) int {
 		return 1
 	}
 	return 0
+}
+
+// loadConfig reads the settings file, then puts the flags and the environment
+// over it. See docs/config.md.
+func loadConfig(path, editor, terminal string) (config.Config, error) {
+	paths := config.Paths()
+	if path != "" {
+		if _, err := os.Stat(path); err != nil {
+			return config.Config{}, err
+		}
+		paths = []string{path}
+	}
+	file, err := config.Load(paths...)
+	if err != nil {
+		return config.Config{}, err
+	}
+
+	flags := config.Config{Editor: editor}
+	switch terminal {
+	case "yes":
+		flags.EditorTerminal = new(bool)
+		*flags.EditorTerminal = true
+	case "no":
+		flags.EditorTerminal = new(bool)
+	case "auto", "":
+	default:
+		return config.Config{}, fmt.Errorf("--editor-terminal must be yes, no, or auto")
+	}
+	return config.Resolve(flags, file), nil
 }
 
 func runCommand(argv []string) int {

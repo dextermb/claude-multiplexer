@@ -74,6 +74,7 @@ never pushes the sidebar out of line.
 | [tui/output.md](tui/output.md) | The colour of each line, streaming text, and the layout rule |
 | [tui/tasks.md](tui/tasks.md) | The side panel: the session's jobs and task list, their glyphs, and when it shows |
 
-Two things live outside this folder, because they are not only about the
-screen. Preset prompts are in [templates.md](./templates.md), and what is
-rendered as markdown is in [markdown.md](./markdown.md).
+Three things live outside this folder, because they are not only about the
+screen. Preset prompts are in [templates.md](./templates.md), what is rendered
+as markdown is in [markdown.md](./markdown.md), and the settings file that
+names your editor is in [config.md](./config.md).
