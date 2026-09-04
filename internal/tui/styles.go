@@ -30,6 +30,10 @@ const (
 	gutterWidth    = 1
 
 	sidebarInner = sidebarWidth - 1 - gutterWidth
+
+	taskPanelWidth     = 32
+	taskPanelInner     = taskPanelWidth - 2
+	minOutputWithPanel = 40
 )
 
 const edgeMark = "▎"
@@ -113,6 +117,19 @@ var (
 	barCostStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("108")).
 			Background(barBackground)
+
+	taskPanelStyle = lipgloss.NewStyle().
+			Border(lipgloss.NormalBorder(), false, false, false, true).
+			BorderForeground(lipgloss.Color("240")).
+			PaddingLeft(1)
+
+	taskHeaderStyle = lipgloss.NewStyle().
+			Bold(true).
+			Foreground(lipgloss.Color("252"))
+
+	taskDoneStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("42"))
+	taskActiveStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("214")).Bold(true)
+	taskPendingStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
 )
 
 func classStyle(class render.Class) lipgloss.Style {

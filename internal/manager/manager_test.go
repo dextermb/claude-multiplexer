@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dextermb/claude-multiplexer/internal/protocol"
 	"github.com/dextermb/claude-multiplexer/internal/render"
 	"github.com/dextermb/claude-multiplexer/internal/session"
 )
@@ -498,6 +499,31 @@ func TestReplayRebuildsThePastOutput(t *testing.T) {
 	}
 	if m.Replay("nope") != nil {
 		t.Error("an unknown session must replay nothing")
+	}
+}
+
+func TestTodosTrackTheLiveListAndRebuildFromTheTranscript(t *testing.T) {
+	m := newTestManager(t)
+	name, err := m.Spawn(context.Background(), Spec{Name: "tasks", Dir: t.TempDir()})
+	if err != nil {
+		t.Fatalf("Spawn: %v", err)
+	}
+	runOneTurn(t, m, name, "todo")
+
+	waitFor(t, 10*time.Second, func() bool { return len(m.Todos(name)) == 3 })
+	live := m.Todos(name)
+	if live[1].Content != "Second task" || live[1].Status != protocol.TodoInProgress {
+		t.Fatalf("live todos wrong: %+v", live)
+	}
+
+	retire(t, m, name)
+
+	rebuilt := m.Todos(name)
+	if len(rebuilt) != 3 || rebuilt[0].Status != protocol.TodoCompleted || rebuilt[2].Status != protocol.TodoPending {
+		t.Fatalf("todos rebuilt from the transcript are wrong: %+v", rebuilt)
+	}
+	if m.Todos("nope") != nil {
+		t.Error("an unknown session must have no task list")
 	}
 }
 

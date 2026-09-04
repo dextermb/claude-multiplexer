@@ -60,6 +60,7 @@ type Event struct {
 	Closed     bool
 	Questions  []protocol.Question
 	QuestionID string
+	Todos      []protocol.Todo
 	// Notice describes a change made outside the session stream, for example by
 	// an MCP tool. Reload says the stored list changed. See docs/mcp.md.
 	Notice string
@@ -77,12 +78,21 @@ type entry struct {
 
 	partialMu sync.Mutex
 	partial   strings.Builder
+
+	todoMu sync.Mutex
+	todos  []protocol.Todo
 }
 
 func (e *entry) partialText() string {
 	e.partialMu.Lock()
 	defer e.partialMu.Unlock()
 	return e.partial.String()
+}
+
+func (e *entry) todoList() []protocol.Todo {
+	e.todoMu.Lock()
+	defer e.todoMu.Unlock()
+	return e.todos
 }
 
 type totals struct {
@@ -198,6 +208,7 @@ func (m *Manager) Spawn(ctx context.Context, spec Spec) (string, error) {
 
 	if spec.ResumeID != "" {
 		item.lines.append(m.Replay(name))
+		item.todos = m.todosFromTranscript(name)
 		item.lines.append([]render.Line{{Class: render.ClassMeta, Text: "— resumed —"}})
 		if stored, err := ReadMeta(item.path); err == nil {
 			item.meta = stored
@@ -231,6 +242,7 @@ func (m *Manager) pump(item *entry) {
 		lines := m.opts.Renderer.Lines(ev)
 		item.lines.append(lines)
 		partial := trackPartial(item, ev)
+		todos := trackTodos(item, ev)
 		snap := item.sess.Snapshot()
 		m.rememberSession(item, snap)
 		qid, questions, _ := ev.Protocol.AskUserQuestion()
@@ -242,6 +254,7 @@ func (m *Manager) pump(item *entry) {
 			Snapshot:   snap,
 			Questions:  questions,
 			QuestionID: qid,
+			Todos:      todos,
 		})
 	}
 	m.releaseTools(item.token)
@@ -269,6 +282,17 @@ func trackPartial(item *entry, ev session.Event) string {
 		item.partial.Reset()
 	}
 	return item.partial.String()
+}
+
+func trackTodos(item *entry, ev session.Event) []protocol.Todo {
+	item.todoMu.Lock()
+	defer item.todoMu.Unlock()
+	if ev.Kind == session.KindProtocol {
+		if list, ok := ev.Protocol.TodoWrite(); ok {
+			item.todos = list
+		}
+	}
+	return item.todos
 }
 
 func (m *Manager) rememberSession(item *entry, snap session.Snapshot) {
@@ -337,6 +361,40 @@ func (m *Manager) Replay(name string) []render.Line {
 		lines = lines[len(lines)-m.opts.MaxLines:]
 	}
 	return lines
+}
+
+// Todos returns the current task list of a session. A live session holds the
+// list in memory; a stored session gets it rebuilt from the transcript, which
+// is the last TodoWrite in the stream. See docs/tui/tasks.md.
+func (m *Manager) Todos(name string) []protocol.Todo {
+	if item, err := m.entry(name); err == nil {
+		return item.todoList()
+	}
+	return m.todosFromTranscript(name)
+}
+
+func (m *Manager) todosFromTranscript(name string) []protocol.Todo {
+	file, err := os.Open(transcriptPath(m.opts.Root, name))
+	if err != nil {
+		return nil
+	}
+	defer file.Close()
+
+	reader := protocol.NewReader(file)
+	var todos []protocol.Todo
+	for {
+		ev, err := reader.Next()
+		if errors.Is(err, protocol.ErrNotJSON) {
+			continue
+		}
+		if err != nil {
+			break
+		}
+		if list, ok := ev.TodoWrite(); ok {
+			todos = list
+		}
+	}
+	return todos
 }
 
 func (m *Manager) Archive(name string, archived bool) error {
