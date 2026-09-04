@@ -103,7 +103,7 @@ func TestCtrlCClosesTheFormAndTheConfirmation(t *testing.T) {
 	m = spawn(t, m, mgr, "alpha", t.TempDir())
 	m.focus = focusSidebar
 	m.prompt.Blur()
-	m, _ = step(t, m, key("x"))
+	m, _ = chord(t, m, "s", "x")
 	if m.confirm == "" {
 		t.Fatal("x must ask for a confirmation")
 	}

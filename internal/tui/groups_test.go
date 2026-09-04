@@ -249,7 +249,7 @@ func TestFoldEveryGroupKeepsTheOneYouAreIn(t *testing.T) {
 	next, _ := m.move(1)
 	m = next.(Model)
 
-	next, _ = m.toggleAllFolds()
+	next, _ = m.foldOthers()
 	m = next.(Model)
 	if m.sel != "docs" {
 		t.Fatalf("selected = %q, want the group of the selection to stay open", m.sel)
@@ -258,32 +258,32 @@ func TestFoldEveryGroupKeepsTheOneYouAreIn(t *testing.T) {
 		t.Fatalf("lines = %d, want 3 headers and the one row left", len(m.lines))
 	}
 
-	next, _ = m.toggleAllFolds()
+	next, _ = m.unfoldAll()
 	m = next.(Model)
 	if len(m.lines) != 6 {
 		t.Fatalf("lines = %d, want every group unfolded again", len(m.lines))
 	}
 }
 
-func TestZFoldsTheGroupOfTheSelectedSession(t *testing.T) {
+func TestFoldFoldsTheGroupOfTheSelectedSession(t *testing.T) {
 	m := groupModel(t, 30,
 		liveRow("api", "/work/one", session.StateIdle),
 		liveRow("web", "/work/two", session.StateIdle),
 	)
 
-	next, _ := m.sidebarKey(key("z"))
+	next, _ := m.toggleFold()
 	m = next.(Model)
 	if !m.folded[dirPrefix+"/work/one"] {
-		t.Fatal("z must fold the group of the selected session")
+		t.Fatal("l f must fold the group of the selected session")
 	}
 	if m.sel != "web" {
 		t.Fatalf("selected = %q, want the row of the next group", m.sel)
 	}
 
-	next, _ = m.sidebarKey(key("z"))
+	next, _ = m.toggleFold()
 	m = next.(Model)
 	if !m.folded[dirPrefix+"/work/two"] {
-		t.Fatal("z must fold the group the selection moved to")
+		t.Fatal("l f must fold the group the selection moved to")
 	}
 }
 

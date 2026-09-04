@@ -25,7 +25,7 @@ recedes:
 | `ClassError` | A failure, or a line that is not JSON | Red |
 
 What the assistant says is rendered as markdown, so a heading, a list, and a
-code fence all read as themselves. Press `m` for the raw text. See
+code fence all read as themselves. Press `o m` for the raw text. See
 [markdown.md](../markdown.md).
 
 Your prompt appears the moment you send it. The interface holds a copy and

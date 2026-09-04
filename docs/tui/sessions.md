@@ -49,11 +49,11 @@ group, the order is the order below.
 
 ### Folding a group
 
-Every group folds, of either kind. Press `z` to fold the group of the selected
-session, and press `z` again to unfold it. A folded group keeps its header, and
-its rows go. Press `Z` to unfold every group. When no group is folded, `Z`
-folds every group but the one you are in. A click on a header folds or unfolds
-that group. See [keys.md](./keys.md).
+Every group folds, of either kind. Press `l f` to fold the group of the selected
+session, and press `l f` again to unfold it. A folded group keeps its header, and
+its rows go. Press `l u` to unfold every group, and `l F` to fold every group but
+the one you are in. A click on a header folds or unfolds that group. See
+[keys.md](./keys.md).
 
 A folded header carries two marks that an open header does not need. The mark
 `▸` replaces `▾`, and the glyph of the most urgent row it hides comes before
@@ -81,8 +81,8 @@ stable, so a row does not jump as its state changes.
 A row starts with a state glyph in the state colour, then the display name, then
 `⇄` when the session may drive its neighbours, then `⚙n` when `n` background jobs
 run, then `⇢n` when `n` prompts wait in the queue. The display name is the title
-when the session has one, and the name when it does not. Press `R` to set the
-title; see [keys.md](./keys.md).
+when the session has one, and the name when it does not. Press `s n` to set the
+title. See [keys.md](./keys.md).
 The glyph tells the state at a glance:
 
 | Glyph | State | Colour |
@@ -119,9 +119,9 @@ Only a session that finished at least one turn is remembered. See
 
 ## Archived rows
 
-Press `a` to archive the selected session. The row leaves the list, and nothing
-on disk is deleted. Press `A` to show archived rows again, and `a` on one of
-them to bring it back.
+Press `s a` to archive the selected session. The row leaves the list, and
+nothing on disk is deleted. Press `l a` to show archived rows again, and `s a`
+on one of them to bring it back.
 
 A running session cannot be archived. Stop it first.
 
@@ -138,7 +138,7 @@ job model, and [../protocol/jobs.md](../protocol/jobs.md) for the wire events.
 - The session bar shows a `⚙n` segment while jobs run, next to the queue segment.
 - The side panel lists every job above the task list. See [tasks.md](tasks.md).
 
-Press `J` to open the jobs dialog for the selected session. The dialog draws in
+Press `s j` to open the jobs dialog for the selected session. The dialog draws in
 the pane, so the sidebar stays on the screen. It has two levels. See
 [keys.md](./keys.md) and [../tui.md](../tui.md).
 

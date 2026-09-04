@@ -25,7 +25,7 @@ func jobsOpen(t *testing.T, width, height int) Model {
 	m = spawn(t, m, mgr, "api", t.TempDir())
 	m = withJobs(m)
 	m.focus = focusSidebar
-	m, _ = step(t, m, key("J"))
+	m, _ = chord(t, m, "s", "j")
 	if m.jobsModal == nil {
 		t.Fatal("J must open the jobs dialog")
 	}

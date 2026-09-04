@@ -102,6 +102,11 @@ var (
 				Foreground(lipgloss.Color("244")).
 				Background(lipgloss.Color("236"))
 
+	statusKeyStyle = lipgloss.NewStyle().
+			Bold(true).
+			Foreground(lipgloss.Color("15")).
+			Background(lipgloss.Color("236"))
+
 	statusCostStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("108")).
 			Background(lipgloss.Color("236"))
