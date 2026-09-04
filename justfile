@@ -1,5 +1,5 @@
-binary := "bin/multiplexier"
-main := "./cmd/multiplexier"
+binary := "bin/multiplexer"
+main := "./cmd/multiplexer"
 
 # List the recipes.
 default:
