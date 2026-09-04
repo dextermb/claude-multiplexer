@@ -146,3 +146,18 @@ just test-real    # one real session through the interface, about a penny
 just probe-mcp    # one real session that calls the mux tools
 just smoke        # one prompt, one word back
 ```
+
+## Licence
+
+`multiplexier` is free software under the GNU Affero General Public License,
+version 3. See [LICENSE](LICENSE).
+
+You may use it, change it, and share it. Two rules come with that freedom. If
+you share a changed version, you must offer its source under the same licence.
+If you run a changed version as a service that other people reach over a
+network, you must offer them its source as well.
+
+The licence covers `multiplexier` itself. It does not cover the work the
+sessions do, or the code they write.
+
+Copyright © 2026 Dexter Marks-Barber.
