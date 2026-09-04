@@ -20,6 +20,7 @@ reaches the model as `mcp__mux__…`.
 | `get_messages` | `session`, `limit` | The recent messages of a session, oldest last. 20 by default, 200 at most. | open |
 | `list_jobs` | `session` | The background jobs of a session: id, description, task type, and status. An empty session means the caller. | open |
 | `set_editor` | `editor`, `terminal` | Sets the editor the human opens a directory with, in the settings file. | open |
+| `unset_editor` | `field` | Takes the editor, the terminal flag, or both out of the settings file. | open |
 | `send_message` | `session`, `text` | Queues a prompt for another session, and returns the queue length. | control |
 | `stop_session` | `session` | Ends another child in a clean way. Its transcript is kept. | control |
 | `archive_session` | `session`, `restore` | Takes a stopped session out of the list, or with `restore` brings it back. | control |
@@ -60,6 +61,12 @@ when there is none. `editor` is the command line, such as `code -n`.
 least one of the two, and a field it does not give keeps its value. The tool
 answers with the path it wrote.
 
+`unset_editor` takes those fields out again. `field` is `editor`,
+`terminal`, or `both`, and `both` is the default. The human then falls back to
+the rung below in the ladder: the environment, and then the settings of Claude
+Code. The tool answers with `changed: false` when the field was not set, and it
+makes no file in that case, so a call is safe to repeat.
+
 The interface reads that file each time the human presses `s d`, so a change
 takes effect at once, with no restart. `--editor` and `$EDITOR` still sit above
 the file, so a program started with `--editor` opens what the flag names, and
@@ -69,8 +76,8 @@ multiplexer, never the settings of Claude Code. See [config.md](./config.md).
 ## The grant
 
 A session gets `rename_session`, `list_sessions`, `get_messages`, `list_jobs`,
-and `set_editor` always. It gets the five control tools **only** when it is started
-with control.
+`set_editor`, and `unset_editor` always. It gets the five control tools **only**
+when it is started with control.
 
 - In the new session form, set the `Control` field to `yes`.
 - On the command line, `multiplexier --dir <path> --control`.

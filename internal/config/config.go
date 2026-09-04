@@ -91,6 +91,29 @@ func Load(paths ...string) (Config, error) {
 	return Config{}, nil
 }
 
+// The fields that Clear takes.
+const (
+	FieldEditor   = "editor"
+	FieldTerminal = "terminal"
+	FieldBoth     = "both"
+)
+
+// Clear takes a field out of the settings. An empty field clears both.
+func Clear(cfg Config, field string) (Config, error) {
+	switch field {
+	case FieldEditor:
+		cfg.Editor = ""
+	case FieldTerminal:
+		cfg.EditorTerminal = nil
+	case FieldBoth, "":
+		cfg.Editor = ""
+		cfg.EditorTerminal = nil
+	default:
+		return Config{}, errors.New("config: the field must be " + FieldEditor + ", " + FieldTerminal + ", or " + FieldBoth)
+	}
+	return cfg, nil
+}
+
 // Resolve puts the flags first, then the environment, then the settings file,
 // then the settings of Claude Code.
 func Resolve(flags, file, claude Config) Config {
