@@ -50,7 +50,7 @@ Five sources name the editor. The first one that names one wins:
 
 | Order | Source | Example |
 |---|---|---|
-| 1 | `--editor` | `multiplexier --editor "code -n"` |
+| 1 | `--editor` | `multiplexer --editor "code -n"` |
 | 2 | `$VISUAL` | `export VISUAL=nvim` |
 | 3 | `$EDITOR` | `export EDITOR=vi` |
 | 4 | `editor` in the settings file | `{"editor": "zed"}` |
@@ -94,7 +94,7 @@ Three sources name the cap. The first one that names one wins:
 
 | Order | Source | Example |
 |---|---|---|
-| 1 | `--block-cap` | `multiplexier --block-cap 40` |
+| 1 | `--block-cap` | `multiplexer --block-cap 40` |
 | 2 | `blockCap` in the settings file | `{"blockCap": 40}` |
 | 3 | The default | 20 rows |
 
