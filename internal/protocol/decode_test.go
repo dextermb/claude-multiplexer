@@ -104,6 +104,54 @@ func TestDecodeStreamEvent(t *testing.T) {
 	}
 }
 
+func TestDecodeTaskStarted(t *testing.T) {
+	line := `{"type":"system","subtype":"task_started","task_id":"bao4ntmse","tool_use_id":"toolu_01","description":"Sleep 20 seconds then echo done","task_type":"local_bash","session_id":"abc"}`
+	ev, err := Decode([]byte(line))
+	if err != nil {
+		t.Fatalf("Decode returned %v", err)
+	}
+	if ev.Task == nil {
+		t.Fatal("expected a Task payload")
+	}
+	if ev.Task.TaskID != "bao4ntmse" || ev.Task.TaskType != "local_bash" {
+		t.Fatalf("unexpected task: %+v", ev.Task)
+	}
+	if ev.Task.Description != "Sleep 20 seconds then echo done" {
+		t.Fatalf("unexpected description: %q", ev.Task.Description)
+	}
+	if ev.Task.Patch != nil {
+		t.Fatalf("a start event has no patch: %+v", ev.Task.Patch)
+	}
+}
+
+func TestDecodeTaskUpdated(t *testing.T) {
+	line := `{"type":"system","subtype":"task_updated","task_id":"b0zll5o88","patch":{"status":"completed","end_time":1788506380063},"session_id":"abc"}`
+	ev, err := Decode([]byte(line))
+	if err != nil {
+		t.Fatalf("Decode returned %v", err)
+	}
+	if ev.Task == nil || ev.Task.Patch == nil {
+		t.Fatalf("expected a Task with a patch, got %+v", ev.Task)
+	}
+	if ev.Task.Patch.Status != "completed" || ev.Task.Patch.EndTime != 1788506380063 {
+		t.Fatalf("unexpected patch: %+v", ev.Task.Patch)
+	}
+}
+
+func TestDecodeTaskNotification(t *testing.T) {
+	line := `{"type":"system","subtype":"task_notification","task_id":"bao4ntmse","tool_use_id":"toolu_01","status":"stopped","output_file":"","summary":"Sleep 20 seconds then echo done","session_id":"abc"}`
+	ev, err := Decode([]byte(line))
+	if err != nil {
+		t.Fatalf("Decode returned %v", err)
+	}
+	if ev.Task == nil {
+		t.Fatal("expected a Task payload")
+	}
+	if ev.Task.Status != "stopped" || ev.Task.Summary != "Sleep 20 seconds then echo done" {
+		t.Fatalf("unexpected notification: %+v", ev.Task)
+	}
+}
+
 func TestDecodeUnknownTypeSurvives(t *testing.T) {
 	line := `{"type":"something_new_in_2027","payload":{"a":1}}`
 	ev, err := Decode([]byte(line))

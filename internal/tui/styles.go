@@ -137,6 +137,32 @@ func classStyle(class render.Class) lipgloss.Style {
 	return lipgloss.NewStyle().Foreground(lipgloss.Color("252"))
 }
 
+func jobGlyph(status session.JobStatus) string {
+	switch status {
+	case session.JobDone:
+		return "✓"
+	case session.JobFailed:
+		return "✗"
+	case session.JobKilled:
+		return "⊗"
+	default:
+		return "⚙"
+	}
+}
+
+func jobStyle(status session.JobStatus) lipgloss.Style {
+	switch status {
+	case session.JobDone:
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("42"))
+	case session.JobFailed:
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("203"))
+	case session.JobKilled:
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
+	default:
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("214"))
+	}
+}
+
 func stateStyle(state session.State) lipgloss.Style {
 	switch state {
 	case session.StateIdle:

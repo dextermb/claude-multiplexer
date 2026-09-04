@@ -87,6 +87,7 @@ type Model struct {
 	choice       *choiceDialog
 	rename       *renameDialog
 	pager        *pager
+	jobsModal    *jobsModal
 	pending      string
 	sel          string
 	listOffset   int
@@ -540,6 +541,9 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.pager != nil {
 		return m.pagerKey(msg)
 	}
+	if m.jobsModal != nil {
+		return m.jobsModalKey(msg)
+	}
 	if m.picker != nil {
 		return m.pickerKey(msg)
 	}
@@ -644,6 +648,23 @@ func (m Model) pagerKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
+func (m Model) jobsModalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	open, cmd := m.jobsModal.Update(msg)
+	if !open {
+		m.jobsModal = nil
+	}
+	return m, cmd
+}
+
+func (m Model) openJobs() (tea.Model, tea.Cmd) {
+	item, ok := m.selectedRow()
+	if !ok {
+		return m, nil
+	}
+	m.jobsModal = newJobsModal(item.displayName(), item.jobList, m.width, m.bodyHeight())
+	return m, nil
+}
+
 func (m Model) outputKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	m.clearSelection()
 	switch msg.String() {
@@ -685,6 +706,8 @@ func (m Model) outputKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.openChoice(settingEffort)
 	case "p":
 		return m.openChoice(settingMode)
+	case "J":
+		return m.openJobs()
 	case "?":
 		m.help = newHelp()
 		return m, textinput.Blink
@@ -734,6 +757,8 @@ func (m Model) sidebarKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "?":
 		m.help = newHelp()
 		return m, textinput.Blink
+	case "J":
+		return m.openJobs()
 	case "t":
 		return m.openPicker()
 	case "A":
@@ -794,7 +819,7 @@ func (m Model) archiveSelected() (tea.Model, tea.Cmd) {
 }
 
 func (m Model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
-	if m.form != nil || m.confirm != "" || m.quitting || m.questions[m.sel] != nil || m.choice != nil || m.rename != nil || m.pager != nil {
+	if m.form != nil || m.confirm != "" || m.quitting || m.questions[m.sel] != nil || m.choice != nil || m.rename != nil || m.pager != nil || m.jobsModal != nil {
 		return m, nil
 	}
 
@@ -1259,6 +1284,7 @@ func (m Model) interrupt() (tea.Model, tea.Cmd) {
 	m.choice = nil
 	m.rename = nil
 	m.pager = nil
+	m.jobsModal = nil
 	m.confirm = ""
 	m.prompt.Reset()
 	m.status = "press ctrl+c again to quit"
@@ -1543,6 +1569,9 @@ func (m Model) View() string {
 	if m.pager != nil {
 		body = centre(m.width, m.bodyHeight(), m.pager.View(m.width, m.bodyHeight()))
 	}
+	if m.jobsModal != nil {
+		body = centre(m.width, m.bodyHeight(), m.jobsModal.View(m.width, m.bodyHeight()))
+	}
 	if m.help != nil {
 		body = centre(m.width, m.bodyHeight(), m.help.View(m.width, m.bodyHeight()))
 	}
@@ -1585,6 +1614,9 @@ func (m Model) sessionRow(item row) string {
 	badge := ""
 	if item.control {
 		badge = " ⇄"
+	}
+	if item.jobs > 0 {
+		badge += fmt.Sprintf(" ⚙%d", item.jobs)
 	}
 	if item.queued > 0 {
 		badge += fmt.Sprintf(" ⇢%d", item.queued)
@@ -1696,6 +1728,9 @@ func (m Model) rightSegs(item row) []barSeg {
 	}
 	if scroll := m.scrollIndicator(); scroll != "" {
 		segs = append(segs, barSeg{scroll, barMutedStyle})
+	}
+	if item.jobs > 0 {
+		segs = append(segs, barSeg{fmt.Sprintf("⚙%d", item.jobs), barMutedStyle})
 	}
 	if item.queued > 0 {
 		segs = append(segs, barSeg{fmt.Sprintf("⇢%d", item.queued), barMutedStyle})

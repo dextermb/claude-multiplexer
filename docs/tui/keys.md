@@ -30,6 +30,7 @@ output.
 | `M` | Change the model of a running session |
 | `e` | Change the effort of a running session |
 | `p` | Change the permission mode of a running session |
+| `J` | Show the background jobs of the selected session |
 | `?` | Show every key, with a search |
 | `ctrl+t` | Turn the mouse on or off |
 | `q` | Stop every session, and quit |
@@ -38,9 +39,9 @@ output.
 In the prompt box, `Tab` completes a `/preset` name, then an `@` path, before it
 moves the focus. See [input.md](input.md).
 
-`n`, `t`, `r`, `a`, `A`, `R`, `m`, `M`, `e`, `p`, `?`, `x`, and `q` work when the focus is the
-list or the output. The `ctrl` forms work everywhere, so they still work while you
-type a prompt.
+`n`, `t`, `r`, `a`, `A`, `R`, `m`, `M`, `e`, `p`, `J`, `?`, `x`, and `q` work when the focus is
+the list or the output. The `ctrl` forms work everywhere, so they still work while
+you type a prompt.
 
 ### Renaming a session
 
@@ -112,6 +113,13 @@ Give the output pane the focus, then press `Enter`. A dialog lists every result
 that opens. Move with `j` and `k`, then press `Enter` to page the one you want.
 The same scroll keys work inside it. Press `Esc` to step back to the list, and
 `Esc` again to close.
+
+### Showing background jobs
+
+Press `J` from the list or the output to open the jobs modal for the selected
+session. It lists every background job, the running ones first, then the
+finished ones. The same scroll keys work inside it. Press `esc` to close. See
+[sessions.md](./sessions.md).
 
 ## The mouse
 

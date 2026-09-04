@@ -45,6 +45,7 @@ var bindings = []binding{
 	{"The new session form", "tab", "Complete the path, or move to the next field", ""},
 	{"The new session form", "shift+tab", "Walk the suggested paths, or move back a field", ""},
 
+	{"The list and the output", "J", "Show the background jobs of the selected session", ""},
 	{"The list and the output", "?", "Show this list", "? keys"},
 	{"The list and the output", "q", "Stop every session, and quit", "q quit"},
 

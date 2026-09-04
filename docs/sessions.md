@@ -154,6 +154,35 @@ They start as the flag values, and the `init` event replaces them. So an empty
 `--model` becomes the model Claude Code chose, and a mode the child changes is
 the mode the interface shows.
 
+## Background jobs
+
+A session derives its background jobs from the stream, the same way it derives
+the cost and the token counts. Claude Code pushes three task events for each
+job; see [protocol.md](./protocol.md). `apply` turns them into `Job` records:
+
+- `task_started` adds a `Job` with the status `running`.
+- `task_updated` finds the `Job` by its id, and sets the status from the patch.
+- `task_notification` finds the `Job` by its id, and stops it.
+
+A `Job` holds the id, the description, the task type, the status, and the start
+and end times. The status is one of `running`, `done`, `failed`, or `killed`.
+The start event makes a job `running`. A later event moves it to one terminal
+status:
+
+| Wire value | Job status |
+|---|---|
+| `completed` | done |
+| `failed` | failed |
+| `killed`, `stopped` | killed |
+| any other | running |
+
+An unknown status stays `running`, so a new Claude Code value cannot lose a job.
+A notification does not change a job that already reached a terminal status.
+
+`Snapshot.Jobs` carries every job in start order, for the life of the session.
+`Snapshot.RunningJobs` counts the jobs that still run. The interface shows both;
+see [tui/sessions.md](./tui/sessions.md).
+
 ## Tests without a network
 
 `internal/testutil/fakeclaude` is a small program that answers like Claude Code.

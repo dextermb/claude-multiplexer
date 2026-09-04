@@ -13,9 +13,10 @@ stable, so a row does not jump as its state changes.
 ## Reading a row
 
 A row starts with a state glyph in the state colour, then the display name, then
-`⇄` when the session may drive its neighbours, then `⇢n` when `n` prompts wait
-in the queue. The display name is the title when the session has one, and the
-name when it does not. Press `R` to set the title; see [keys.md](./keys.md).
+`⇄` when the session may drive its neighbours, then `⚙n` when `n` background jobs
+run, then `⇢n` when `n` prompts wait in the queue. The display name is the title
+when the session has one, and the name when it does not. Press `R` to set the
+title; see [keys.md](./keys.md).
 The glyph tells the state at a glance:
 
 | Glyph | State | Colour |
@@ -58,13 +59,30 @@ them to bring it back.
 
 A running session cannot be archived. Stop it first.
 
+## Background jobs
+
+Claude Code can run a shell command in the background. The multiplexer shows
+each background job in three places. See [../sessions.md](../sessions.md) for the
+job model, and [../protocol.md](../protocol.md) for the wire events.
+
+- The output pane marks each job in order. A start line reads `⚙ started ·
+  <description>`. A stop line reads `⚙ done · <id>`, or `failed`, or `killed`.
+- The sidebar row shows `⚙n` for `n` running jobs, next to the queue badge. The
+  badge clears when the last job stops.
+- The session bar shows a `⚙n` segment while jobs run, next to the queue segment.
+
+Press `J` to open the jobs modal for the selected session. The modal lists every
+job, the running ones first, then the finished ones, in start order. Each row
+shows a status glyph, the status word, and the job description. Press `esc` to
+close it. See [keys.md](./keys.md).
+
 ## The two bars
 
 The **session bar** sits above the output, and it describes the selected session
 only. The left side names it: the display name (the title or the name),
 `control` when the session holds that grant, the model in use, and the
-permission mode. The right side gives the numbers: the state, the queue length,
-the tokens, the cost, and the context fill.
+permission mode. The right side gives the numbers: the state, the running-job
+count, the queue length, the tokens, the cost, and the context fill.
 
 The model and the permission mode come from the `init` event, so the bar names
 what the child confirms, and not what the flags asked for. The two can differ.
@@ -118,8 +136,8 @@ shed detail in turn, and the least useful item goes first:
 ```
 
 The right side sheds from the end: the cost first, then the tokens, then the
-queue length, then the context fill, and last of all the state, so that only the
-name remains. The left side sheds the effort, then the permission mode, then
+queue length, then the running-job count, then the context fill, and last of all
+the state, so that only the name remains. The left side sheds the effort, then the permission mode, then
 the model, and `control` last of all, because a session that can stop your work
 is worth the space. The name always stays, and only when the name alone cannot
 fit is it cut short.

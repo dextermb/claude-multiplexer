@@ -14,7 +14,12 @@ const (
 	TypeControlResponse Type = "control_response"
 )
 
-const SubtypeInit = "init"
+const (
+	SubtypeInit             = "init"
+	SubtypeTaskStarted      = "task_started"
+	SubtypeTaskUpdated      = "task_updated"
+	SubtypeTaskNotification = "task_notification"
+)
 
 type Event struct {
 	Type      Type
@@ -28,6 +33,7 @@ type Event struct {
 	Message *Message
 	Result  *Result
 	Delta   *Delta
+	Task    *Task
 }
 
 type Init struct {
@@ -129,6 +135,24 @@ type Delta struct {
 	Text        string
 	Thinking    string
 	PartialJSON string
+}
+
+// Task carries a background job lifecycle event. Claude Code pushes one on
+// task_started, task_updated, and task_notification; see docs/protocol.md.
+type Task struct {
+	TaskID      string     `json:"task_id"`
+	ToolUseID   string     `json:"tool_use_id"`
+	Description string     `json:"description"`
+	TaskType    string     `json:"task_type"`
+	Status      string     `json:"status"`
+	Summary     string     `json:"summary"`
+	OutputFile  string     `json:"output_file"`
+	Patch       *TaskPatch `json:"patch"`
+}
+
+type TaskPatch struct {
+	Status  string `json:"status"`
+	EndTime int64  `json:"end_time"`
 }
 
 func (e Event) IsInit() bool {

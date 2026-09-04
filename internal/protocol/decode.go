@@ -44,14 +44,20 @@ func Decode(line []byte) (Event, error) {
 
 	switch env.Type {
 	case TypeSystem:
-		if env.Subtype != SubtypeInit {
-			return ev, nil
+		switch env.Subtype {
+		case SubtypeInit:
+			var init Init
+			if err := json.Unmarshal(line, &init); err != nil {
+				return ev, nil
+			}
+			ev.Init = &init
+		case SubtypeTaskStarted, SubtypeTaskUpdated, SubtypeTaskNotification:
+			var task Task
+			if err := json.Unmarshal(line, &task); err != nil {
+				return ev, nil
+			}
+			ev.Task = &task
 		}
-		var init Init
-		if err := json.Unmarshal(line, &init); err != nil {
-			return ev, nil
-		}
-		ev.Init = &init
 	case TypeAssistant, TypeUser:
 		if len(env.Message) == 0 {
 			return ev, nil

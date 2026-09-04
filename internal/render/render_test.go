@@ -31,6 +31,32 @@ func TestRenderInit(t *testing.T) {
 	}
 }
 
+func TestRenderTaskStarted(t *testing.T) {
+	ev := decode(t, `{"type":"system","subtype":"task_started","task_id":"bao4ntmse","description":"Sleep 20 seconds then echo done","task_type":"local_bash"}`)
+	got := Renderer{}.Lines(ev)
+	if len(got) != 1 || got[0].Class != ClassMeta {
+		t.Fatalf("lines = %v", got)
+	}
+	if got[0].Text != "⚙ started · Sleep 20 seconds then echo done" {
+		t.Fatalf("text = %q", got[0].Text)
+	}
+}
+
+func TestRenderTaskUpdatedShowsStatusWord(t *testing.T) {
+	ev := decode(t, `{"type":"system","subtype":"task_updated","task_id":"b0zll5o88","patch":{"status":"completed","end_time":1}}`)
+	got := Renderer{}.Lines(ev)
+	if len(got) != 1 || got[0].Text != "⚙ done · b0zll5o88" {
+		t.Fatalf("lines = %v", got)
+	}
+}
+
+func TestRenderTaskNotificationIsSilent(t *testing.T) {
+	ev := decode(t, `{"type":"system","subtype":"task_notification","task_id":"bao4ntmse","status":"stopped"}`)
+	if got := (Renderer{}).Lines(ev); got != nil {
+		t.Fatalf("a notification adds no pane line, got %v", got)
+	}
+}
+
 func TestEveryLineCarriesItsClass(t *testing.T) {
 	cases := []struct {
 		name  string

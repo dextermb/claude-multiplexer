@@ -28,6 +28,8 @@ type row struct {
 	input    int
 	output   int
 	context  int
+	jobs     int
+	jobList  []session.Job
 	meta     manager.Meta
 }
 
@@ -49,6 +51,8 @@ func rowFromSnapshot(snap session.Snapshot) row {
 		input:   snap.InputTokens,
 		output:  snap.OutputTokens,
 		context: snap.ContextTokens,
+		jobs:    snap.RunningJobs(),
+		jobList: snap.Jobs,
 	}
 }
 

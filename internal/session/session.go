@@ -142,6 +142,18 @@ type Snapshot struct {
 	StartedAt       time.Time
 	EndedAt         time.Time
 	Err             error
+	Jobs            []Job
+}
+
+// RunningJobs is the count of background jobs that still run.
+func (s Snapshot) RunningJobs() int {
+	n := 0
+	for _, job := range s.Jobs {
+		if job.Status.Running() {
+			n++
+		}
+	}
+	return n
 }
 
 type Session struct {
@@ -182,6 +194,8 @@ type Session struct {
 	interruptSeq    int
 	controlSeq      int
 	err             error
+	jobs            map[string]*Job
+	jobOrder        []string
 
 	idleSig chan struct{}
 }
@@ -381,7 +395,19 @@ func (s *Session) Snapshot() Snapshot {
 		StartedAt:       s.startedAt,
 		EndedAt:         s.endedAt,
 		Err:             s.err,
+		Jobs:            s.jobList(),
 	}
+}
+
+func (s *Session) jobList() []Job {
+	if len(s.jobOrder) == 0 {
+		return nil
+	}
+	out := make([]Job, 0, len(s.jobOrder))
+	for _, id := range s.jobOrder {
+		out = append(out, *s.jobs[id])
+	}
+	return out
 }
 
 func (s *Session) Stderr() []string { return s.stderr.all() }
@@ -519,6 +545,8 @@ func (s *Session) apply(ev protocol.Event) {
 		_ = s.Interrupt()
 	}
 	switch {
+	case ev.Type == protocol.TypeSystem && ev.Task != nil:
+		s.applyTask(ev.Subtype, ev.Task)
 	case ev.IsInit() && ev.Init != nil:
 		s.mu.Lock()
 		s.claudeSessionID = ev.Init.SessionID
@@ -556,6 +584,55 @@ func (s *Session) apply(ev protocol.Event) {
 			s.setState(StateIdle)
 		}
 	}
+}
+
+func (s *Session) applyTask(subtype string, task *protocol.Task) {
+	if task.TaskID == "" {
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	switch subtype {
+	case protocol.SubtypeTaskStarted:
+		if s.jobs == nil {
+			s.jobs = make(map[string]*Job)
+		}
+		if _, ok := s.jobs[task.TaskID]; ok {
+			return
+		}
+		s.jobs[task.TaskID] = &Job{
+			ID:          task.TaskID,
+			Description: task.Description,
+			TaskType:    task.TaskType,
+			Status:      JobRunning,
+			StartedAt:   time.Now(),
+		}
+		s.jobOrder = append(s.jobOrder, task.TaskID)
+	case protocol.SubtypeTaskUpdated:
+		job := s.jobs[task.TaskID]
+		if job == nil || task.Patch == nil {
+			return
+		}
+		s.setJobStatus(job, task.Patch.Status)
+	case protocol.SubtypeTaskNotification:
+		job := s.jobs[task.TaskID]
+		if job == nil {
+			return
+		}
+		s.setJobStatus(job, task.Status)
+	}
+}
+
+func (s *Session) setJobStatus(job *Job, status string) {
+	if !job.Status.Running() {
+		return
+	}
+	next, terminal := classifyStatus(status)
+	if !terminal {
+		return
+	}
+	job.Status = next
+	job.EndedAt = time.Now()
 }
 
 func (s *Session) setState(next State) {

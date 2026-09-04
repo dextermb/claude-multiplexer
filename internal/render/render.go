@@ -84,6 +84,8 @@ func (r Renderer) protocolLines(ev protocol.Event) []Line {
 		return r.messageLines(ev.Message)
 	case ev.Type == protocol.TypeResult && ev.Result != nil:
 		return []Line{{Class: ClassMeta, Text: r.resultLine(ev.Result)}}
+	case ev.Type == protocol.TypeSystem && ev.Task != nil:
+		return taskLines(ev.Subtype, ev.Task)
 	case ev.Type == protocol.TypeStreamEvent:
 		return nil
 	}
@@ -105,6 +107,26 @@ func BashLines(command, output string, err error) []Line {
 		out = append(out, Line{Class: ClassError, Text: "! " + err.Error()})
 	}
 	return out
+}
+
+// taskLines renders a background job lifecycle event for the session pane; see
+// docs/tui/sessions.md. The start event carries the description; a later event
+// carries only the id, so its line names the id.
+func taskLines(subtype string, task *protocol.Task) []Line {
+	switch subtype {
+	case protocol.SubtypeTaskStarted:
+		label := task.Description
+		if label == "" {
+			label = task.TaskID
+		}
+		return []Line{{Class: ClassMeta, Text: "⚙ started · " + label}}
+	case protocol.SubtypeTaskUpdated:
+		if task.Patch == nil || task.Patch.Status == "" {
+			return nil
+		}
+		return []Line{{Class: ClassMeta, Text: "⚙ " + session.StatusWord(task.Patch.Status) + " · " + task.TaskID}}
+	}
+	return nil
 }
 
 func PromptLines(text string) []Line {

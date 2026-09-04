@@ -70,6 +70,9 @@ plain text, and it never renders markdown.
 - **Sessions that talk.** A session can name itself, list its neighbours, and
   read their recent messages. Give it the control grant and it can also prompt,
   stop, and archive them. See [docs/mcp.md](docs/mcp.md).
+- **Background jobs in view.** When Claude runs a shell command in the
+  background, the session shows it: a `⚙n` badge for the running count, a line
+  in the pane for each job, and a modal on `J` that lists them all.
 - **Costs in view.** Each session shows its turns, its last duration, its
   tokens, and its cost. The bottom bar totals them.
 
