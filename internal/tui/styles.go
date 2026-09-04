@@ -117,6 +117,13 @@ var (
 
 	spinnerStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
 
+	markerStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
+
+	markerCursorStyle = lipgloss.NewStyle().
+				Bold(true).
+				Foreground(lipgloss.Color("15")).
+				Background(lipgloss.Color("62"))
+
 	focusEdgeStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("62"))
 
 	modalStyle = lipgloss.NewStyle().

@@ -1,8 +1,9 @@
 # The settings file
 
 One file holds the settings that are not a flag on the command line. Today it
-holds the editor, which `s d` opens on the working directory of the selected
-session. See [tui/keys.md](tui/keys.md).
+holds two: the editor, which `s d` opens on the working directory of the
+selected session, and the block cap of the session pane. See
+[tui/keys.md](tui/keys.md).
 
 ## Where the file is
 
@@ -32,7 +33,8 @@ a typing mistake.
 ```json
 {
   "editor": "nvim",
-  "editorTerminal": true
+  "editorTerminal": true,
+  "blockCap": 20
 }
 ```
 
@@ -40,6 +42,7 @@ a typing mistake.
 |---|---|
 | `editor` | The command line that opens a directory, such as `code -n` |
 | `editorTerminal` | `true` when the editor draws in the terminal. Leave it out to let the list below decide |
+| `blockCap` | The rows one block draws in the session pane before the pane caps it. `0` caps nothing |
 
 ## Which editor
 
@@ -79,6 +82,29 @@ take them out again with `unset_editor`. `set_editor` makes the file when there
 is none, and `unset_editor` makes none. The interface reads the file at each
 `s d`, so the next one opens the new editor. A flag still wins, because the
 flag sits above the file. See [mcp.md](mcp.md).
+
+## The block cap
+
+The session pane draws at most `blockCap` rows of one block, and then a marker
+row that opens the rest in place. A block is one piece of content: your prompt,
+one message, one tool result, or the output of a `!` command. See
+[tui/output.md](tui/output.md).
+
+Three sources name the cap. The first one that names one wins:
+
+| Order | Source | Example |
+|---|---|---|
+| 1 | `--block-cap` | `multiplexier --block-cap 40` |
+| 2 | `blockCap` in the settings file | `{"blockCap": 40}` |
+| 3 | The default | 20 rows |
+
+A cap of `0` caps nothing, so every block draws in full. A cap below zero is an
+error, from the flag and from the tool.
+
+A session can write the cap itself, with the `set_block_cap` tool, and take it
+out again with `unset_block_cap`. The interface reads the file again at each
+notice, so a new cap reaches the pane at once, and the pane draws itself again.
+See [mcp.md](mcp.md).
 
 ## The terminal editor, and the window editor
 

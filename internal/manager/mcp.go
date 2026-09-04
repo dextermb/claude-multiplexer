@@ -431,6 +431,33 @@ func (b *bridge) UnsetEditor(field, by string) (string, bool, error) {
 	return path, changed, nil
 }
 
+func (b *bridge) SetBlockCap(rows int, by string) (string, error) {
+	path, err := b.m.SetBlockCap(rows)
+	if err != nil {
+		return "", err
+	}
+	b.m.notify(by, by+" "+blockCapNotice(rows), false)
+	return path, nil
+}
+
+func (b *bridge) UnsetBlockCap(by string) (string, bool, error) {
+	path, changed, err := b.m.UnsetBlockCap()
+	if err != nil {
+		return "", false, err
+	}
+	if changed {
+		b.m.notify(by, by+" cleared the block cap", false)
+	}
+	return path, changed, nil
+}
+
+func blockCapNotice(rows int) string {
+	if rows == 0 {
+		return "turned the block cap off"
+	}
+	return "set the block cap to " + strconv.Itoa(rows) + " rows"
+}
+
 func clearedNotice(field string) string {
 	switch field {
 	case config.FieldEditor:
@@ -498,6 +525,49 @@ func (m *Manager) UnsetEditor(field string) (string, bool, error) {
 		return path, false, nil
 	}
 	if err := config.Write(path, next); err != nil {
+		return "", false, err
+	}
+	return path, true, nil
+}
+
+// SetBlockCap writes the rows a block draws before the pane caps it, so a
+// session can change how much of a large result the human sees. A cap of zero
+// caps nothing. See docs/config.md.
+func (m *Manager) SetBlockCap(rows int) (string, error) {
+	if rows < 0 {
+		return "", errors.New("manager: the block cap must be zero or more")
+	}
+	path := config.Target(m.opts.ConfigPaths...)
+	if path == "" {
+		return "", errors.New("manager: no settings file to write")
+	}
+	current, err := config.Load(path)
+	if err != nil {
+		return "", err
+	}
+	current.BlockCap = &rows
+	if err := config.Write(path, current); err != nil {
+		return "", err
+	}
+	return path, nil
+}
+
+// UnsetBlockCap takes the block cap out of the settings file, so the pane
+// returns to config.DefaultBlockCap. It reports whether the file held one.
+func (m *Manager) UnsetBlockCap() (string, bool, error) {
+	path := config.Target(m.opts.ConfigPaths...)
+	if path == "" {
+		return "", false, errors.New("manager: no settings file to write")
+	}
+	current, err := config.Load(path)
+	if err != nil {
+		return "", false, err
+	}
+	if current.BlockCap == nil {
+		return path, false, nil
+	}
+	current.BlockCap = nil
+	if err := config.Write(path, current); err != nil {
 		return "", false, err
 	}
 	return path, true, nil

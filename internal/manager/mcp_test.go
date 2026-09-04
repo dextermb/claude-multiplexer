@@ -853,3 +853,101 @@ func TestTheWorkingDirThroughTheToolCarriesANotice(t *testing.T) {
 		t.Fatalf("notice = %q", ev.Notice)
 	}
 }
+
+func TestSetBlockCapWritesTheSettingsFile(t *testing.T) {
+	m, path := withConfig(t)
+
+	got, err := m.SetBlockCap(40)
+	if err != nil {
+		t.Fatalf("SetBlockCap: %v", err)
+	}
+	if got != path {
+		t.Fatalf("path = %q, want %q", got, path)
+	}
+	cfg, err := config.Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.BlockCap == nil || *cfg.BlockCap != 40 {
+		t.Fatalf("blockCap = %v, want 40", cfg.BlockCap)
+	}
+}
+
+func TestSetBlockCapKeepsTheEditorItDoesNotName(t *testing.T) {
+	m, path := withConfig(t)
+	if _, err := m.SetEditor("nvim", nil); err != nil {
+		t.Fatalf("SetEditor: %v", err)
+	}
+
+	if _, err := m.SetBlockCap(0); err != nil {
+		t.Fatalf("SetBlockCap: %v", err)
+	}
+	cfg, err := config.Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Editor != "nvim" {
+		t.Fatalf("editor = %q, want nvim", cfg.Editor)
+	}
+	if cfg.BlockCap == nil || *cfg.BlockCap != 0 {
+		t.Fatalf("blockCap = %v, want 0", cfg.BlockCap)
+	}
+}
+
+func TestSetBlockCapRefusesALessThanZeroCap(t *testing.T) {
+	m, _ := withConfig(t)
+	if _, err := m.SetBlockCap(-1); err == nil {
+		t.Fatal("a cap below zero must be an error")
+	}
+}
+
+func TestUnsetBlockCapTakesTheCapOutOfTheFile(t *testing.T) {
+	m, path := withConfig(t)
+	if _, err := m.SetBlockCap(40); err != nil {
+		t.Fatalf("SetBlockCap: %v", err)
+	}
+
+	_, changed, err := m.UnsetBlockCap()
+	if err != nil {
+		t.Fatalf("UnsetBlockCap: %v", err)
+	}
+	if !changed {
+		t.Fatal("the file held a cap, so the call changed it")
+	}
+	cfg, err := config.Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.BlockCap != nil {
+		t.Fatalf("blockCap = %v, want none", cfg.BlockCap)
+	}
+
+	if _, changed, err = m.UnsetBlockCap(); err != nil || changed {
+		t.Fatalf("a second call changed nothing: changed = %v, err = %v", changed, err)
+	}
+}
+
+func TestBlockCapThroughTheToolCarriesANotice(t *testing.T) {
+	m, _ := withConfig(t)
+	name, err := m.Spawn(context.Background(), Spec{Dir: t.TempDir(), Name: "docs"})
+	if err != nil {
+		t.Fatalf("Spawn: %v", err)
+	}
+	sub := m.Subscribe(256)
+	defer sub.Close()
+
+	tools := &bridge{m: m}
+	if _, err := tools.SetBlockCap(40, name); err != nil {
+		t.Fatalf("SetBlockCap: %v", err)
+	}
+	if ev := awaitNotice(t, sub); !strings.Contains(ev.Notice, "docs set the block cap to 40 rows") {
+		t.Fatalf("notice = %q", ev.Notice)
+	}
+
+	if _, _, err := tools.UnsetBlockCap(name); err != nil {
+		t.Fatalf("UnsetBlockCap: %v", err)
+	}
+	if ev := awaitNotice(t, sub); !strings.Contains(ev.Notice, "docs cleared the block cap") {
+		t.Fatalf("notice = %q", ev.Notice)
+	}
+}
