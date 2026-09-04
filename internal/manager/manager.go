@@ -10,16 +10,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/mcp"
 	"github.com/dextermb/claude-multiplexer/internal/protocol"
 	"github.com/dextermb/claude-multiplexer/internal/render"
 	"github.com/dextermb/claude-multiplexer/internal/session"
 )
 
-const (
-	DefaultMaxLines = 5000
-	DefaultRootName = ".multiplexier"
-)
+const DefaultMaxLines = 5000
 
 var (
 	ErrUnknownSession = errors.New("manager: unknown session")
@@ -160,11 +158,11 @@ type Manager struct {
 
 func New(opts Options) (*Manager, error) {
 	if opts.Root == "" {
-		home, err := os.UserHomeDir()
+		root, err := config.DefaultRoot()
 		if err != nil {
 			return nil, err
 		}
-		opts.Root = filepath.Join(home, DefaultRootName)
+		opts.Root = root
 	}
 	if opts.MaxLines <= 0 {
 		opts.MaxLines = DefaultMaxLines

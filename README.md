@@ -5,10 +5,10 @@ session is a `claude` child process in headless mode, with its own directory and
 its own conversation. One terminal interface shows them all: a list of sessions,
 the output of the selected one, and a prompt box.
 
-The command is `multiplexer`. The state directory keeps the older spelling,
-`~/.multiplexier`, so a session stored before the rename still opens. The
-settings file and the template directories read both spellings, and read
-`multiplexer` first.
+The command is `multiplexer`, and it keeps its state in
+`~/.claude-multiplexer`, named for the repository. An installation from before
+the rename keeps `~/.multiplexier`, so the sessions you already have still open.
+A repository holds its own templates in `.multiplexer/` or `.multiplexier/`.
 
 The list groups the sessions: one group for each repository, and one group for
 the work of each control session. A glyph gives the state of each row, and the
@@ -90,7 +90,7 @@ plain text, and it never renders markdown.
 
 ## Where things live
 
-State goes under `~/.multiplexier/sessions/<name>/`:
+State goes under `~/.claude-multiplexer/sessions/<name>/`:
 
 | File | What it holds |
 |---|---|
@@ -101,7 +101,7 @@ State goes under `~/.multiplexier/sessions/<name>/`:
 `multiplexer --root <path>` moves that directory. `just clean-state` removes it.
 
 The settings live apart from the state, in
-`~/.config/multiplexer/config.json`. They name the editor that `s d` opens on
+`~/.config/claude-multiplexer/config.json`. They name the editor that `s d` opens on
 the working directory of a session, and the rows one block draws before the pane
 caps it. `--config <path>` names another file. See
 [docs/config.md](docs/config.md).
