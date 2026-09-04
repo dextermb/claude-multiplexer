@@ -3,20 +3,45 @@
 The sidebar, what a row means, and the two bars that carry the numbers.
 For the keys that drive it, see [keys.md](./keys.md).
 
-## Groups by directory
+## The groups
 
-The list groups the sessions by directory. Each group starts with a header, and
-the rows of that directory follow it, indented by one column.
+The list groups the sessions. Each group starts with a header, and its rows
+follow it, indented by one column. A group holds either one directory or the
+work of one control session.
 
-The key of a group is the repository above the directory of the session. The
-program walks up to the nearest `.git`. So a session in the repository, a
-session in a subdirectory, and a session in a worktree all share one group. A
-directory with no repository above it is a group of its own.
+### A directory group
+
+The key of a directory group is the repository above the directory of the
+session. The program walks up to the nearest `.git`. So a session in the
+repository, a session in a subdirectory, and a session in a worktree all share
+one group. A directory with no repository above it is a group of its own.
 
 The header names the group with the last element of that path, for example
 `claude-multiplexer`. When two groups have the same last element, both names
 grow one element to the left, so `~/a/api` and `~/b/api` read `a/api` and
 `b/api`. The number on the right of the header counts the rows of the group.
+
+### A creator group
+
+A control session can start another session with the `create_session` tool. See
+[../mcp.md](../mcp.md). The multiplexer records the caller, and the session it
+made joins the group of that control session, and not the group of its
+repository. So one group holds the work of one agent, whatever repository each
+member runs in.
+
+The control session is the first row of its own group, whatever its state. Its
+header carries the `⇄` mark before the display name of that session, and the
+row itself drops the mark, because the header already gives it.
+
+A control session that created nothing keeps its directory group. The grant
+alone makes no group, and the group appears with the first session the control
+session creates.
+
+The multiplexer remembers the creator of a session, so a stored session still
+joins its group after a restart. A session you started yourself has no creator.
+See [../manager.md](../manager.md).
+
+### The order of the groups
 
 A group that holds a live session comes first. Then come the groups that hold
 stored sessions, and last the groups that hold archived sessions only. Inside a
@@ -24,11 +49,11 @@ group, the order is the order below.
 
 ### Folding a group
 
-Press `z` to fold the group of the selected session, and press `z` again to
-unfold it. A folded group keeps its header, and its rows go. Press `Z` to
-unfold every group. When no group is folded, `Z` folds every group but the one
-you are in. A click on a header folds or unfolds that group. See
-[keys.md](./keys.md).
+Every group folds, of either kind. Press `z` to fold the group of the selected
+session, and press `z` again to unfold it. A folded group keeps its header, and
+its rows go. Press `Z` to unfold every group. When no group is folded, `Z`
+folds every group but the one you are in. A click on a header folds or unfolds
+that group. See [keys.md](./keys.md).
 
 A folded header carries two marks that an open header does not need. The mark
 `▸` replaces `▾`, and the glyph of the most urgent row it hides comes before

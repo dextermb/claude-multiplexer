@@ -23,6 +23,7 @@ type Meta struct {
 	InputTokens     int       `json:"input_tokens"`
 	OutputTokens    int       `json:"output_tokens"`
 	Control         bool      `json:"control,omitempty"`
+	Parent          string    `json:"parent,omitempty"`
 	Archived        bool      `json:"archived"`
 	ArchivedAt      time.Time `json:"archived_at,omitempty"`
 }

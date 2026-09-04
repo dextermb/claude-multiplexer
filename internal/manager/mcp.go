@@ -215,6 +215,20 @@ func (m *Manager) List() []mcp.Session {
 }
 
 // Grants reports which live sessions may drive their neighbours.
+// Parents reports the control session that created each live session, for the
+// sessions that a control session created. See docs/manager.md.
+func (m *Manager) Parents() map[string]string {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	out := make(map[string]string, len(m.entries))
+	for name, item := range m.entries {
+		if item.meta.Parent != "" {
+			out[name] = item.meta.Parent
+		}
+	}
+	return out
+}
+
 func (m *Manager) Grants() map[string]bool {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -347,7 +361,7 @@ func (b *bridge) Create(dir, name, by string) (string, error) {
 	if err != nil || !info.IsDir() {
 		return "", fmt.Errorf("%w: %s", ErrNotDirectory, dir)
 	}
-	created, err := b.m.Spawn(context.Background(), Spec{Dir: abs, Name: name})
+	created, err := b.m.Spawn(context.Background(), Spec{Dir: abs, Name: name, Parent: by})
 	if err != nil {
 		return "", err
 	}

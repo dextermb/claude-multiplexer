@@ -31,7 +31,7 @@ never reaches the list you see tomorrow.
 
 `Meta` holds the name, the title, the directory, the model, the permission mode,
 the Claude session identifier, the lifetime turn count and cost, the tokens, the
-control grant, and the archive flag. The counts are lifetime totals: a resumed
+control grant, the creator, and the archive flag. The counts are lifetime totals: a resumed
 session adds to them, and does not restart them.
 
 | Method | What it does |
@@ -123,6 +123,11 @@ session ends. The full tool set is in [mcp.md](./mcp.md).
 
 `Spec.Control` decides whether a session may drive its neighbours. It is stored
 in `Meta`, so a resume keeps it, and `Grants()` reports it for the live rows.
+
+`Spec.Parent` names the control session that created a session. `create_session`
+sets it to the caller, and nothing else sets it. It is stored in `Meta` in the
+same way, a resume keeps it, and `Parents()` reports it for the live rows. The
+sidebar groups a session under its creator. See [tui/sessions.md](./tui/sessions.md).
 
 `SendFrom(target, from, text)` is `Send` with provenance. It marks the pane of
 the target with `← prompt from <from>` before it queues the prompt, so the human

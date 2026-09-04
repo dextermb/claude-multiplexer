@@ -23,8 +23,8 @@ output.
 | `r` | Resume the selected session |
 | `a` | Archive the selected session, or bring it back |
 | `A` | Show or hide archived sessions |
-| `z` | Fold or unfold the directory of the selected session |
-| `Z` | Unfold every directory, or fold all but the one you are in |
+| `z` | Fold or unfold the group of the selected session |
+| `Z` | Unfold every group, or fold all but the one you are in |
 | `R` | Rename the selected session |
 | `x` or `ctrl+x` | Stop the selected session, after a confirmation |
 | `pgup`, `pgdown` | Scroll the output by a page |
@@ -47,8 +47,9 @@ forms work everywhere, so they still work while you type a prompt.
 
 ### Folding a directory
 
-The list groups the sessions by directory, under a header. `z` folds the group
-of the selected session, and `z` again unfolds it. `Z` unfolds every group, or,
+The list groups the sessions under a header, by directory or by the control
+session that created them. `z` folds the group of the selected session, and `z`
+again unfolds it. `Z` unfolds every group, or,
 when no group is folded, folds every group but the one you are in. A fold moves
 the selection to a row you can see, and it is forgotten when the program stops.
 See [sessions.md](./sessions.md).

@@ -1389,9 +1389,11 @@ func textinputBlink() tea.Cmd {
 func (m *Model) refresh() {
 	rows := make([]row, 0, len(m.stored)+4)
 	grants := m.mgr.Grants()
+	parents := m.mgr.Parents()
 	for _, snap := range m.mgr.Snapshots() {
 		item := rowFromSnapshot(snap)
 		item.control = grants[snap.Name]
+		item.parent = parents[snap.Name]
 		rows = append(rows, item)
 	}
 	for _, meta := range m.stored {
@@ -1400,8 +1402,14 @@ func (m *Model) refresh() {
 		}
 		rows = append(rows, rowFromMeta(meta))
 	}
+	children := make(map[string]bool, len(rows))
+	for _, item := range rows {
+		if item.parent != "" {
+			children[item.parent] = true
+		}
+	}
 	for i := range rows {
-		rows[i].group = m.groupKey(rows[i].dir)
+		rows[i].group = m.rowGroup(rows[i], children)
 	}
 	m.rows, m.groups = groupRows(rows, m.folded)
 	m.buildLines()
@@ -1413,6 +1421,18 @@ func (m *Model) refresh() {
 		m.sel = ""
 	}
 	m.clampOffset()
+}
+
+// rowGroup keys a row on the control session that created it, or that it
+// created rows for, and on its repository when neither holds.
+func (m *Model) rowGroup(item row, children map[string]bool) string {
+	if item.parent != "" {
+		return byPrefix + item.parent
+	}
+	if children[item.name] {
+		return byPrefix + item.name
+	}
+	return dirPrefix + m.groupKey(item.dir)
 }
 
 // groupKey caches the walk to the repository, because refresh runs on every
@@ -1869,8 +1889,8 @@ func (m Model) sidebarView() string {
 func (m Model) sessionRow(item row) string {
 	width := sidebarInner
 	badge := ""
-	if item.control {
-		badge = " ⇄"
+	if item.control && !headsGroup(item) {
+		badge = " " + controlMark
 	}
 	if item.jobs > 0 {
 		badge += fmt.Sprintf(" ⚙%d", item.jobs)
@@ -1905,13 +1925,17 @@ func (m Model) groupHeader(item group) string {
 		mark = foldShutMark
 		glyph = lead.style().Render(rowGlyph(lead, m.spinFrame)) + " "
 	}
+	label := item.label
+	if item.creator {
+		label = controlMark + " " + label
+	}
 	count := strconv.Itoa(item.count)
 	width := sidebarInner - 3 - lipgloss.Width(glyph) - len(count)
 	if width < 1 {
 		width = 1
 	}
 	return groupMarkStyle.Render(mark) + " " +
-		groupLabelStyle.Render(pad(item.label, width)) + " " +
+		groupLabelStyle.Render(pad(label, width)) + " " +
 		glyph + groupCountStyle.Render(count)
 }
 

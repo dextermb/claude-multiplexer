@@ -48,6 +48,7 @@ type Spec struct {
 	AllowedTools   []string
 	ResumeID       string
 	Control        bool
+	Parent         string
 }
 
 type Event struct {
@@ -220,6 +221,7 @@ func (m *Manager) Spawn(ctx context.Context, spec Spec) (string, error) {
 		meta: Meta{
 			Name:           name,
 			Dir:            dir,
+			Parent:         spec.Parent,
 			Model:          spec.Model,
 			PermissionMode: spec.PermissionMode,
 			Effort:         spec.Effort,
@@ -477,6 +479,7 @@ func (m *Manager) Resume(ctx context.Context, meta Meta) (string, error) {
 		PermissionMode: meta.PermissionMode,
 		Effort:         meta.Effort,
 		Control:        meta.Control,
+		Parent:         meta.Parent,
 		ResumeID:       meta.ClaudeSessionID,
 	})
 }
@@ -556,6 +559,7 @@ func (m *Manager) ResumeWithEffort(ctx context.Context, name, effort string) (st
 		PermissionMode:  snap.PermissionMode,
 		Effort:          effort,
 		Control:         item.control,
+		Parent:          item.meta.Parent,
 		ClaudeSessionID: snap.ClaudeSessionID,
 	})
 }

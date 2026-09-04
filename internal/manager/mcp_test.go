@@ -532,3 +532,45 @@ func contains(items []string, want string) bool {
 	}
 	return false
 }
+
+func TestACreatedSessionRecordsItsCreator(t *testing.T) {
+	t.Setenv("FAKECLAUDE_MODE", "mcp")
+	m := withMCP(t)
+
+	if _, err := m.Spawn(context.Background(), Spec{Dir: t.TempDir(), Name: "boss", Control: true}); err != nil {
+		t.Fatalf("Spawn boss: %v", err)
+	}
+	runOneTurn(t, m, "boss", `create_session {"path":"`+t.TempDir()+`","name":"api"}`)
+
+	waitFor(t, 10*time.Second, func() bool { return liveNamed(m, "api") })
+	if got := m.Parents()["api"]; got != "boss" {
+		t.Fatalf("Parents()[api] = %q, want boss", got)
+	}
+	if got := m.Parents()["boss"]; got != "" {
+		t.Fatalf("Parents()[boss] = %q, want no creator", got)
+	}
+}
+
+func TestTheCreatorSurvivesAResume(t *testing.T) {
+	m := withMCP(t)
+	ctx := context.Background()
+
+	name, err := m.Spawn(ctx, Spec{Dir: t.TempDir(), Name: "api", Parent: "boss"})
+	if err != nil {
+		t.Fatalf("Spawn: %v", err)
+	}
+	runOneTurn(t, m, name, "hello")
+	meta := waitForMeta(t, m, name)
+	if meta.Parent != "boss" {
+		t.Fatalf("meta.Parent = %q, want boss", meta.Parent)
+	}
+	retire(t, m, name)
+
+	again, err := m.Resume(ctx, meta)
+	if err != nil {
+		t.Fatalf("Resume: %v", err)
+	}
+	if got := m.Parents()[again]; got != "boss" {
+		t.Fatalf("the resumed session lost its creator: %q", got)
+	}
+}
