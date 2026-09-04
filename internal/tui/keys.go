@@ -76,6 +76,8 @@ var sequenceActions = map[string]action{
 	"s a": Model.archiveSelected,
 	"s x": Model.askToStop,
 	"s j": Model.openJobs,
+	"s f": Model.openInFiles,
+	"s d": Model.openInEditor,
 	"s m": func(m Model) (tea.Model, tea.Cmd) { return m.openChoice(settingModel) },
 	"s e": func(m Model) (tea.Model, tea.Cmd) { return m.openChoice(settingEffort) },
 	"s p": func(m Model) (tea.Model, tea.Cmd) { return m.openChoice(settingMode) },
