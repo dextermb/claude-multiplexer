@@ -13,6 +13,7 @@ import (
 	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/mcp"
 	"github.com/dextermb/claude-multiplexer/internal/session"
+	"github.com/dextermb/claude-multiplexer/internal/template"
 )
 
 func withMCP(t *testing.T) *Manager {
@@ -949,5 +950,61 @@ func TestBlockCapThroughTheToolCarriesANotice(t *testing.T) {
 	}
 	if ev := awaitNotice(t, sub); !strings.Contains(ev.Notice, "docs cleared the block cap") {
 		t.Fatalf("notice = %q", ev.Notice)
+	}
+}
+
+func TestConfigPathNamesTheFileThatIsThereAndTheOneToWrite(t *testing.T) {
+	m := withMCP(t)
+	dir := t.TempDir()
+	first := filepath.Join(dir, "claude-multiplexer", "config.json")
+	second := filepath.Join(dir, "multiplexier", "config.json")
+	m.opts.ConfigPaths = []string{first, second}
+
+	got := m.ConfigPath()
+	if len(got.Paths) != 2 || got.Paths[0] != first || got.Paths[1] != second {
+		t.Fatalf("paths = %v, want the two in order", got.Paths)
+	}
+	if got.Active != "" {
+		t.Fatalf("active = %q, want none while no file is there", got.Active)
+	}
+	if got.Target != first {
+		t.Fatalf("target = %q, want %q", got.Target, first)
+	}
+
+	if err := config.Write(second, config.Config{Editor: "nvim"}); err != nil {
+		t.Fatal(err)
+	}
+	got = m.ConfigPath()
+	if got.Active != second || got.Target != second {
+		t.Fatalf("active = %q and target = %q, want the file that is there %q", got.Active, got.Target, second)
+	}
+}
+
+func TestTemplatePathNamesEveryDirectoryTheSessionReads(t *testing.T) {
+	m := withMCP(t)
+	dir := t.TempDir()
+	name, err := m.Spawn(context.Background(), Spec{Dir: dir, Name: "docs"})
+	if err != nil {
+		t.Fatalf("Spawn: %v", err)
+	}
+
+	got, err := m.TemplatePath(name)
+	if err != nil {
+		t.Fatalf("TemplatePath: %v", err)
+	}
+	if got.Session != name || got.Dir != dir || got.Root != m.Root() {
+		t.Fatalf("path = %+v, want the session, its directory, and the root", got)
+	}
+	want := template.Dirs(m.Root(), dir)
+	if len(got.Dirs) != len(want) {
+		t.Fatalf("dirs = %v, want %v", got.Dirs, want)
+	}
+	for i := range want {
+		if got.Dirs[i] != want[i] {
+			t.Fatalf("dirs = %v, want %v", got.Dirs, want)
+		}
+	}
+	if _, err := m.TemplatePath("nope"); err == nil {
+		t.Fatal("a session that is not there must be an error")
 	}
 }
