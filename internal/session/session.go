@@ -121,6 +121,7 @@ type Event struct {
 	Prev     State
 	Line     string
 	Err      error
+	Snapshot Snapshot
 }
 
 type Snapshot struct {
@@ -714,6 +715,7 @@ func (s *Session) emit(ev Event) {
 	if ev.At.IsZero() {
 		ev.At = time.Now()
 	}
+	ev.Snapshot = s.Snapshot()
 	select {
 	case s.events <- ev:
 	case <-s.ctx.Done():

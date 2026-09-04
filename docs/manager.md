@@ -97,6 +97,22 @@ appending. The terminal interface does exactly this.
 A drop costs screen updates only. The transcript on disk stays complete, and the
 ring buffer in memory stays complete up to its 5000 lines.
 
+## The snapshot stays with the lines
+
+`Snapshot(name)` reports the state of a session. The turn count, the cost, the
+duration, and the token totals come from the stream. The pump adds each of these
+only after it appends that event's lines. So the count never leads the buffer:
+when `Snapshot` shows five turns, `Lines` already holds those five turns.
+
+Each session event carries the snapshot as of that event, because the session
+reads the stream on one goroutine and the pump appends the lines on another. The
+session pins the snapshot when it sends the event, and the pump caches that
+snapshot when it appends the lines. So the two clocks agree.
+
+The title, the queue length, and the state come live from the session, because a
+direct action changes them with no stream event behind it. So a new title or a
+queued prompt shows at once, and does not wait for the next turn.
+
 ## The tools a session can call
 
 The manager runs one MCP server for every session, and `StartMCP` starts it.

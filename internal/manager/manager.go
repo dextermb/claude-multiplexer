@@ -81,12 +81,39 @@ type entry struct {
 
 	todoMu sync.Mutex
 	todos  []protocol.Todo
+
+	snapMu sync.Mutex
+	snap   session.Snapshot
 }
 
 func (e *entry) partialText() string {
 	e.partialMu.Lock()
 	defer e.partialMu.Unlock()
 	return e.partial.String()
+}
+
+func (e *entry) setSnapshot(snap session.Snapshot) {
+	e.snapMu.Lock()
+	defer e.snapMu.Unlock()
+	e.snap = snap
+}
+
+// view returns the live session snapshot, but with the totals the stream feeds
+// taken from the last snapshot the pump saw. So the turn count never leads the
+// buffered lines, and the title, the queue, and the state stay live. See
+// docs/manager.md.
+func (e *entry) view() session.Snapshot {
+	live := e.sess.Snapshot()
+	e.snapMu.Lock()
+	cached := e.snap
+	e.snapMu.Unlock()
+	live.Turns = cached.Turns
+	live.Cost = cached.Cost
+	live.InputTokens = cached.InputTokens
+	live.OutputTokens = cached.OutputTokens
+	live.ContextTokens = cached.ContextTokens
+	live.LastDuration = cached.LastDuration
+	return live
 }
 
 func (e *entry) todoList() []protocol.Todo {
@@ -200,6 +227,7 @@ func (m *Manager) Spawn(ctx context.Context, spec Spec) (string, error) {
 			CreatedAt:      time.Now(),
 		},
 	}
+	item.snap = sess.Snapshot()
 
 	m.mu.Lock()
 	m.entries[name] = item
@@ -243,7 +271,8 @@ func (m *Manager) pump(item *entry) {
 		item.lines.append(lines)
 		partial := trackPartial(item, ev)
 		todos := trackTodos(item, ev)
-		snap := item.sess.Snapshot()
+		snap := ev.Snapshot
+		item.setSnapshot(snap)
 		m.rememberSession(item, snap)
 		qid, questions, _ := ev.Protocol.AskUserQuestion()
 		m.bus.Publish(Event{
@@ -259,6 +288,7 @@ func (m *Manager) pump(item *entry) {
 	}
 	m.releaseTools(item.token)
 	final := item.sess.Snapshot()
+	item.setSnapshot(final)
 	if final.Turns == 0 {
 		_ = os.RemoveAll(sessionDir(m.opts.Root, item.meta.Name))
 	}
@@ -594,7 +624,7 @@ func (m *Manager) Snapshots() []session.Snapshot {
 
 	out := make([]session.Snapshot, 0, len(items))
 	for _, item := range items {
-		out = append(out, item.sess.Snapshot())
+		out = append(out, item.view())
 	}
 	return out
 }
@@ -604,7 +634,7 @@ func (m *Manager) Snapshot(name string) (session.Snapshot, error) {
 	if err != nil {
 		return session.Snapshot{}, err
 	}
-	return item.sess.Snapshot(), nil
+	return item.view(), nil
 }
 
 func (m *Manager) Lines(name string) []render.Line {

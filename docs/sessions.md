@@ -106,6 +106,10 @@ The consumer receives one `session.Event` for each thing that happens:
 consumer that stops reading therefore does not wedge the child for ever, because
 `Stop` cancels the context when the grace period ends.
 
+Every event carries the snapshot of the session as of that event, taken when
+`emit` sends it. The manager caches this snapshot beside the lines, so the turn
+count never leads the buffer. See [manager.md](./manager.md).
+
 ## Stop
 
 `Stop` closes stdin and waits. A clean child sees the end of its input and
