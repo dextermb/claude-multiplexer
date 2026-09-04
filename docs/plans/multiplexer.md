@@ -22,7 +22,7 @@ This file holds only the work that is not built. Delete it when nothing is left.
 ## Optional, after a review
 
 - **A permission prompt for each request.** `--permission-prompt-tool
-  mcp__mux__approve` points at an MCP tool that the multiplexer serves. Each
+  mcp__cmux__approve` points at an MCP tool that the multiplexer serves. Each
   request then appears in the interface, and the human answers with a key
   press. Two parts of this are built already: the MCP server, see
   [mcp.md](../mcp.md), and the `waiting` state with its `?` glyph, which the

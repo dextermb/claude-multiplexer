@@ -249,7 +249,7 @@ three `system` events for it, and it writes the output to a file. See
 ## The multiplexer serves the child an MCP server
 
 The command line above carries two more flags for every session the interface
-supervises: `--mcp-config <file>` and `--allowedTools mcp__mux__…`. They point
+supervises: `--mcp-config <file>` and `--allowedTools mcp__cmux__…`. They point
 the child at an HTTP server inside the multiplexer, so the Claude in a session
 can name itself and read its neighbours.
 
@@ -261,7 +261,7 @@ The `init` event reports each MCP server it connected to, and the decoder reads
 that list as `protocol.Init.MCPServers`:
 
 ```json
-{"type":"system","subtype":"init","mcp_servers":[{"name":"mux","status":"connected"}]}
+{"type":"system","subtype":"init","mcp_servers":[{"name":"cmux","status":"connected"}]}
 ```
 
 ## Line limits
