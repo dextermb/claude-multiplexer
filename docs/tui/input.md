@@ -141,8 +141,8 @@ takes a `/preset` name. See [templates.md](../templates.md). It defaults to the
 current directory. An empty name becomes the last element of the directory.
 
 The control field takes `yes` to let the session prompt, stop, and archive the
-other sessions. Anything else means no. See [mcp.md](../mcp.md) before you set
-it, because such a session can stop the work you are reading.
+other sessions. Anything else means no. See [mcp/grant.md](../mcp/grant.md)
+before you set it, because such a session can stop the work you are reading.
 
 The effort field is one of `low`, `medium`, `high`, `xhigh`, or `max`, or empty
 for the Claude Code default. The form checks the level before it starts. You can

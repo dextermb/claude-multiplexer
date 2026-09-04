@@ -254,8 +254,8 @@ the child at an HTTP server inside the multiplexer, so the Claude in a session
 can name itself and read its neighbours.
 
 That channel runs beside this one, and it is not stream-json. It is described in
-[mcp.md](./mcp.md), together with what Claude Code 2.1.176 was proven to do with
-it.
+[mcp.md](./mcp.md), and [mcp/transport.md](./mcp/transport.md) holds what Claude
+Code 2.1.176 was proven to do with it.
 
 The `init` event reports each MCP server it connected to, and the decoder reads
 that list as `protocol.Init.MCPServers`:
