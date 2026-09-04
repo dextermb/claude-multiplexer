@@ -62,7 +62,7 @@ A running session cannot be archived. Stop it first.
 ## Background jobs
 
 Claude Code can run a shell command in the background. The multiplexer shows
-each background job in three places. See [../sessions.md](../sessions.md) for the
+each background job in four places. See [../sessions.md](../sessions.md) for the
 job model, and [../protocol.md](../protocol.md) for the wire events.
 
 - The output pane marks each job in order. A start line reads `⚙ started ·
@@ -70,6 +70,7 @@ job model, and [../protocol.md](../protocol.md) for the wire events.
 - The sidebar row shows `⚙n` for `n` running jobs, next to the queue badge. The
   badge clears when the last job stops.
 - The session bar shows a `⚙n` segment while jobs run, next to the queue segment.
+- The side panel lists every job above the task list. See [tasks.md](tasks.md).
 
 Press `J` to open the jobs modal for the selected session. The modal lists every
 job, the running ones first, then the finished ones, in start order. Each row
