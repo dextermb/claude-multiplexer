@@ -23,6 +23,8 @@ var bindings = []binding{
 	{"Sessions", "A", "Show or hide archived sessions", ""},
 	{"Sessions", "R", "Rename the selected session", ""},
 	{"Sessions", "x  ctrl+x", "Stop the selected session, after a confirmation", "x stop"},
+	{"Sessions", "z", "Fold or unfold the directory of the selected session", ""},
+	{"Sessions", "Z", "Unfold every directory, or fold all but the one you are in", ""},
 
 	{"Moving", "j  k  up  down", "Move through the list, or scroll the output", ""},
 	{"Moving", "tab", "Move to the next pane", ""},
