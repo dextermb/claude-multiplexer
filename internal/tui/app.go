@@ -35,6 +35,7 @@ type Options struct {
 	Manager               *manager.Manager
 	Config                config.Config
 	ConfigPaths           []string
+	ClaudePaths           []string
 	DefaultDir            string
 	DefaultModel          string
 	DefaultPermissionMode string
