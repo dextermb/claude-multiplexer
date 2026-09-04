@@ -27,6 +27,7 @@ type fakeSessions struct {
 	terminal    *bool
 	editorPath  string
 	cleared     []string
+	blockCap    *int
 	workingDir  string
 	failWorkDir error
 	failStop    error
@@ -51,6 +52,17 @@ func (f *fakeSessions) SetEditor(editor string, terminal *bool, by string) (stri
 	}
 	f.editorPath = "/tmp/config.json"
 	return f.editorPath, nil
+}
+
+func (f *fakeSessions) SetBlockCap(rows int, by string) (string, error) {
+	f.blockCap = &rows
+	return "/tmp/config.json", nil
+}
+
+func (f *fakeSessions) UnsetBlockCap(by string) (string, bool, error) {
+	changed := f.blockCap != nil
+	f.blockCap = nil
+	return "/tmp/config.json", changed, nil
 }
 
 func (f *fakeSessions) UnsetEditor(field, by string) (string, bool, error) {
@@ -728,5 +740,74 @@ func TestEverySessionGetsTheWorkingDirTools(t *testing.T) {
 		if !found {
 			t.Errorf("a session without the grant must still see %s", name)
 		}
+	}
+}
+
+func TestSetBlockCapToolWritesTheCap(t *testing.T) {
+	sessions := newFakeSessions()
+	server := startServer(t, sessions)
+	token, err := server.Register("docs", false)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+	client := connect(t, server, token)
+
+	result := call(t, client, mcp.ToolSetBlockCap, map[string]any{"rows": 40})
+	if result.IsError {
+		t.Fatalf("set_block_cap failed: %s", resultText(result))
+	}
+	if sessions.blockCap == nil || *sessions.blockCap != 40 {
+		t.Fatalf("blockCap = %v, want 40", sessions.blockCap)
+	}
+	if !strings.Contains(resultText(result), "/tmp/config.json") {
+		t.Fatalf("the answer does not name the file:\n%s", resultText(result))
+	}
+
+	if result := call(t, client, mcp.ToolSetBlockCap, map[string]any{"rows": 0}); result.IsError {
+		t.Fatalf("a cap of zero is allowed: %s", resultText(result))
+	}
+	if sessions.blockCap == nil || *sessions.blockCap != 0 {
+		t.Fatalf("blockCap = %v, want 0", sessions.blockCap)
+	}
+}
+
+func TestSetBlockCapToolRefusesALessThanZeroCap(t *testing.T) {
+	sessions := newFakeSessions()
+	server := startServer(t, sessions)
+	token, err := server.Register("docs", false)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+	client := connect(t, server, token)
+
+	if result := call(t, client, mcp.ToolSetBlockCap, map[string]any{"rows": -2}); !result.IsError {
+		t.Fatal("a cap below zero must be an error")
+	}
+	if sessions.blockCap != nil {
+		t.Fatalf("blockCap = %v, want none written", sessions.blockCap)
+	}
+}
+
+func TestUnsetBlockCapToolClearsTheCap(t *testing.T) {
+	sessions := newFakeSessions()
+	server := startServer(t, sessions)
+	token, err := server.Register("docs", false)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+	client := connect(t, server, token)
+
+	if result := call(t, client, mcp.ToolSetBlockCap, map[string]any{"rows": 40}); result.IsError {
+		t.Fatalf("set_block_cap failed: %s", resultText(result))
+	}
+	result := call(t, client, mcp.ToolUnsetBlockCap, map[string]any{})
+	if result.IsError {
+		t.Fatalf("unset_block_cap failed: %s", resultText(result))
+	}
+	if sessions.blockCap != nil {
+		t.Fatalf("blockCap = %v, want none", sessions.blockCap)
+	}
+	if !strings.Contains(resultText(result), "20") {
+		t.Fatalf("the answer must name the default:\n%s", resultText(result))
 	}
 }

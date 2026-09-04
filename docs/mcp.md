@@ -21,6 +21,8 @@ reaches the model as `mcp__mux__…`.
 | `list_jobs` | `session` | The background jobs of a session: id, description, task type, and status. An empty session means the caller. | open |
 | `set_editor` | `editor`, `terminal` | Sets the editor the human opens a directory with, in the settings file. | open |
 | `unset_editor` | `field` | Takes the editor, the terminal flag, or both out of the settings file. | open |
+| `set_block_cap` | `rows` | Sets the rows one block draws in the session pane before the pane caps it. `0` caps nothing. | open |
+| `unset_block_cap` | — | Takes the block cap out of the settings file, so the pane returns to 20 rows. | open |
 | `set_working_dir` | `path` | Says which directory the calling session works in now. | open |
 | `unset_working_dir` | — | Takes the working directory off the calling session. | open |
 | `send_message` | `session`, `text` | Queues a prompt for another session, and returns the queue length. | control |
@@ -75,6 +77,23 @@ the file, so a program started with `--editor` opens what the flag names, and
 the tool cannot change that. The tool writes the settings file of the
 multiplexer, never the settings of Claude Code. See [config.md](./config.md).
 
+### The block cap
+
+The session pane caps a long block and offers to open it in place. A block is
+one piece of content: a prompt, one message, one tool result, or the output of a
+`!` command. See [tui/output.md](./tui/output.md).
+
+`set_block_cap` writes `rows` to the settings file, the same file `set_editor`
+writes. `0` caps nothing, and a number below zero is an error. So a session that
+is about to print a large report can raise the cap, and lower it again after.
+
+`unset_block_cap` takes the cap out again, and the pane returns to its default
+of 20 rows. It answers with `changed: false` when the file held none.
+
+The interface reads the settings file again at each notice, so a new cap reaches
+the pane at once and the pane draws itself again. `--block-cap` still sits above
+the file. See [config.md](./config.md).
+
 ### The working directory
 
 A session starts in one directory, and the stream never says that the agent
@@ -99,7 +118,8 @@ keeps it. See [manager.md](./manager.md).
 ## The grant
 
 A session gets `rename_session`, `list_sessions`, `get_messages`, `list_jobs`,
-`set_editor`, `unset_editor`, `set_working_dir`, and `unset_working_dir`
+`set_editor`, `unset_editor`, `set_block_cap`, `unset_block_cap`,
+`set_working_dir`, and `unset_working_dir`
 always. It gets the five control tools **only** when it is started with
 control.
 

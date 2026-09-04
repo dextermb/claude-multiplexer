@@ -14,12 +14,28 @@ import (
 
 const FileName = "config.json"
 
+// DefaultBlockCap is the rows a block draws in the session pane before the pane
+// caps it. See docs/tui/output.md.
+const DefaultBlockCap = 20
+
 // Names holds both spellings of the program, in the order they are read.
 var Names = []string{"multiplexer", "multiplexier"}
 
 type Config struct {
 	Editor         string `json:"editor,omitempty"`
 	EditorTerminal *bool  `json:"editorTerminal,omitempty"`
+	// BlockCap is the rows a block draws before the pane caps it. Zero caps
+	// nothing, and nil takes DefaultBlockCap.
+	BlockCap *int `json:"blockCap,omitempty"`
+}
+
+// BlockCapOrDefault reads the cap out of the settings, and gives the default
+// when the settings name none.
+func BlockCapOrDefault(cfg Config) int {
+	if cfg.BlockCap == nil {
+		return DefaultBlockCap
+	}
+	return *cfg.BlockCap
 }
 
 // Paths lists the settings files to look for, in order.
@@ -129,6 +145,9 @@ func Resolve(flags, file, claude Config) Config {
 	}
 	if flags.EditorTerminal != nil {
 		out.EditorTerminal = flags.EditorTerminal
+	}
+	if flags.BlockCap != nil {
+		out.BlockCap = flags.BlockCap
 	}
 	return out
 }

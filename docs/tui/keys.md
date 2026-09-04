@@ -177,7 +177,8 @@ to return to the bottom and start following again.
 ### Opening a large block
 
 A block of more than 20 rows draws its first 20 rows and a marker row, such as
-`⋯ 4193 more lines`. A block is one piece of content: your prompt, one message,
+`⋯ 4193 more lines`. `blockCap` in the settings file changes the 20, and `0`
+caps nothing. See [../config.md](../config.md). A block is one piece of content: your prompt, one message,
 one tool result, or the output of a `!` command. See [output.md](output.md).
 
 The marker row of one block carries `▸` and a highlight. That is the cursor, and

@@ -7,10 +7,6 @@ import (
 	"github.com/dextermb/claude-multiplexer/internal/render"
 )
 
-// blockCap is the number of rows a block draws before the pane caps it; see
-// docs/tui/output.md.
-const blockCap = 20
-
 // block names the rows of one piece of content: a prompt, one message, one tool
 // result, or the output of a ! command.
 type block struct {
@@ -57,13 +53,13 @@ func (m Model) markerRow(hidden int, under bool) string {
 // the rows, the rows it hides, and whether it drew a marker row.
 func (m Model) blockRows(index int, blk block) ([]string, int, bool) {
 	rows := strings.Split(m.wrap(m.shownLines[blk.from:blk.to]), "\n")
-	if len(rows) <= blockCap {
+	if m.blockCap <= 0 || len(rows) <= m.blockCap {
 		return rows, 0, false
 	}
 	under := m.blockCursor == index
 	if m.expanded[index] {
 		return append(rows, m.markerRow(0, under)), 0, true
 	}
-	hidden := len(rows) - blockCap
-	return append(rows[:blockCap:blockCap], m.markerRow(hidden, under)), hidden, true
+	hidden := len(rows) - m.blockCap
+	return append(rows[:m.blockCap:m.blockCap], m.markerRow(hidden, under)), hidden, true
 }

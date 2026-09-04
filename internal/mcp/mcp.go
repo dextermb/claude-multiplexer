@@ -20,6 +20,8 @@ const (
 	ToolListJobs        = "list_jobs"
 	ToolSetEditor       = "set_editor"
 	ToolUnsetEditor     = "unset_editor"
+	ToolSetBlockCap     = "set_block_cap"
+	ToolUnsetBlockCap   = "unset_block_cap"
 	ToolSetWorkingDir   = "set_working_dir"
 	ToolUnsetWorkingDir = "unset_working_dir"
 	ToolSend            = "send_message"
@@ -33,7 +35,7 @@ const (
 // the control grant.
 var (
 	OpenTools = []string{ToolRename, ToolList, ToolMessages, ToolListJobs, ToolSetEditor, ToolUnsetEditor,
-		ToolSetWorkingDir, ToolUnsetWorkingDir}
+		ToolSetBlockCap, ToolUnsetBlockCap, ToolSetWorkingDir, ToolUnsetWorkingDir}
 	ControlTools = []string{ToolSend, ToolStop, ToolArchive, ToolCreate, ToolStopJob}
 )
 
@@ -45,6 +47,7 @@ var (
 	ErrNoJob    = errors.New("mcp: this tool needs a job id")
 	ErrNoEditor = errors.New("mcp: this tool needs an editor, a terminal flag, or both")
 	ErrNoDir    = errors.New("mcp: this tool needs a directory path")
+	ErrBadCap   = errors.New("mcp: the block cap must be zero or more rows")
 )
 
 // AllowedTools names the tools a session may call, in the form Claude Code
@@ -112,6 +115,8 @@ type Sessions interface {
 	Jobs(name string) ([]Job, error)
 	SetEditor(editor string, terminal *bool, by string) (string, error)
 	UnsetEditor(field, by string) (string, bool, error)
+	SetBlockCap(rows int, by string) (string, error)
+	UnsetBlockCap(by string) (string, bool, error)
 	SetWorkingDir(path, by string) (string, error)
 	UnsetWorkingDir(by string) (bool, error)
 	StopJob(target, jobID, by string) (int, error)
