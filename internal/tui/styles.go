@@ -44,6 +44,22 @@ const (
 	controlMark  = "⇄"
 )
 
+// modalInner caps a dialog at width-2, because a wider box pushes the sidebar
+// beside it out of line.
+func modalInner(width int) int {
+	inner := width - 8
+	if inner < 40 {
+		inner = 40
+	}
+	if inner > width-2 {
+		inner = width - 2
+	}
+	if inner < 1 {
+		inner = 1
+	}
+	return inner
+}
+
 var (
 	titleStyle = lipgloss.NewStyle().
 			Bold(true).

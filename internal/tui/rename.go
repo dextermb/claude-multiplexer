@@ -40,10 +40,7 @@ func (d *renameDialog) Update(msg tea.Msg) (formResult, tea.Cmd) {
 func (d *renameDialog) value() string { return strings.TrimSpace(d.input.Value()) }
 
 func (d *renameDialog) View(width int) string {
-	inner := width - 8
-	if inner < 40 {
-		inner = 40
-	}
+	inner := modalInner(width)
 
 	var b strings.Builder
 	b.WriteString(titleStyle.Render("Rename"))
