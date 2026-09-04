@@ -104,7 +104,7 @@ State goes under `~/.multiplexier/sessions/<name>/`:
 | File | What it holds |
 |---|---|
 | `transcript.jsonl` | Every event of the conversation, as JSON Lines |
-| `meta.json` | The directory, the model, the effort, the title, the Claude session id, the totals, the creator, the control grant, and the archive flag |
+| `meta.json` | The directory, the working directory, the model, the effort, the title, the Claude session id, the totals, the creator, the control grant, and the archive flag |
 | `mcp.json` | Where the session reaches the multiplexer's own tools, and the token that names it |
 
 `multiplexier --root <path>` moves that directory. `just clean-state` removes it.

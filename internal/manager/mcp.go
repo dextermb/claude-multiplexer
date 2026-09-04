@@ -230,6 +230,19 @@ func (m *Manager) Parents() map[string]string {
 	return out
 }
 
+// WorkingDirs reports the working directory of each live session that set one.
+func (m *Manager) WorkingDirs() map[string]string {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	out := make(map[string]string, len(m.entries))
+	for name, item := range m.entries {
+		if dir := item.metaCopy().WorkingDir; dir != "" {
+			out[name] = dir
+		}
+	}
+	return out
+}
+
 func (m *Manager) Grants() map[string]bool {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -377,6 +390,26 @@ func (b *bridge) Messages(name string, limit int) ([]mcp.Message, error) {
 }
 
 func (b *bridge) Jobs(name string) ([]mcp.Job, error) { return b.m.Jobs(name) }
+
+func (b *bridge) SetWorkingDir(path, by string) (string, error) {
+	full, err := b.m.SetWorkingDir(by, path)
+	if err != nil {
+		return "", err
+	}
+	b.m.notify(by, by+" set its working directory to "+full, true)
+	return full, nil
+}
+
+func (b *bridge) UnsetWorkingDir(by string) (bool, error) {
+	changed, err := b.m.UnsetWorkingDir(by)
+	if err != nil {
+		return false, err
+	}
+	if changed {
+		b.m.notify(by, by+" cleared its working directory", true)
+	}
+	return changed, nil
+}
 
 func (b *bridge) SetEditor(editor string, terminal *bool, by string) (string, error) {
 	path, err := b.m.SetEditor(editor, terminal)

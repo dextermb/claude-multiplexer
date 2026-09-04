@@ -45,6 +45,9 @@ session adds to them, and does not restart them.
 | `Messages(name, limit)` | The recent conversation, read from the transcript. It answers for a stored session too. |
 | `List()` | Every session, live and stored, in the shape the tools return. |
 | `Grants()` | Which live sessions may drive their neighbours. |
+| `SetWorkingDir(name, path)` | Point a session at the directory it works in now. A relative path resolves against the directory it started in. |
+| `UnsetWorkingDir(name)` | Take that directory off again, and report whether it had one. |
+| `WorkingDirs()` | The working directory of each live session that set one. |
 
 A resumed session starts with its past output already in the line buffer,
 followed by a `— resumed —` marker. So the pane reads as one conversation, and
@@ -78,6 +81,13 @@ A title is separate from the name. A title is display text, set by `SetTitle`,
 and it does not need to be unique. The interface shows the title when it is set,
 and the name when it is not. The name stays fixed, so a rename moves no files and
 rekeys nothing.
+
+A working directory is separate from the directory a session starts in. The
+child never leaves the directory it started in, but the agent inside it may
+move into a worktree. It says so with a tool, and the record keeps the answer
+in `working_dir`, so the interface opens the right place and a resumed session
+keeps it. The directory a session started in never changes. See
+[mcp.md](./mcp.md).
 
 The state of each session lives under `<root>/sessions/<name>/`, which holds
 `transcript.jsonl` and `meta.json`. The root is `~/.multiplexier` by default.

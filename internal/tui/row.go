@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"os"
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
@@ -13,6 +14,7 @@ type row struct {
 	name     string
 	title    string
 	dir      string
+	workDir  string
 	group    string
 	parent   string
 	model    string
@@ -70,6 +72,7 @@ func rowFromMeta(meta manager.Meta) row {
 		model:    meta.Model,
 		mode:     meta.PermissionMode,
 		effort:   meta.Effort,
+		workDir:  meta.WorkingDir,
 		archived: meta.Archived,
 		control:  meta.Control,
 		parent:   meta.Parent,
@@ -121,4 +124,16 @@ func (r row) displayName() string {
 		return r.title
 	}
 	return r.name
+}
+
+// openDir is the directory the interface opens for a session: the working
+// directory a tool of that session set, and the directory it started in when
+// there is none, or when the one it set is gone. See docs/mcp.md.
+func (r row) openDir() string {
+	if r.workDir != "" {
+		if info, err := os.Stat(r.workDir); err == nil && info.IsDir() {
+			return r.workDir
+		}
+	}
+	return r.dir
 }
