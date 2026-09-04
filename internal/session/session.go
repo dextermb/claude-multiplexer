@@ -197,6 +197,9 @@ type Session struct {
 	err             error
 	jobs            map[string]*Job
 	jobOrder        []string
+	pendingBash     map[string]string
+	pendingPath     map[string]string
+	jobByToolUse    map[string]string
 
 	idleSig chan struct{}
 }
@@ -545,6 +548,7 @@ func (s *Session) apply(ev protocol.Event) {
 		s.mu.Unlock()
 		_ = s.Interrupt()
 	}
+	s.applyJobBlocks(ev)
 	switch {
 	case ev.Type == protocol.TypeSystem && ev.Task != nil:
 		s.applyTask(ev.Subtype, ev.Task)
@@ -587,6 +591,58 @@ func (s *Session) apply(ev protocol.Event) {
 	}
 }
 
+// applyJobBlocks reads the two message blocks that a background job needs: the
+// Bash call that starts it, and the tool_result that names its output file.
+// See docs/sessions.md.
+func (s *Session) applyJobBlocks(ev protocol.Event) {
+	if ev.Message == nil {
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, block := range ev.Message.Content {
+		switch block.Type {
+		case "tool_use":
+			command, ok := block.BackgroundBash()
+			if !ok || block.ID == "" {
+				continue
+			}
+			if s.pendingBash == nil {
+				s.pendingBash = make(map[string]string)
+			}
+			s.pendingBash[block.ID] = command
+		case "tool_result":
+			s.applyLaunchResult(block)
+		}
+	}
+}
+
+func (s *Session) applyLaunchResult(block protocol.Block) {
+	id := block.ToolUseID
+	if id == "" {
+		return
+	}
+	_, pending := s.pendingBash[id]
+	taskID, started := s.jobByToolUse[id]
+	if !pending && !started {
+		return
+	}
+	path := protocol.BackgroundOutputPath(block.Content.Text())
+	if path == "" {
+		return
+	}
+	if started {
+		if job := s.jobs[taskID]; job != nil && job.OutputPath == "" {
+			job.OutputPath = path
+		}
+		return
+	}
+	if s.pendingPath == nil {
+		s.pendingPath = make(map[string]string)
+	}
+	s.pendingPath[id] = path
+}
+
 func (s *Session) applyTask(subtype string, task *protocol.Task) {
 	if task.TaskID == "" {
 		return
@@ -605,10 +661,20 @@ func (s *Session) applyTask(subtype string, task *protocol.Task) {
 			ID:          task.TaskID,
 			Description: task.Description,
 			TaskType:    task.TaskType,
+			Command:     s.pendingBash[task.ToolUseID],
+			OutputPath:  s.pendingPath[task.ToolUseID],
 			Status:      JobRunning,
 			StartedAt:   time.Now(),
 		}
 		s.jobOrder = append(s.jobOrder, task.TaskID)
+		if task.ToolUseID != "" {
+			if s.jobByToolUse == nil {
+				s.jobByToolUse = make(map[string]string)
+			}
+			s.jobByToolUse[task.ToolUseID] = task.TaskID
+			delete(s.pendingBash, task.ToolUseID)
+			delete(s.pendingPath, task.ToolUseID)
+		}
 	case protocol.SubtypeTaskUpdated:
 		job := s.jobs[task.TaskID]
 		if job == nil || task.Patch == nil {
@@ -619,6 +685,12 @@ func (s *Session) applyTask(subtype string, task *protocol.Task) {
 		job := s.jobs[task.TaskID]
 		if job == nil {
 			return
+		}
+		if task.Summary != "" {
+			job.Summary = task.Summary
+		}
+		if task.OutputFile != "" {
+			job.OutputPath = task.OutputFile
 		}
 		s.setJobStatus(job, task.Status)
 	}
