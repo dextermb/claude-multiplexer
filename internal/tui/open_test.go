@@ -315,3 +315,68 @@ func TestTheSettingsFileBeatsTheClaudeSettingsAtTheKeyPress(t *testing.T) {
 		t.Fatalf("command = %q, want the settings file %q", got, "nvim "+dir)
 	}
 }
+
+func TestTheKeysOpenTheWorkingDirectory(t *testing.T) {
+	seen := recordLaunches(t)
+	m, dir := openModel(t, "code")
+	work := filepath.Join(dir, ".worktrees", "feature")
+	if err := os.MkdirAll(work, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := m.mgr.SetWorkingDir(m.sel, ".worktrees/feature"); err != nil {
+		t.Fatalf("SetWorkingDir: %v", err)
+	}
+	m.refresh()
+
+	m, cmd := chord(t, m, "s", "d")
+	m = run(t, m, cmd)
+	m, cmd = chord(t, m, "s", "f")
+	m = run(t, m, cmd)
+
+	if len(*seen) != 2 {
+		t.Fatalf("launched %d programs, want 2", len(*seen))
+	}
+	for _, got := range *seen {
+		if !strings.HasSuffix(got.line, " "+work) {
+			t.Errorf("command = %q, want it to end with the working directory %q", got.line, work)
+		}
+		if got.dir != work {
+			t.Errorf("cmd.Dir = %q, want %q", got.dir, work)
+		}
+	}
+}
+
+func TestTheKeysFallBackWhenTheWorkingDirectoryIsGone(t *testing.T) {
+	seen := recordLaunches(t)
+	m, dir := openModel(t, "code")
+	work := filepath.Join(dir, ".worktrees", "feature")
+	if err := os.MkdirAll(work, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := m.mgr.SetWorkingDir(m.sel, ".worktrees/feature"); err != nil {
+		t.Fatalf("SetWorkingDir: %v", err)
+	}
+	m.refresh()
+	if err := os.RemoveAll(work); err != nil {
+		t.Fatal(err)
+	}
+
+	m, cmd := chord(t, m, "s", "d")
+	m = run(t, m, cmd)
+
+	if got := (*seen)[0].line; got != "code "+dir {
+		t.Fatalf("command = %q, want the directory the session started in %q", got, "code "+dir)
+	}
+}
+
+func TestTheKeysUseTheStartDirectoryWithNoWorkingDirectory(t *testing.T) {
+	seen := recordLaunches(t)
+	m, dir := openModel(t, "code")
+
+	m, cmd := chord(t, m, "s", "d")
+	m = run(t, m, cmd)
+
+	if got := (*seen)[0].line; got != "code "+dir {
+		t.Fatalf("command = %q, want %q", got, "code "+dir)
+	}
+}

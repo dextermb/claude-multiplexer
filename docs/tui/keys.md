@@ -108,8 +108,13 @@ See [sessions.md](./sessions.md) and [manager.md](../manager.md).
 
 ### Opening the working directory
 
-`s f` opens the working directory of the selected session in the file manager
-of the platform: Finder, Explorer, or `xdg-open`.
+`s f` opens the directory of the selected session in the file manager of the
+platform: Finder, Explorer, or `xdg-open`.
+
+That directory is the one the session works in now. A session that moves into a
+worktree says so with the `set_working_dir` tool, and both keys follow it. When
+a session sets none, and when the one it set is gone, the keys open the
+directory the session started in. See [../mcp.md](../mcp.md).
 
 `s d` opens the same directory in your editor. Name the editor with `--editor`,
 with `$VISUAL` or `$EDITOR`, or in the settings file. A terminal editor takes

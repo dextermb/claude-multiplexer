@@ -1400,10 +1400,12 @@ func (m *Model) refresh() {
 	rows := make([]row, 0, len(m.stored)+4)
 	grants := m.mgr.Grants()
 	parents := m.mgr.Parents()
+	workDirs := m.mgr.WorkingDirs()
 	for _, snap := range m.mgr.Snapshots() {
 		item := rowFromSnapshot(snap)
 		item.control = grants[snap.Name]
 		item.parent = parents[snap.Name]
+		item.workDir = workDirs[snap.Name]
 		rows = append(rows, item)
 	}
 	for _, meta := range m.stored {

@@ -21,6 +21,8 @@ reaches the model as `mcp__mux__…`.
 | `list_jobs` | `session` | The background jobs of a session: id, description, task type, and status. An empty session means the caller. | open |
 | `set_editor` | `editor`, `terminal` | Sets the editor the human opens a directory with, in the settings file. | open |
 | `unset_editor` | `field` | Takes the editor, the terminal flag, or both out of the settings file. | open |
+| `set_working_dir` | `path` | Says which directory the calling session works in now. | open |
+| `unset_working_dir` | — | Takes the working directory off the calling session. | open |
 | `send_message` | `session`, `text` | Queues a prompt for another session, and returns the queue length. | control |
 | `stop_session` | `session` | Ends another child in a clean way. Its transcript is kept. | control |
 | `archive_session` | `session`, `restore` | Takes a stopped session out of the list, or with `restore` brings it back. | control |
@@ -73,11 +75,33 @@ the file, so a program started with `--editor` opens what the flag names, and
 the tool cannot change that. The tool writes the settings file of the
 multiplexer, never the settings of Claude Code. See [config.md](./config.md).
 
+### The working directory
+
+A session starts in one directory, and the stream never says that the agent
+moved. The `cwd` field arrives on the first event of a session and on no other,
+and a `Bash` tool call carries no directory. So a session that moves into a
+worktree says so itself, with `set_working_dir`.
+
+`path` is the directory. A relative path is resolved against the directory the
+session started in, so a session in `~/work/api` sets `.worktrees/feature` and
+means `~/work/api/.worktrees/feature`. The directory must exist, or the tool
+answers with an error and nothing changes.
+
+`s f` and `s d` then open that directory. They fall back to the directory the
+session started in when no working directory is set, and when the one that is
+set is gone, because a collapsed worktree leaves a path that no longer opens.
+See [tui/keys.md](./tui/keys.md).
+
+`unset_working_dir` takes it off again, and answers with `changed: false` when
+there was none. The working directory sits in `meta.json`, so a resumed session
+keeps it. See [manager.md](./manager.md).
+
 ## The grant
 
 A session gets `rename_session`, `list_sessions`, `get_messages`, `list_jobs`,
-`set_editor`, and `unset_editor` always. It gets the five control tools **only**
-when it is started with control.
+`set_editor`, `unset_editor`, `set_working_dir`, and `unset_working_dir`
+always. It gets the five control tools **only** when it is started with
+control.
 
 - In the new session form, set the `Control` field to `yes`.
 - On the command line, `multiplexier --dir <path> --control`.

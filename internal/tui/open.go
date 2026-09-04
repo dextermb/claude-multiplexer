@@ -38,7 +38,8 @@ func (m Model) openInFiles() (tea.Model, tea.Cmd) {
 	if !ok {
 		return m, nil
 	}
-	return m.launch("file manager", item.dir, open.FileManager(item.dir))
+	dir := item.openDir()
+	return m.launch("file manager", dir, open.FileManager(dir))
 }
 
 func (m Model) openInEditor() (tea.Model, tea.Cmd) {
@@ -51,12 +52,13 @@ func (m Model) openInEditor() (tea.Model, tea.Cmd) {
 		m.errText = err.Error()
 		return m, nil
 	}
-	target, err := open.Editor(settings, item.dir)
+	dir := item.openDir()
+	target, err := open.Editor(settings, dir)
 	if err != nil {
 		m.errText = err.Error()
 		return m, nil
 	}
-	return m.launch("editor", item.dir, target)
+	return m.launch("editor", dir, target)
 }
 
 // editorSettings reads the settings file at the key press, so a file a session

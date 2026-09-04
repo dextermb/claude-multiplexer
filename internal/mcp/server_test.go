@@ -27,6 +27,8 @@ type fakeSessions struct {
 	terminal    *bool
 	editorPath  string
 	cleared     []string
+	workingDir  string
+	failWorkDir error
 	failStop    error
 	failStopJob error
 }
@@ -64,6 +66,22 @@ func (f *fakeSessions) UnsetEditor(field, by string) (string, bool, error) {
 		f.terminal = nil
 	}
 	return "/tmp/config.json", changed, nil
+}
+
+func (f *fakeSessions) SetWorkingDir(path, by string) (string, error) {
+	if f.failWorkDir != nil {
+		return "", f.failWorkDir
+	}
+	f.workingDir = "/repo/" + path
+	return f.workingDir, nil
+}
+
+func (f *fakeSessions) UnsetWorkingDir(by string) (bool, error) {
+	if f.workingDir == "" {
+		return false, nil
+	}
+	f.workingDir = ""
+	return true, nil
 }
 
 func (f *fakeSessions) SetTitle(name, title string) error {
@@ -616,4 +634,99 @@ func TestEverySessionGetsTheUnsetEditorTool(t *testing.T) {
 		}
 	}
 	t.Fatal("a session without the grant must still see unset_editor")
+}
+
+func workingDirClient(t *testing.T, sessions *fakeSessions) *sdk.ClientSession {
+	t.Helper()
+	server := startServer(t, sessions)
+	token, err := server.Register("docs", false)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+	return connect(t, server, token)
+}
+
+func TestSetWorkingDirToolPointsTheSessionAtADirectory(t *testing.T) {
+	sessions := newFakeSessions()
+	client := workingDirClient(t, sessions)
+
+	result := call(t, client, mcp.ToolSetWorkingDir, map[string]any{"path": ".worktrees/feature"})
+	if result.IsError {
+		t.Fatalf("set_working_dir failed: %s", resultText(result))
+	}
+	if sessions.workingDir != "/repo/.worktrees/feature" {
+		t.Fatalf("working directory = %q, want the resolved path", sessions.workingDir)
+	}
+	if !strings.Contains(resultText(result), "/repo/.worktrees/feature") {
+		t.Fatalf("the answer does not name the directory:\n%s", resultText(result))
+	}
+}
+
+func TestSetWorkingDirToolNeedsAPath(t *testing.T) {
+	sessions := newFakeSessions()
+	client := workingDirClient(t, sessions)
+
+	if result := call(t, client, mcp.ToolSetWorkingDir, map[string]any{"path": "  "}); !result.IsError {
+		t.Fatal("an empty path must be an error")
+	}
+	if sessions.workingDir != "" {
+		t.Fatalf("working directory = %q, want none", sessions.workingDir)
+	}
+}
+
+func TestSetWorkingDirToolPassesOnTheFailure(t *testing.T) {
+	sessions := newFakeSessions()
+	sessions.failWorkDir = errors.New("no such directory")
+	client := workingDirClient(t, sessions)
+
+	result := call(t, client, mcp.ToolSetWorkingDir, map[string]any{"path": "gone"})
+	if !result.IsError {
+		t.Fatal("a directory that is not there must be an error")
+	}
+	if !strings.Contains(resultText(result), "no such directory") {
+		t.Fatalf("the answer does not carry the reason:\n%s", resultText(result))
+	}
+}
+
+func TestUnsetWorkingDirToolClearsIt(t *testing.T) {
+	sessions := newFakeSessions()
+	client := workingDirClient(t, sessions)
+
+	if result := call(t, client, mcp.ToolSetWorkingDir, map[string]any{"path": "sub"}); result.IsError {
+		t.Fatalf("set_working_dir failed: %s", resultText(result))
+	}
+	result := call(t, client, mcp.ToolUnsetWorkingDir, map[string]any{})
+	if result.IsError {
+		t.Fatalf("unset_working_dir failed: %s", resultText(result))
+	}
+	if sessions.workingDir != "" {
+		t.Fatalf("working directory = %q, want none", sessions.workingDir)
+	}
+
+	again := call(t, client, mcp.ToolUnsetWorkingDir, map[string]any{})
+	if !strings.Contains(resultText(again), "had no working directory") {
+		t.Fatalf("a second call must say that there was none:\n%s", resultText(again))
+	}
+}
+
+func TestEverySessionGetsTheWorkingDirTools(t *testing.T) {
+	client := workingDirClient(t, newFakeSessions())
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	tools, err := client.ListTools(ctx, nil)
+	if err != nil {
+		t.Fatalf("list tools: %v", err)
+	}
+
+	want := map[string]bool{mcp.ToolSetWorkingDir: false, mcp.ToolUnsetWorkingDir: false}
+	for _, tool := range tools.Tools {
+		if _, ok := want[tool.Name]; ok {
+			want[tool.Name] = true
+		}
+	}
+	for name, found := range want {
+		if !found {
+			t.Errorf("a session without the grant must still see %s", name)
+		}
+	}
 }
