@@ -1,9 +1,14 @@
-# multiplexier
+# multiplexer
 
-`multiplexier` supervises many Claude Code sessions at the same time. Each
+The multiplexer supervises many Claude Code sessions at the same time. Each
 session is a `claude` child process in headless mode, with its own directory and
 its own conversation. One terminal interface shows them all: a list of sessions,
 the output of the selected one, and a prompt box.
+
+The binary is spelled `multiplexier`, and so is the state directory. The word
+in the prose is `multiplexer`, which is the word people type. Where both
+spellings work, such as the settings file and the template directories,
+`multiplexer` is read first.
 
 The list groups the sessions: one group for each repository, and one group for
 the work of each control session. A glyph gives the state of each row, and the
@@ -144,7 +149,7 @@ just smoke        # one prompt, one word back
 
 ## Licence
 
-`multiplexier` is free software under the GNU Affero General Public License,
+The multiplexer is free software under the GNU Affero General Public License,
 version 3. See [LICENSE](LICENSE).
 
 You may use it, change it, and share it. Two rules come with that freedom. If
@@ -152,7 +157,7 @@ you share a changed version, you must offer its source under the same licence.
 If you run a changed version as a service that other people reach over a
 network, you must offer them its source as well.
 
-The licence covers `multiplexier` itself. It does not cover the work the
+The licence covers the multiplexer itself. It does not cover the work the
 sessions do, or the code they write.
 
 Copyright © 2026 Dexter Marks-Barber.

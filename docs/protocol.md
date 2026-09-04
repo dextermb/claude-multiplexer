@@ -1,6 +1,6 @@
 # The stream-json transport
 
-`multiplexier` drives each Claude Code session as a child process in headless
+The multiplexer drives each Claude Code session as a child process in headless
 mode. The two processes exchange one JSON object for each line. The package
 `internal/protocol` holds the encoder and the decoder.
 
