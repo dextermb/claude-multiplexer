@@ -114,3 +114,12 @@ probe-mcp:
 # Warning: this calls the real Claude API and it costs money.
 smoke:
     go run {{main}} run --dir /tmp --model claude-haiku-4-5-20251001 "Reply with exactly one word: pong"
+
+# Warning: this drives one real background job, to answer which id links BashOutput to a job. It costs money.
+probe-jobs:
+    MULTIPLEXIER_REAL=1 go test ./internal/manager/ -run TestRealSessionRunsABackgroundJob -v -timeout 300s
+
+# Start the interface against the fake binary, with one background job already running.
+tui-jobs:
+    go build -o bin/fakeclaude ./internal/testutil/fakeclaude
+    FAKECLAUDE_MODE=jobs go run {{main}} --claude bin/fakeclaude --dir .
