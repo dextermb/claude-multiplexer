@@ -90,7 +90,10 @@ keeps it. The directory a session started in never changes. See
 [mcp.md](./mcp.md).
 
 The state of each session lives under `<root>/sessions/<name>/`, which holds
-`transcript.jsonl` and `meta.json`. The root is `~/.multiplexier` by default.
+`transcript.jsonl` and `meta.json`. With no `--root`, the root is
+`~/.claude-multiplexer`, and it is `~/.multiplexier` when that older directory
+is there. So the sessions of an installation from before the rename still open.
+Only these two names hold a session.
 
 ## The bus, and what a drop means
 

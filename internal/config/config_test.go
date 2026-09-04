@@ -23,6 +23,7 @@ func TestPathsFollowTheConfigHome(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", "/tmp/settings")
 
 	want := []string{
+		"/tmp/settings/claude-multiplexer/config.json",
 		"/tmp/settings/multiplexer/config.json",
 		"/tmp/settings/multiplexier/config.json",
 	}
@@ -44,7 +45,7 @@ func TestPathsFallBackToDotConfig(t *testing.T) {
 	if err != nil {
 		t.Skip("no home directory")
 	}
-	want := filepath.Join(home, ".config", "multiplexer", FileName)
+	want := filepath.Join(home, ".config", "claude-multiplexer", FileName)
 	if got := Paths()[0]; got != want {
 		t.Fatalf("Paths()[0] = %q, want %q", got, want)
 	}
@@ -185,7 +186,7 @@ func TestTargetFallsBackToTheFirstPath(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", dir)
 
-	want := filepath.Join(dir, "multiplexer", FileName)
+	want := filepath.Join(dir, "claude-multiplexer", FileName)
 	if got := Target(Paths()...); got != want {
 		t.Fatalf("Target() = %q, want %q", got, want)
 	}
@@ -291,5 +292,52 @@ func TestTheBlockCapSurvivesTheFile(t *testing.T) {
 	}
 	if got.BlockCap == nil || *got.BlockCap != 40 {
 		t.Fatalf("blockCap = %v, want 40", got.BlockCap)
+	}
+}
+
+func TestDefaultRootTakesTheNewNameWhenNothingIsThere(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	got, err := DefaultRoot()
+	if err != nil {
+		t.Fatalf("DefaultRoot: %v", err)
+	}
+	if want := filepath.Join(home, ".claude-multiplexer"); got != want {
+		t.Fatalf("root = %q, want %q", got, want)
+	}
+}
+
+func TestDefaultRootKeepsTheOlderDirectoryWhenItIsThere(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	if err := os.MkdirAll(filepath.Join(home, ".multiplexier", "sessions"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := DefaultRoot()
+	if err != nil {
+		t.Fatalf("DefaultRoot: %v", err)
+	}
+	if want := filepath.Join(home, ".multiplexier"); got != want {
+		t.Fatalf("root = %q, want the directory that holds the sessions %q", got, want)
+	}
+}
+
+func TestDefaultRootPrefersTheNewDirectoryWhenBothAreThere(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	for _, name := range RootNames {
+		if err := os.MkdirAll(filepath.Join(home, name), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	got, err := DefaultRoot()
+	if err != nil {
+		t.Fatalf("DefaultRoot: %v", err)
+	}
+	if want := filepath.Join(home, RootNames[0]); got != want {
+		t.Fatalf("root = %q, want %q", got, want)
 	}
 }

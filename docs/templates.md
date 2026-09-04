@@ -8,7 +8,7 @@ to reach one.
 
 A template is a markdown file. The file name, without `.md`, is its name.
 
-`~/.multiplexier/templates/linear.md`:
+`~/.claude-multiplexer/templates/linear.md`:
 
 ```markdown
 ---
@@ -34,22 +34,23 @@ That gives you `/linear`, and it asks for two things.
 
 | Directory | For |
 |---|---|
-| `~/.multiplexier/templates/` | Every session. `--root` moves it. |
-| `~/.multiplexer/templates/` | The same, with the other spelling. |
+| `~/.claude-multiplexer/templates/` | Every session. `--root` moves it. |
+| `~/.multiplexier/templates/` | The same, under the older state directory. |
+| `~/.multiplexer/templates/` | The same, under the other older spelling. |
 | `<session directory>/.multiplexier/templates/` | One repository. |
 | `<session directory>/.multiplexer/templates/` | The same, with the other spelling. |
 
-**Both spellings are read.** The command is `multiplexer`, and the state
-directory keeps the older spelling, `~/.multiplexier`. A template in either
-directory is found, so the letter you do or do not type costs you nothing.
+**Every spelling is read.** A template in any of these directories is found, so
+the letter you do or do not type costs you nothing. `--root` moves the first
+row, and a root it names is read on its own.
 
 Sessions and transcripts are a different matter. They are written to one place
-only, which is `~/.multiplexier` unless `--root` says otherwise. Only the
-lookup of a template accepts the two spellings.
+only, which is the state directory. See [manager.md](manager.md).
 
 A project template wins when both hold the same name. So a repository can give
-`/review` its own meaning without touching the one you keep at home. Between the
-two spellings, `.multiplexer` wins.
+`/review` its own meaning without touching the one you keep at home. At home,
+the state directory wins over the older spellings. In a repository,
+`.multiplexer` wins over `.multiplexier`.
 
 `multiplexer templates` lists what exists, with the fields each one takes:
 
