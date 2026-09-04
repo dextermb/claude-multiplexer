@@ -38,6 +38,11 @@ const (
 
 const edgeMark = "▎"
 
+const (
+	foldOpenMark = "▾"
+	foldShutMark = "▸"
+)
+
 var (
 	titleStyle = lipgloss.NewStyle().
 			Bold(true).
@@ -57,6 +62,12 @@ var (
 	rowStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("252"))
 
 	rowMutedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+
+	groupMarkStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
+
+	groupLabelStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("111"))
+
+	groupCountStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
 
 	hintStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -69,6 +70,10 @@ type Model struct {
 	sub  *manager.Subscription
 
 	rows         []row
+	groups       []group
+	lines        []listLine
+	folded       map[string]bool
+	roots        map[string]string
 	stored       []manager.Meta
 	storedLoaded bool
 	greeted      bool
@@ -143,6 +148,8 @@ func New(opts Options) Model {
 		queued:     make(map[string][]string),
 		todos:      make(map[string][]protocol.Todo),
 		questions:  make(map[string]*questionDialog),
+		folded:     make(map[string]bool),
+		roots:      make(map[string]string),
 		md:         markdown.New(),
 		opts:       opts,
 		mgr:        opts.Manager,
@@ -477,6 +484,7 @@ func (m Model) handleSpawned(msg spawnedMsg) (tea.Model, tea.Cmd) {
 	m.todos[msg.name] = m.mgr.Todos(msg.name)
 	m.refresh()
 	m.sel = msg.name
+	m.revealSelection()
 	m.rebuildOutput()
 	m.focus = focusPrompt
 	m.prompt.Focus()
@@ -768,6 +776,10 @@ func (m Model) sidebarKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, textinput.Blink
 	case "J":
 		return m.openJobs()
+	case "z":
+		return m.toggleFold()
+	case "Z":
+		return m.toggleAllFolds()
 	case "t":
 		return m.openPicker()
 	case "A":
@@ -876,10 +888,15 @@ func (m Model) handleLeftMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 		}
 		m.clearSelection()
 		index := m.listOffset + msg.Y - titleHeight
-		if msg.Y >= titleHeight && index >= 0 && index < len(m.rows) {
-			m.sel = m.rows[index].name
+		if msg.Y >= titleHeight && index >= 0 && index < len(m.lines) {
+			line := m.lines[index]
 			m.focus = focusSidebar
 			m.prompt.Blur()
+			if line.header() {
+				m.setFold(m.groups[line.group].key, !m.groups[line.group].folded)
+				return m, nil
+			}
+			m.sel = m.rows[line.row].name
 			m.rebuildOutput()
 		}
 		return m, nil
@@ -981,21 +998,74 @@ func (m Model) highlight(content string) string {
 }
 
 func (m Model) move(delta int) (tea.Model, tea.Cmd) {
-	if len(m.rows) == 0 {
+	visible := m.visibleRowIndexes()
+	if len(visible) == 0 {
 		return m, nil
 	}
-	index := m.selIndex() + delta
+	index := 0
+	for i, at := range visible {
+		if m.rows[at].name == m.sel {
+			index = i + delta
+			break
+		}
+	}
 	if index < 0 {
 		index = 0
 	}
-	if index >= len(m.rows) {
-		index = len(m.rows) - 1
+	if index >= len(visible) {
+		index = len(visible) - 1
 	}
-	if m.rows[index].name == m.sel {
+	name := m.rows[visible[index]].name
+	if name == m.sel {
 		return m, nil
 	}
-	m.sel = m.rows[index].name
+	m.sel = name
 	m.rebuildOutput()
+	m.clampOffset()
+	return m, nil
+}
+
+func (m Model) toggleFold() (tea.Model, tea.Cmd) {
+	index := m.selGroup()
+	if index < 0 {
+		return m, nil
+	}
+	m.setFold(m.groups[index].key, !m.groups[index].folded)
+	return m, nil
+}
+
+// toggleAllFolds unfolds every group when one is folded, and otherwise folds
+// every group but the one that holds the selection.
+func (m Model) toggleAllFolds() (tea.Model, tea.Cmd) {
+	if len(m.groups) == 0 {
+		return m, nil
+	}
+	unfold := false
+	for _, item := range m.groups {
+		if item.folded {
+			unfold = true
+			break
+		}
+	}
+	keep := ""
+	if index := m.selGroup(); index >= 0 {
+		keep = m.groups[index].key
+	}
+	if m.folded == nil {
+		m.folded = make(map[string]bool)
+	}
+	for _, item := range m.groups {
+		if unfold || item.key == keep {
+			delete(m.folded, item.key)
+			continue
+		}
+		m.folded[item.key] = true
+	}
+	m.status = "groups folded"
+	if unfold {
+		m.status = "groups unfolded"
+	}
+	m.applyFolds(keep)
 	return m, nil
 }
 
@@ -1330,10 +1400,14 @@ func (m *Model) refresh() {
 		}
 		rows = append(rows, rowFromMeta(meta))
 	}
-	m.rows = rows
+	for i := range rows {
+		rows[i].group = m.groupKey(rows[i].dir)
+	}
+	m.rows, m.groups = groupRows(rows, m.folded)
+	m.buildLines()
 
-	if m.selIndex() < 0 && len(m.rows) > 0 {
-		m.sel = m.rows[0].name
+	if m.selLine() < 0 {
+		m.selectFirst()
 	}
 	if len(m.rows) == 0 {
 		m.sel = ""
@@ -1341,18 +1415,146 @@ func (m *Model) refresh() {
 	m.clampOffset()
 }
 
-func (m *Model) clampOffset() {
-	rows := m.visibleRows()
-	index := m.selIndex()
-	if index < 0 || rows <= 0 {
-		m.listOffset = 0
+// groupKey caches the walk to the repository, because refresh runs on every
+// event and a session directory never changes.
+func (m *Model) groupKey(dir string) string {
+	if dir == "" {
+		return ""
+	}
+	if root, ok := m.roots[dir]; ok {
+		return root
+	}
+	root := repoRoot(dir)
+	if m.roots == nil {
+		m.roots = make(map[string]string)
+	}
+	m.roots[dir] = root
+	return root
+}
+
+func (m *Model) buildLines() {
+	m.lines = listLines(m.rows, m.groups)
+}
+
+// selLine is the line the selected session is drawn on, or -1 when a fold hides
+// it or nothing is selected.
+func (m Model) selLine() int {
+	for i, line := range m.lines {
+		if !line.header() && m.rows[line.row].name == m.sel {
+			return i
+		}
+	}
+	return -1
+}
+
+func (m Model) selGroup() int {
+	for _, item := range m.rows {
+		if item.name != m.sel {
+			continue
+		}
+		for i := range m.groups {
+			if m.groups[i].key == item.group {
+				return i
+			}
+		}
+	}
+	return -1
+}
+
+func (m *Model) selectFirst() {
+	for _, line := range m.lines {
+		if !line.header() {
+			m.sel = m.rows[line.row].name
+			return
+		}
+	}
+	if len(m.rows) == 0 {
 		return
 	}
-	if index < m.listOffset {
-		m.listOffset = index
+	m.setFold(m.rows[0].group, false)
+	m.sel = m.rows[0].name
+}
+
+// selectNear takes the selection to the row after a group that just folded, or
+// to the row before it when the group is the last one.
+func (m *Model) selectNear(key string) {
+	at := -1
+	for i, line := range m.lines {
+		if line.header() && m.groups[line.group].key == key {
+			at = i
+			break
+		}
 	}
-	if index >= m.listOffset+rows {
-		m.listOffset = index - rows + 1
+	if at < 0 {
+		m.selectFirst()
+		return
+	}
+	for i := at + 1; i < len(m.lines); i++ {
+		if !m.lines[i].header() {
+			m.sel = m.rows[m.lines[i].row].name
+			return
+		}
+	}
+	for i := at - 1; i >= 0; i-- {
+		if !m.lines[i].header() {
+			m.sel = m.rows[m.lines[i].row].name
+			return
+		}
+	}
+}
+
+func (m *Model) setFold(key string, folded bool) {
+	if m.folded == nil {
+		m.folded = make(map[string]bool)
+	}
+	if folded {
+		m.folded[key] = true
+	} else {
+		delete(m.folded, key)
+	}
+	m.applyFolds(key)
+}
+
+func (m *Model) applyFolds(key string) {
+	for i := range m.groups {
+		m.groups[i].folded = m.folded[m.groups[i].key]
+	}
+	m.buildLines()
+	previous := m.sel
+	if m.selLine() < 0 {
+		m.selectNear(key)
+	}
+	if m.sel != previous {
+		m.rebuildOutput()
+	}
+	m.clampOffset()
+}
+
+// revealSelection unfolds the group of the selected session, so a session that
+// starts in a folded group is visible.
+func (m *Model) revealSelection() {
+	for _, item := range m.rows {
+		if item.name == m.sel && m.folded[item.group] {
+			m.setFold(item.group, false)
+			return
+		}
+	}
+	m.clampOffset()
+}
+
+func (m *Model) clampOffset() {
+	visible := m.visibleLines()
+	index := m.selLine()
+	if index >= 0 && visible > 0 {
+		if index < m.listOffset {
+			m.listOffset = index
+		}
+		if index >= m.listOffset+visible {
+			m.listOffset = index - visible + 1
+		}
+	}
+	if last := len(m.lines) - visible; m.listOffset > last {
+		m.listOffset = last
 	}
 	if m.listOffset < 0 {
 		m.listOffset = 0
@@ -1392,12 +1594,24 @@ func (m Model) outputHeight() int {
 	return height
 }
 
-func (m Model) visibleRows() int {
-	rows := m.bodyHeight() - titleHeight
-	if rows < 1 {
+func (m Model) visibleLines() int {
+	lines := m.bodyHeight() - titleHeight
+	if lines < 1 {
 		return 1
 	}
-	return rows
+	return lines
+}
+
+// visibleRowIndexes lists the rows a fold does not hide, in the order they are
+// drawn, as indexes into m.rows.
+func (m Model) visibleRowIndexes() []int {
+	out := make([]int, 0, len(m.rows))
+	for _, line := range m.lines {
+		if !line.header() {
+			out = append(out, line.row)
+		}
+	}
+	return out
 }
 
 func (m Model) baseOutputWidth() int {
@@ -1636,9 +1850,14 @@ func withEdge(block string, on bool) string {
 func (m Model) sidebarView() string {
 	rows := make([]string, 0, m.bodyHeight())
 
-	visible := m.visibleRows()
-	for i := m.listOffset; i < len(m.rows) && len(rows) < visible; i++ {
-		rows = append(rows, m.sessionRow(m.rows[i]))
+	visible := m.visibleLines()
+	for i := m.listOffset; i < len(m.lines) && len(rows) < visible; i++ {
+		line := m.lines[i]
+		if line.header() {
+			rows = append(rows, m.groupHeader(m.groups[line.group]))
+			continue
+		}
+		rows = append(rows, m.sessionRow(m.rows[line.row]))
 	}
 	for len(rows) < m.bodyHeight() {
 		rows = append(rows, strings.Repeat(" ", sidebarInner))
@@ -1659,21 +1878,41 @@ func (m Model) sessionRow(item row) string {
 	if item.queued > 0 {
 		badge += fmt.Sprintf(" ⇢%d", item.queued)
 	}
-	nameWidth := width - 2 - lipgloss.Width(badge)
+	nameWidth := width - 3 - lipgloss.Width(badge)
 	if nameWidth < 1 {
 		nameWidth = 1
 	}
 	rest := " " + pad(item.displayName(), nameWidth) + badge
 	glyph := rowGlyph(item, m.spinFrame)
 	if item.name == m.sel {
-		return item.style().Background(lipgloss.Color("62")).Render(glyph) +
-			selectedRowStyle.Width(width-1).Render(rest)
+		return selectedRowStyle.Render(" ") +
+			item.style().Background(lipgloss.Color("62")).Render(glyph) +
+			selectedRowStyle.Width(width-2).Render(rest)
 	}
 	nameStyle := rowStyle
 	if item.archived {
 		nameStyle = rowMutedStyle
 	}
-	return item.style().Render(glyph) + nameStyle.Width(width-1).Render(rest)
+	return " " + item.style().Render(glyph) + nameStyle.Width(width-2).Render(rest)
+}
+
+// groupHeader names one directory. A folded header also carries the glyph of the
+// most urgent row it hides.
+func (m Model) groupHeader(item group) string {
+	mark, glyph := foldOpenMark, ""
+	if item.folded {
+		lead := row{live: item.live, archived: item.archived, state: item.state}
+		mark = foldShutMark
+		glyph = lead.style().Render(rowGlyph(lead, m.spinFrame)) + " "
+	}
+	count := strconv.Itoa(item.count)
+	width := sidebarInner - 3 - lipgloss.Width(glyph) - len(count)
+	if width < 1 {
+		width = 1
+	}
+	return groupMarkStyle.Render(mark) + " " +
+		groupLabelStyle.Render(pad(item.label, width)) + " " +
+		glyph + groupCountStyle.Render(count)
 }
 
 func (m Model) outputView() string {

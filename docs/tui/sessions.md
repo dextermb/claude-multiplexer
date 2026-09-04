@@ -3,11 +3,52 @@
 The sidebar, what a row means, and the two bars that carry the numbers.
 For the keys that drive it, see [keys.md](./keys.md).
 
+## Groups by directory
+
+The list groups the sessions by directory. Each group starts with a header, and
+the rows of that directory follow it, indented by one column.
+
+The key of a group is the repository above the directory of the session. The
+program walks up to the nearest `.git`. So a session in the repository, a
+session in a subdirectory, and a session in a worktree all share one group. A
+directory with no repository above it is a group of its own.
+
+The header names the group with the last element of that path, for example
+`claude-multiplexer`. When two groups have the same last element, both names
+grow one element to the left, so `~/a/api` and `~/b/api` read `a/api` and
+`b/api`. The number on the right of the header counts the rows of the group.
+
+A group that holds a live session comes first. Then come the groups that hold
+stored sessions, and last the groups that hold archived sessions only. Inside a
+group, the order is the order below.
+
+### Folding a group
+
+Press `z` to fold the group of the selected session, and press `z` again to
+unfold it. A folded group keeps its header, and its rows go. Press `Z` to
+unfold every group. When no group is folded, `Z` folds every group but the one
+you are in. A click on a header folds or unfolds that group. See
+[keys.md](./keys.md).
+
+A folded header carries two marks that an open header does not need. The mark
+`▸` replaces `▾`, and the glyph of the most urgent row it hides comes before
+the count. The order of urgency is waiting, busy, failed, starting, and then
+idle. So a session that waits for your answer is still visible when you fold
+its group.
+
+The selection is always a row you can see. Fold the group that holds the
+selection, and the selection moves to the first row of the next group. When
+there is no next group, it moves back to the row above. Start a session in a
+folded group, and that group unfolds.
+
+The multiplexer does not remember a fold. Every group is open when the program
+starts.
+
 ## Live rows and stored rows
 
 The list holds two kinds of row. A **live** row is a session this program runs
 now. A **stored** row is work from an earlier run, read from disk. Live rows
-come first, then stored rows, then archived rows. Within each group the order is
+come first, then stored rows, then archived rows. Within each kind the order is
 stable, so a row does not jump as its state changes.
 
 ## Reading a row

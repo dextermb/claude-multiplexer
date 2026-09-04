@@ -23,6 +23,8 @@ output.
 | `r` | Resume the selected session |
 | `a` | Archive the selected session, or bring it back |
 | `A` | Show or hide archived sessions |
+| `z` | Fold or unfold the directory of the selected session |
+| `Z` | Unfold every directory, or fold all but the one you are in |
 | `R` | Rename the selected session |
 | `x` or `ctrl+x` | Stop the selected session, after a confirmation |
 | `pgup`, `pgdown` | Scroll the output by a page |
@@ -40,8 +42,16 @@ In the prompt box, `Tab` completes a `/preset` name, then an `@` path, before it
 moves the focus. See [input.md](input.md).
 
 `n`, `t`, `r`, `a`, `A`, `R`, `m`, `M`, `e`, `p`, `J`, `?`, `x`, and `q` work when the focus is
-the list or the output. The `ctrl` forms work everywhere, so they still work while
-you type a prompt.
+the list or the output. `z` and `Z` work when the focus is the list. The `ctrl`
+forms work everywhere, so they still work while you type a prompt.
+
+### Folding a directory
+
+The list groups the sessions by directory, under a header. `z` folds the group
+of the selected session, and `z` again unfolds it. `Z` unfolds every group, or,
+when no group is folded, folds every group but the one you are in. A fold moves
+the selection to a row you can see, and it is forgotten when the program stops.
+See [sessions.md](./sessions.md).
 
 ### Renaming a session
 
@@ -124,6 +134,7 @@ finished ones. The same scroll keys work inside it. Press `esc` to close. See
 ## The mouse
 
 - A click on a sidebar row selects that session.
+- A click on a group header folds or unfolds that group.
 - A click on the prompt area moves the focus there.
 - The wheel over the sidebar moves the selection.
 - The wheel over the output scrolls it.

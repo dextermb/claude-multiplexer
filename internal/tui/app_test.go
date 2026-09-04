@@ -171,8 +171,9 @@ func TestAClickInTheSidebarSelectsASession(t *testing.T) {
 	m = spawn(t, m, mgr, "alpha", dir)
 	m = spawn(t, m, mgr, "beta", dir)
 
+	// The first line of the sidebar is the group header, so the rows follow it.
 	m, _ = step(t, m, tea.MouseMsg{
-		X: 3, Y: titleHeight, Action: tea.MouseActionPress, Button: tea.MouseButtonLeft,
+		X: 3, Y: titleHeight + 1, Action: tea.MouseActionPress, Button: tea.MouseButtonLeft,
 	})
 	if m.sel != "alpha" {
 		t.Fatalf("selected = %q, want alpha", m.sel)
@@ -182,7 +183,7 @@ func TestAClickInTheSidebarSelectsASession(t *testing.T) {
 	}
 
 	m, _ = step(t, m, tea.MouseMsg{
-		X: 3, Y: titleHeight + 1, Action: tea.MouseActionPress, Button: tea.MouseButtonLeft,
+		X: 3, Y: titleHeight + 2, Action: tea.MouseActionPress, Button: tea.MouseButtonLeft,
 	})
 	if m.sel != "beta" {
 		t.Fatalf("selected = %q, want beta", m.sel)

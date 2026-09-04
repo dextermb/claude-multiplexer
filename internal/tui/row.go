@@ -13,6 +13,7 @@ type row struct {
 	name     string
 	title    string
 	dir      string
+	group    string
 	model    string
 	mode     string
 	effort   string
