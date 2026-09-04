@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/charmbracelet/glamour/styles"
 	"github.com/charmbracelet/lipgloss"
 )
 
@@ -118,5 +119,25 @@ func TestRenderDoesNotEndWithBlankLines(t *testing.T) {
 	}
 	if strings.TrimSpace(lines[len(lines)-1]) == "" {
 		t.Fatalf("the render ends with a blank line: %q", plain(out))
+	}
+}
+
+func TestUnclassifiedCharacterHasNoBackground(t *testing.T) {
+	r := New()
+	for _, lang := range []string{"json", "toml", "make"} {
+		out := r.Render("```"+lang+"\nfoo | bar\n```", 60)
+		if strings.Contains(out, "48;5;203") || strings.Contains(out, "48;2;240;91;91") {
+			t.Errorf("a %s block gives a pipe a red background: %q", lang, out)
+		}
+		if !strings.Contains(plain(out), "foo | bar") {
+			t.Errorf("a %s block lost its text: %q", lang, plain(out))
+		}
+	}
+}
+
+func TestPaneStyleLeavesTheSharedChromaAlone(t *testing.T) {
+	paneStyle()
+	if styles.DarkStyleConfig.CodeBlock.Chroma.Error.BackgroundColor == nil {
+		t.Fatal("paneStyle changed the shared dark style")
 	}
 }
