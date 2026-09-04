@@ -144,7 +144,7 @@ func TestTheLadderOrder(t *testing.T) {
 			t.Setenv("VISUAL", tc.visual)
 			t.Setenv("EDITOR", tc.editor)
 
-			if got := Resolve(Config{Editor: tc.flag}, file).Editor; got != tc.want {
+			if got := Resolve(Config{Editor: tc.flag}, file, Config{}).Editor; got != tc.want {
 				t.Fatalf("editor = %q, want %q", got, tc.want)
 			}
 		})
@@ -156,7 +156,7 @@ func TestTheFlagOverridesTheEditorTerminalField(t *testing.T) {
 	t.Setenv("EDITOR", "")
 
 	yes, no := true, false
-	got := Resolve(Config{EditorTerminal: &no}, Config{Editor: "myed", EditorTerminal: &yes})
+	got := Resolve(Config{EditorTerminal: &no}, Config{Editor: "myed", EditorTerminal: &yes}, Config{})
 	if got.EditorTerminal == nil || *got.EditorTerminal {
 		t.Fatalf("editorTerminal = %v, want false", got.EditorTerminal)
 	}

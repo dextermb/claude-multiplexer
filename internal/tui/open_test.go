@@ -274,3 +274,44 @@ func TestABadSettingsFileShowsTheReason(t *testing.T) {
 		t.Fatalf("errText = %q, want the name of the file in it", m.errText)
 	}
 }
+
+// claudeFile writes a Claude Code settings file, and points the model at it.
+func claudeFile(t *testing.T, m Model, body string) Model {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "settings.json")
+	if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	m.opts.ClaudePaths = []string{path}
+	return m
+}
+
+func TestTheEditorKeyFallsBackToTheClaudeSettings(t *testing.T) {
+	seen := recordLaunches(t)
+	m, dir := openModel(t, "")
+	m = claudeFile(t, m, `{"env": {"EDITOR": "zed --wait"}}`)
+
+	m, cmd := chord(t, m, "s", "d")
+	m = run(t, m, cmd)
+
+	if len(*seen) != 1 {
+		t.Fatalf("launched %d programs, want 1", len(*seen))
+	}
+	if got := (*seen)[0].line; got != "zed --wait "+dir {
+		t.Fatalf("command = %q, want %q", got, "zed --wait "+dir)
+	}
+}
+
+func TestTheSettingsFileBeatsTheClaudeSettingsAtTheKeyPress(t *testing.T) {
+	seen := recordLaunches(t)
+	m, dir := openModel(t, "")
+	m = settingsFile(t, m, `{"editor": "nvim"}`)
+	m = claudeFile(t, m, `{"env": {"EDITOR": "zed"}}`)
+
+	m, cmd := chord(t, m, "s", "d")
+	m = run(t, m, cmd)
+
+	if got := (*seen)[0].line; got != "nvim "+dir {
+		t.Fatalf("command = %q, want the settings file %q", got, "nvim "+dir)
+	}
+}
