@@ -97,6 +97,8 @@ type Model struct {
 	pager        *pager
 	jobsModal    *jobsModal
 	pending      string
+	seq          *sequence
+	seqGen       int
 	sel          string
 	listOffset   int
 
@@ -298,6 +300,8 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 	case spinTickMsg:
 		return m.handleSpin()
+	case sequenceTimeoutMsg:
+		return m.handleSequenceTimeout(msg)
 	case jobTickMsg:
 		if m.jobsModal == nil {
 			return m, nil
@@ -606,14 +610,18 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 	}
 
+	if m.seq != nil {
+		return m.resolveSequence(msg)
+	}
+	if target, ok := sequenceTarget(msg.String(), m.focus == focusPrompt); ok {
+		return m.startSequence(target)
+	}
+
 	switch msg.String() {
 	case "ctrl+p":
 		return m.openPicker()
 	case "ctrl+n":
-		m.form = newForm(m.opts.DefaultDir, m.opts.DefaultModel, m.opts.DefaultPermissionMode)
-		return m, textinputBlink()
-	case "ctrl+x":
-		return m.askToStop()
+		return m.openNewForm()
 	case "ctrl+t":
 		m.mouseOn = !m.mouseOn
 		if m.mouseOn {
@@ -633,8 +641,21 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	if m.focus != focusPrompt && looksDropped(msg) {
-		return m.handlePaste(string(msg.Runes))
+	if m.focus != focusPrompt {
+		if looksDropped(msg) {
+			return m.handlePaste(string(msg.Runes))
+		}
+		switch msg.String() {
+		case "n":
+			return m.openNewForm()
+		case "t":
+			return m.openPicker()
+		case "?":
+			m.help = newHelp()
+			return m, textinput.Blink
+		case "q":
+			return m.startQuit()
+		}
 	}
 
 	switch m.focus {
@@ -705,9 +726,8 @@ func (m Model) outputKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.focus = focusSidebar
 		return m, nil
 	case "enter":
-		if entries := collectExpandables(m.shownLines); len(entries) > 0 {
-			m.pager = newPager(entries, m.baseOutputWidth(), m.outputHeight())
-			return m, nil
+		if len(collectExpandables(m.shownLines)) > 0 {
+			return m.openResults()
 		}
 		m.focus = focusPrompt
 		m.prompt.Focus()
@@ -728,21 +748,6 @@ func (m Model) outputKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.output.GotoTop()
 	case "G", "end":
 		m.output.GotoBottom()
-	case "m":
-		return m.toggleMarkdown()
-	case "M":
-		return m.openChoice(settingModel)
-	case "e":
-		return m.openChoice(settingEffort)
-	case "p":
-		return m.openChoice(settingMode)
-	case "J":
-		return m.openJobs()
-	case "?":
-		m.help = newHelp()
-		return m, textinput.Blink
-	case "q":
-		return m.startQuit()
 	}
 	return m, nil
 }
@@ -759,51 +764,10 @@ func (m Model) toggleMarkdown() (tea.Model, tea.Cmd) {
 
 func (m Model) sidebarKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
-	case "q":
-		return m.startQuit()
-	case "n":
-		m.form = newForm(m.opts.DefaultDir, m.opts.DefaultModel, m.opts.DefaultPermissionMode)
-		return m, textinputBlink()
-	case "x":
-		return m.askToStop()
 	case "up", "k":
 		return m.move(-1)
 	case "down", "j":
 		return m.move(1)
-	case "r":
-		return m.resumeSelected()
-	case "a":
-		return m.archiveSelected()
-	case "R":
-		return m.openRename()
-	case "m":
-		return m.toggleMarkdown()
-	case "M":
-		return m.openChoice(settingModel)
-	case "e":
-		return m.openChoice(settingEffort)
-	case "p":
-		return m.openChoice(settingMode)
-	case "?":
-		m.help = newHelp()
-		return m, textinput.Blink
-	case "J":
-		return m.openJobs()
-	case "z":
-		return m.toggleFold()
-	case "Z":
-		return m.toggleAllFolds()
-	case "t":
-		return m.openPicker()
-	case "A":
-		m.showArchived = !m.showArchived
-		m.status = "archived sessions hidden"
-		if m.showArchived {
-			m.status = "archived sessions shown"
-		}
-		m.refresh()
-		m.rebuildOutput()
-		return m, nil
 	case "enter", "i":
 		if item, ok := m.selectedRow(); ok && !item.running() {
 			return m.resumeSelected()
@@ -1047,18 +1011,19 @@ func (m Model) toggleFold() (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// toggleAllFolds unfolds every group when one is folded, and otherwise folds
-// every group but the one that holds the selection.
-func (m Model) toggleAllFolds() (tea.Model, tea.Cmd) {
+func (m Model) foldOthers() (tea.Model, tea.Cmd) {
+	return m.setAllFolds(false)
+}
+
+func (m Model) unfoldAll() (tea.Model, tea.Cmd) {
+	return m.setAllFolds(true)
+}
+
+// setAllFolds unfolds every group, or folds every group but the one that holds
+// the selection.
+func (m Model) setAllFolds(unfold bool) (tea.Model, tea.Cmd) {
 	if len(m.groups) == 0 {
 		return m, nil
-	}
-	unfold := false
-	for _, item := range m.groups {
-		if item.folded {
-			unfold = true
-			break
-		}
 	}
 	keep := ""
 	if index := m.selGroup(); index >= 0 {
@@ -1079,6 +1044,32 @@ func (m Model) toggleAllFolds() (tea.Model, tea.Cmd) {
 		m.status = "groups unfolded"
 	}
 	m.applyFolds(keep)
+	return m, nil
+}
+
+func (m Model) openNewForm() (tea.Model, tea.Cmd) {
+	m.form = newForm(m.opts.DefaultDir, m.opts.DefaultModel, m.opts.DefaultPermissionMode)
+	return m, textinputBlink()
+}
+
+func (m Model) toggleArchived() (tea.Model, tea.Cmd) {
+	m.showArchived = !m.showArchived
+	m.status = "archived sessions hidden"
+	if m.showArchived {
+		m.status = "archived sessions shown"
+	}
+	m.refresh()
+	m.rebuildOutput()
+	return m, nil
+}
+
+func (m Model) openResults() (tea.Model, tea.Cmd) {
+	entries := collectExpandables(m.shownLines)
+	if len(entries) == 0 {
+		m.status = "no result to open"
+		return m, nil
+	}
+	m.pager = newPager(entries, m.baseOutputWidth(), m.outputHeight())
 	return m, nil
 }
 
@@ -1988,7 +1979,7 @@ func (m Model) outputView() string {
 	if len(m.rows) == 0 {
 		text := "No sessions yet.\n\nPress n to start one.\nPress ctrl+c to quit."
 		if len(m.stored) > 0 {
-			text = "Every stored session is archived.\n\nPress A to show them.\nPress n to start a new one."
+			text = "Every stored session is archived.\n\nPress l a to show them.\nPress n to start a new one."
 		}
 		return emptyStyle.Width(m.outputWidth()).Height(m.outputHeight()).Render(text)
 	}
@@ -2255,6 +2246,11 @@ func (m Model) confirmView(width int) string {
 func (m Model) statusView() string {
 	if m.errText != "" {
 		return statusStyle.Width(m.width).Render(errorStyle.Render(truncate(m.errText, m.width-2)))
+	}
+	if m.seq != nil {
+		hints := truncate(sequenceHints(m.seq.target), m.width-6)
+		return statusStyle.Width(m.width).Render(
+			statusKeyStyle.Render(m.seq.target) + statusMutedStyle.Render("  "+hints))
 	}
 	var live, busy int
 	for _, item := range m.rows {

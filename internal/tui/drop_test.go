@@ -312,7 +312,7 @@ func TestTheOutputRendersMarkdownAndTheKeyShowsTheRawText(t *testing.T) {
 
 	m.focus = focusSidebar
 	m.prompt.Blur()
-	m, _ = step(t, m, key("m"))
+	m, _ = chord(t, m, "o", "m")
 	if !m.showRaw {
 		t.Fatal("m must turn the markdown off")
 	}
@@ -324,7 +324,7 @@ func TestTheOutputRendersMarkdownAndTheKeyShowsTheRawText(t *testing.T) {
 		t.Errorf("the bar does not say the pane is raw:\n%s", visible(m.barView()))
 	}
 
-	m, _ = step(t, m, key("m"))
+	m, _ = chord(t, m, "o", "m")
 	if m.showRaw {
 		t.Fatal("m must turn the markdown back on")
 	}

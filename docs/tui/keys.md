@@ -2,7 +2,58 @@
 
 Every key, how the output scrolls, what the mouse does, and how to leave.
 
-## Keys
+## The shape of a key sequence
+
+An action takes two keys. The first key names the **target**. The second key
+names the **action**. After the first key, the status bar lists the actions of
+that target.
+
+| Key | Target | The prompt form |
+|---|---|---|
+| `s` | The selected session | `ctrl+s` |
+| `l` | The list | `ctrl+l` |
+| `o` | The output pane | `ctrl+o` |
+
+A sequence waits 250 ms for the second key. After that the target is forgotten,
+and the next key acts on its own. `Esc` cancels the sequence at once. An unknown
+second key also cancels it, and the status bar shows a short notice, such as
+`no key s w`.
+
+The plain target keys work when the focus is the list or the output. The control
+forms work everywhere, so a sequence still starts while you type a prompt.
+
+## The session: `s`
+
+| Keys | Action |
+|---|---|
+| `s c` | Start a new session |
+| `s t` | Open the preset prompts |
+| `s r` | Resume the selected session |
+| `s n` | Rename the selected session |
+| `s a` | Archive the selected session, or bring it back |
+| `s x` | Stop the selected session, after a confirmation |
+| `s j` | Show the background jobs of the selected session |
+| `s m` | Change the model of a running session |
+| `s e` | Change the effort of a running session |
+| `s p` | Change the permission mode of a running session |
+
+## The list: `l`
+
+| Keys | Action |
+|---|---|
+| `l f` | Fold or unfold the group of the selected session |
+| `l F` | Fold every group but the one you are in |
+| `l u` | Unfold every group |
+| `l a` | Show or hide the archived sessions |
+
+## The output pane: `o`
+
+| Keys | Action |
+|---|---|
+| `o m` | Switch between rendered markdown and raw text |
+| `o r` | Open the list of large results |
+
+## The keys that work on their own
 
 `Tab` moves the focus through three panes in turn: the list, the prompt, and the
 output.
@@ -17,33 +68,20 @@ output.
 | `i` (in the output) | Move to the prompt |
 | `ctrl+j` | Add a new line inside the prompt |
 | `Shift+Tab` (in the prompt) | Walk the paths that match an `@` word |
-| `Esc` | Stop a running turn, or leave the prompt or the output, or close the form or a dialog |
+| `Esc` | Stop a running turn, leave the prompt or the output, close a dialog, or cancel a sequence |
 | `n` or `ctrl+n` | Open the new session form |
 | `t` or `ctrl+p` | Open the preset prompts |
-| `r` | Resume the selected session |
-| `a` | Archive the selected session, or bring it back |
-| `A` | Show or hide archived sessions |
-| `z` | Fold or unfold the group of the selected session |
-| `Z` | Unfold every group, or fold all but the one you are in |
-| `R` | Rename the selected session |
-| `x` or `ctrl+x` | Stop the selected session, after a confirmation |
+| `u`, `d` | Scroll the output by half a pane |
 | `pgup`, `pgdown` | Scroll the output by a page |
-| `m` | Switch between rendered markdown and raw text |
-| `M` | Change the model of a running session |
-| `e` | Change the effort of a running session |
-| `p` | Change the permission mode of a running session |
-| `J` | Show the background jobs of the selected session, and open the output of one |
+| `g`, `G`, `home`, `end` | Go to the top of the output, and to the bottom |
 | `?` | Show every key, with a search |
 | `ctrl+t` | Turn the mouse on or off |
 | `q` | Stop every session, and quit |
 | `ctrl+c` | Clear the prompt. Press it again to quit |
 
-In the prompt box, `Tab` completes a `/preset` name, then an `@` path, before it
-moves the focus. See [input.md](input.md).
-
-`n`, `t`, `r`, `a`, `A`, `R`, `m`, `M`, `e`, `p`, `J`, `?`, `x`, and `q` work when the focus is
-the list or the output. `z` and `Z` work when the focus is the list. The `ctrl`
-forms work everywhere, so they still work while you type a prompt.
+`n`, `t`, `?`, and `q` work when the focus is the list or the output. In the
+prompt box, `Tab` completes a `/preset` name, then an `@` path, before it moves
+the focus. See [input.md](input.md).
 
 A dialog that names one session — rename, model, effort, mode, jobs, the result
 pager, and the stop confirmation — draws in the pane, so the sidebar stays on
@@ -53,29 +91,28 @@ the screen. A dialog that names no session covers the sidebar too. See
 ### Folding a directory
 
 The list groups the sessions under a header, by directory or by the control
-session that created them. `z` folds the group of the selected session, and `z`
-again unfolds it. `Z` unfolds every group, or,
-when no group is folded, folds every group but the one you are in. A fold moves
-the selection to a row you can see, and it is forgotten when the program stops.
-See [sessions.md](./sessions.md).
+session that created them. `l f` folds the group of the selected session, and
+`l f` again unfolds it. `l F` folds every group but the one you are in, and
+`l u` unfolds every group. A fold moves the selection to a row you can see, and
+it is forgotten when the program stops. See [sessions.md](./sessions.md).
 
 ### Renaming a session
 
-`R` opens a small dialog with one text field, filled with the current name.
+`s n` opens a small dialog with one text field, filled with the current name.
 Type a new title, then press `Enter`. An empty field clears the title, so the
 session shows its name again. A rename works on a live session and on a stored
-session. The name stays the key on disk; the title is only the display text.
+session. The name stays the key on disk. The title is only the display text.
 See [sessions.md](./sessions.md) and [manager.md](../manager.md).
 
 ### Changing the model, effort, and mode
 
-`M`, `e`, and `p` each open a small dialog for a running session. The dialog
-lists the values, marks the current one, and applies your choice at once. `M`
-sets the model, `e` sets the effort, and `p` sets the permission mode. The
-session bar then shows the new value.
+`s m`, `s e`, and `s p` each open a small dialog for a running session. The
+dialog lists the values, marks the current one, and applies your choice at once.
+`s m` sets the model, `s e` sets the effort, and `s p` sets the permission mode.
+The session bar then shows the new value.
 
 The model and the permission mode change on the running child. The effort has no
-live switch in Claude Code, so `e` resumes the session with the new level: it
+live switch in Claude Code, so `s e` resumes the session with the new level: it
 stops the child and starts it again, and keeps the conversation. See
 [protocol.md](../protocol.md). Effort is also a field in the new session form,
 next to the model and the mode.
@@ -86,7 +123,7 @@ A prompt you send while a session is busy waits in the queue, and the pane shows
 it at once. Two keys then act on the running turn:
 
 - `Esc` stops the turn and drops the queue, so the session waits for your next
-  prompt. `x` stops the whole session, which `Esc` does not.
+  prompt. `s x` stops the whole session, which `Esc` does not.
 - `Enter` on an empty prompt box sends the queued prompt now: it stops the turn,
   so the queued prompt goes at once instead of after the turn ends.
 
@@ -95,14 +132,15 @@ the session is not busy, `Esc` still leaves the pane as before.
 
 ### The key list
 
-Press `?` for every key in one place, grouped by where it works. Type to search
-it: the search reads the keys, what they do, and the group names, so `scroll`
-finds the four keys that scroll and `ctrl+j` finds itself. Press `esc` to close.
+Press `?` for every key in one place, grouped by target. Type to search it: the
+search reads the keys, what they do, and the group names, so `scroll` finds the
+keys that scroll and `ctrl+j` finds itself. Press `esc` to close.
 
 The list in this page and the list on the screen come from one table in the
-code, so they cannot drift apart. The status bar shows a short set of these keys
-(`n new · t preset · r resume · a archive · x stop · ? keys · q quit`), and it
-reads them from the same table.
+code, so they cannot drift apart. The status bar reads the same table. It shows
+the keys that work on their own and the three targets (`n new · t preset ·
+s session · l list · o output · ? keys · q quit`). While a sequence waits, it
+shows the actions of that target instead.
 
 ### Scrolling the output
 
@@ -126,15 +164,15 @@ A big tool result does not fill the pane. The pane shows a short summary, such
 as `← 4213 lines`, with a `⏎` mark to show that it opens. See
 [output.md](output.md).
 
-Give the output pane the focus, then press `Enter`. A dialog lists every result
-that opens. Move with `j` and `k`, then press `Enter` to page the one you want.
-The same scroll keys work inside it. Press `Esc` to step back to the list, and
-`Esc` again to close.
+Press `o r` for the list of results that open. `Enter` in the output pane opens
+the same list. Move with `j` and `k`, then press `Enter` to page the one you
+want. The same scroll keys work inside it. Press `Esc` to step back to the list,
+and `Esc` again to close.
 
 ### Showing background jobs
 
-Press `J` from the list or the output to open the jobs dialog for the selected
-session. It has two levels, the same shape as the result pager above.
+Press `s j` to open the jobs dialog for the selected session. It has two levels,
+the same shape as the result pager above.
 
 The first level lists every background job, the running ones first, then the
 finished ones. Move with `j` and `k`, or with the arrow keys, and jump to an end
@@ -179,7 +217,7 @@ ctrl+c again to quit`. The second one quits.
 Any other key press disarms it. So a `ctrl+c` you press now, and another you
 press after typing, never add up to an accidental exit.
 
-`q` quits with one press, when the focus is the list.
+`q` quits with one press, when the focus is the list or the output.
 
 Both stop every session first, with a grace period of 5 seconds, so no child
 process is left behind.

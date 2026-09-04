@@ -6,8 +6,6 @@ import (
 	"testing"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
-
 	"github.com/dextermb/claude-multiplexer/internal/manager"
 	"github.com/dextermb/claude-multiplexer/internal/render"
 )
@@ -150,9 +148,9 @@ func TestArchivingHidesASessionAndAShowsItAgain(t *testing.T) {
 
 	m.focus = focusSidebar
 	m.prompt.Blur()
-	m, cmd := step(t, m, key("a"))
+	m, cmd := chord(t, m, "s", "a")
 	if cmd == nil {
-		t.Fatal("a must return an archive command")
+		t.Fatal("s a must return an archive command")
 	}
 	m, _ = step(t, m, cmd())
 	m, _ = step(t, m, storedMsg{metas: mgr.Stored()})
@@ -160,11 +158,11 @@ func TestArchivingHidesASessionAndAShowsItAgain(t *testing.T) {
 	if len(m.rows) != 0 {
 		t.Fatalf("rows = %+v, want none after archiving", m.rows)
 	}
-	if !strings.Contains(m.View(), "Press A to show them") {
+	if !strings.Contains(m.View(), "Press l a to show them") {
 		t.Fatalf("the empty state does not mention the archive:\n%s", m.View())
 	}
 
-	m, _ = step(t, m, tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("A")})
+	m, _ = chord(t, m, "l", "a")
 	if len(m.rows) != 1 || !m.rows[0].archived {
 		t.Fatalf("rows = %+v, want the archived session back", m.rows)
 	}
@@ -172,9 +170,9 @@ func TestArchivingHidesASessionAndAShowsItAgain(t *testing.T) {
 		t.Fatalf("the archived glyph is %q, want ·", g)
 	}
 
-	m, cmd = step(t, m, key("a"))
+	m, cmd = chord(t, m, "s", "a")
 	if cmd == nil {
-		t.Fatal("a must restore an archived session")
+		t.Fatal("s a must restore an archived session")
 	}
 	m, _ = step(t, m, cmd())
 	m, _ = step(t, m, storedMsg{metas: mgr.Stored()})
@@ -191,7 +189,7 @@ func TestARunningSessionCannotBeArchived(t *testing.T) {
 
 	m.focus = focusSidebar
 	m.prompt.Blur()
-	m, cmd := step(t, m, key("a"))
+	m, cmd := chord(t, m, "s", "a")
 	if cmd != nil {
 		t.Fatal("a live session must not be archived")
 	}
