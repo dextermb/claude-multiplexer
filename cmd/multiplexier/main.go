@@ -138,7 +138,7 @@ func tuiCommand(argv []string) int {
 		return 2
 	}
 
-	settings, err := loadConfig(*configPath, *editor, *editorTerminal)
+	configPaths, editorFlags, err := settings(*configPath, *editor, *editorTerminal)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "multiplexier: %v\n", err)
 		return 2
@@ -146,6 +146,7 @@ func tuiCommand(argv []string) int {
 
 	mgr, err := manager.New(manager.Options{
 		Root:                  *root,
+		ConfigPaths:           configPaths,
 		Renderer:              render.Renderer{Verbose: *verbose},
 		MaxLines:              *maxLines,
 		ClaudePath:            *claudePath,
@@ -174,7 +175,8 @@ func tuiCommand(argv []string) int {
 
 	if err := tui.Run(tui.Options{
 		Manager:               mgr,
-		Config:                settings,
+		Config:                editorFlags,
+		ConfigPaths:           configPaths,
 		DefaultModel:          *model,
 		DefaultPermissionMode: *mode,
 		InitialDir:            initialDir,
@@ -186,19 +188,19 @@ func tuiCommand(argv []string) int {
 	return 0
 }
 
-// loadConfig reads the settings file, then puts the flags and the environment
-// over it. See docs/config.md.
-func loadConfig(path, editor, terminal string) (config.Config, error) {
+// settings names the files that hold the settings, and reads the flags that
+// sit above them. The interface reads the file again at each key press, so a
+// tool can change it while the program runs. See docs/config.md.
+func settings(path, editor, terminal string) ([]string, config.Config, error) {
 	paths := config.Paths()
 	if path != "" {
 		if _, err := os.Stat(path); err != nil {
-			return config.Config{}, err
+			return nil, config.Config{}, err
 		}
 		paths = []string{path}
 	}
-	file, err := config.Load(paths...)
-	if err != nil {
-		return config.Config{}, err
+	if _, err := config.Load(paths...); err != nil {
+		return nil, config.Config{}, err
 	}
 
 	flags := config.Config{Editor: editor}
@@ -210,9 +212,9 @@ func loadConfig(path, editor, terminal string) (config.Config, error) {
 		flags.EditorTerminal = new(bool)
 	case "auto", "":
 	default:
-		return config.Config{}, fmt.Errorf("--editor-terminal must be yes, no, or auto")
+		return nil, config.Config{}, fmt.Errorf("--editor-terminal must be yes, no, or auto")
 	}
-	return config.Resolve(flags, file), nil
+	return paths, flags, nil
 }
 
 func runCommand(argv []string) int {

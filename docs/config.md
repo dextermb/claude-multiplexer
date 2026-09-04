@@ -59,6 +59,11 @@ The value is a command line, split on the spaces, such as `code -n`. The
 directory is added as the last argument. The command runs without a shell, so
 quotes, variables, and pipes are not read.
 
+A session can write these two fields itself, with the `set_editor` tool. It
+makes the file when there is none. The interface reads the file at each `s d`,
+so the next one opens the new editor. A flag still wins, because the flag sits
+above the file. See [mcp.md](mcp.md).
+
 ## The terminal editor, and the window editor
 
 A terminal editor (vim, nvim, helix) draws in the terminal, so the interface

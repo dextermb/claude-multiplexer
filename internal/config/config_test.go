@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -161,5 +162,65 @@ func TestTheFlagOverridesTheEditorTerminalField(t *testing.T) {
 	}
 	if got.Editor != "myed" {
 		t.Fatalf("editor = %q, want myed", got.Editor)
+	}
+}
+
+func TestTargetTakesTheFileThatIsThere(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", dir)
+
+	first := filepath.Join(dir, "multiplexer", FileName)
+	second := write(t, dir, "multiplexier", `{"editor": "zed"}`)
+	if got := Target(Paths()...); got != second {
+		t.Fatalf("Target() = %q, want the file that is there %q", got, second)
+	}
+
+	write(t, dir, "multiplexer", `{"editor": "nvim"}`)
+	if got := Target(Paths()...); got != first {
+		t.Fatalf("Target() = %q, want the first spelling %q", got, first)
+	}
+}
+
+func TestTargetFallsBackToTheFirstPath(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", dir)
+
+	want := filepath.Join(dir, "multiplexer", FileName)
+	if got := Target(Paths()...); got != want {
+		t.Fatalf("Target() = %q, want %q", got, want)
+	}
+}
+
+func TestWriteMakesTheFileAndTheDirectory(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "deep", "multiplexer", FileName)
+	yes := true
+
+	if err := Write(path, Config{Editor: "nvim", EditorTerminal: &yes}); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Editor != "nvim" {
+		t.Fatalf("editor = %q, want nvim", cfg.Editor)
+	}
+	if cfg.EditorTerminal == nil || !*cfg.EditorTerminal {
+		t.Fatalf("editorTerminal = %v, want true", cfg.EditorTerminal)
+	}
+}
+
+func TestWriteLeavesOutTheFieldsThatAreNotSet(t *testing.T) {
+	path := filepath.Join(t.TempDir(), FileName)
+	if err := Write(path, Config{Editor: "zed"}); err != nil {
+		t.Fatal(err)
+	}
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(data), "editorTerminal") {
+		t.Fatalf("the file names a field that was never set:\n%s", data)
 	}
 }

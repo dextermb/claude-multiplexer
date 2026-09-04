@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/mcp"
 	"github.com/dextermb/claude-multiplexer/internal/session"
 )
@@ -572,5 +573,77 @@ func TestTheCreatorSurvivesAResume(t *testing.T) {
 	}
 	if got := m.Parents()[again]; got != "boss" {
 		t.Fatalf("the resumed session lost its creator: %q", got)
+	}
+}
+
+func withConfig(t *testing.T) (*Manager, string) {
+	t.Helper()
+	m := withMCP(t)
+	path := filepath.Join(t.TempDir(), "settings", "config.json")
+	m.opts.ConfigPaths = []string{path}
+	return m, path
+}
+
+func TestSetEditorMakesTheSettingsFile(t *testing.T) {
+	m, path := withConfig(t)
+	yes := true
+
+	got, err := m.SetEditor("nvim", &yes)
+	if err != nil {
+		t.Fatalf("SetEditor: %v", err)
+	}
+	if got != path {
+		t.Fatalf("path = %q, want %q", got, path)
+	}
+	cfg, err := config.Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Editor != "nvim" {
+		t.Fatalf("editor = %q, want nvim", cfg.Editor)
+	}
+	if cfg.EditorTerminal == nil || !*cfg.EditorTerminal {
+		t.Fatalf("editorTerminal = %v, want true", cfg.EditorTerminal)
+	}
+}
+
+func TestSetEditorKeepsTheFieldItIsNotGiven(t *testing.T) {
+	m, path := withConfig(t)
+	yes := true
+	if _, err := m.SetEditor("nvim", &yes); err != nil {
+		t.Fatalf("SetEditor: %v", err)
+	}
+
+	if _, err := m.SetEditor("code -n", nil); err != nil {
+		t.Fatalf("SetEditor: %v", err)
+	}
+	cfg, err := config.Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Editor != "code -n" {
+		t.Fatalf("editor = %q, want code -n", cfg.Editor)
+	}
+	if cfg.EditorTerminal == nil || !*cfg.EditorTerminal {
+		t.Fatalf("editorTerminal = %v, want the value it had", cfg.EditorTerminal)
+	}
+}
+
+func TestSetEditorThroughTheToolCarriesANotice(t *testing.T) {
+	m, _ := withConfig(t)
+	name, err := m.Spawn(context.Background(), Spec{Dir: t.TempDir(), Name: "docs"})
+	if err != nil {
+		t.Fatalf("Spawn: %v", err)
+	}
+	sub := m.Subscribe(256)
+	defer sub.Close()
+
+	tools := &bridge{m: m}
+	if _, err := tools.SetEditor("zed", nil, name); err != nil {
+		t.Fatalf("SetEditor: %v", err)
+	}
+	ev := awaitNotice(t, sub)
+	if !strings.Contains(ev.Notice, "docs set the editor to zed") {
+		t.Fatalf("notice = %q", ev.Notice)
 	}
 }
