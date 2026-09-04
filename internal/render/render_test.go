@@ -123,40 +123,69 @@ func TestTextReturnsThePlainStrings(t *testing.T) {
 	}
 }
 
-func TestToolResultCarriesTheWholeBodyWhenCollapsed(t *testing.T) {
+func TestToolResultCarriesTheWholeBodyAndASummary(t *testing.T) {
 	ev := decode(t, `{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":"one\ntwo\nthree"}]}}`)
 	got := Renderer{}.Lines(ev)
 	if len(got) != 1 {
 		t.Fatalf("lines = %v", got)
 	}
-	if got[0].Text != "← 3 lines" {
-		t.Fatalf("summary = %q", got[0].Text)
+	if got[0].Text != "← one\ntwo\nthree" {
+		t.Fatalf("text = %q", got[0].Text)
 	}
-	if got[0].Full != "one\ntwo\nthree" {
-		t.Fatalf("full = %q", got[0].Full)
+	if got[0].Summary != "← 3 lines" {
+		t.Fatalf("summary = %q", got[0].Summary)
 	}
 }
 
-func TestToolResultLeavesFullEmptyWhenShownWhole(t *testing.T) {
+func TestToolResultLeavesTheSummaryEmptyWhenItIsOneShortLine(t *testing.T) {
 	ev := decode(t, `{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":"short"}]}}`)
 	got := Renderer{}.Lines(ev)
-	if len(got) != 1 || got[0].Full != "" {
-		t.Fatalf("full should be empty, got %q", got[0].Full)
+	if len(got) != 1 || got[0].Summary != "" {
+		t.Fatalf("summary should be empty, got %q", got[0].Summary)
+	}
+	if got[0].Text != "← short" {
+		t.Fatalf("text = %q", got[0].Text)
 	}
 }
 
-func TestToolResultCarriesTheWholeLineWhenClipped(t *testing.T) {
+func TestToolResultSummariesALongSingleLine(t *testing.T) {
 	long := strings.Repeat("x", 300)
 	ev := decode(t, `{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":"`+long+`"}]}}`)
 	got := Renderer{ToolWidth: 20}.Lines(ev)
 	if len(got) != 1 {
 		t.Fatalf("lines = %v", got)
 	}
-	if !strings.HasSuffix(got[0].Text, "…") {
-		t.Fatalf("a clipped line must end in an ellipsis, got %q", got[0].Text)
+	if !strings.HasSuffix(got[0].Summary, "…") {
+		t.Fatalf("a clipped summary must end in an ellipsis, got %q", got[0].Summary)
 	}
-	if got[0].Full != long {
-		t.Fatalf("full = %q, want the whole line", got[0].Full)
+	if got[0].Text != "← "+long {
+		t.Fatalf("text = %q, want the whole line", got[0].Text)
+	}
+}
+
+func TestAPromptMarksItsContinuationLines(t *testing.T) {
+	got := PromptLines("one\ntwo\nthree")
+	if len(got) != 3 {
+		t.Fatalf("lines = %v", got)
+	}
+	if got[0].Cont {
+		t.Error("the first line of a prompt starts a block")
+	}
+	if !got[1].Cont || !got[2].Cont {
+		t.Error("every later line of a prompt continues that block")
+	}
+}
+
+func TestBashOutputIsABlockUnderItsCommand(t *testing.T) {
+	got := BashLines("ls", "one\ntwo", nil)
+	if len(got) != 3 {
+		t.Fatalf("lines = %v", got)
+	}
+	if got[0].Cont || got[1].Cont {
+		t.Error("the command and the first output line each start a block")
+	}
+	if !got[2].Cont {
+		t.Error("a later output line continues the output block")
 	}
 }
 
@@ -169,12 +198,12 @@ func TestRenderToolUseUsesTheCommand(t *testing.T) {
 	}
 }
 
-func TestRenderFoldsAMultiLineToolResult(t *testing.T) {
+func TestPrintFoldsAMultiLineToolResult(t *testing.T) {
 	ev := decode(t, `{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":"a\nb\nc"}]}}`)
-	if got := Text(Renderer{}.Lines(ev)); len(got) != 1 || got[0] != "← 3 lines" {
+	if got := Print(Renderer{}.Lines(ev)); len(got) != 1 || got[0] != "← 3 lines" {
 		t.Fatalf("lines = %q", got)
 	}
-	if got := Text(Renderer{Verbose: true}.Lines(ev)); len(got) != 1 || got[0] != "← a\nb\nc" {
+	if got := Print(Renderer{Verbose: true}.Lines(ev)); len(got) != 1 || got[0] != "← a\nb\nc" {
 		t.Fatalf("verbose lines = %q", got)
 	}
 }

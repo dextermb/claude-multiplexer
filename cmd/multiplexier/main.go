@@ -305,8 +305,8 @@ func stream(ctx context.Context, s *session.Session, r render.Renderer) int {
 				}
 				return code
 			}
-			for _, line := range r.Lines(ev) {
-				fmt.Fprintln(out, line.Text)
+			for _, line := range render.Print(r.Lines(ev)) {
+				fmt.Fprintln(out, line)
 			}
 			out.Flush()
 			if ev.Kind == session.KindProtocol && ev.Protocol.Type == protocol.TypeResult {

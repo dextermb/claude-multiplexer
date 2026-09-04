@@ -88,7 +88,6 @@ var sequenceActions = map[string]action{
 	"l a": Model.toggleArchived,
 
 	"o m": Model.toggleMarkdown,
-	"o r": Model.openResults,
 }
 
 // sequenceHints lists the action keys of a target, for the status bar.

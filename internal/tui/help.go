@@ -42,7 +42,6 @@ var bindings = []binding{
 	{"The list (l)", "l", "l a", "Show or hide the archived sessions", "a archived"},
 
 	{"The output pane (o)", "o", "o m", "Switch between rendered markdown and raw text", "m markdown"},
-	{"The output pane (o)", "o", "o r", "Open the list of large results", "r results"},
 
 	{"Moving", "", "j  k  up  down", "Move through the list, or scroll the output", ""},
 	{"Moving", "", "tab", "Move to the next pane", ""},
@@ -57,7 +56,8 @@ var bindings = []binding{
 	{"The output", "", "u  d", "Scroll half a pane", ""},
 	{"The output", "", "pgup  pgdown", "Scroll a whole pane", ""},
 	{"The output", "", "g  G  home  end", "Go to the top, and to the bottom", ""},
-	{"The output", "", "enter", "Open a large result, or move to the prompt", ""},
+	{"The output", "", "[  ]", "Move the cursor between the capped blocks", ""},
+	{"The output", "", "enter", "Open or close the block under the cursor", ""},
 	{"The output", "", "i", "Move to the prompt", ""},
 
 	{"The new session form", "", "tab", "Complete the path, or move to the next field", ""},

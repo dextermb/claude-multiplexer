@@ -30,9 +30,25 @@ const (
 type Line struct {
 	Class Class
 	Text  string
-	// Full holds the whole body when Text is only a collapsed summary. It is
-	// empty for a plain line. See docs/tui/output.md.
-	Full string
+	// Summary holds the one-line form of Text, for a printer that shows one
+	// line for each event. It is empty when Text is already one line.
+	Summary string
+	// Cont marks a line that continues the block the line before it started.
+	Cont bool
+}
+
+// Print returns the line a one-line printer shows for each line: the summary
+// when there is one, and the text when there is not. See docs/tui/output.md.
+func Print(lines []Line) []string {
+	out := make([]string, 0, len(lines))
+	for _, line := range lines {
+		if line.Summary != "" {
+			out = append(out, line.Summary)
+			continue
+		}
+		out = append(out, line.Text)
+	}
+	return out
 }
 
 func Text(lines []Line) []string {
@@ -99,8 +115,8 @@ func (r Renderer) protocolLines(ev protocol.Event) []Line {
 func BashLines(command, output string, err error) []Line {
 	out := []Line{{Class: ClassBash, Text: "! " + command}}
 	if body := strings.TrimRight(output, "\n"); body != "" {
-		for _, line := range strings.Split(body, "\n") {
-			out = append(out, Line{Class: ClassBash, Text: line})
+		for i, line := range strings.Split(body, "\n") {
+			out = append(out, Line{Class: ClassBash, Text: line, Cont: i > 0})
 		}
 	}
 	if err != nil {
@@ -140,7 +156,7 @@ func PromptLines(text string) []Line {
 		if i == 0 {
 			prefix = "› "
 		}
-		out = append(out, Line{Class: ClassPrompt, Text: prefix + line})
+		out = append(out, Line{Class: ClassPrompt, Text: prefix + line, Cont: i > 0})
 	}
 	return out
 }
@@ -161,38 +177,38 @@ func (r Renderer) messageLines(msg *protocol.Message) []Line {
 			out = append(out, Line{Class: ClassToolUse,
 				Text: fmt.Sprintf("→ %s %s", block.Name, r.clip(summariseInput(block.Input)))})
 		case "tool_result":
-			text, full := r.toolResultLine(block)
-			out = append(out, Line{Class: ClassToolResult, Text: text, Full: full})
+			text, summary := r.toolResultLine(block)
+			out = append(out, Line{Class: ClassToolResult, Text: text, Summary: summary})
 		}
 	}
 	return out
 }
 
-// toolResultLine returns the line shown in the pane and, when that line is only
-// a collapsed summary, the whole body so the pane can open it. A body that is
-// shown in full returns an empty second value.
+// toolResultLine returns the whole body, which the pane draws, and the one-line
+// summary of it, which a one-line printer draws. A body that is already one
+// short line returns an empty summary. See docs/tui/output.md.
 func (r Renderer) toolResultLine(block protocol.Block) (string, string) {
 	text := block.Content.Text()
 	mark := "←"
 	if block.IsError {
 		mark = "←!"
 	}
-	if r.Verbose {
-		return fmt.Sprintf("%s %s", mark, text), ""
-	}
 	if strings.TrimSpace(text) == "" {
 		return fmt.Sprintf("%s result", mark), ""
 	}
 	trimmed := strings.TrimRight(text, "\n")
-	lines := strings.Count(trimmed, "\n") + 1
-	if lines == 1 {
-		clipped := r.clip(text)
-		if clipped != strings.TrimSpace(text) {
-			return fmt.Sprintf("%s %s", mark, clipped), trimmed
-		}
-		return fmt.Sprintf("%s %s", mark, clipped), ""
+	body := fmt.Sprintf("%s %s", mark, trimmed)
+	if r.Verbose {
+		return body, ""
 	}
-	return fmt.Sprintf("%s %d lines", mark, lines), trimmed
+	lines := strings.Count(trimmed, "\n") + 1
+	if lines > 1 {
+		return body, fmt.Sprintf("%s %d lines", mark, lines)
+	}
+	if clipped := r.clip(trimmed); clipped != strings.TrimSpace(trimmed) {
+		return body, fmt.Sprintf("%s %s", mark, clipped)
+	}
+	return body, ""
 }
 
 func (r Renderer) resultLine(res *protocol.Result) string {

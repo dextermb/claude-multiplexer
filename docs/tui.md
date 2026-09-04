@@ -12,7 +12,7 @@ in `internal/tui`. It talks only to the manager, which is described in
 ▎ ⠋ api                ⇢2│ ● 2127c615 · claude-opus-4-8 · 31 tools
 ▎ ○ invoices             │ → Bash echo hello
 ▎▾ multiplexer          1│ ← hello
-▎ ● docs                 │ ← 4213 lines  ⏎
+▎ ● docs                 │ ▸ ⋯ 4193 more lines
 ▎▸ notes              ○ 1│ The loader has three problems▌
 ▎                        │
 ▎                        │
@@ -40,9 +40,9 @@ A dialog draws in one of two regions.
 
 A **session dialog** names one session, so it draws in the pane, under the
 session bar, in place of the output. The sidebar, the session bar, the prompt
-and the status bar stay on the screen. The jobs list, the result pager, the
-model, effort and mode dialogs, the rename dialog, and the stop confirmation
-draw here, and each one covers the side panel as well. The question dialog also
+and the status bar stay on the screen. The jobs list, the model,
+effort and mode dialogs, the rename dialog, and the stop confirmation draw here,
+and each one covers the side panel as well. The question dialog also
 draws here, but it keeps the side panel beside it. See
 [tui/input.md](tui/input.md).
 
