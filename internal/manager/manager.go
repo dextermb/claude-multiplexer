@@ -32,6 +32,7 @@ var (
 
 type Options struct {
 	Root                  string
+	ConfigPaths           []string
 	Renderer              render.Renderer
 	MaxLines              int
 	ClaudePath            string

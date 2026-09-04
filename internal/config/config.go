@@ -17,8 +17,8 @@ const FileName = "config.json"
 var Names = []string{"multiplexer", "multiplexier"}
 
 type Config struct {
-	Editor         string `json:"editor"`
-	EditorTerminal *bool  `json:"editorTerminal"`
+	Editor         string `json:"editor,omitempty"`
+	EditorTerminal *bool  `json:"editorTerminal,omitempty"`
 }
 
 // Paths lists the settings files to look for, in order.
@@ -36,6 +36,35 @@ func Paths() []string {
 		out = append(out, filepath.Join(dir, name, FileName))
 	}
 	return out
+}
+
+// Target names the file to write: the first one that is there, and the first
+// path when none of them is.
+func Target(paths ...string) string {
+	for _, path := range paths {
+		if _, err := os.Stat(path); err == nil {
+			return path
+		}
+	}
+	if len(paths) == 0 {
+		return ""
+	}
+	return paths[0]
+}
+
+// Write puts the settings in path, and makes the directory when it is missing.
+func Write(path string, cfg Config) error {
+	if path == "" {
+		return errors.New("config: no path to write")
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return err
+	}
+	data, err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, append(data, '\n'), 0o600)
 }
 
 // Load reads the first file that is there. A file that is not there gives an
