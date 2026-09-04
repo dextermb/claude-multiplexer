@@ -223,8 +223,8 @@ func (m *Manager) Parents() map[string]string {
 	defer m.mu.Unlock()
 	out := make(map[string]string, len(m.entries))
 	for name, item := range m.entries {
-		if item.meta.Parent != "" {
-			out[name] = item.meta.Parent
+		if parent := item.metaCopy().Parent; parent != "" {
+			out[name] = parent
 		}
 	}
 	return out

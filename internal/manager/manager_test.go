@@ -827,3 +827,31 @@ func TestTheTranscriptHoldsNoPartialEvents(t *testing.T) {
 		t.Fatalf("the reply appears %d times in the replay, want once:\n%s", got, replay)
 	}
 }
+
+func TestTheRecordOfALiveSessionTakesAReadWhileThePumpWrites(t *testing.T) {
+	m := newTestManager(t)
+	name, err := m.Spawn(context.Background(), Spec{Dir: t.TempDir(), Name: "docs"})
+	if err != nil {
+		t.Fatalf("Spawn: %v", err)
+	}
+
+	stop := make(chan struct{})
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for {
+			select {
+			case <-stop:
+				return
+			default:
+				m.Parents()
+				m.Grants()
+				m.List()
+			}
+		}
+	}()
+
+	runOneTurn(t, m, name, "hello")
+	close(stop)
+	<-done
+}
