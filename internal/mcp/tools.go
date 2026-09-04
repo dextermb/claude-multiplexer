@@ -71,6 +71,17 @@ type unsetEditorOut struct {
 	Message string `json:"message"`
 }
 
+type setWorkingDirIn struct {
+	Path string `json:"path" jsonschema:"the directory this session works in now, such as '.worktrees/feature'; a relative path is resolved against the directory the session started in"`
+}
+
+type workingDirOut struct {
+	OK      bool   `json:"ok"`
+	Path    string `json:"path,omitempty"`
+	Changed bool   `json:"changed"`
+	Message string `json:"message"`
+}
+
 type okOut struct {
 	OK      bool   `json:"ok"`
 	Message string `json:"message"`
@@ -196,6 +207,39 @@ func (s *Server) build(caller string, control bool) *sdk.Server {
 			return nil, unsetEditorOut{}, err
 		}
 		return nil, unsetEditorOut{OK: true, Path: path, Changed: changed, Message: clearedMessage(in.Field, changed, path)}, nil
+	})
+
+	sdk.AddTool(server, &sdk.Tool{
+		Name: ToolSetWorkingDir,
+		Description: "Say which directory this session works in now, so the human opens that one instead of the directory the session started in. " +
+			"Call it after you move into a worktree. The directory must exist.",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, in setWorkingDirIn) (*sdk.CallToolResult, workingDirOut, error) {
+		path := strings.TrimSpace(in.Path)
+		if path == "" {
+			return nil, workingDirOut{}, ErrNoDir
+		}
+		full, err := s.sessions.SetWorkingDir(path, caller)
+		if err != nil {
+			return nil, workingDirOut{}, err
+		}
+		return nil, workingDirOut{OK: true, Path: full, Changed: true,
+			Message: caller + " works in " + full + " now"}, nil
+	})
+
+	sdk.AddTool(server, &sdk.Tool{
+		Name: ToolUnsetWorkingDir,
+		Description: "Take the working directory off this session, so the human opens the directory the session started in again. " +
+			"Call it after you collapse a worktree.",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, _ struct{}) (*sdk.CallToolResult, workingDirOut, error) {
+		changed, err := s.sessions.UnsetWorkingDir(caller)
+		if err != nil {
+			return nil, workingDirOut{}, err
+		}
+		message := caller + " had no working directory"
+		if changed {
+			message = caller + " works in the directory it started in again"
+		}
+		return nil, workingDirOut{OK: true, Changed: changed, Message: message}, nil
 	})
 
 	if !control {

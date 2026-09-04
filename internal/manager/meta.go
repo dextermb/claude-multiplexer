@@ -22,6 +22,7 @@ type Meta struct {
 	Cost            float64   `json:"cost_usd"`
 	InputTokens     int       `json:"input_tokens"`
 	OutputTokens    int       `json:"output_tokens"`
+	WorkingDir      string    `json:"working_dir,omitempty"`
 	Control         bool      `json:"control,omitempty"`
 	Parent          string    `json:"parent,omitempty"`
 	Archived        bool      `json:"archived"`
@@ -34,6 +35,7 @@ func (m Meta) sameAs(other Meta) bool {
 		m.Model == other.Model &&
 		m.PermissionMode == other.PermissionMode &&
 		m.Effort == other.Effort &&
+		m.WorkingDir == other.WorkingDir &&
 		m.Control == other.Control &&
 		m.Turns == other.Turns &&
 		m.Cost == other.Cost &&
