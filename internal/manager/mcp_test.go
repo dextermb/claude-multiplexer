@@ -647,3 +647,86 @@ func TestSetEditorThroughTheToolCarriesANotice(t *testing.T) {
 		t.Fatalf("notice = %q", ev.Notice)
 	}
 }
+
+func TestUnsetEditorTakesTheFieldsOutOfTheFile(t *testing.T) {
+	m, path := withConfig(t)
+	yes := true
+	if _, err := m.SetEditor("nvim", &yes); err != nil {
+		t.Fatalf("SetEditor: %v", err)
+	}
+
+	got, changed, err := m.UnsetEditor(config.FieldTerminal)
+	if err != nil {
+		t.Fatalf("UnsetEditor: %v", err)
+	}
+	if got != path || !changed {
+		t.Fatalf("path = %q, changed = %v, want %q and true", got, changed, path)
+	}
+	cfg, err := config.Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Editor != "nvim" {
+		t.Fatalf("editor = %q, want it untouched", cfg.Editor)
+	}
+	if cfg.EditorTerminal != nil {
+		t.Fatalf("editorTerminal = %v, want it cleared", cfg.EditorTerminal)
+	}
+
+	if _, changed, err = m.UnsetEditor(config.FieldBoth); err != nil {
+		t.Fatalf("UnsetEditor: %v", err)
+	}
+	if !changed {
+		t.Fatal("the editor was still set, so the call must change the file")
+	}
+	if cfg, err = config.Load(path); err != nil || cfg.Editor != "" {
+		t.Fatalf("editor = %q (err %v), want none", cfg.Editor, err)
+	}
+}
+
+func TestUnsetEditorMakesNoFileWhenThereIsNothingToClear(t *testing.T) {
+	m, path := withConfig(t)
+
+	got, changed, err := m.UnsetEditor("")
+	if err != nil {
+		t.Fatalf("UnsetEditor: %v", err)
+	}
+	if got != path {
+		t.Fatalf("path = %q, want %q", got, path)
+	}
+	if changed {
+		t.Fatal("there was nothing to clear, so nothing changed")
+	}
+	if _, err := os.Stat(path); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("the file exists, want none: %v", err)
+	}
+}
+
+func TestUnsetEditorRefusesAFieldItDoesNotKnow(t *testing.T) {
+	m, _ := withConfig(t)
+	if _, _, err := m.UnsetEditor("colour"); err == nil {
+		t.Fatal("an unknown field must give an error")
+	}
+}
+
+func TestUnsetEditorThroughTheToolCarriesANotice(t *testing.T) {
+	m, _ := withConfig(t)
+	if _, err := m.SetEditor("zed", nil); err != nil {
+		t.Fatalf("SetEditor: %v", err)
+	}
+	name, err := m.Spawn(context.Background(), Spec{Dir: t.TempDir(), Name: "docs"})
+	if err != nil {
+		t.Fatalf("Spawn: %v", err)
+	}
+	sub := m.Subscribe(256)
+	defer sub.Close()
+
+	tools := &bridge{m: m}
+	if _, _, err := tools.UnsetEditor(config.FieldEditor, name); err != nil {
+		t.Fatalf("UnsetEditor: %v", err)
+	}
+	ev := awaitNotice(t, sub)
+	if !strings.Contains(ev.Notice, "docs cleared the editor") {
+		t.Fatalf("notice = %q", ev.Notice)
+	}
+}

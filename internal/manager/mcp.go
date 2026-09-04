@@ -387,6 +387,28 @@ func (b *bridge) SetEditor(editor string, terminal *bool, by string) (string, er
 	return path, nil
 }
 
+func (b *bridge) UnsetEditor(field, by string) (string, bool, error) {
+	path, changed, err := b.m.UnsetEditor(field)
+	if err != nil {
+		return "", false, err
+	}
+	if changed {
+		b.m.notify(by, by+" cleared "+clearedNotice(field), false)
+	}
+	return path, changed, nil
+}
+
+func clearedNotice(field string) string {
+	switch field {
+	case config.FieldEditor:
+		return "the editor"
+	case config.FieldTerminal:
+		return "the terminal flag of the editor"
+	default:
+		return "the editor settings"
+	}
+}
+
 func editorNotice(editor string, terminal *bool) string {
 	if editor == "" {
 		if terminal != nil && *terminal {
@@ -401,8 +423,6 @@ func (b *bridge) StopJob(target, jobID, by string) (int, error) {
 	return b.m.StopJobFrom(target, by, jobID)
 }
 
-// notify publishes a change that no session event follows, so the interface
-// learns of it without a timer. See docs/mcp.md.
 // SetEditor writes the editor settings, so a session can name the editor the
 // human opens a directory with. See docs/config.md.
 func (m *Manager) SetEditor(editor string, terminal *bool) (string, error) {
@@ -426,6 +446,32 @@ func (m *Manager) SetEditor(editor string, terminal *bool) (string, error) {
 	return path, nil
 }
 
+// UnsetEditor takes the editor settings out of the settings file. It reports
+// whether the file held anything to take out. See docs/config.md.
+func (m *Manager) UnsetEditor(field string) (string, bool, error) {
+	path := config.Target(m.opts.ConfigPaths...)
+	if path == "" {
+		return "", false, errors.New("manager: no settings file to write")
+	}
+	current, err := config.Load(path)
+	if err != nil {
+		return "", false, err
+	}
+	next, err := config.Clear(current, field)
+	if err != nil {
+		return "", false, err
+	}
+	if next == current {
+		return path, false, nil
+	}
+	if err := config.Write(path, next); err != nil {
+		return "", false, err
+	}
+	return path, true, nil
+}
+
+// notify publishes a change that no session event follows, so the interface
+// learns of it without a timer. See docs/mcp.md.
 func (m *Manager) notify(name, notice string, reload bool) {
 	m.bus.Publish(Event{Session: name, Notice: notice, Reload: reload})
 }

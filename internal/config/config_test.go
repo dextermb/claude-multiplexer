@@ -224,3 +224,30 @@ func TestWriteLeavesOutTheFieldsThatAreNotSet(t *testing.T) {
 		t.Fatalf("the file names a field that was never set:\n%s", data)
 	}
 }
+
+func TestClearTakesOutTheFieldItIsGiven(t *testing.T) {
+	yes := true
+	full := Config{Editor: "nvim", EditorTerminal: &yes}
+
+	cases := map[string]Config{
+		FieldEditor:   {EditorTerminal: &yes},
+		FieldTerminal: {Editor: "nvim"},
+		FieldBoth:     {},
+		"":            {},
+	}
+	for field, want := range cases {
+		got, err := Clear(full, field)
+		if err != nil {
+			t.Fatalf("Clear(%q): %v", field, err)
+		}
+		if got.Editor != want.Editor || (got.EditorTerminal == nil) != (want.EditorTerminal == nil) {
+			t.Errorf("Clear(%q) = %+v, want %+v", field, got, want)
+		}
+	}
+}
+
+func TestClearRefusesAFieldItDoesNotKnow(t *testing.T) {
+	if _, err := Clear(Config{Editor: "nvim"}, "colour"); err == nil {
+		t.Fatal("an unknown field must give an error")
+	}
+}

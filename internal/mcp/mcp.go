@@ -14,22 +14,23 @@ import (
 const ServerName = "mux"
 
 const (
-	ToolRename    = "rename_session"
-	ToolList      = "list_sessions"
-	ToolMessages  = "get_messages"
-	ToolListJobs  = "list_jobs"
-	ToolSetEditor = "set_editor"
-	ToolSend      = "send_message"
-	ToolStop      = "stop_session"
-	ToolArchive   = "archive_session"
-	ToolCreate    = "create_session"
-	ToolStopJob   = "stop_job"
+	ToolRename      = "rename_session"
+	ToolList        = "list_sessions"
+	ToolMessages    = "get_messages"
+	ToolListJobs    = "list_jobs"
+	ToolSetEditor   = "set_editor"
+	ToolUnsetEditor = "unset_editor"
+	ToolSend        = "send_message"
+	ToolStop        = "stop_session"
+	ToolArchive     = "archive_session"
+	ToolCreate      = "create_session"
+	ToolStopJob     = "stop_job"
 )
 
 // OpenTools go to every session. ControlTools go only to a session that holds
 // the control grant.
 var (
-	OpenTools    = []string{ToolRename, ToolList, ToolMessages, ToolListJobs, ToolSetEditor}
+	OpenTools    = []string{ToolRename, ToolList, ToolMessages, ToolListJobs, ToolSetEditor, ToolUnsetEditor}
 	ControlTools = []string{ToolSend, ToolStop, ToolArchive, ToolCreate, ToolStopJob}
 )
 
@@ -106,6 +107,7 @@ type Sessions interface {
 	Messages(name string, limit int) ([]Message, error)
 	Jobs(name string) ([]Job, error)
 	SetEditor(editor string, terminal *bool, by string) (string, error)
+	UnsetEditor(field, by string) (string, bool, error)
 	StopJob(target, jobID, by string) (int, error)
 }
 
