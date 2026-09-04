@@ -108,11 +108,7 @@ func (p *pager) open() {
 }
 
 func (p *pager) innerWidth() int {
-	inner := p.width - 8
-	if inner < 40 {
-		inner = 40
-	}
-	return inner
+	return modalInner(p.width)
 }
 
 func (p *pager) docHeight() int {
