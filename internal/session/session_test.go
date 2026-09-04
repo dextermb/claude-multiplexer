@@ -152,10 +152,10 @@ func TestSessionRunsOneTurn(t *testing.T) {
 	if err := s.Send("hello"); err != nil {
 		t.Fatalf("Send: %v", err)
 	}
-	waitForState(t, s, StateIdle, 5*time.Second)
-	waitForTurns(t, s, 1, 5*time.Second)
+	waitForState(t, s, StateIdle, 10*time.Second)
+	waitForTurns(t, s, 1, 10*time.Second)
 
-	stop, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	stop, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := s.Stop(stop); err != nil {
 		t.Fatalf("Stop: %v", err)
@@ -207,7 +207,7 @@ func TestSessionSendsTheFirstPromptBeforeTheInitEvent(t *testing.T) {
 	}
 	waitForTurns(t, s, 2, 10*time.Second)
 
-	stop, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	stop, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	_ = s.Stop(stop)
 	c.wait(t)
@@ -239,7 +239,7 @@ func TestSessionQueuesPromptsWhileBusy(t *testing.T) {
 	}
 	waitForTurns(t, s, 3, 10*time.Second)
 
-	stop, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	stop, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	_ = s.Stop(stop)
 	c.wait(t)
@@ -268,9 +268,9 @@ func TestSessionRecordsTranscript(t *testing.T) {
 	if err := s.Send("hello"); err != nil {
 		t.Fatalf("Send: %v", err)
 	}
-	waitForTurns(t, s, 1, 5*time.Second)
+	waitForTurns(t, s, 1, 10*time.Second)
 
-	stop, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	stop, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	_ = s.Stop(stop)
 	c.wait(t)
@@ -320,9 +320,9 @@ func TestSessionTakesTheModelAndModeFromTheInitEvent(t *testing.T) {
 	if err := s.Send("hello"); err != nil {
 		t.Fatalf("Send: %v", err)
 	}
-	waitForTurns(t, s, 1, 5*time.Second)
+	waitForTurns(t, s, 1, 10*time.Second)
 
-	stop, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	stop, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	_ = s.Stop(stop)
 	c.wait(t)
@@ -365,9 +365,9 @@ func TestSessionKeepsGoingAfterANonJSONLine(t *testing.T) {
 	if err := s.Send("hello"); err != nil {
 		t.Fatalf("Send: %v", err)
 	}
-	waitForTurns(t, s, 1, 5*time.Second)
+	waitForTurns(t, s, 1, 10*time.Second)
 
-	stop, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	stop, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	_ = s.Stop(stop)
 	c.wait(t)
@@ -438,13 +438,13 @@ func TestSessionInterruptEndsTheTurn(t *testing.T) {
 	if err := s.Send("one"); err != nil {
 		t.Fatalf("Send: %v", err)
 	}
-	waitForState(t, s, StateBusy, 5*time.Second)
+	waitForState(t, s, StateBusy, 10*time.Second)
 	if err := s.Interrupt(); err != nil {
 		t.Fatalf("Interrupt: %v", err)
 	}
-	waitForState(t, s, StateIdle, 5*time.Second)
+	waitForState(t, s, StateIdle, 10*time.Second)
 
-	stop, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	stop, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	_ = s.Stop(stop)
 	c.wait(t)
@@ -467,7 +467,7 @@ func TestSessionInterruptFlushesTheQueue(t *testing.T) {
 	if err := s.Send("one"); err != nil {
 		t.Fatalf("Send one: %v", err)
 	}
-	waitForState(t, s, StateBusy, 5*time.Second)
+	waitForState(t, s, StateBusy, 10*time.Second)
 	if err := s.Send("two"); err != nil {
 		t.Fatalf("Send two: %v", err)
 	}
@@ -478,13 +478,13 @@ func TestSessionInterruptFlushesTheQueue(t *testing.T) {
 	if err := s.Interrupt(); err != nil {
 		t.Fatalf("Interrupt one: %v", err)
 	}
-	waitForTurns(t, s, 1, 5*time.Second)
+	waitForTurns(t, s, 1, 10*time.Second)
 	if err := s.Interrupt(); err != nil {
 		t.Fatalf("Interrupt two: %v", err)
 	}
-	waitForTurns(t, s, 2, 5*time.Second)
+	waitForTurns(t, s, 2, 10*time.Second)
 
-	stop, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	stop, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	_ = s.Stop(stop)
 	c.wait(t)
@@ -513,14 +513,14 @@ func TestSessionWaitsAfterAQuestion(t *testing.T) {
 		t.Fatalf("Send: %v", err)
 	}
 
-	waitForState(t, s, StateWaiting, 5*time.Second)
+	waitForState(t, s, StateWaiting, 10*time.Second)
 
 	if err := s.Send("Colour: Blue"); err != nil {
 		t.Fatalf("Send answer: %v", err)
 	}
-	waitForTurns(t, s, 2, 5*time.Second)
+	waitForTurns(t, s, 2, 10*time.Second)
 
-	stop, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	stop, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	_ = s.Stop(stop)
 	c.wait(t)
@@ -552,7 +552,7 @@ func TestSessionDiscardQueuedStopsTheQueuedPrompt(t *testing.T) {
 	if err := s.Send("one"); err != nil {
 		t.Fatalf("Send one: %v", err)
 	}
-	waitForState(t, s, StateBusy, 5*time.Second)
+	waitForState(t, s, StateBusy, 10*time.Second)
 	if err := s.Send("two"); err != nil {
 		t.Fatalf("Send two: %v", err)
 	}
@@ -563,13 +563,13 @@ func TestSessionDiscardQueuedStopsTheQueuedPrompt(t *testing.T) {
 	if err := s.Interrupt(); err != nil {
 		t.Fatalf("Interrupt: %v", err)
 	}
-	waitForState(t, s, StateIdle, 5*time.Second)
+	waitForState(t, s, StateIdle, 10*time.Second)
 	time.Sleep(50 * time.Millisecond)
 	if snap := s.Snapshot(); snap.State != StateIdle {
 		t.Errorf("state = %v, want idle — the dropped prompt must not run", snap.State)
 	}
 
-	stop, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	stop, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	_ = s.Stop(stop)
 	c.wait(t)

@@ -196,7 +196,7 @@ func TestManagerSurvivesASlowSubscriber(t *testing.T) {
 	}
 	waitFor(t, 20*time.Second, func() bool {
 		snap, err := m.Snapshot(name)
-		return err == nil && snap.Turns >= 5
+		return err == nil && snap.Turns >= 5 && len(m.Lines(name)) >= 5
 	})
 	if slow.Dropped() == 0 {
 		t.Error("a subscriber with a buffer of one must drop events")
@@ -216,8 +216,16 @@ func TestManagerShowsThePromptInTheOutput(t *testing.T) {
 		t.Fatalf("Send: %v", err)
 	}
 	waitFor(t, 10*time.Second, func() bool {
-		snap, err := m.Snapshot(name)
-		return err == nil && snap.Turns >= 1
+		var prompt, reply bool
+		for _, line := range m.Lines(name) {
+			if line.Class == render.ClassPrompt {
+				prompt = true
+			}
+			if strings.HasPrefix(line.Text, "echo: ") {
+				reply = true
+			}
+		}
+		return prompt && reply
 	})
 
 	lines := m.Lines(name)
@@ -263,20 +271,16 @@ func TestManagerPausesAndPublishesAQuestion(t *testing.T) {
 		t.Fatalf("Send: %v", err)
 	}
 
-	waitFor(t, 10*time.Second, func() bool {
-		snap, err := m.Snapshot(name)
-		return err == nil && snap.State == session.StateWaiting
-	})
-
-	var asked bool
-	for len(sub.C) > 0 {
-		ev := <-sub.C
-		if len(ev.Questions) > 0 && ev.Questions[0].Header == "Colour" {
-			asked = true
+	deadline := time.After(10 * time.Second)
+	for {
+		select {
+		case ev := <-sub.C:
+			if len(ev.Questions) > 0 && ev.Questions[0].Header == "Colour" {
+				return
+			}
+		case <-deadline:
+			t.Fatal("the pump did not publish the question")
 		}
-	}
-	if !asked {
-		t.Fatal("the pump did not publish the question")
 	}
 }
 
@@ -733,22 +737,25 @@ func TestPartialTextGrowsAndThenClears(t *testing.T) {
 	if err := m.Send(name, "hello there friend"); err != nil {
 		t.Fatalf("Send: %v", err)
 	}
-	waitFor(t, 10*time.Second, func() bool {
-		snap, err := m.Snapshot(name)
-		return err == nil && snap.Turns >= 1
-	})
 
 	var partials []string
 	var afterReply string
-	for len(sub.C) > 0 {
-		ev := <-sub.C
-		if ev.Partial != "" {
-			partials = append(partials, ev.Partial)
-		}
-		for _, line := range ev.Lines {
-			if strings.HasPrefix(line.Text, "echo: ") {
-				afterReply = ev.Partial
+	deadline := time.After(10 * time.Second)
+collect:
+	for {
+		select {
+		case ev := <-sub.C:
+			if ev.Partial != "" {
+				partials = append(partials, ev.Partial)
 			}
+			for _, line := range ev.Lines {
+				if strings.HasPrefix(line.Text, "echo: ") {
+					afterReply = ev.Partial
+					break collect
+				}
+			}
+		case <-deadline:
+			t.Fatal("timed out waiting for the reply event")
 		}
 	}
 
