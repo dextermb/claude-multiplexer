@@ -85,6 +85,7 @@ func paneStyle() ansi.StyleConfig {
 	style.Document.BlockPrefix = ""
 	style.Document.BlockSuffix = ""
 	style.CodeBlock.Margin = &none
+	style.CodeBlock.Chroma = plainErrors(style.CodeBlock.Chroma)
 
 	heading := headingStyle()
 	style.Heading = heading
@@ -95,6 +96,17 @@ func paneStyle() ansi.StyleConfig {
 	style.H5 = heading
 	style.H6 = heading
 	return style
+}
+
+// plainErrors copies the chroma style and gives an unclassified character the
+// colour of plain code text. See docs/markdown.md.
+func plainErrors(chroma *ansi.Chroma) *ansi.Chroma {
+	if chroma == nil {
+		return nil
+	}
+	next := *chroma
+	next.Error = next.Text
+	return &next
 }
 
 func headingStyle() ansi.StyleBlock {
