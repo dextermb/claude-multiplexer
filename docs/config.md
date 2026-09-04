@@ -43,7 +43,7 @@ a typing mistake.
 
 ## Which editor
 
-Four sources name the editor. The first one that names one wins:
+Five sources name the editor. The first one that names one wins:
 
 | Order | Source | Example |
 |---|---|---|
@@ -51,9 +51,24 @@ Four sources name the editor. The first one that names one wins:
 | 2 | `$VISUAL` | `export VISUAL=nvim` |
 | 3 | `$EDITOR` | `export EDITOR=vi` |
 | 4 | `editor` in the settings file | `{"editor": "zed"}` |
+| 5 | `env.VISUAL`, then `env.EDITOR`, in the settings of Claude Code | `{"env": {"EDITOR": "zed --wait"}}` |
 
 When no source names an editor, `s d` opens nothing, and the status bar reads
 `no editor: set --editor, $EDITOR, or the config file`.
+
+### The settings of Claude Code
+
+Many people already name their editor in `~/.claude/settings.json`, in the
+`env` block that Claude Code puts into the environment of a shell. So the last
+rung reads that file, and you get an editor without setting one twice.
+
+`$CLAUDE_CONFIG_DIR` moves the file, the same as it does for Claude Code
+itself. The program reads the global file only, not the settings of a project.
+
+The file belongs to another program, so this one is careful with it: it never
+writes it, and a file that is missing, or that does not parse, is not an error.
+It simply names no editor. `set_editor` always writes the settings file of the
+multiplexer.
 
 The value is a command line, split on the spaces, such as `code -n`. The
 directory is added as the last argument. The command runs without a shell, so
