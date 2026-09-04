@@ -52,6 +52,9 @@ type spawnedMsg struct {
 type storedMsg struct {
 	metas []manager.Meta
 }
+type settingsMsg struct {
+	blockCap int
+}
 type stoppedMsg struct {
 	name string
 	err  error
@@ -114,6 +117,7 @@ type Model struct {
 	blockStart  map[int]int
 	hiddenRows  map[int]int
 	blockCursor int
+	blockCap    int
 	content     string
 	selection   selRange
 	prompt      textarea.Model
@@ -174,6 +178,7 @@ func New(opts Options) Model {
 		prompt:      prompt,
 		pathPicked:  -1,
 		blockCursor: -1,
+		blockCap:    config.DefaultBlockCap,
 		focus:       focusSidebar,
 		mouseOn:     true,
 	}
@@ -186,7 +191,7 @@ func Run(opts Options) error {
 }
 
 func (m Model) Init() tea.Cmd {
-	cmds := []tea.Cmd{waitEvent(m.sub), textarea.Blink, reloadStored(m.mgr)}
+	cmds := []tea.Cmd{waitEvent(m.sub), textarea.Blink, reloadStored(m.mgr), m.readSettings()}
 	if m.opts.InitialDir != "" {
 		cmds = append(cmds, spawnCmd(m.mgr, manager.Spec{Dir: m.opts.InitialDir, Control: m.opts.InitialControl}))
 	}
@@ -288,6 +293,8 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleSpawned(msg)
 	case storedMsg:
 		return m.handleStored(msg)
+	case settingsMsg:
+		return m.handleSettings(msg)
 	case archivedMsg:
 		if msg.err != nil {
 			m.errText = msg.err.Error()
@@ -370,6 +377,30 @@ func (m *Model) maybeOpenForm() tea.Cmd {
 	return textarea.Blink
 }
 
+// readSettings reads the settings file away from the main loop. The interface
+// reads it again at each notice, so a tool that writes it takes effect at once.
+// See docs/config.md.
+func (m Model) readSettings() tea.Cmd {
+	opts := m.opts
+	return func() tea.Msg {
+		file, err := config.Load(opts.ConfigPaths...)
+		if err != nil {
+			return settingsMsg{blockCap: config.DefaultBlockCap}
+		}
+		merged := config.Resolve(opts.Config, file, config.LoadClaude(opts.ClaudePaths...))
+		return settingsMsg{blockCap: config.BlockCapOrDefault(merged)}
+	}
+}
+
+func (m Model) handleSettings(msg settingsMsg) (tea.Model, tea.Cmd) {
+	if msg.blockCap == m.blockCap {
+		return m, nil
+	}
+	m.blockCap = msg.blockCap
+	m.rebuildOutput()
+	return m, nil
+}
+
 func (m Model) handleStored(msg storedMsg) (tea.Model, tea.Cmd) {
 	m.stored = msg.metas
 	m.storedLoaded = true
@@ -431,7 +462,7 @@ func (m Model) handleNotice(ev manager.Event) (tea.Model, tea.Cmd) {
 		m.status = ev.Notice
 	}
 	m.refresh()
-	cmds := []tea.Cmd{waitEvent(m.sub)}
+	cmds := []tea.Cmd{waitEvent(m.sub), m.readSettings()}
 	if ev.Reload {
 		cmds = append(cmds, reloadStored(m.mgr))
 	}

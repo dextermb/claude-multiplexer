@@ -41,7 +41,7 @@ no colour, because it usually writes to a pipe. A line that holds a whole body
 carries a `Summary` field, and that is the line the `run` command prints:
 `← 4213 lines`.
 
-## A block of more than 20 lines opens in the pane
+## A block past the cap opens in the pane
 
 A **block** is one piece of content: your prompt, one message from the
 assistant, one tool result, or the output of a `!` command. The renderer marks
@@ -49,7 +49,9 @@ each line that continues the block the line before it started, so the pane knows
 where a block ends.
 
 A block of more than 20 rows draws its first 20 rows and a marker row under
-them:
+them. 20 is the default, and `blockCap` in the settings file, `--block-cap`, and
+the `set_block_cap` tool each change it. A cap of `0` caps nothing. See
+[../config.md](../config.md).
 
 ```
 → Bash ./scripts/build.sh
@@ -60,8 +62,8 @@ them:
 ```
 
 The cap counts the rows the pane draws, after the text is wrapped to the width
-of the pane. So one block never takes more than 21 rows, however wide its lines
-are.
+of the pane. So one block never takes more than the cap and one marker row,
+however wide its lines are.
 
 An open block draws every row, and its marker says `⋯ show less`. The first row
 of the block holds its place on the screen while it opens and closes, so the

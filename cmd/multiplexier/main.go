@@ -134,11 +134,13 @@ func tuiCommand(argv []string) int {
 	editor := fs.String("editor", "", "editor for the working directory (default $VISUAL, then $EDITOR)")
 	editorTerminal := fs.String("editor-terminal", "auto",
 		"does the editor draw in the terminal: yes, no, or auto")
+	blockCap := fs.Int("block-cap", -1,
+		"rows one block draws in the pane before it is capped, 0 for no cap (default from the settings file)")
 	if err := fs.Parse(argv); err != nil {
 		return 2
 	}
 
-	configPaths, editorFlags, err := settings(*configPath, *editor, *editorTerminal)
+	configPaths, editorFlags, err := settings(*configPath, *editor, *editorTerminal, *blockCap)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "multiplexier: %v\n", err)
 		return 2
@@ -192,7 +194,7 @@ func tuiCommand(argv []string) int {
 // settings names the files that hold the settings, and reads the flags that
 // sit above them. The interface reads the file again at each key press, so a
 // tool can change it while the program runs. See docs/config.md.
-func settings(path, editor, terminal string) ([]string, config.Config, error) {
+func settings(path, editor, terminal string, blockCap int) ([]string, config.Config, error) {
 	paths := config.Paths()
 	if path != "" {
 		if _, err := os.Stat(path); err != nil {
@@ -214,6 +216,9 @@ func settings(path, editor, terminal string) ([]string, config.Config, error) {
 	case "auto", "":
 	default:
 		return nil, config.Config{}, fmt.Errorf("--editor-terminal must be yes, no, or auto")
+	}
+	if blockCap >= 0 {
+		flags.BlockCap = &blockCap
 	}
 	return paths, flags, nil
 }

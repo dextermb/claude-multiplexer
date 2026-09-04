@@ -3,9 +3,12 @@ package mcp
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
+
+	"github.com/dextermb/claude-multiplexer/internal/config"
 )
 
 type renameIn struct {
@@ -65,6 +68,24 @@ type unsetEditorIn struct {
 }
 
 type unsetEditorOut struct {
+	OK      bool   `json:"ok"`
+	Path    string `json:"path"`
+	Changed bool   `json:"changed"`
+	Message string `json:"message"`
+}
+
+type setBlockCapIn struct {
+	Rows *int `json:"rows" jsonschema:"the rows one block draws in the session pane before the pane caps it and offers to open the rest; 0 caps nothing"`
+}
+
+type setBlockCapOut struct {
+	OK      bool   `json:"ok"`
+	Path    string `json:"path"`
+	Rows    int    `json:"rows"`
+	Message string `json:"message"`
+}
+
+type unsetBlockCapOut struct {
 	OK      bool   `json:"ok"`
 	Path    string `json:"path"`
 	Changed bool   `json:"changed"`
@@ -207,6 +228,34 @@ func (s *Server) build(caller string, control bool) *sdk.Server {
 			return nil, unsetEditorOut{}, err
 		}
 		return nil, unsetEditorOut{OK: true, Path: path, Changed: changed, Message: clearedMessage(in.Field, changed, path)}, nil
+	})
+
+	sdk.AddTool(server, &sdk.Tool{
+		Name: ToolSetBlockCap,
+		Description: "Set how much of one block the session pane draws before it caps it. " +
+			"A block is one piece of content: a prompt, one message, one tool result, or the output of a ! command. " +
+			"The human opens the rest of a capped block in the pane. It writes the settings file of the multiplexer. Give 0 to cap nothing.",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, in setBlockCapIn) (*sdk.CallToolResult, setBlockCapOut, error) {
+		if in.Rows == nil || *in.Rows < 0 {
+			return nil, setBlockCapOut{}, ErrBadCap
+		}
+		path, err := s.sessions.SetBlockCap(*in.Rows, caller)
+		if err != nil {
+			return nil, setBlockCapOut{}, err
+		}
+		return nil, setBlockCapOut{OK: true, Path: path, Rows: *in.Rows, Message: blockCapMessage(*in.Rows, path)}, nil
+	})
+
+	sdk.AddTool(server, &sdk.Tool{
+		Name: ToolUnsetBlockCap,
+		Description: "Take the block cap out of the settings file of the multiplexer, so the session pane returns to its default of " +
+			strconv.Itoa(config.DefaultBlockCap) + " rows for one block.",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, _ struct{}) (*sdk.CallToolResult, unsetBlockCapOut, error) {
+		path, changed, err := s.sessions.UnsetBlockCap(caller)
+		if err != nil {
+			return nil, unsetBlockCapOut{}, err
+		}
+		return nil, unsetBlockCapOut{OK: true, Path: path, Changed: changed, Message: blockCapClearedMessage(changed, path)}, nil
 	})
 
 	sdk.AddTool(server, &sdk.Tool{
@@ -357,6 +406,21 @@ func editorMessage(editor string, terminal *bool, path string) string {
 		parts = append(parts, "it is "+kind)
 	}
 	return strings.Join(parts, ", ") + ", in " + path
+}
+
+func blockCapMessage(rows int, path string) string {
+	if rows == 0 {
+		return "the pane now caps no block, in " + path
+	}
+	return "one block now draws " + strconv.Itoa(rows) + " rows before the pane caps it, in " + path
+}
+
+func blockCapClearedMessage(changed bool, path string) string {
+	if !changed {
+		return "the block cap was not set in " + path
+	}
+	return "the block cap is no longer set in " + path + ", so one block draws " +
+		strconv.Itoa(config.DefaultBlockCap) + " rows"
 }
 
 func clearedMessage(field string, changed bool, path string) string {
