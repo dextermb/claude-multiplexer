@@ -33,6 +33,8 @@ forms work everywhere, so a sequence still starts while you type a prompt.
 | `s a` | Archive the selected session, or bring it back |
 | `s x` | Stop the selected session, after a confirmation |
 | `s j` | Show the background jobs of the selected session |
+| `s f` | Open the working directory in the file manager |
+| `s d` | Open the working directory in the editor |
 | `s m` | Change the model of a running session |
 | `s e` | Change the effort of a running session |
 | `s p` | Change the permission mode of a running session |
@@ -103,6 +105,16 @@ Type a new title, then press `Enter`. An empty field clears the title, so the
 session shows its name again. A rename works on a live session and on a stored
 session. The name stays the key on disk. The title is only the display text.
 See [sessions.md](./sessions.md) and [manager.md](../manager.md).
+
+### Opening the working directory
+
+`s f` opens the working directory of the selected session in the file manager
+of the platform: Finder, Explorer, or `xdg-open`.
+
+`s d` opens the same directory in your editor. Name the editor with `--editor`,
+with `$VISUAL` or `$EDITOR`, or in the settings file. A terminal editor takes
+the terminal until it stops, and a window editor starts beside the interface.
+See [../config.md](../config.md).
 
 ### Changing the model, effort, and mode
 
