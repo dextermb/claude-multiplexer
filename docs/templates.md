@@ -62,7 +62,7 @@ two spellings, `.multiplexer` wins.
 
 ### The picker
 
-Press `t` when the focus is the list, or `ctrl+p` at any time. Type to narrow
+Press `t` when the focus is the list or the output, or `ctrl+p` at any time. Type to narrow
 the list, press Enter to choose, fill the fields, and press Enter again.
 
 The finished prompt goes into the prompt box, and the focus goes with it.

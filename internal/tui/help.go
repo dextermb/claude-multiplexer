@@ -8,57 +8,71 @@ import (
 )
 
 type binding struct {
-	group string
-	keys  string
-	what  string
-	brief string
+	group  string
+	target string
+	keys   string
+	what   string
+	brief  string
 }
 
 var bindings = []binding{
-	{"Sessions", "n  ctrl+n", "Start a new session", "n new"},
-	{"Sessions", "t  ctrl+p", "Open the preset prompts", "t preset"},
-	{"Sessions", "enter", "Type into a session, or resume one that is not running", ""},
-	{"Sessions", "r", "Resume the selected session", "r resume"},
-	{"Sessions", "a", "Archive the selected session, or bring it back", "a archive"},
-	{"Sessions", "A", "Show or hide archived sessions", ""},
-	{"Sessions", "R", "Rename the selected session", ""},
-	{"Sessions", "x  ctrl+x", "Stop the selected session, after a confirmation", "x stop"},
-	{"Sessions", "z", "Fold or unfold the group of the selected session", ""},
-	{"Sessions", "Z", "Unfold every group, or fold all but the one you are in", ""},
+	{"Quick keys", "", "n  ctrl+n", "Start a new session", "n new"},
+	{"Quick keys", "", "t  ctrl+p", "Open the preset prompts", "t preset"},
 
-	{"Moving", "j  k  up  down", "Move through the list, or scroll the output", ""},
-	{"Moving", "tab", "Move to the next pane", ""},
-	{"Moving", "esc", "Leave the prompt or the output, or close a dialog", ""},
+	{"The targets", "", "s  ctrl+s", "Act on the selected session", "s session"},
+	{"The targets", "", "l  ctrl+l", "Act on the list", "l list"},
+	{"The targets", "", "o  ctrl+o", "Act on the output pane", "o output"},
 
-	{"The prompt", "enter", "Send what you typed", ""},
-	{"The prompt", "ctrl+j", "Add a new line inside the prompt", ""},
-	{"The prompt", "tab", "Complete a /preset name, or move on", ""},
-	{"The prompt", "/", "Start a preset name, and see what matches", ""},
+	{"The session (s)", "s", "s c", "Start a new session", "c new"},
+	{"The session (s)", "s", "s t", "Open the preset prompts", "t preset"},
+	{"The session (s)", "s", "s r", "Resume the selected session", "r resume"},
+	{"The session (s)", "s", "s n", "Rename the selected session", "n name"},
+	{"The session (s)", "s", "s a", "Archive the selected session, or bring it back", "a archive"},
+	{"The session (s)", "s", "s x", "Stop the selected session, after a confirmation", "x stop"},
+	{"The session (s)", "s", "s j", "Show the background jobs of the selected session", "j jobs"},
+	{"The session (s)", "s", "s m", "Change the model", "m model"},
+	{"The session (s)", "s", "s e", "Change the effort (the thinking budget)", "e effort"},
+	{"The session (s)", "s", "s p", "Change the permission mode", "p mode"},
 
-	{"The output", "u  d", "Scroll half a pane", ""},
-	{"The output", "pgup  pgdown", "Scroll a whole pane", ""},
-	{"The output", "g  G  home  end", "Go to the top, and to the bottom", ""},
-	{"The output", "m", "Switch between rendered markdown and raw text", ""},
+	{"The list (l)", "l", "l f", "Fold or unfold the group of the selected session", "f fold"},
+	{"The list (l)", "l", "l F", "Fold every group but this one", "F others"},
+	{"The list (l)", "l", "l u", "Unfold every group", "u unfold"},
+	{"The list (l)", "l", "l a", "Show or hide the archived sessions", "a archived"},
 
-	{"Settings of a running session", "M", "Change the model", ""},
-	{"Settings of a running session", "e", "Change the effort (the thinking budget)", ""},
-	{"Settings of a running session", "p", "Change the permission mode", ""},
+	{"The output pane (o)", "o", "o m", "Switch between rendered markdown and raw text", "m markdown"},
+	{"The output pane (o)", "o", "o r", "Open the list of large results", "r results"},
 
-	{"The new session form", "tab", "Complete the path, or move to the next field", ""},
-	{"The new session form", "shift+tab", "Walk the suggested paths, or move back a field", ""},
+	{"Moving", "", "j  k  up  down", "Move through the list, or scroll the output", ""},
+	{"Moving", "", "tab", "Move to the next pane", ""},
+	{"Moving", "", "enter", "Type into a session, or resume one that is not running", ""},
+	{"Moving", "", "esc", "Leave the prompt or the output, close a dialog, or cancel a sequence", ""},
 
-	{"The list and the output", "J", "Show the background jobs of the selected session", ""},
-	{"The list and the output", "?", "Show this list", "? keys"},
-	{"The list and the output", "q", "Stop every session, and quit", "q quit"},
+	{"The prompt", "", "enter", "Send what you typed", ""},
+	{"The prompt", "", "ctrl+j", "Add a new line inside the prompt", ""},
+	{"The prompt", "", "tab", "Complete a /preset name, or move on", ""},
+	{"The prompt", "", "/", "Start a preset name, and see what matches", ""},
 
-	{"Everywhere", "ctrl+t", "Turn the mouse on or off", ""},
-	{"Everywhere", "ctrl+c", "Clear the prompt. Press it again to quit", ""},
+	{"The output", "", "u  d", "Scroll half a pane", ""},
+	{"The output", "", "pgup  pgdown", "Scroll a whole pane", ""},
+	{"The output", "", "g  G  home  end", "Go to the top, and to the bottom", ""},
+	{"The output", "", "enter", "Open a large result, or move to the prompt", ""},
+	{"The output", "", "i", "Move to the prompt", ""},
+
+	{"The new session form", "", "tab", "Complete the path, or move to the next field", ""},
+	{"The new session form", "", "shift+tab", "Walk the suggested paths, or move back a field", ""},
+
+	{"The list and the output", "", "?", "Show this list", "? keys"},
+	{"The list and the output", "", "q", "Stop every session, and quit", "q quit"},
+
+	{"Everywhere", "", "ctrl+t", "Turn the mouse on or off", ""},
+	{"Everywhere", "", "ctrl+c", "Clear the prompt. Press it again to quit", ""},
 }
 
+// statusHints lists the keys that work on their own, for the status bar.
 func statusHints() string {
 	var out []string
 	for _, item := range bindings {
-		if item.brief != "" {
+		if item.target == "" && item.brief != "" {
 			out = append(out, item.brief)
 		}
 	}

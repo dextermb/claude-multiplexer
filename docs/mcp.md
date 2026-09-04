@@ -104,7 +104,7 @@ session is marked in the pane of the session that received it.
 › list the files in the repository
 ```
 
-Watch for that line, and press `x` to interrupt a session that runs away. See
+Watch for that line, and press `s x` to interrupt a session that runs away. See
 [tui/keys.md](./tui/keys.md).
 
 ## The transport

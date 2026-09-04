@@ -65,7 +65,7 @@ pointer and every renderer shares it.
 
 ## The raw toggle
 
-Press `m` to switch the pane between rendered markdown and the exact text that
+Press `o m` to switch the pane between rendered markdown and the exact text that
 arrived. The session bar shows `raw` while the markdown is off.
 
 Use it to copy a code fence exactly, or to see what the model really wrote when
