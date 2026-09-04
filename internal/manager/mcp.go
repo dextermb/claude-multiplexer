@@ -14,6 +14,7 @@ import (
 	"github.com/dextermb/claude-multiplexer/internal/protocol"
 	"github.com/dextermb/claude-multiplexer/internal/render"
 	"github.com/dextermb/claude-multiplexer/internal/session"
+	"github.com/dextermb/claude-multiplexer/internal/template"
 )
 
 // StartMCP starts the server that serves the multiplexer's own tools to each
@@ -391,6 +392,10 @@ func (b *bridge) Messages(name string, limit int) ([]mcp.Message, error) {
 
 func (b *bridge) Jobs(name string) ([]mcp.Job, error) { return b.m.Jobs(name) }
 
+func (b *bridge) ConfigPath() mcp.ConfigPath { return b.m.ConfigPath() }
+
+func (b *bridge) TemplatePath(name string) (mcp.TemplatePath, error) { return b.m.TemplatePath(name) }
+
 func (b *bridge) SetWorkingDir(path, by string) (string, error) {
 	full, err := b.m.SetWorkingDir(by, path)
 	if err != nil {
@@ -528,6 +533,47 @@ func (m *Manager) UnsetEditor(field string) (string, bool, error) {
 		return "", false, err
 	}
 	return path, true, nil
+}
+
+// ConfigPath names the settings files, in the order they are read. See
+// docs/config.md.
+func (m *Manager) ConfigPath() mcp.ConfigPath {
+	paths := append([]string(nil), m.opts.ConfigPaths...)
+	return mcp.ConfigPath{
+		Paths:  paths,
+		Active: config.Active(paths...),
+		Target: config.Target(paths...),
+	}
+}
+
+// TemplatePath names the directories a session reads a preset prompt from. The
+// directory is the one the session started in, which is the one the interface
+// reads. See docs/templates.md.
+func (m *Manager) TemplatePath(name string) (mcp.TemplatePath, error) {
+	dir, err := m.sessionDir(name)
+	if err != nil {
+		return mcp.TemplatePath{}, err
+	}
+	return mcp.TemplatePath{
+		Session: name,
+		Root:    m.opts.Root,
+		Dir:     dir,
+		Dirs:    template.Dirs(m.opts.Root, dir),
+	}, nil
+}
+
+// sessionDir gives the directory a session started in, from the running child
+// when it is live, and from the stored meta when it is not.
+func (m *Manager) sessionDir(name string) (string, error) {
+	item, err := m.entry(name)
+	if err == nil {
+		return item.sess.Snapshot().Dir, nil
+	}
+	meta, metaErr := m.Meta(name)
+	if metaErr != nil {
+		return "", err
+	}
+	return meta.Dir, nil
 }
 
 // SetBlockCap writes the rows a block draws before the pane caps it, so a

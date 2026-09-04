@@ -91,6 +91,17 @@ func Target(paths ...string) string {
 	return paths[0]
 }
 
+// Active names the settings file that is read now: the first one that is there,
+// and an empty string when none of them is.
+func Active(paths ...string) string {
+	for _, path := range paths {
+		if _, err := os.Stat(path); err == nil {
+			return path
+		}
+	}
+	return ""
+}
+
 // Write puts the settings in path, and makes the directory when it is missing.
 func Write(path string, cfg Config) error {
 	if path == "" {

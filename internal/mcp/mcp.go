@@ -18,6 +18,8 @@ const (
 	ToolList            = "list_sessions"
 	ToolMessages        = "get_messages"
 	ToolListJobs        = "list_jobs"
+	ToolConfigPath      = "get_config_path"
+	ToolTemplatePath    = "get_template_path"
 	ToolSetEditor       = "set_editor"
 	ToolUnsetEditor     = "unset_editor"
 	ToolSetBlockCap     = "set_block_cap"
@@ -34,8 +36,8 @@ const (
 // OpenTools go to every session. ControlTools go only to a session that holds
 // the control grant.
 var (
-	OpenTools = []string{ToolRename, ToolList, ToolMessages, ToolListJobs, ToolSetEditor, ToolUnsetEditor,
-		ToolSetBlockCap, ToolUnsetBlockCap, ToolSetWorkingDir, ToolUnsetWorkingDir}
+	OpenTools = []string{ToolRename, ToolList, ToolMessages, ToolListJobs, ToolConfigPath, ToolTemplatePath,
+		ToolSetEditor, ToolUnsetEditor, ToolSetBlockCap, ToolUnsetBlockCap, ToolSetWorkingDir, ToolUnsetWorkingDir}
 	ControlTools = []string{ToolSend, ToolStop, ToolArchive, ToolCreate, ToolStopJob}
 )
 
@@ -101,6 +103,23 @@ type Job struct {
 	Running     bool   `json:"running"`
 }
 
+// ConfigPath names the settings files, in the order they are read. See
+// docs/mcp.md.
+type ConfigPath struct {
+	Paths  []string `json:"paths"`
+	Active string   `json:"active,omitempty"`
+	Target string   `json:"target"`
+}
+
+// TemplatePath names the directories one session reads a preset prompt from,
+// in the order they are read. See docs/mcp.md.
+type TemplatePath struct {
+	Session string   `json:"session"`
+	Root    string   `json:"root"`
+	Dir     string   `json:"dir"`
+	Dirs    []string `json:"dirs"`
+}
+
 // Sessions is the slice of the manager this package uses. Every method that
 // changes something takes the name of the calling session, so the interface can
 // tell the human who did it.
@@ -113,6 +132,8 @@ type Sessions interface {
 	List() []Session
 	Messages(name string, limit int) ([]Message, error)
 	Jobs(name string) ([]Job, error)
+	ConfigPath() ConfigPath
+	TemplatePath(name string) (TemplatePath, error)
 	SetEditor(editor string, terminal *bool, by string) (string, error)
 	UnsetEditor(field, by string) (string, bool, error)
 	SetBlockCap(rows int, by string) (string, error)

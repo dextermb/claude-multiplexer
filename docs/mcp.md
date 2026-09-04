@@ -19,6 +19,8 @@ reaches the model as `mcp__mux__…`.
 | `list_sessions` | `live_only` | Every session, running and stored: name, title, directory, state, model, turns, cost, and the archive flag. | open |
 | `get_messages` | `session`, `limit` | The recent messages of a session, oldest last. 20 by default, 200 at most. | open |
 | `list_jobs` | `session` | The background jobs of a session: id, description, task type, and status. An empty session means the caller. | open |
+| `get_config_path` | — | The settings files, in the order they are read, the one that is read now, and the one a write goes to. | open |
+| `get_template_path` | `session` | The directories a session reads a preset prompt from, in the order they are read. | open |
 | `set_editor` | `editor`, `terminal` | Sets the editor the human opens a directory with, in the settings file. | open |
 | `unset_editor` | `field` | Takes the editor, the terminal flag, or both out of the settings file. | open |
 | `set_block_cap` | `rows` | Sets the rows one block draws in the session pane before the pane caps it. `0` caps nothing. | open |
@@ -77,6 +79,29 @@ the file, so a program started with `--editor` opens what the flag names, and
 the tool cannot change that. The tool writes the settings file of the
 multiplexer, never the settings of Claude Code. See [config.md](./config.md).
 
+### The paths a session reads
+
+A session cannot see where its own settings and preset prompts come from, and
+the paths follow the flags the human started the program with. Two tools answer
+that, so a session names a real file before it writes one.
+
+`get_config_path` answers with three fields:
+
+| Field | What it holds |
+|---|---|
+| `paths` | Every settings file, in the order they are read |
+| `active` | The file that is read now. It is absent when there is none |
+| `target` | The file `set_editor` and `set_block_cap` write |
+
+`get_template_path` answers with `dirs`, the directories one session reads a
+preset prompt from, in the order they are read, and the last one wins. It also
+names the `root` and the `dir` of the session. Give a session name, or leave it
+empty for the calling session.
+
+That `dir` is the one the session started in, which is the one the interface
+reads, and not the one `set_working_dir` names. Both tools only read. See
+[config.md](./config.md) and [templates.md](./templates.md).
+
 ### The block cap
 
 The session pane caps a long block and offers to open it in place. A block is
@@ -118,8 +143,8 @@ keeps it. See [manager.md](./manager.md).
 ## The grant
 
 A session gets `rename_session`, `list_sessions`, `get_messages`, `list_jobs`,
-`set_editor`, `unset_editor`, `set_block_cap`, `unset_block_cap`,
-`set_working_dir`, and `unset_working_dir`
+`get_config_path`, `get_template_path`, `set_editor`, `unset_editor`,
+`set_block_cap`, `unset_block_cap`, `set_working_dir`, and `unset_working_dir`
 always. It gets the five control tools **only** when it is started with
 control.
 
