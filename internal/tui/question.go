@@ -145,10 +145,7 @@ func (d *questionDialog) answer() string {
 }
 
 func (d *questionDialog) View(width int) string {
-	inner := width - 8
-	if inner < 40 {
-		inner = 40
-	}
+	inner := modalInner(width)
 
 	question := d.current()
 	var b strings.Builder

@@ -258,10 +258,7 @@ func (f *form) View(width int) string {
 	var b strings.Builder
 	b.WriteString(titleStyle.Render("New session"))
 	b.WriteString("\n\n")
-	inner := width - 8
-	if inner < 20 {
-		inner = 20
-	}
+	inner := modalInner(width)
 	for i := range f.inputs {
 		b.WriteString(fieldLabelStyle.Render(pad(fieldLabels[i], 16)))
 		b.WriteString(f.inputs[i].View())

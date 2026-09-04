@@ -124,10 +124,7 @@ func (h *help) rows(width int) []string {
 }
 
 func (h *help) View(width, height int) string {
-	inner := width - 8
-	if inner < 40 {
-		inner = 40
-	}
+	inner := modalInner(width)
 	window := height - 10
 	if window < 3 {
 		window = 3

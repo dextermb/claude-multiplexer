@@ -138,10 +138,11 @@ job model, and [../protocol.md](../protocol.md) for the wire events.
 - The session bar shows a `⚙n` segment while jobs run, next to the queue segment.
 - The side panel lists every job above the task list. See [tasks.md](tasks.md).
 
-Press `J` to open the jobs modal for the selected session. The modal lists every
-job, the running ones first, then the finished ones, in start order. Each row
-shows a status glyph, the status word, and the job description. Press `esc` to
-close it. See [keys.md](./keys.md).
+Press `J` to open the jobs dialog for the selected session. The dialog lists
+every job, the running ones first, then the finished ones, in start order. Each
+row shows a status glyph, the status word, and the job description. Press `esc`
+to close it. The dialog draws in the pane, so the sidebar stays on the screen.
+See [keys.md](./keys.md) and [../tui.md](../tui.md).
 
 ## The two bars
 

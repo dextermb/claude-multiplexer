@@ -84,10 +84,7 @@ func (p *picker) selected() (template.Template, bool) {
 }
 
 func (p *picker) View(width int) string {
-	inner := width - 8
-	if inner < 30 {
-		inner = 30
-	}
+	inner := modalInner(width)
 
 	var b strings.Builder
 	b.WriteString(titleStyle.Render("Preset prompts"))
@@ -221,10 +218,7 @@ func (f *fieldForm) prompt() string {
 }
 
 func (f *fieldForm) View(width int) string {
-	inner := width - 8
-	if inner < 30 {
-		inner = 30
-	}
+	inner := modalInner(width)
 
 	var b strings.Builder
 	b.WriteString(titleStyle.Render("/" + f.tpl.Name))

@@ -71,10 +71,7 @@ func (d *choiceDialog) Update(msg tea.Msg) (formResult, tea.Cmd) {
 func (d *choiceDialog) chosen() string { return d.options[d.cursor] }
 
 func (d *choiceDialog) View(width int) string {
-	inner := width - 8
-	if inner < 40 {
-		inner = 40
-	}
+	inner := modalInner(width)
 
 	var b strings.Builder
 	b.WriteString(titleStyle.Render(d.title))

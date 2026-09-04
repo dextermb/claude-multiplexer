@@ -45,6 +45,11 @@ moves the focus. See [input.md](input.md).
 the list or the output. `z` and `Z` work when the focus is the list. The `ctrl`
 forms work everywhere, so they still work while you type a prompt.
 
+A dialog that names one session — rename, model, effort, mode, jobs, the result
+pager, and the stop confirmation — draws in the pane, so the sidebar stays on
+the screen. A dialog that names no session covers the sidebar too. See
+[../tui.md](../tui.md).
+
 ### Folding a directory
 
 The list groups the sessions under a header, by directory or by the control
@@ -128,7 +133,7 @@ The same scroll keys work inside it. Press `Esc` to step back to the list, and
 
 ### Showing background jobs
 
-Press `J` from the list or the output to open the jobs modal for the selected
+Press `J` from the list or the output to open the jobs dialog for the selected
 session. It lists every background job, the running ones first, then the
 finished ones. The same scroll keys work inside it. Press `esc` to close. See
 [sessions.md](./sessions.md).

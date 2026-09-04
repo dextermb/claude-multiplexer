@@ -71,11 +71,7 @@ func (m *jobsModal) Update(msg tea.Msg) (bool, tea.Cmd) {
 }
 
 func (m *jobsModal) innerWidth() int {
-	inner := m.width - 8
-	if inner < 40 {
-		inner = 40
-	}
-	return inner
+	return modalInner(m.width)
 }
 
 func (m *jobsModal) docHeight() int {
