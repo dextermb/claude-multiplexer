@@ -146,3 +146,16 @@ just test-real    # one real session through the interface, about a penny
 just probe-mcp    # one real session that calls the mux tools
 just smoke        # one prompt, one word back
 ```
+
+## Licence
+
+The multiplexer is free software under the MIT License. See [LICENSE](LICENSE).
+
+You may use it, change it, and share it, for any purpose. The one rule is that
+the copyright notice and the permission notice go with it.
+
+The licence covers the multiplexer itself. It does not cover the work the
+sessions do, or the code they write.
+
+Copyright © 2026 Dexter Marks-Barber.
+
