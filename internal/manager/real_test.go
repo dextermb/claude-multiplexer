@@ -14,7 +14,7 @@ import (
 )
 
 // TestRealSessionCallsTheTools proves the MCP server against the installed
-// Claude Code. It costs money, so it runs only on request. See docs/mcp.md.
+// Claude Code. It costs money, so it runs only on request. See docs/mcp/transport.md.
 func TestRealSessionCallsTheTools(t *testing.T) {
 	if os.Getenv("MULTIPLEXIER_REAL") == "" {
 		t.Skip("set MULTIPLEXIER_REAL=1 to run one real session, which costs money")

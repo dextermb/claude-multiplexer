@@ -95,7 +95,7 @@ type Message struct {
 }
 
 // Job is one row of list_jobs. It repeats what the session holds, so this
-// package needs nothing from the session package. See docs/mcp.md.
+// package needs nothing from the session package. See docs/mcp/tools.md.
 type Job struct {
 	ID          string `json:"id"`
 	Description string `json:"description,omitempty"`
@@ -105,7 +105,7 @@ type Job struct {
 }
 
 // ConfigPath names the settings files, in the order they are read. See
-// docs/mcp.md.
+// docs/mcp/tools.md.
 type ConfigPath struct {
 	Paths  []string `json:"paths"`
 	Active string   `json:"active,omitempty"`
@@ -113,7 +113,7 @@ type ConfigPath struct {
 }
 
 // TemplatePath names the directories one session reads a preset prompt from,
-// in the order they are read. See docs/mcp.md.
+// in the order they are read. See docs/mcp/tools.md.
 type TemplatePath struct {
 	Session string   `json:"session"`
 	Root    string   `json:"root"`

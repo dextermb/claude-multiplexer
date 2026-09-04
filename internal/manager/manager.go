@@ -62,7 +62,7 @@ type Event struct {
 	QuestionID string
 	Todos      []protocol.Todo
 	// Notice describes a change made outside the session stream, for example by
-	// an MCP tool. Reload says the stored list changed. See docs/mcp.md.
+	// an MCP tool. Reload says the stored list changed. See docs/mcp/notices.md.
 	Notice string
 	Reload bool
 }
@@ -541,7 +541,7 @@ func (m *Manager) SetPermissionMode(name, mode string) error {
 
 // SetWorkingDir points a session at the directory a tool of that session names,
 // so the interface opens it instead of the directory the session started in. A
-// relative path is resolved against that directory. See docs/mcp.md.
+// relative path is resolved against that directory. See docs/mcp/tools.md.
 func (m *Manager) SetWorkingDir(name, path string) (string, error) {
 	item, err := m.entry(name)
 	if err != nil {

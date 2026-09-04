@@ -456,7 +456,7 @@ func (m Model) handleEvent(ev manager.Event) (tea.Model, tea.Cmd) {
 
 // handleNotice takes a change an MCP tool made. It must not reach the normal
 // path, because that path clears the streaming text of a session whose event
-// carries none. See docs/mcp.md.
+// carries none. See docs/mcp/notices.md.
 func (m Model) handleNotice(ev manager.Event) (tea.Model, tea.Cmd) {
 	if ev.Notice != "" {
 		m.status = ev.Notice
