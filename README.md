@@ -5,10 +5,10 @@ session is a `claude` child process in headless mode, with its own directory and
 its own conversation. One terminal interface shows them all: a list of sessions,
 the output of the selected one, and a prompt box.
 
-The binary is spelled `multiplexier`, and so is the state directory. The word
-in the prose is `multiplexer`, which is the word people type. Where both
-spellings work, such as the settings file and the template directories,
-`multiplexer` is read first.
+The command is `multiplexer`. The state directory keeps the older spelling,
+`~/.multiplexier`, so a session stored before the rename still opens. The
+settings file and the template directories read both spellings, and read
+`multiplexer` first.
 
 The list groups the sessions: one group for each repository, and one group for
 the work of each control session. A glyph gives the state of each row, and the
@@ -24,7 +24,7 @@ blue left edge marks the pane that has the focus. See
 ## Start it
 
 ```sh
-just build            # build bin/multiplexier
+just build            # build bin/multiplexer
 just tui              # start the interface
 just tui-in ~/code    # start it, and open one session in ~/code
 just tui-fake         # start it against a fake binary: no network, no cost
@@ -34,13 +34,13 @@ just install-as cmux  # build it into ~/.local/bin under the name cmux
 Or run the binary directly:
 
 ```sh
-multiplexier                            # the interface
-multiplexier --dir ~/code --model …     # the interface, with one session open
-multiplexier run --dir . "your prompt"  # one session, one prompt, plain output
-multiplexier templates                  # the preset prompts, and their fields
+multiplexer                            # the interface
+multiplexer --dir ~/code --model …     # the interface, with one session open
+multiplexer run --dir . "your prompt"  # one session, one prompt, plain output
+multiplexer templates                  # the preset prompts, and their fields
 ```
 
-`multiplexier run` exists to drive the engine from a script or a pipe. It prints
+`multiplexer run` exists to drive the engine from a script or a pipe. It prints
 plain text, and it never renders markdown.
 
 ## What it does
@@ -98,7 +98,7 @@ State goes under `~/.multiplexier/sessions/<name>/`:
 | `meta.json` | The directory, the working directory, the model, the effort, the title, the Claude session id, the totals, the creator, the control grant, and the archive flag |
 | `mcp.json` | Where the session reaches the multiplexer's own tools, and the token that names it |
 
-`multiplexier --root <path>` moves that directory. `just clean-state` removes it.
+`multiplexer --root <path>` moves that directory. `just clean-state` removes it.
 
 The settings live apart from the state, in
 `~/.config/multiplexer/config.json`. They name the editor that `s d` opens on

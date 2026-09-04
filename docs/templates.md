@@ -39,9 +39,9 @@ That gives you `/linear`, and it asks for two things.
 | `<session directory>/.multiplexier/templates/` | One repository. |
 | `<session directory>/.multiplexer/templates/` | The same, with the other spelling. |
 
-**Both spellings are read.** The binary is `multiplexier`, and the word people
-type is `multiplexer`. A template in either directory is found, so the letter
-you do or do not type costs you nothing.
+**Both spellings are read.** The command is `multiplexer`, and the state
+directory keeps the older spelling, `~/.multiplexier`. A template in either
+directory is found, so the letter you do or do not type costs you nothing.
 
 Sessions and transcripts are a different matter. They are written to one place
 only, which is `~/.multiplexier` unless `--root` says otherwise. Only the
@@ -51,7 +51,7 @@ A project template wins when both hold the same name. So a repository can give
 `/review` its own meaning without touching the one you keep at home. Between the
 two spellings, `.multiplexer` wins.
 
-`multiplexier templates` lists what exists, with the fields each one takes:
+`multiplexer templates` lists what exists, with the fields each one takes:
 
 ```
 /linear  issue focus=correctness       Work a Linear issue from end to end
