@@ -78,6 +78,8 @@ type entry struct {
 	token   string
 	control bool
 
+	metaMu sync.Mutex
+
 	partialMu sync.Mutex
 	partial   strings.Builder
 
@@ -86,6 +88,20 @@ type entry struct {
 
 	snapMu sync.Mutex
 	snap   session.Snapshot
+}
+
+// metaCopy and setMeta guard the record of a live session, because the pump
+// goroutine writes it while the interface and the tools read it.
+func (e *entry) metaCopy() Meta {
+	e.metaMu.Lock()
+	defer e.metaMu.Unlock()
+	return e.meta
+}
+
+func (e *entry) setMeta(meta Meta) {
+	e.metaMu.Lock()
+	defer e.metaMu.Unlock()
+	e.meta = meta
 }
 
 func (e *entry) partialText() string {
@@ -242,8 +258,8 @@ func (m *Manager) Spawn(ctx context.Context, spec Spec) (string, error) {
 		item.todos = m.todosFromTranscript(name)
 		item.lines.append([]render.Line{{Class: render.ClassMeta, Text: "— resumed —"}})
 		if stored, err := ReadMeta(item.path); err == nil {
-			item.meta = stored
-			item.meta.Archived = false
+			stored.Archived = false
+			item.setMeta(stored)
 			item.base = totals{
 				turns:  stored.Turns,
 				cost:   stored.Cost,
@@ -292,11 +308,12 @@ func (m *Manager) pump(item *entry) {
 	m.releaseTools(item.token)
 	final := item.sess.Snapshot()
 	item.setSnapshot(final)
+	name := item.metaCopy().Name
 	if final.Turns == 0 {
-		_ = os.RemoveAll(sessionDir(m.opts.Root, item.meta.Name))
+		_ = os.RemoveAll(sessionDir(m.opts.Root, name))
 	}
 	m.bus.Publish(Event{
-		Session:  item.meta.Name,
+		Session:  name,
 		Snapshot: final,
 		Closed:   true,
 	})
@@ -332,6 +349,7 @@ func (m *Manager) rememberSession(item *entry, snap session.Snapshot) {
 	if snap.Turns == 0 {
 		return
 	}
+	item.metaMu.Lock()
 	next := item.meta
 	next.ClaudeSessionID = snap.ClaudeSessionID
 	next.Title = snap.Title
@@ -344,11 +362,14 @@ func (m *Manager) rememberSession(item *entry, snap session.Snapshot) {
 	next.InputTokens = item.base.input + snap.InputTokens
 	next.OutputTokens = item.base.output + snap.OutputTokens
 	if next.sameAs(item.meta) && !item.meta.LastActiveAt.IsZero() {
+		item.metaMu.Unlock()
 		return
 	}
 	next.LastActiveAt = time.Now()
 	item.meta = next
-	_ = writeMeta(item.path, item.meta)
+	item.metaMu.Unlock()
+
+	_ = writeMeta(item.path, next)
 }
 
 func (m *Manager) Stored() []Meta {
@@ -560,7 +581,7 @@ func (m *Manager) ResumeWithEffort(ctx context.Context, name, effort string) (st
 		PermissionMode:  snap.PermissionMode,
 		Effort:          effort,
 		Control:         item.control,
-		Parent:          item.meta.Parent,
+		Parent:          item.metaCopy().Parent,
 		ClaudeSessionID: snap.ClaudeSessionID,
 	})
 }

@@ -113,6 +113,19 @@ The title, the queue length, and the state come live from the session, because a
 direct action changes them with no stream event behind it. So a new title or a
 queued prompt shows at once, and does not wait for the next turn.
 
+## Two locks, for two things
+
+The lock of the manager guards the map of live sessions and their order. It is
+held to find a session, and released before any work on that session, so one
+slow session never blocks the rest.
+
+Each live session carries its own locks, for the fields two goroutines touch:
+the record (`meta`), the partial text, the task list, and the cached snapshot.
+The pump writes the record after each turn, while the interface and the tools
+read it, so a reader takes a copy under the lock of that session rather than
+reading the field. The lock of a session is never taken before the lock of the
+manager, so the two never deadlock.
+
 ## The tools a session can call
 
 The manager runs one MCP server for every session, and `StartMCP` starts it.
