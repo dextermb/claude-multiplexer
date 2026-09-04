@@ -54,6 +54,29 @@ func (f *fakeSessions) SetEditor(editor string, terminal *bool, by string) (stri
 	return f.editorPath, nil
 }
 
+func (f *fakeSessions) ConfigPath() mcp.ConfigPath {
+	return mcp.ConfigPath{
+		Paths:  []string{"/tmp/claude-multiplexer/config.json", "/tmp/multiplexier/config.json"},
+		Active: "/tmp/multiplexier/config.json",
+		Target: "/tmp/multiplexier/config.json",
+	}
+}
+
+func (f *fakeSessions) TemplatePath(name string) (mcp.TemplatePath, error) {
+	if name != "docs" {
+		return mcp.TemplatePath{}, errors.New("no such session")
+	}
+	return mcp.TemplatePath{
+		Session: name,
+		Root:    "/home/dexter/.claude-multiplexer",
+		Dir:     "/work/api",
+		Dirs: []string{
+			"/home/dexter/.claude-multiplexer/templates",
+			"/work/api/.multiplexer/templates",
+		},
+	}, nil
+}
+
 func (f *fakeSessions) SetBlockCap(rows int, by string) (string, error) {
 	f.blockCap = &rows
 	return "/tmp/config.json", nil
@@ -809,5 +832,72 @@ func TestUnsetBlockCapToolClearsTheCap(t *testing.T) {
 	}
 	if !strings.Contains(resultText(result), "20") {
 		t.Fatalf("the answer must name the default:\n%s", resultText(result))
+	}
+}
+
+func TestConfigPathToolNamesEveryFileInOrder(t *testing.T) {
+	sessions := newFakeSessions()
+	server := startServer(t, sessions)
+	token, err := server.Register("docs", false)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+	client := connect(t, server, token)
+
+	result := call(t, client, mcp.ToolConfigPath, map[string]any{})
+	if result.IsError {
+		t.Fatalf("get_config_path failed: %s", resultText(result))
+	}
+	text := resultText(result)
+	for _, want := range []string{"/tmp/claude-multiplexer/config.json", "/tmp/multiplexier/config.json", "active", "target"} {
+		if !strings.Contains(text, want) {
+			t.Errorf("the answer is missing %q:\n%s", want, text)
+		}
+	}
+}
+
+func TestTemplatePathToolReadsTheCallerByDefault(t *testing.T) {
+	sessions := newFakeSessions()
+	server := startServer(t, sessions)
+	token, err := server.Register("docs", false)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+	client := connect(t, server, token)
+
+	result := call(t, client, mcp.ToolTemplatePath, map[string]any{})
+	if result.IsError {
+		t.Fatalf("get_template_path failed: %s", resultText(result))
+	}
+	text := resultText(result)
+	for _, want := range []string{"docs", "/home/dexter/.claude-multiplexer/templates", "/work/api/.multiplexer/templates"} {
+		if !strings.Contains(text, want) {
+			t.Errorf("the answer is missing %q:\n%s", want, text)
+		}
+	}
+}
+
+func TestTemplatePathToolTakesAnotherSession(t *testing.T) {
+	sessions := newFakeSessions()
+	server := startServer(t, sessions)
+	token, err := server.Register("api", false)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+	client := connect(t, server, token)
+
+	if result := call(t, client, mcp.ToolTemplatePath, map[string]any{"session": "docs"}); result.IsError {
+		t.Fatalf("get_template_path failed: %s", resultText(result))
+	}
+	if result := call(t, client, mcp.ToolTemplatePath, map[string]any{"session": "nope"}); !result.IsError {
+		t.Fatal("a session that is not there must be an error")
+	}
+}
+
+func TestBothPathToolsAreOpenToEverySession(t *testing.T) {
+	for _, name := range []string{mcp.ToolConfigPath, mcp.ToolTemplatePath} {
+		if !contains(mcp.OpenTools, name) {
+			t.Errorf("%s must be open to every session", name)
+		}
 	}
 }

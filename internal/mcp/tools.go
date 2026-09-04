@@ -74,6 +74,10 @@ type unsetEditorOut struct {
 	Message string `json:"message"`
 }
 
+type templatePathIn struct {
+	Session string `json:"session,omitempty" jsonschema:"the session to read the template directories of; empty means this session"`
+}
+
 type setBlockCapIn struct {
 	Rows *int `json:"rows" jsonschema:"the rows one block draws in the session pane before the pane caps it and offers to open the rest; 0 caps nothing"`
 }
@@ -199,6 +203,31 @@ func (s *Server) build(caller string, control bool) *sdk.Server {
 			return nil, listJobsOut{}, err
 		}
 		return nil, listJobsOut{Session: target, Jobs: jobs}, nil
+	})
+
+	sdk.AddTool(server, &sdk.Tool{
+		Name: ToolConfigPath,
+		Description: "The settings files of the multiplexer, in the order they are read. " +
+			"'active' is the file that is read now, and it is absent when there is none. " +
+			"'target' is the file that " + ToolSetEditor + " and " + ToolSetBlockCap + " write.",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, _ struct{}) (*sdk.CallToolResult, ConfigPath, error) {
+		return nil, s.sessions.ConfigPath(), nil
+	})
+
+	sdk.AddTool(server, &sdk.Tool{
+		Name: ToolTemplatePath,
+		Description: "The directories one session reads a preset prompt from, in the order they are read. " +
+			"The last directory wins when two hold the same name. Give a session name, or leave it empty for this session.",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, in templatePathIn) (*sdk.CallToolResult, TemplatePath, error) {
+		target, err := targetOrSelf(in.Session, caller)
+		if err != nil {
+			return nil, TemplatePath{}, err
+		}
+		out, err := s.sessions.TemplatePath(target)
+		if err != nil {
+			return nil, TemplatePath{}, err
+		}
+		return nil, out, nil
 	})
 
 	sdk.AddTool(server, &sdk.Tool{
