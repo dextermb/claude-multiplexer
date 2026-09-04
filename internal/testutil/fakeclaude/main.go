@@ -130,6 +130,26 @@ func main() {
 				})
 			}
 		}
+		if text == "todo" {
+			emit(map[string]any{
+				"type":       "assistant",
+				"session_id": sessionID,
+				"message": map[string]any{
+					"role":  "assistant",
+					"model": "fake-model",
+					"content": []map[string]any{{
+						"type": "tool_use",
+						"id":   "toolu_todo",
+						"name": "TodoWrite",
+						"input": map[string]any{"todos": []map[string]any{
+							{"content": "First task", "status": "completed", "activeForm": "Doing the first task"},
+							{"content": "Second task", "status": "in_progress", "activeForm": "Doing the second task"},
+							{"content": "Third task", "status": "pending", "activeForm": "Doing the third task"},
+						}},
+					}},
+				},
+			})
+		}
 		emit(map[string]any{
 			"type":       "assistant",
 			"session_id": sessionID,

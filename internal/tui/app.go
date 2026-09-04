@@ -15,6 +15,7 @@ import (
 
 	"github.com/dextermb/claude-multiplexer/internal/manager"
 	"github.com/dextermb/claude-multiplexer/internal/markdown"
+	"github.com/dextermb/claude-multiplexer/internal/protocol"
 	"github.com/dextermb/claude-multiplexer/internal/render"
 	"github.com/dextermb/claude-multiplexer/internal/session"
 	"github.com/dextermb/claude-multiplexer/internal/template"
@@ -75,6 +76,7 @@ type Model struct {
 	replays      map[string][]render.Line
 	partials     map[string]string
 	queued       map[string][]string
+	todos        map[string][]protocol.Todo
 	spinFrame    int
 	animating    bool
 	md           *markdown.Renderer
@@ -138,6 +140,7 @@ func New(opts Options) Model {
 		replays:    make(map[string][]render.Line),
 		partials:   make(map[string]string),
 		queued:     make(map[string][]string),
+		todos:      make(map[string][]protocol.Todo),
 		questions:  make(map[string]*questionDialog),
 		md:         markdown.New(),
 		opts:       opts,
@@ -342,14 +345,19 @@ func (m Model) handleEvent(ev manager.Event) (tea.Model, tea.Cmd) {
 	if ev.Notice != "" || ev.Reload {
 		return m.handleNotice(ev)
 	}
+	prevWidth := m.outputWidth()
 	m.setPartial(ev.Session, ev.Partial)
+	if !ev.Closed {
+		m.todos[ev.Session] = ev.Todos
+	}
 	if hasPrompt(ev.Lines) {
 		m.dropQueued(ev.Session)
 	}
 	m.refresh()
 
+	widthChanged := ev.Session == m.sel && m.outputWidth() != prevWidth
 	switch {
-	case gap:
+	case gap || widthChanged:
 		m.rebuildOutput()
 	case ev.Session == m.sel && len(ev.Lines) > 0:
 		m.appendOutput(ev.Lines)
@@ -465,6 +473,7 @@ func (m Model) handleSpawned(msg spawnedMsg) (tea.Model, tea.Cmd) {
 	m.errText = ""
 	m.status = "started " + msg.name
 	delete(m.replays, msg.name)
+	m.todos[msg.name] = m.mgr.Todos(msg.name)
 	m.refresh()
 	m.sel = msg.name
 	m.rebuildOutput()
@@ -1365,12 +1374,29 @@ func (m Model) visibleRows() int {
 	return rows
 }
 
-func (m Model) outputWidth() int {
+func (m Model) baseOutputWidth() int {
 	width := m.width - sidebarWidth - gutterWidth
 	if width < 10 {
 		return 10
 	}
 	return width
+}
+
+func (m Model) outputWidth() int {
+	if m.showTaskPanel() {
+		return m.baseOutputWidth() - taskPanelWidth
+	}
+	return m.baseOutputWidth()
+}
+
+// showTaskPanel says whether the task panel has room beside the output. It reads
+// baseOutputWidth, not outputWidth, because outputWidth depends on it. See
+// docs/tui/tasks.md.
+func (m Model) showTaskPanel() bool {
+	if len(m.todos[m.sel]) == 0 {
+		return false
+	}
+	return m.baseOutputWidth()-taskPanelWidth >= minOutputWithPanel
 }
 
 func (m *Model) rebuildOutput() {
@@ -1382,6 +1408,7 @@ func (m *Model) rebuildOutput() {
 		return
 	}
 	lines := m.linesFor(m.sel)
+	m.output.Width = m.outputWidth()
 	m.shownLines = append([]render.Line(nil), lines...)
 	m.outputText = m.wrap(lines)
 	m.setContent()
@@ -1487,6 +1514,7 @@ func (m *Model) linesFor(name string) []render.Line {
 		}
 		lines := m.mgr.Replay(name)
 		m.replays[name] = lines
+		m.todos[name] = m.mgr.Todos(name)
 		return lines
 	}
 	return m.mgr.Lines(name)
@@ -1522,8 +1550,11 @@ func (m Model) View() string {
 	if !m.ready {
 		return "starting…"
 	}
-	right := withEdge(lipgloss.JoinVertical(lipgloss.Left, m.barView(), m.outputView()),
-		m.focus == focusOutput)
+	pane := lipgloss.JoinVertical(lipgloss.Left, m.barView(), m.outputView())
+	if m.showTaskPanel() {
+		pane = lipgloss.JoinHorizontal(lipgloss.Top, pane, m.taskPanelView())
+	}
+	right := withEdge(pane, m.focus == focusOutput)
 	body := lipgloss.JoinHorizontal(lipgloss.Top, m.sidebarView(), right)
 	if m.form != nil {
 		body = centre(m.width, m.bodyHeight(), m.form.View(m.width))
@@ -1618,6 +1649,45 @@ func (m Model) outputView() string {
 		return emptyStyle.Width(m.outputWidth()).Height(m.outputHeight()).Render(text)
 	}
 	return m.output.View()
+}
+
+func (m Model) taskPanelView() string {
+	todos := m.todos[m.sel]
+	done := 0
+	for _, todo := range todos {
+		if todo.Status == protocol.TodoCompleted {
+			done++
+		}
+	}
+	rows := []string{
+		taskHeaderStyle.Render(fmt.Sprintf("Tasks · %d/%d", done, len(todos))),
+		"",
+	}
+	item, ok := m.selectedRow()
+	busy := ok && item.live && item.state == session.StateBusy
+	for _, todo := range todos {
+		rows = append(rows, m.taskRow(todo, busy))
+	}
+	block := strings.Join(rows, "\n")
+	return taskPanelStyle.Width(taskPanelWidth - 1).Height(m.bodyHeight()).Render(block)
+}
+
+func (m Model) taskRow(todo protocol.Todo, busy bool) string {
+	glyph, glyphStyle, textStyle := "○", taskPendingStyle, rowStyle
+	text := todo.Content
+	switch todo.Status {
+	case protocol.TodoCompleted:
+		glyph, glyphStyle, textStyle = "✔", taskDoneStyle, rowMutedStyle
+	case protocol.TodoInProgress:
+		glyph, glyphStyle = "◐", taskActiveStyle
+		if todo.ActiveForm != "" {
+			text = todo.ActiveForm
+		}
+		if busy {
+			glyph = spinnerFrame(m.spinFrame)
+		}
+	}
+	return glyphStyle.Render(glyph) + " " + textStyle.Render(truncate(text, taskPanelInner-2))
 }
 
 func (m Model) barView() string {
