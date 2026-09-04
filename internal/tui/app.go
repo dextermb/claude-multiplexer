@@ -14,6 +14,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
+	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/manager"
 	"github.com/dextermb/claude-multiplexer/internal/markdown"
 	"github.com/dextermb/claude-multiplexer/internal/protocol"
@@ -32,6 +33,7 @@ const (
 
 type Options struct {
 	Manager               *manager.Manager
+	Config                config.Config
 	DefaultDir            string
 	DefaultModel          string
 	DefaultPermissionMode string
@@ -310,6 +312,8 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 	case bashResultMsg:
 		return m.handleBash(msg)
+	case openedMsg:
+		return m.handleOpened(msg)
 	case tea.MouseMsg:
 		return m.handleMouse(msg)
 	case tea.KeyMsg:
