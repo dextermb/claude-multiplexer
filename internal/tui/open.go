@@ -5,6 +5,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
+	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/open"
 )
 
@@ -45,12 +46,27 @@ func (m Model) openInEditor() (tea.Model, tea.Cmd) {
 	if !ok {
 		return m, nil
 	}
-	target, err := open.Editor(m.opts.Config, item.dir)
+	settings, err := m.editorSettings()
+	if err != nil {
+		m.errText = err.Error()
+		return m, nil
+	}
+	target, err := open.Editor(settings, item.dir)
 	if err != nil {
 		m.errText = err.Error()
 		return m, nil
 	}
 	return m.launch("editor", item.dir, target)
+}
+
+// editorSettings reads the settings file at the key press, so a file a session
+// wrote with set_editor is seen without a restart. See docs/config.md.
+func (m Model) editorSettings() (config.Config, error) {
+	file, err := config.Load(m.opts.ConfigPaths...)
+	if err != nil {
+		return config.Config{}, err
+	}
+	return config.Resolve(m.opts.Config, file), nil
 }
 
 func (m Model) launch(what, dir string, target open.Target) (tea.Model, tea.Cmd) {

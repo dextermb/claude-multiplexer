@@ -34,6 +34,7 @@ const (
 type Options struct {
 	Manager               *manager.Manager
 	Config                config.Config
+	ConfigPaths           []string
 	DefaultDir            string
 	DefaultModel          string
 	DefaultPermissionMode string

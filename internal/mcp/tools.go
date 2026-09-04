@@ -49,6 +49,17 @@ type stopJobIn struct {
 	Job     string `json:"job" jsonschema:"the id of the background job to stop"`
 }
 
+type setEditorIn struct {
+	Editor   string `json:"editor,omitempty" jsonschema:"the command that opens a directory, such as 'code -n' or 'nvim'; leave it out to keep the editor that is set"`
+	Terminal *bool  `json:"terminal,omitempty" jsonschema:"true when that editor draws in the terminal (vim, nvim, helix), false when it has its own window (code, zed); leave it out to keep what is set"`
+}
+
+type setEditorOut struct {
+	OK      bool   `json:"ok"`
+	Path    string `json:"path"`
+	Message string `json:"message"`
+}
+
 type okOut struct {
 	OK      bool   `json:"ok"`
 	Message string `json:"message"`
@@ -145,6 +156,23 @@ func (s *Server) build(caller string, control bool) *sdk.Server {
 			return nil, listJobsOut{}, err
 		}
 		return nil, listJobsOut{Session: target, Jobs: jobs}, nil
+	})
+
+	sdk.AddTool(server, &sdk.Tool{
+		Name: ToolSetEditor,
+		Description: "Set the editor the human opens a session directory with, and whether it draws in the terminal. " +
+			"It writes the settings file of the multiplexer, and makes that file when there is none. " +
+			"Give the editor, the terminal flag, or both.",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, in setEditorIn) (*sdk.CallToolResult, setEditorOut, error) {
+		editor := strings.TrimSpace(in.Editor)
+		if editor == "" && in.Terminal == nil {
+			return nil, setEditorOut{}, ErrNoEditor
+		}
+		path, err := s.sessions.SetEditor(editor, in.Terminal, caller)
+		if err != nil {
+			return nil, setEditorOut{}, err
+		}
+		return nil, setEditorOut{OK: true, Path: path, Message: editorMessage(editor, in.Terminal, path)}, nil
 	})
 
 	if !control {
@@ -247,4 +275,19 @@ func targetOrSelf(arg, caller string) (string, error) {
 		return caller, nil
 	}
 	return cleanTarget(arg)
+}
+
+func editorMessage(editor string, terminal *bool, path string) string {
+	var parts []string
+	if editor != "" {
+		parts = append(parts, "the editor is now "+editor)
+	}
+	if terminal != nil {
+		kind := "a window editor"
+		if *terminal {
+			kind = "a terminal editor"
+		}
+		parts = append(parts, "it is "+kind)
+	}
+	return strings.Join(parts, ", ") + ", in " + path
 }
