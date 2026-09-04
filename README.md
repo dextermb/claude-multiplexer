@@ -143,7 +143,7 @@ Three recipes do use the real binary, and they cost money:
 
 ```sh
 just test-real    # one real session through the interface, about a penny
-just probe-mcp    # one real session that calls the mux tools
+just probe-mcp    # one real session that calls the cmux tools
 just smoke        # one prompt, one word back
 ```
 

@@ -1,7 +1,7 @@
 # The tools a session can call
 
 Each session is a Claude Code child, and the multiplexer serves it a small MCP
-server named `mux`. Through it, a session names itself, reads its neighbours,
+server named `cmux`. Through it, a session names itself, reads its neighbours,
 and — with a grant — drives them.
 
 For the stream between the multiplexer and one child, see
@@ -11,7 +11,10 @@ For the stream between the multiplexer and one child, see
 ## The tools
 
 Claude Code names an MCP tool `mcp__<server>__<tool>`, so every tool below
-reaches the model as `mcp__mux__…`.
+reaches the model as `mcp__cmux__…`. The server carries the name
+`just install-as` gives the binary, so one word names the program in a prompt
+and on the command line. A session that starts writes its own `mcp.json`, so a
+resumed session takes the name without a migration.
 
 | Tool | Arguments | What it does | Grant |
 |---|---|---|---|
@@ -207,7 +210,7 @@ manager writes the configuration file under the state directory:
 ```json
 {
   "mcpServers": {
-    "mux": {
+    "cmux": {
       "type": "http",
       "url": "http://127.0.0.1:52413/mcp",
       "headers": { "Authorization": "Bearer 4f3a…" }
@@ -241,9 +244,9 @@ Proven against Claude Code 2.1.176:
 
 - It accepts `--mcp-config <file>` with an `http` entry and a `headers` object,
   and it sends those headers on every request.
-- The `init` event lists the server: `{"name":"mux","status":"connected"}`. The
+- The `init` event lists the server: `{"name":"cmux","status":"connected"}`. The
   decoder reads it as `protocol.Init.MCPServers`.
-- It names the tool `mcp__mux__rename_session` on `--allowedTools`, and calling
+- It names the tool `mcp__cmux__rename_session` on `--allowedTools`, and calling
   one needs no permission prompt.
 - The tools arrive as **deferred** tools. The model loads the schema with
   `ToolSearch` before its first call, which costs one extra step.

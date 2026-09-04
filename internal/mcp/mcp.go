@@ -10,8 +10,9 @@ import (
 )
 
 // ServerName is the MCP server name, so a tool reaches Claude Code as
-// mcp__mux__<tool>.
-const ServerName = "mux"
+// mcp__cmux__<tool>. It is the name install-as gives the binary. See
+// docs/mcp.md.
+const ServerName = "cmux"
 
 const (
 	ToolRename          = "rename_session"
