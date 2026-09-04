@@ -5,21 +5,6 @@ session is a `claude` child process in headless mode, with its own directory and
 its own conversation. One terminal interface shows them all: a list of sessions,
 the output of the selected one, and a prompt box.
 
-```
-▎▾ ⇄ boss               3│  api · claude-opus-4-8 · auto     busy · ⇢2 · 4.2k in 0.3k out · $0.0212
-▎ ● boss                 │ › write the summary
-▎ ⠋ api                ⇢2│ ● 2127c615 · claude-opus-4-8 · 31 tools
-▎ ○ invoices             │ → Bash echo hello
-▎▾ multiplexer          1│ ← hello
-▎ ● docs                 │ ← 4213 lines  ⏎
-▎▸ notes              ○ 1│ The loader has three problems▌
-▎                        │
-▎                        │
- api — press Enter or Tab to type
- > Type a prompt, then press Enter
- 3 sessions · 1 busy · $0.0881   n new · t preset · r resume · a archive · x stop · ? keys · q quit
-```
-
 The list groups the sessions: one group for each repository, and one group for
 the work of each control session. A glyph gives the state of each row, and the
 blue left edge marks the pane that has the focus. See
@@ -65,8 +50,9 @@ plain text, and it never renders markdown.
   settles into rendered markdown when it is complete.
 - **Markdown.** Headings, lists, quotes, tables, and code fences with syntax
   colours. Press `o m` for the raw text.
-- **Large results on demand.** A long tool result collapses to a summary marked
-  `⏎`. Press `Enter` in the output pane to page the whole body.
+- **Large blocks on demand.** A block of more than 20 rows draws its first 20
+  rows and a marker row. Press `Enter` in the output pane to open the rest in
+  place. See [docs/tui/output.md](docs/tui/output.md).
 - **Questions you answer.** When a session asks a question, the row turns to
   `?`, and the pane shows the options. Choose one, or type your own answer.
 - **Work that survives.** A session with at least one turn is remembered. It
@@ -111,7 +97,8 @@ State goes under `~/.multiplexier/sessions/<name>/`:
 
 The settings live apart from the state, in
 `~/.config/multiplexer/config.json`. They name the editor that `s d` opens on
-the working directory of a session. `--config <path>` names another file. See
+the working directory of a session, and the rows one block draws before the pane
+caps it. `--config <path>` names another file. See
 [docs/config.md](docs/config.md).
 
 ## Documentation
