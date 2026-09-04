@@ -17,15 +17,28 @@ install:
 install-as NAME="cmux":
     #!/usr/bin/env bash
     set -euo pipefail
+    cd {{quote(justfile_directory())}}
     dir="$HOME/.local/bin"
+    target="$dir/{{NAME}}"
     mkdir -p "$dir"
-    go build -o "$dir/{{NAME}}" {{main}}
-    echo "built: $dir/{{NAME}}"
+    rm -f "$target"
+    go build -o "$target" {{main}}
+    head="$(git rev-parse HEAD)"
+    built="$(go version -m "$target" | sed -n 's/^.*vcs\.revision=//p')"
+    if [ "$built" != "$head" ]; then
+        echo "the binary reports ${built:-no revision}, but this tree is at $head — the build did not take"
+        exit 1
+    fi
+    echo "built: $target at ${head:0:7}"
     case ":$PATH:" in
         *":$dir:"*) echo "$dir is already on PATH" ;;
         *) echo "export PATH=\"$dir:\$PATH\"" >> "$HOME/.zshrc"
            echo "added $dir to PATH in ~/.zshrc — open a new shell or run: export PATH=\"$dir:\$PATH\"" ;;
     esac
+    found="$(command -v {{NAME}} || true)"
+    if [ -n "$found" ] && [ "$found" != "$target" ]; then
+        echo "warning: {{NAME}} on PATH is $found, so it hides the binary you just built"
+    fi
 
 # Start the terminal user interface.
 tui *ARGS:
