@@ -36,22 +36,53 @@ copy, so the prompt is never shown twice. The echoed prompt is in the transcript
 for a later replay, and the pane reads as a conversation.
 
 The class travels with the line from the renderer, through the manager buffer,
-to the screen. The one-shot `run` command prints the same lines with no colour,
-because it usually writes to a pipe.
+to the screen. The one-shot `run` command prints one line for each event, with
+no colour, because it usually writes to a pipe. A line that holds a whole body
+carries a `Summary` field, and that is the line the `run` command prints:
+`← 4213 lines`.
 
-## A large result is collapsed, and opens on demand
+## A block of more than 20 lines opens in the pane
 
-A tool result of more than one line does not fill the pane. The renderer shows a
-short summary, such as `← 4213 lines`, and keeps the whole body on the line in a
-`Full` field. A summary line carries a `⏎` mark, so you can see that it opens.
+A **block** is one piece of content: your prompt, one message from the
+assistant, one tool result, or the output of a `!` command. The renderer marks
+each line that continues the block the line before it started, so the pane knows
+where a block ends.
 
-The body travels with the line, so the pane holds it without a second read of
-the transcript. Only a collapsed line carries a body, and the buffer caps the
-line count, so the extra memory is bounded.
+A block of more than 20 rows draws its first 20 rows and a marker row under
+them:
 
-Press `Enter` in the output pane to open a result. A dialog lists every result
-that carries a body, newest last. Choose one to page it in a scrollable view.
-See [keys.md](keys.md) for the keys.
+```
+→ Bash ./scripts/build.sh
+← go: downloading github.com/charmbracelet/bubbletea v1.3.4
+  go: downloading github.com/charmbracelet/lipgloss v1.1.0
+  … 18 more rows of the body …
+▸ ⋯ 4193 more lines · enter to open
+```
+
+The cap counts the rows the pane draws, after the text is wrapped to the width
+of the pane. So one block never takes more than 21 rows, however wide its lines
+are.
+
+An open block draws every row, and its marker says `⋯ show less`. The first row
+of the block holds its place on the screen while it opens and closes, so the
+text under your eyes does not jump.
+
+**The cursor.** The marker row of one block carries `▸` and a highlight. That is
+the block cursor, and it names the block that `Enter` opens. `]` and `[` move it
+to the next capped block and to the block before, and the pane scrolls to it
+only when it is out of sight. A click on any marker row opens that block.
+
+The cursor sits on the newest capped block. It returns there at the end of every
+turn, and when you select another session, because that is the block you most
+often want. So `[` is for going back over the answer you just read.
+
+**What the pane holds.** A tool result carries its whole body, because the body
+travels with the line and the pane opens it without a second read of the
+transcript. The buffer caps the line count, so the extra memory is bounded. See
+[manager.md](../manager.md).
+
+A change of selection closes every open block, because the buffer may have
+dropped lines from the front, and a block is named by its place in the list.
 
 ## Text as it arrives
 
