@@ -99,9 +99,9 @@ collapse NAME:
 clean:
     rm -rf bin coverage.out
 
-# Remove the session state in ~/.multiplexier.
+# Remove the session state, in the state directory and in the older one.
 clean-state:
-    rm -rf ~/.multiplexier/sessions
+    rm -rf ~/.claude-multiplexer/sessions ~/.multiplexier/sessions
 
 # Warning: this drives one real session through the interface, and it costs money.
 test-real:

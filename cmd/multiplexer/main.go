@@ -52,7 +52,7 @@ func main() {
 
 func templatesCommand(argv []string) int {
 	fs := flag.NewFlagSet("templates", flag.ExitOnError)
-	root := fs.String("root", "", "state directory (default ~/.multiplexier)")
+	root := fs.String("root", "", "state directory (default ~/.claude-multiplexer)")
 	dir := fs.String("dir", ".", "directory whose project templates to include")
 	if err := fs.Parse(argv); err != nil {
 		return 2
@@ -108,11 +108,7 @@ func resolveRoot(root string) (string, error) {
 	if root != "" {
 		return filepath.Abs(root)
 	}
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(home, manager.DefaultRootName), nil
+	return config.DefaultRoot()
 }
 
 func tuiCommand(argv []string) int {
@@ -121,7 +117,7 @@ func tuiCommand(argv []string) int {
 		fmt.Fprint(os.Stderr, usage, "\nFlags:\n")
 		fs.PrintDefaults()
 	}
-	root := fs.String("root", "", "state directory (default ~/.multiplexier)")
+	root := fs.String("root", "", "state directory (default ~/.claude-multiplexer)")
 	model := fs.String("model", "", "default model for a new session")
 	mode := fs.String("permission-mode", session.DefaultPermissionMode,
 		"default permission mode: acceptEdits, auto, bypassPermissions, default, dontAsk, or plan")

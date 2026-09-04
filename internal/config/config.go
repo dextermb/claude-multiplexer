@@ -1,6 +1,6 @@
-// Package config reads the settings file, and resolves a setting from the
-// flag, the environment, that file, and the settings of Claude Code. See
-// docs/config.md.
+// Package config names the directories of the program, reads the settings file,
+// and resolves a setting from the flag, the environment, that file, and the
+// settings of Claude Code. See docs/config.md.
 package config
 
 import (
@@ -18,8 +18,30 @@ const FileName = "config.json"
 // caps it. See docs/tui/output.md.
 const DefaultBlockCap = 20
 
-// Names holds both spellings of the program, in the order they are read.
-var Names = []string{"multiplexer", "multiplexier"}
+// Names holds the settings directories of the program, in the order they are
+// read. The first one is where a new installation writes.
+var Names = []string{"claude-multiplexer", "multiplexer", "multiplexier"}
+
+// RootNames holds the state directories under the home directory, in the order
+// they are read. The first one is where a new installation writes. Only these
+// two ever held a session, so only these two are read. See docs/manager.md.
+var RootNames = []string{".claude-multiplexer", ".multiplexier"}
+
+// DefaultRoot gives the state directory to use when --root names none: the
+// first of RootNames that is there, and the first name when none of them is.
+func DefaultRoot() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	for _, name := range RootNames {
+		path := filepath.Join(home, name)
+		if info, err := os.Stat(path); err == nil && info.IsDir() {
+			return path, nil
+		}
+	}
+	return filepath.Join(home, RootNames[0]), nil
+}
 
 type Config struct {
 	Editor         string `json:"editor,omitempty"`

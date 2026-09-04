@@ -316,11 +316,12 @@ func TestANamedArgumentWithNoValueIsMissing(t *testing.T) {
 	}
 }
 
-func TestDirsReadsBothSpellingsOfTheStateDirectory(t *testing.T) {
-	got := Dirs("/home/dexter/.multiplexier", "/work/api")
+func TestDirsReadsEverySpellingOfTheStateDirectory(t *testing.T) {
+	got := Dirs("/home/dexter/.claude-multiplexer", "/work/api")
 	want := []string{
-		filepath.Join("/home/dexter/.multiplexier", "templates"),
 		filepath.Join("/home/dexter/.multiplexer", "templates"),
+		filepath.Join("/home/dexter/.multiplexier", "templates"),
+		filepath.Join("/home/dexter/.claude-multiplexer", "templates"),
 		filepath.Join("/work/api", ".multiplexier", "templates"),
 		filepath.Join("/work/api", ".multiplexer", "templates"),
 	}
@@ -405,5 +406,29 @@ func TestFillTakesQuotedValues(t *testing.T) {
 	values, _ = tpl.Fill(args)
 	if values["note"] != "don't push anything" {
 		t.Fatalf("note = %q, want the apostrophe kept", values["note"])
+	}
+}
+
+func TestDirsLeaveANamedRootAlone(t *testing.T) {
+	got := Dirs("/var/state/mux", "")
+	if len(got) != 1 || got[0] != filepath.Join("/var/state/mux", "templates") {
+		t.Fatalf("dirs = %v, want the one directory --root names", got)
+	}
+}
+
+func TestDirsReadTheOlderStateDirectories(t *testing.T) {
+	got := Dirs("/home/dexter/.multiplexier", "")
+	want := []string{
+		filepath.Join("/home/dexter/.multiplexer", "templates"),
+		filepath.Join("/home/dexter/.claude-multiplexer", "templates"),
+		filepath.Join("/home/dexter/.multiplexier", "templates"),
+	}
+	if len(got) != len(want) {
+		t.Fatalf("dirs = %v, want %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("dirs = %v, want %v", got, want)
+		}
 	}
 }

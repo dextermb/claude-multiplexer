@@ -7,17 +7,20 @@ selected session, and the block cap of the session pane. See
 
 ## Where the file is
 
-The file is `config.json` in the XDG configuration directory. The project
-writes its name two ways, so both spellings are read:
+The file is `config.json` in the XDG configuration directory. The directory is
+named for the repository, and the two older names are still read:
 
 | Order | Path |
 |---|---|
-| 1 | `$XDG_CONFIG_HOME/multiplexer/config.json` |
-| 2 | `$XDG_CONFIG_HOME/multiplexier/config.json` |
+| 1 | `$XDG_CONFIG_HOME/claude-multiplexer/config.json` |
+| 2 | `$XDG_CONFIG_HOME/multiplexer/config.json` |
+| 3 | `$XDG_CONFIG_HOME/multiplexier/config.json` |
 
 `$XDG_CONFIG_HOME` defaults to `~/.config`, so the usual path is
-`~/.config/multiplexer/config.json`. The first file that is there wins, and the
-other one is not read.
+`~/.config/claude-multiplexer/config.json`. The first file that is there wins,
+and the others are not read. A tool writes the first file that is there, so a
+settings file you already have keeps its place. With no file at all, the first
+path is written.
 
 `--config <path>` names one file and skips the search. A file it names must be
 there, or the program stops.
