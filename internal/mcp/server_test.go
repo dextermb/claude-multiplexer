@@ -14,14 +14,17 @@ import (
 )
 
 type fakeSessions struct {
-	titles   map[string]string
-	sent     []string
-	stopped  []string
-	archived map[string]bool
-	created  []string
-	list     []mcp.Session
-	messages map[string][]mcp.Message
-	failStop error
+	titles      map[string]string
+	sent        []string
+	stopped     []string
+	archived    map[string]bool
+	created     []string
+	list        []mcp.Session
+	messages    map[string][]mcp.Message
+	jobs        map[string][]mcp.Job
+	stoppedJobs []string
+	failStop    error
+	failStopJob error
 }
 
 func newFakeSessions() *fakeSessions {
@@ -29,6 +32,7 @@ func newFakeSessions() *fakeSessions {
 		titles:   make(map[string]string),
 		archived: make(map[string]bool),
 		messages: make(map[string][]mcp.Message),
+		jobs:     make(map[string][]mcp.Job),
 	}
 }
 
@@ -74,6 +78,18 @@ func (f *fakeSessions) Messages(name string, limit int) ([]mcp.Message, error) {
 		items = items[len(items)-limit:]
 	}
 	return items, nil
+}
+
+func (f *fakeSessions) Jobs(name string) ([]mcp.Job, error) {
+	return f.jobs[name], nil
+}
+
+func (f *fakeSessions) StopJob(target, jobID, by string) (int, error) {
+	if f.failStopJob != nil {
+		return 0, f.failStopJob
+	}
+	f.stoppedJobs = append(f.stoppedJobs, by+"->"+target+":"+jobID)
+	return len(f.stoppedJobs), nil
 }
 
 func startServer(t *testing.T, sessions mcp.Sessions) *mcp.Server {
@@ -295,6 +311,66 @@ func TestListAndMessagesReadTheOtherSessions(t *testing.T) {
 	result = call(t, client, mcp.ToolMessages, map[string]any{"session": "gone"})
 	if !result.IsError {
 		t.Fatal("an unknown session returned messages")
+	}
+}
+
+func TestListJobsReadsSelfAndANeighbour(t *testing.T) {
+	sessions := newFakeSessions()
+	sessions.jobs["docs"] = []mcp.Job{{ID: "d1", Description: "own job", Status: "running", Running: true}}
+	sessions.jobs["api"] = []mcp.Job{{ID: "a1", Description: "build", Status: "done"}}
+	server := startServer(t, sessions)
+	token, err := server.Register("docs", false)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+	client := connect(t, server, token)
+
+	self := resultText(call(t, client, mcp.ToolListJobs, map[string]any{}))
+	if !strings.Contains(self, "d1") || strings.Contains(self, "a1") {
+		t.Fatalf("self jobs = %s", self)
+	}
+
+	neighbour := resultText(call(t, client, mcp.ToolListJobs, map[string]any{"session": "api"}))
+	if !strings.Contains(neighbour, "a1") || !strings.Contains(neighbour, "build") {
+		t.Fatalf("neighbour jobs = %s", neighbour)
+	}
+}
+
+func TestStopJobDrivesAnotherSessionAndSelf(t *testing.T) {
+	sessions := newFakeSessions()
+	server := startServer(t, sessions)
+	token, err := server.Register("docs", true)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+	client := connect(t, server, token)
+
+	if result := call(t, client, mcp.ToolStopJob, map[string]any{"session": "api", "job": "a1"}); result.IsError {
+		t.Fatalf("stop_job failed: %s", resultText(result))
+	}
+	if result := call(t, client, mcp.ToolStopJob, map[string]any{"job": "d1"}); result.IsError {
+		t.Fatalf("self stop_job failed: %s", resultText(result))
+	}
+	want := []string{"docs->api:a1", "docs->docs:d1"}
+	if len(sessions.stoppedJobs) != 2 || sessions.stoppedJobs[0] != want[0] || sessions.stoppedJobs[1] != want[1] {
+		t.Fatalf("stoppedJobs = %v, want %v", sessions.stoppedJobs, want)
+	}
+}
+
+func TestStopJobNeedsAJobID(t *testing.T) {
+	sessions := newFakeSessions()
+	server := startServer(t, sessions)
+	token, err := server.Register("docs", true)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+	client := connect(t, server, token)
+
+	if result := call(t, client, mcp.ToolStopJob, map[string]any{"session": "api"}); !result.IsError {
+		t.Fatal("stop_job ran with no job id")
+	}
+	if len(sessions.stoppedJobs) != 0 {
+		t.Fatalf("stoppedJobs = %v", sessions.stoppedJobs)
 	}
 }
 

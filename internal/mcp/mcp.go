@@ -17,17 +17,19 @@ const (
 	ToolRename   = "rename_session"
 	ToolList     = "list_sessions"
 	ToolMessages = "get_messages"
+	ToolListJobs = "list_jobs"
 	ToolSend     = "send_message"
 	ToolStop     = "stop_session"
 	ToolArchive  = "archive_session"
 	ToolCreate   = "create_session"
+	ToolStopJob  = "stop_job"
 )
 
 // OpenTools go to every session. ControlTools go only to a session that holds
 // the control grant.
 var (
-	OpenTools    = []string{ToolRename, ToolList, ToolMessages}
-	ControlTools = []string{ToolSend, ToolStop, ToolArchive, ToolCreate}
+	OpenTools    = []string{ToolRename, ToolList, ToolMessages, ToolListJobs}
+	ControlTools = []string{ToolSend, ToolStop, ToolArchive, ToolCreate, ToolStopJob}
 )
 
 var (
@@ -35,6 +37,7 @@ var (
 	ErrSelfStop = errors.New("mcp: a session cannot stop itself")
 	ErrNoTarget = errors.New("mcp: this tool needs a session name")
 	ErrNoPath   = errors.New("mcp: this tool needs a directory path")
+	ErrNoJob    = errors.New("mcp: this tool needs a job id")
 )
 
 // AllowedTools names the tools a session may call, in the form Claude Code
@@ -78,6 +81,16 @@ type Message struct {
 	Text string `json:"text"`
 }
 
+// Job is one row of list_jobs. It repeats what the session holds, so this
+// package needs nothing from the session package. See docs/mcp.md.
+type Job struct {
+	ID          string `json:"id"`
+	Description string `json:"description,omitempty"`
+	TaskType    string `json:"task_type,omitempty"`
+	Status      string `json:"status"`
+	Running     bool   `json:"running"`
+}
+
 // Sessions is the slice of the manager this package uses. Every method that
 // changes something takes the name of the calling session, so the interface can
 // tell the human who did it.
@@ -89,6 +102,8 @@ type Sessions interface {
 	Create(dir, name, by string) (string, error)
 	List() []Session
 	Messages(name string, limit int) ([]Message, error)
+	Jobs(name string) ([]Job, error)
+	StopJob(target, jobID, by string) (int, error)
 }
 
 // DefaultMessageLimit is how many messages get_messages returns when the caller

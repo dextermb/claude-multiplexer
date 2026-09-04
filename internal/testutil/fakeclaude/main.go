@@ -78,6 +78,17 @@ func main() {
 	if !lazy {
 		emitInit(sessionID)
 	}
+	if os.Getenv("FAKECLAUDE_MODE") == "jobs" {
+		emit(map[string]any{
+			"type":        "system",
+			"subtype":     "task_started",
+			"task_id":     "job-1",
+			"tool_use_id": "toolu_1",
+			"description": "sleep and echo",
+			"task_type":   "local_bash",
+			"session_id":  sessionID,
+		})
+	}
 
 	scanner := bufio.NewScanner(os.Stdin)
 	scanner.Buffer(make([]byte, 0, 64*1024), 16<<20)

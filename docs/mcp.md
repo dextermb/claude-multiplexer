@@ -18,10 +18,12 @@ reaches the model as `mcp__mux__…`.
 | `rename_session` | `title` | Sets the title of the calling session. An empty title clears it. | open |
 | `list_sessions` | `live_only` | Every session, running and stored: name, title, directory, state, model, turns, cost, and the archive flag. | open |
 | `get_messages` | `session`, `limit` | The recent messages of a session, oldest last. 20 by default, 200 at most. | open |
+| `list_jobs` | `session` | The background jobs of a session: id, description, task type, and status. An empty session means the caller. | open |
 | `send_message` | `session`, `text` | Queues a prompt for another session, and returns the queue length. | control |
 | `stop_session` | `session` | Ends another child in a clean way. Its transcript is kept. | control |
 | `archive_session` | `session`, `restore` | Takes a stopped session out of the list, or with `restore` brings it back. | control |
 | `create_session` | `path`, `name` | Starts a new session in a directory. Returns the name it takes. | control |
+| `stop_job` | `session`, `job` | Interrupts a session and asks it to kill one background job. An empty session means the caller. | control |
 
 `create_session` takes a directory path and an optional name. The directory
 must exist. The manager makes the name unique, and it falls back to the last
@@ -34,10 +36,23 @@ message, and each result. A tool call becomes the short line `[used Bash]`,
 because the whole input of a tool call is large and it is rarely what a reader
 wants.
 
+`list_jobs` reads the background jobs of a session; see
+[sessions.md](./sessions.md). It reads the live session, so it returns an empty
+list for a stored session, which has no running jobs.
+
+`stop_job` cannot reach a Claude Code background shell directly, because the
+shell runs inside the child. So the tool interrupts the current turn of the
+owning session, and it queues an instruction to run `KillShell` on the exact
+shell. The interrupt ends the turn at once, so the instruction runs on the next
+turn. The tool marks the pane with `← stop job <id> from <caller>`, the same way
+`send_message` marks a prompt. It finds the job by its id first, so it never
+interrupts a turn for a job that does not exist or already stopped.
+
 ## The grant
 
-A session gets `rename_session`, `list_sessions`, and `get_messages` always.
-It gets the four control tools **only** when it is started with control.
+A session gets `rename_session`, `list_sessions`, `get_messages`, and
+`list_jobs` always. It gets the five control tools **only** when it is started
+with control.
 
 - In the new session form, set the `Control` field to `yes`.
 - On the command line, `multiplexier --dir <path> --control`.
@@ -63,6 +78,11 @@ next to the model. See [tui/sessions.md](./tui/sessions.md).
 - `archive_session` on a session that still runs. Stop it first.
 - `create_session` with no path, or with a path that is not a directory that
   exists.
+- `stop_job` with no job id, or with a job id that no running job holds.
+
+Unlike `send_message` and `stop_session`, `stop_job` may name the calling
+session, because a session may stop its own background job. A self target
+interrupts the caller's own turn.
 
 ## Two agents can talk in a circle
 

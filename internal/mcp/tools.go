@@ -40,6 +40,15 @@ type createIn struct {
 	Name string `json:"name,omitempty" jsonschema:"an optional name for the new session"`
 }
 
+type listJobsIn struct {
+	Session string `json:"session,omitempty" jsonschema:"the session to read the jobs of; empty means this session"`
+}
+
+type stopJobIn struct {
+	Session string `json:"session,omitempty" jsonschema:"the session that owns the job; empty means this session"`
+	Job     string `json:"job" jsonschema:"the id of the background job to stop"`
+}
+
 type okOut struct {
 	OK      bool   `json:"ok"`
 	Message string `json:"message"`
@@ -63,6 +72,17 @@ type messagesOut struct {
 type createOut struct {
 	OK      bool   `json:"ok"`
 	Name    string `json:"name"`
+	Message string `json:"message"`
+}
+
+type listJobsOut struct {
+	Session string `json:"session"`
+	Jobs    []Job  `json:"jobs"`
+}
+
+type stopJobOut struct {
+	OK      bool   `json:"ok"`
+	Queued  int    `json:"queued"`
 	Message string `json:"message"`
 }
 
@@ -110,6 +130,21 @@ func (s *Server) build(caller string, control bool) *sdk.Server {
 			return nil, messagesOut{}, err
 		}
 		return nil, messagesOut{Session: target, Messages: messages}, nil
+	})
+
+	sdk.AddTool(server, &sdk.Tool{
+		Name:        ToolListJobs,
+		Description: "List the background jobs of a session: id, description, task type, and status (running, done, failed, or killed). Give a session name, or leave it empty for this session.",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, in listJobsIn) (*sdk.CallToolResult, listJobsOut, error) {
+		target, err := targetOrSelf(in.Session, caller)
+		if err != nil {
+			return nil, listJobsOut{}, err
+		}
+		jobs, err := s.sessions.Jobs(target)
+		if err != nil {
+			return nil, listJobsOut{}, err
+		}
+		return nil, listJobsOut{Session: target, Jobs: jobs}, nil
 	})
 
 	if !control {
@@ -183,5 +218,33 @@ func (s *Server) build(caller string, control bool) *sdk.Server {
 		return nil, createOut{OK: true, Name: created, Message: "started " + created}, nil
 	})
 
+	sdk.AddTool(server, &sdk.Tool{
+		Name:        ToolStopJob,
+		Description: "Stop a running background job. It interrupts the owning session and asks it to run KillShell on that job, so the job stops on the next turn. Give the job id, and a session name or empty for this session.",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, in stopJobIn) (*sdk.CallToolResult, stopJobOut, error) {
+		target, err := targetOrSelf(in.Session, caller)
+		if err != nil {
+			return nil, stopJobOut{}, err
+		}
+		job := strings.TrimSpace(in.Job)
+		if job == "" {
+			return nil, stopJobOut{}, ErrNoJob
+		}
+		queued, err := s.sessions.StopJob(target, job, caller)
+		if err != nil {
+			return nil, stopJobOut{}, err
+		}
+		return nil, stopJobOut{OK: true, Queued: queued, Message: fmt.Sprintf("stopping job %s of %s", job, target)}, nil
+	})
+
 	return server
+}
+
+// targetOrSelf reads a session argument, and it returns the caller when the
+// argument is empty, so a job tool defaults to the calling session.
+func targetOrSelf(arg, caller string) (string, error) {
+	if strings.TrimSpace(arg) == "" {
+		return caller, nil
+	}
+	return cleanTarget(arg)
 }

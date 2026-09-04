@@ -26,6 +26,8 @@ var (
 	ErrNoDirectory    = errors.New("manager: a session needs a directory")
 	ErrNotDirectory   = errors.New("manager: the path is not a directory")
 	ErrStillLive      = errors.New("manager: the session is still live")
+	ErrUnknownJob     = errors.New("manager: unknown background job")
+	ErrJobNotRunning  = errors.New("manager: the background job is not running")
 )
 
 type Options struct {

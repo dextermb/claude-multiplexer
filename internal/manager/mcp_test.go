@@ -3,6 +3,7 @@ package manager
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -168,6 +169,108 @@ func TestMessagesReadTheTranscript(t *testing.T) {
 
 	if _, err := m.Messages("gone", 20); err == nil {
 		t.Fatal("an unknown session returned messages")
+	}
+}
+
+func TestJobsReportsARunningJob(t *testing.T) {
+	t.Setenv("FAKECLAUDE_MODE", "jobs")
+	m := withMCP(t)
+	name, err := m.Spawn(context.Background(), Spec{Dir: t.TempDir(), Name: "api"})
+	if err != nil {
+		t.Fatalf("Spawn: %v", err)
+	}
+	waitFor(t, 10*time.Second, func() bool {
+		jobs, _ := m.Jobs(name)
+		return len(jobs) == 1
+	})
+	jobs, err := m.Jobs(name)
+	if err != nil {
+		t.Fatalf("Jobs: %v", err)
+	}
+	job := jobs[0]
+	if job.ID != "job-1" || job.Description != "sleep and echo" || !job.Running || job.Status != "running" {
+		t.Fatalf("unexpected job: %+v", job)
+	}
+}
+
+func TestStopJobFromMarksThePaneAndQueuesTheKill(t *testing.T) {
+	t.Setenv("FAKECLAUDE_MODE", "jobs")
+	m := withMCP(t)
+	name, err := m.Spawn(context.Background(), Spec{Dir: t.TempDir(), Name: "api"})
+	if err != nil {
+		t.Fatalf("Spawn: %v", err)
+	}
+	waitFor(t, 10*time.Second, func() bool {
+		jobs, _ := m.Jobs(name)
+		return len(jobs) == 1
+	})
+
+	if _, err := m.StopJobFrom(name, "docs", "job-1"); err != nil {
+		t.Fatalf("StopJobFrom: %v", err)
+	}
+	waitFor(t, 10*time.Second, func() bool {
+		for _, line := range m.Lines(name) {
+			if strings.Contains(line.Text, "← stop job job-1 from docs") {
+				return true
+			}
+		}
+		return false
+	})
+	waitFor(t, 10*time.Second, func() bool {
+		for _, line := range m.Lines(name) {
+			if strings.Contains(line.Text, "KillShell") {
+				return true
+			}
+		}
+		return false
+	})
+}
+
+func TestStopJobFromRefusesUnknownSessionAndJob(t *testing.T) {
+	t.Setenv("FAKECLAUDE_MODE", "jobs")
+	m := withMCP(t)
+	name, err := m.Spawn(context.Background(), Spec{Dir: t.TempDir(), Name: "api"})
+	if err != nil {
+		t.Fatalf("Spawn: %v", err)
+	}
+	waitFor(t, 10*time.Second, func() bool {
+		jobs, _ := m.Jobs(name)
+		return len(jobs) == 1
+	})
+
+	if _, err := m.StopJobFrom("gone", "docs", "job-1"); !errors.Is(err, ErrUnknownSession) {
+		t.Fatalf("StopJobFrom on an unknown session = %v", err)
+	}
+	if _, err := m.StopJobFrom(name, "docs", "nope"); !errors.Is(err, ErrUnknownJob) {
+		t.Fatalf("StopJobFrom on an unknown job = %v", err)
+	}
+}
+
+func TestJobsForUnknownSessionErrors(t *testing.T) {
+	m := withMCP(t)
+	if _, err := m.Jobs("gone"); !errors.Is(err, ErrUnknownSession) {
+		t.Fatalf("Jobs on an unknown session = %v", err)
+	}
+}
+
+func TestKillPromptNamesTheShell(t *testing.T) {
+	with := killPrompt(session.Job{ID: "bao4ntmse", Description: "sleep 20"})
+	if !strings.Contains(with, `"bao4ntmse"`) || !strings.Contains(with, "KillShell") || !strings.Contains(with, "sleep 20") {
+		t.Fatalf("prompt = %q", with)
+	}
+	without := killPrompt(session.Job{ID: "x"})
+	if !strings.Contains(without, `"x"`) || strings.Contains(without, "The job is") {
+		t.Fatalf("prompt = %q", without)
+	}
+}
+
+func TestFindJob(t *testing.T) {
+	jobs := []session.Job{{ID: "a"}, {ID: "b"}}
+	if job, ok := findJob(jobs, "b"); !ok || job.ID != "b" {
+		t.Fatalf("findJob(b) = %+v, %v", job, ok)
+	}
+	if _, ok := findJob(jobs, "z"); ok {
+		t.Fatal("findJob found a job that is not there")
 	}
 }
 
