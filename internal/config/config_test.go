@@ -251,3 +251,45 @@ func TestClearRefusesAFieldItDoesNotKnow(t *testing.T) {
 		t.Fatal("an unknown field must give an error")
 	}
 }
+
+func TestBlockCapOrDefault(t *testing.T) {
+	if got := BlockCapOrDefault(Config{}); got != DefaultBlockCap {
+		t.Fatalf("cap = %d, want %d", got, DefaultBlockCap)
+	}
+	none := 0
+	if got := BlockCapOrDefault(Config{BlockCap: &none}); got != 0 {
+		t.Fatalf("cap = %d, want 0, which caps nothing", got)
+	}
+	forty := 40
+	if got := BlockCapOrDefault(Config{BlockCap: &forty}); got != 40 {
+		t.Fatalf("cap = %d, want 40", got)
+	}
+}
+
+func TestTheFlagSitsAboveTheFileForTheBlockCap(t *testing.T) {
+	file, flag := 40, 12
+	got := Resolve(Config{BlockCap: &flag}, Config{BlockCap: &file}, Config{})
+	if got.BlockCap == nil || *got.BlockCap != 12 {
+		t.Fatalf("cap = %v, want the flag", got.BlockCap)
+	}
+	got = Resolve(Config{}, Config{BlockCap: &file}, Config{})
+	if got.BlockCap == nil || *got.BlockCap != 40 {
+		t.Fatalf("cap = %v, want the file", got.BlockCap)
+	}
+}
+
+func TestTheBlockCapSurvivesTheFile(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, FileName)
+	forty := 40
+	if err := Write(path, Config{Editor: "nvim", BlockCap: &forty}); err != nil {
+		t.Fatalf("Write: %v", err)
+	}
+	got, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if got.BlockCap == nil || *got.BlockCap != 40 {
+		t.Fatalf("blockCap = %v, want 40", got.BlockCap)
+	}
+}

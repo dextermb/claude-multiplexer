@@ -53,7 +53,6 @@ forms work everywhere, so a sequence still starts while you type a prompt.
 | Keys | Action |
 |---|---|
 | `o m` | Switch between rendered markdown and raw text |
-| `o r` | Open the list of large results |
 
 ## The keys that work on their own
 
@@ -66,7 +65,8 @@ output.
 | `j`, `k`, `up`, `down` | Move through the list, or scroll the output |
 | `Enter` | Type into a live session, or resume one that is not running |
 | `Enter` (in the prompt) | Send the prompt, or send a queued prompt now while busy |
-| `Enter` (in the output) | Open a large result, or move to the prompt when there is none |
+| `Enter` (in the output) | Open or close the block under the cursor, or move to the prompt when there is no capped block |
+| `[`, `]` (in the output) | Move the cursor between the capped blocks |
 | `i` (in the output) | Move to the prompt |
 | `ctrl+j` | Add a new line inside the prompt |
 | `Shift+Tab` (in the prompt) | Walk the paths that match an `@` word |
@@ -85,9 +85,8 @@ output.
 prompt box, `Tab` completes a `/preset` name, then an `@` path, before it moves
 the focus. See [input.md](input.md).
 
-A dialog that names one session — rename, model, effort, mode, jobs, the result
-pager, and the stop confirmation — draws in the pane, so the sidebar stays on
-the screen. A dialog that names no session covers the sidebar too. See
+A dialog that names one session — rename, model, effort, mode, jobs, and the
+stop confirmation — draws in the pane, so the sidebar stays on the screen. A dialog that names no session covers the sidebar too. See
 [../tui.md](../tui.md).
 
 ### Folding a directory
@@ -175,21 +174,25 @@ scroll up it holds your place, and new output no longer moves the text under
 you. The session bar then shows how far up you are, such as `↑ 62%`. Press `G`
 to return to the bottom and start following again.
 
-### Opening a large result
+### Opening a large block
 
-A big tool result does not fill the pane. The pane shows a short summary, such
-as `← 4213 lines`, with a `⏎` mark to show that it opens. See
-[output.md](output.md).
+A block of more than 20 rows draws its first 20 rows and a marker row, such as
+`⋯ 4193 more lines`. `blockCap` in the settings file changes the 20, and `0`
+caps nothing. See [../config.md](../config.md). A block is one piece of content: your prompt, one message,
+one tool result, or the output of a `!` command. See [output.md](output.md).
 
-Press `o r` for the list of results that open. `Enter` in the output pane opens
-the same list. Move with `j` and `k`, then press `Enter` to page the one you
-want. The same scroll keys work inside it. Press `Esc` to step back to the list,
-and `Esc` again to close.
+The marker row of one block carries `▸` and a highlight. That is the cursor, and
+`Enter` opens the block it names. `Enter` again closes it. `]` and `[` move the
+cursor to the next capped block and to the block before it, and they stop at the
+ends. A click on any marker row opens that block.
+
+The cursor returns to the newest capped block at the end of every turn, so the
+answer you are reading is the one `Enter` opens.
 
 ### Showing background jobs
 
-Press `s j` to open the jobs dialog for the selected session. It has two levels,
-the same shape as the result pager above.
+Press `s j` to open the jobs dialog for the selected session. It has two levels:
+a list, and one job with its output.
 
 The first level lists every background job, the running ones first, then the
 finished ones. Move with `j` and `k`, or with the arrow keys, and jump to an end

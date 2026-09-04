@@ -52,6 +52,9 @@ type spawnedMsg struct {
 type storedMsg struct {
 	metas []manager.Meta
 }
+type settingsMsg struct {
+	blockCap int
+}
 type stoppedMsg struct {
 	name string
 	err  error
@@ -98,7 +101,6 @@ type Model struct {
 	questions    map[string]*questionDialog
 	choice       *choiceDialog
 	rename       *renameDialog
-	pager        *pager
 	jobsModal    *jobsModal
 	pending      string
 	seq          *sequence
@@ -109,6 +111,13 @@ type Model struct {
 	output      viewport.Model
 	outputText  string
 	shownLines  []render.Line
+	expanded    map[int]bool
+	capped      []int
+	markerAt    map[int]int
+	blockStart  map[int]int
+	hiddenRows  map[int]int
+	blockCursor int
+	blockCap    int
 	content     string
 	selection   selRange
 	prompt      textarea.Model
@@ -150,22 +159,28 @@ func New(opts Options) Model {
 	prompt.SetHeight(promptRowsMin)
 
 	return Model{
-		replays:    make(map[string][]render.Line),
-		partials:   make(map[string]string),
-		queued:     make(map[string][]string),
-		todos:      make(map[string][]protocol.Todo),
-		questions:  make(map[string]*questionDialog),
-		folded:     make(map[string]bool),
-		roots:      make(map[string]string),
-		md:         markdown.New(),
-		opts:       opts,
-		mgr:        opts.Manager,
-		sub:        opts.Manager.Subscribe(manager.DefaultSubscriberBuffer),
-		output:     viewport.New(0, 0),
-		prompt:     prompt,
-		pathPicked: -1,
-		focus:      focusSidebar,
-		mouseOn:    true,
+		replays:     make(map[string][]render.Line),
+		partials:    make(map[string]string),
+		queued:      make(map[string][]string),
+		todos:       make(map[string][]protocol.Todo),
+		questions:   make(map[string]*questionDialog),
+		folded:      make(map[string]bool),
+		roots:       make(map[string]string),
+		expanded:    make(map[int]bool),
+		markerAt:    make(map[int]int),
+		blockStart:  make(map[int]int),
+		hiddenRows:  make(map[int]int),
+		md:          markdown.New(),
+		opts:        opts,
+		mgr:         opts.Manager,
+		sub:         opts.Manager.Subscribe(manager.DefaultSubscriberBuffer),
+		output:      viewport.New(0, 0),
+		prompt:      prompt,
+		pathPicked:  -1,
+		blockCursor: -1,
+		blockCap:    config.DefaultBlockCap,
+		focus:       focusSidebar,
+		mouseOn:     true,
 	}
 }
 
@@ -176,7 +191,7 @@ func Run(opts Options) error {
 }
 
 func (m Model) Init() tea.Cmd {
-	cmds := []tea.Cmd{waitEvent(m.sub), textarea.Blink, reloadStored(m.mgr)}
+	cmds := []tea.Cmd{waitEvent(m.sub), textarea.Blink, reloadStored(m.mgr), m.readSettings()}
 	if m.opts.InitialDir != "" {
 		cmds = append(cmds, spawnCmd(m.mgr, manager.Spec{Dir: m.opts.InitialDir, Control: m.opts.InitialControl}))
 	}
@@ -278,6 +293,8 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleSpawned(msg)
 	case storedMsg:
 		return m.handleStored(msg)
+	case settingsMsg:
+		return m.handleSettings(msg)
 	case archivedMsg:
 		if msg.err != nil {
 			m.errText = msg.err.Error()
@@ -360,6 +377,30 @@ func (m *Model) maybeOpenForm() tea.Cmd {
 	return textarea.Blink
 }
 
+// readSettings reads the settings file away from the main loop. The interface
+// reads it again at each notice, so a tool that writes it takes effect at once.
+// See docs/config.md.
+func (m Model) readSettings() tea.Cmd {
+	opts := m.opts
+	return func() tea.Msg {
+		file, err := config.Load(opts.ConfigPaths...)
+		if err != nil {
+			return settingsMsg{blockCap: config.DefaultBlockCap}
+		}
+		merged := config.Resolve(opts.Config, file, config.LoadClaude(opts.ClaudePaths...))
+		return settingsMsg{blockCap: config.BlockCapOrDefault(merged)}
+	}
+}
+
+func (m Model) handleSettings(msg settingsMsg) (tea.Model, tea.Cmd) {
+	if msg.blockCap == m.blockCap {
+		return m, nil
+	}
+	m.blockCap = msg.blockCap
+	m.rebuildOutput()
+	return m, nil
+}
+
 func (m Model) handleStored(msg storedMsg) (tea.Model, tea.Cmd) {
 	m.stored = msg.metas
 	m.storedLoaded = true
@@ -384,7 +425,9 @@ func (m Model) handleEvent(ev manager.Event) (tea.Model, tea.Cmd) {
 	if hasPrompt(ev.Lines) {
 		m.dropQueued(ev.Session)
 	}
+	wasBusy := m.selectedBusy()
 	m.refresh()
+	turnEnded := ev.Session == m.sel && wasBusy && !m.selectedBusy()
 
 	widthChanged := ev.Session == m.sel && m.outputWidth() != prevWidth
 	switch {
@@ -394,6 +437,9 @@ func (m Model) handleEvent(ev manager.Event) (tea.Model, tea.Cmd) {
 		m.appendOutput(ev.Lines)
 	case ev.Session == m.sel:
 		m.setContent()
+	}
+	if turnEnded {
+		m.resetBlockCursor()
 	}
 	cmds := []tea.Cmd{waitEvent(m.sub)}
 	if cmd := m.maybeAskQuestion(ev); cmd != nil {
@@ -416,7 +462,7 @@ func (m Model) handleNotice(ev manager.Event) (tea.Model, tea.Cmd) {
 		m.status = ev.Notice
 	}
 	m.refresh()
-	cmds := []tea.Cmd{waitEvent(m.sub)}
+	cmds := []tea.Cmd{waitEvent(m.sub), m.readSettings()}
 	if ev.Reload {
 		cmds = append(cmds, reloadStored(m.mgr))
 	}
@@ -578,9 +624,6 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.rename != nil {
 		return m.renameKey(msg)
 	}
-	if m.pager != nil {
-		return m.pagerKey(msg)
-	}
 	if m.jobsModal != nil {
 		return m.jobsModalKey(msg)
 	}
@@ -697,14 +740,6 @@ func (m Model) promptKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func (m Model) pagerKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	open, cmd := m.pager.Update(msg)
-	if !open {
-		m.pager = nil
-	}
-	return m, cmd
-}
-
 func (m Model) jobsModalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	open, cmd := m.jobsModal.Update(msg)
 	if !open {
@@ -732,12 +767,17 @@ func (m Model) outputKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.focus = focusSidebar
 		return m, nil
 	case "enter":
-		if len(collectExpandables(m.shownLines)) > 0 {
-			return m.openResults()
+		if m.blockCursor >= 0 {
+			m.toggleBlock(m.blockCursor)
+			return m, nil
 		}
 		m.focus = focusPrompt
 		m.prompt.Focus()
 		return m, textarea.Blink
+	case "]":
+		m.moveBlockCursor(1)
+	case "[":
+		m.moveBlockCursor(-1)
 	case "i":
 		m.focus = focusPrompt
 		m.prompt.Focus()
@@ -823,7 +863,7 @@ func (m Model) archiveSelected() (tea.Model, tea.Cmd) {
 }
 
 func (m Model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
-	if m.form != nil || m.confirm != "" || m.quitting || m.questions[m.sel] != nil || m.choice != nil || m.rename != nil || m.pager != nil || m.jobsModal != nil {
+	if m.form != nil || m.confirm != "" || m.quitting || m.questions[m.sel] != nil || m.choice != nil || m.rename != nil || m.jobsModal != nil {
 		return m, nil
 	}
 
@@ -857,6 +897,13 @@ func (m Model) handleLeftMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 			return m, textarea.Blink
 		}
 		if p, ok := m.outputPos(msg.X, msg.Y); ok {
+			if index, hit := m.blockAtRow(p.line); hit {
+				m.clearSelection()
+				m.focus = focusOutput
+				m.prompt.Blur()
+				m.toggleBlock(index)
+				return m, nil
+			}
 			m.focus = focusOutput
 			m.prompt.Blur()
 			m.selection = selRange{active: true, dragging: true, anchor: p, cursor: p}
@@ -906,6 +953,16 @@ func (m Model) handleLeftMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 	return m, nil
+}
+
+// blockAtRow names the block whose marker row is the given row of the pane.
+func (m Model) blockAtRow(row int) (int, bool) {
+	for index, at := range m.markerAt {
+		if at == row {
+			return index, true
+		}
+	}
+	return 0, false
 }
 
 func (m Model) outputPos(x, y int) (pos, bool) {
@@ -1066,16 +1123,6 @@ func (m Model) toggleArchived() (tea.Model, tea.Cmd) {
 	}
 	m.refresh()
 	m.rebuildOutput()
-	return m, nil
-}
-
-func (m Model) openResults() (tea.Model, tea.Cmd) {
-	entries := collectExpandables(m.shownLines)
-	if len(entries) == 0 {
-		m.status = "no result to open"
-		return m, nil
-	}
-	m.pager = newPager(entries, m.baseOutputWidth(), m.outputHeight())
 	return m, nil
 }
 
@@ -1372,7 +1419,6 @@ func (m Model) interrupt() (tea.Model, tea.Cmd) {
 	m.questions = map[string]*questionDialog{}
 	m.choice = nil
 	m.rename = nil
-	m.pager = nil
 	m.jobsModal = nil
 	m.confirm = ""
 	m.prompt.Reset()
@@ -1694,29 +1740,159 @@ func (m Model) selectedJobs() []session.Job {
 
 func (m *Model) rebuildOutput() {
 	m.selection = selRange{}
+	m.expanded = make(map[int]bool)
+	m.blockCursor = -1
 	if m.sel == "" {
 		m.outputText = ""
 		m.shownLines = nil
+		m.clearBlocks()
 		m.output.SetContent("")
 		return
 	}
 	lines := m.linesFor(m.sel)
 	m.output.Width = m.outputWidth()
 	m.shownLines = append([]render.Line(nil), lines...)
-	m.outputText = m.wrap(lines)
+	m.redrawBlocks()
+	m.resetBlockCursor()
 	m.setContent()
 	m.output.GotoBottom()
 }
 
 func (m *Model) appendOutput(lines []render.Line) {
+	from := len(m.shownLines)
+	atNewest := m.blockCursor < 0 || (len(m.capped) > 0 && m.blockCursor == m.capped[len(m.capped)-1])
 	m.shownLines = append(m.shownLines, lines...)
-	chunk := m.wrap(lines)
+	// An event brings whole blocks, so the first line it brings starts one.
+	m.shownLines[from].Cont = false
+	chunk := m.drawBlocks(from)
 	if m.outputText == "" {
 		m.outputText = chunk
-	} else {
+	} else if chunk != "" {
 		m.outputText += "\n" + chunk
 	}
+	if atNewest {
+		m.resetBlockCursor()
+	}
 	m.setContent()
+}
+
+func (m *Model) clearBlocks() {
+	m.capped = nil
+	m.markerAt = make(map[int]int)
+	m.blockStart = make(map[int]int)
+	m.hiddenRows = make(map[int]int)
+}
+
+// redrawBlocks draws every block again, keeping which blocks are open. It runs
+// when a block opens or closes, because that moves every row below it.
+func (m *Model) redrawBlocks() {
+	m.clearBlocks()
+	m.outputText = m.drawBlocks(0)
+}
+
+// drawBlocks draws the blocks that start at line from or after it, and records
+// where each block and each marker row landed.
+func (m *Model) drawBlocks(from int) string {
+	row := 0
+	if from > 0 {
+		row = rowCount(m.outputText)
+	}
+	var parts []string
+	for index, blk := range blocks(m.shownLines) {
+		if blk.from < from {
+			continue
+		}
+		rows, hidden, marked := m.blockRows(index, blk)
+		m.blockStart[index] = row
+		if marked {
+			m.capped = append(m.capped, index)
+			m.markerAt[index] = row + len(rows) - 1
+			m.hiddenRows[index] = hidden
+		}
+		row += len(rows)
+		parts = append(parts, strings.Join(rows, "\n"))
+	}
+	return strings.Join(parts, "\n")
+}
+
+func rowCount(text string) int {
+	if text == "" {
+		return 0
+	}
+	return strings.Count(text, "\n") + 1
+}
+
+// setBlockCursor moves the cursor and draws the two marker rows it changed, so
+// a move does not draw the whole pane again.
+func (m *Model) setBlockCursor(index int) {
+	was := m.blockCursor
+	if was == index {
+		return
+	}
+	m.blockCursor = index
+	rows := strings.Split(m.outputText, "\n")
+	for _, at := range []int{was, index} {
+		row, ok := m.markerAt[at]
+		if !ok || row >= len(rows) {
+			continue
+		}
+		rows[row] = m.markerRow(m.hiddenRows[at], at == index)
+	}
+	m.outputText = strings.Join(rows, "\n")
+	m.setContent()
+}
+
+// resetBlockCursor puts the cursor on the newest capped block; see
+// docs/tui/output.md.
+func (m *Model) resetBlockCursor() {
+	if len(m.capped) == 0 {
+		m.blockCursor = -1
+		return
+	}
+	m.setBlockCursor(m.capped[len(m.capped)-1])
+}
+
+func (m *Model) moveBlockCursor(delta int) {
+	if len(m.capped) == 0 {
+		return
+	}
+	at := 0
+	for i, index := range m.capped {
+		if index == m.blockCursor {
+			at = i
+		}
+	}
+	at += delta
+	if at < 0 {
+		at = 0
+	}
+	if at >= len(m.capped) {
+		at = len(m.capped) - 1
+	}
+	m.setBlockCursor(m.capped[at])
+	m.showBlock(m.capped[at])
+}
+
+// showBlock scrolls the pane only when the block is out of sight.
+func (m *Model) showBlock(index int) {
+	top, bottom := m.blockStart[index], m.markerAt[index]
+	switch {
+	case top < m.output.YOffset:
+		m.output.SetYOffset(top)
+	case bottom >= m.output.YOffset+m.outputHeight():
+		m.output.SetYOffset(bottom - m.outputHeight() + 1)
+	}
+}
+
+// toggleBlock opens or closes a block, and holds its first row where it was, so
+// the text under your eyes does not jump.
+func (m *Model) toggleBlock(index int) {
+	anchor := m.blockStart[index] - m.output.YOffset
+	m.expanded[index] = !m.expanded[index]
+	m.blockCursor = index
+	m.redrawBlocks()
+	m.setContent()
+	m.output.SetYOffset(m.blockStart[index] - anchor)
 }
 
 func (m *Model) setPartial(name, text string) {
@@ -1764,6 +1940,10 @@ func (m Model) thinkingSelected() bool {
 	if len(m.queued[m.sel]) > 0 {
 		return true
 	}
+	return m.selectedBusy()
+}
+
+func (m Model) selectedBusy() bool {
 	item, ok := m.selectedRow()
 	return ok && item.state == session.StateBusy
 }
@@ -1826,9 +2006,6 @@ func (m Model) wrap(lines []render.Line) string {
 			continue
 		}
 		text := line.Text
-		if line.Full != "" {
-			text += "  ⏎"
-		}
 		if line.Class == render.ClassPrompt && !m.showRaw {
 			styled := inlineEmphasis(text, classStyle(render.ClassPrompt))
 			wrapped = append(wrapped, lipgloss.NewStyle().Width(width).Render(styled))
@@ -1870,8 +2047,6 @@ func (m Model) sessionDialogView() (string, bool) {
 		return centre(width, height, m.confirmView(width)), true
 	case m.jobsModal != nil:
 		return centre(width, height, m.jobsModal.View(width, height)), true
-	case m.pager != nil:
-		return centre(width, height, m.pager.View(width, height)), true
 	case m.rename != nil:
 		return centre(width, height, m.rename.View(width)), true
 	case m.choice != nil:
