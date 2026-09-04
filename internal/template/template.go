@@ -211,9 +211,13 @@ func firstLine(body string) string {
 	return ""
 }
 
-// DirNames are the spellings of the state directory that are read. See
-// docs/templates.md.
+// DirNames are the spellings of the directory a repository holds, in the order
+// they are read. See docs/templates.md.
 var DirNames = []string{".multiplexier", ".multiplexer"}
+
+// homeNames are the spellings of the state directory, least preferred first, so
+// the directory the program writes to is read last and wins.
+var homeNames = []string{".multiplexer", ".multiplexier", ".claude-multiplexer"}
 
 func Dirs(root, sessionDir string) []string {
 	var out []string
@@ -232,14 +236,26 @@ func rootDirs(root string) []string {
 	if root == "" {
 		return nil
 	}
-	out := []string{root}
 	base := filepath.Base(root)
-	for _, name := range DirNames {
-		if name != base && (base == DirNames[0] || base == DirNames[1]) {
+	if !named(base) {
+		return []string{root}
+	}
+	var out []string
+	for _, name := range homeNames {
+		if name != base {
 			out = append(out, filepath.Join(filepath.Dir(root), name))
 		}
 	}
-	return out
+	return append(out, root)
+}
+
+func named(base string) bool {
+	for _, name := range homeNames {
+		if name == base {
+			return true
+		}
+	}
+	return false
 }
 
 func ParseInvocation(text string) (string, []string, bool) {

@@ -22,25 +22,27 @@ The word is **multiplexer**. Write "the multiplexer" wherever the program is the
 subject of a sentence.
 
 The command is `multiplexer`, and so is the source directory,
-`cmd/multiplexer`. Four names keep the older spelling, because they are already
-written on a disk:
+`cmd/multiplexer`. The directories a user owns are named for the repository:
+`~/.claude-multiplexer` and `$XDG_CONFIG_HOME/claude-multiplexer/config.json`.
+
+Three names keep an older spelling, because they are already written on a disk:
 
 | Where | The name |
 |---|---|
-| The state directory | `~/.multiplexier`, and `--root` moves it |
-| The settings file | `$XDG_CONFIG_HOME/multiplexier/config.json` |
-| A template directory | `.multiplexier/templates/` |
+| The state directory of an older installation | `~/.multiplexier` |
+| The settings file of an older installation | `$XDG_CONFIG_HOME/multiplexier/` |
 | The environment variable of the real tests | `MULTIPLEXIER_REAL` |
 
-The settings file and the template directories read both spellings, and read
-`multiplexer` first. See [../../docs/config.md](../../docs/config.md) and
+A repository holds its own directory, and both spellings are read there:
+`.multiplexer/` and `.multiplexier/`. See
+[../../docs/config.md](../../docs/config.md) and
 [../../docs/templates.md](../../docs/templates.md).
 
 So a sentence names the program with the word, and a code span names the file or
 the command with the name:
 
-- Good: The multiplexer writes the transcript under `~/.multiplexier`.
-- Bad: The multiplexier writes the transcript under `~/.multiplexer`.
+- Good: The multiplexer writes the transcript under `~/.claude-multiplexer`.
+- Bad: The multiplexier writes the transcript under `~/.claude-multiplexier`.
 
 # One term for one thing
 
