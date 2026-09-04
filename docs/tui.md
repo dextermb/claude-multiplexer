@@ -18,7 +18,7 @@ in `internal/tui`. It talks only to the manager, which is described in
 ▎                        │
  api — press Enter or Tab to type
  > Type a prompt, then press Enter
- 3 sessions · 1 busy · $0.0881   n new · t preset · r resume · a archive · x stop · ? keys · q quit
+ 3 sessions · 1 busy · $0.0881  n new · t preset · s session · l list · o output · ? keys · q quit
 ```
 
 The sidebar is 26 columns. The sessions are grouped under a header that names
@@ -69,7 +69,7 @@ never pushes the sidebar out of line.
 | Page | Read it for |
 |---|---|
 | [tui/sessions.md](tui/sessions.md) | The sidebar: live rows, stored rows, archived rows, and the two bars |
-| [tui/keys.md](tui/keys.md) | Every key, the searchable key list, scrolling, the mouse, and quitting |
+| [tui/keys.md](tui/keys.md) | The key sequences, every single key, the searchable key list, scrolling, the mouse, and quitting |
 | [tui/input.md](tui/input.md) | The prompt box, dropping a file, and the new session form |
 | [tui/output.md](tui/output.md) | The colour of each line, streaming text, and the layout rule |
 | [tui/tasks.md](tui/tasks.md) | The side panel: the session's jobs and task list, their glyphs, and when it shows |

@@ -59,23 +59,25 @@ plain text, and it never renders markdown.
   mode, and an effort level. Prompts queue for each session, so you never wait
   to type.
 - **Sessions in groups.** A row sits under its repository, or under the control
-  session that created it. Press `z` to fold a group, and `Z` to fold them all.
+  session that created it. Press `l f` to fold a group, and `l F` to fold them
+  all.
 - **Streaming.** The answer appears as it is written, marked with `▌`, and
   settles into rendered markdown when it is complete.
 - **Markdown.** Headings, lists, quotes, tables, and code fences with syntax
-  colours. Press `m` for the raw text.
+  colours. Press `o m` for the raw text.
 - **Large results on demand.** A long tool result collapses to a summary marked
   `⏎`. Press `Enter` in the output pane to page the whole body.
 - **Questions you answer.** When a session asks a question, the row turns to
   `?`, and the pane shows the options. Choose one, or type your own answer.
 - **Work that survives.** A session with at least one turn is remembered. It
   comes back in the list as `stored`, shows its history, and `Enter` resumes the
-  same conversation. Press `a` to archive one, `A` to see archived rows, and `R`
-  to give a row a title.
-- **Settings you change while it runs.** `M` sets the model, `e` sets the
-  effort, and `p` sets the permission mode of a running session.
-- **Every key in one place.** Press `?` for a searchable list of the key
-  bindings.
+  same conversation. Press `s a` to archive one, `l a` to see archived rows, and
+  `s n` to give a row a title.
+- **Settings you change while it runs.** `s m` sets the model, `s e` sets the
+  effort, and `s p` sets the permission mode of a running session.
+- **Two keys for every action.** The first key names the target, and the second
+  names the action: `s j` shows the jobs of the session, and `s m` sets its
+  model. Press `?` for a searchable list of the key bindings.
 - **Paths that complete.** The new session form suggests directories as you
   type, and `Tab` grows the path. In the prompt box, an `@` word completes to a
   path in the same way.
@@ -88,7 +90,7 @@ plain text, and it never renders markdown.
   read their recent messages. Give it the control grant and it can also prompt,
   stop, archive, and create them. See [docs/mcp.md](docs/mcp.md).
 - **Jobs and tasks in view.** A panel on the right of the pane lists the
-  background shell commands of the session and its task list. Press `J` for the
+  background shell commands of the session and its task list. Press `s j` for the
   jobs of the selected session.
 - **Costs in view.** The session bar shows the context, the tokens, and the
   cost. The bottom bar totals the cost of every session.

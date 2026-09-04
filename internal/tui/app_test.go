@@ -84,6 +84,12 @@ func key(name string) tea.KeyMsg {
 		return tea.KeyMsg{Type: tea.KeyDown}
 	case "up":
 		return tea.KeyMsg{Type: tea.KeyUp}
+	case "ctrl+s":
+		return tea.KeyMsg{Type: tea.KeyCtrlS}
+	case "ctrl+l":
+		return tea.KeyMsg{Type: tea.KeyCtrlL}
+	case "ctrl+o":
+		return tea.KeyMsg{Type: tea.KeyCtrlO}
 	}
 	return tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(name)}
 }
@@ -430,7 +436,7 @@ func TestStopAsksForConfirmationFirst(t *testing.T) {
 
 	m.focus = focusSidebar
 	m.prompt.Blur()
-	m, _ = step(t, m, key("x"))
+	m, _ = chord(t, m, "s", "x")
 	if m.confirm != "alpha" {
 		t.Fatalf("confirm = %q, want alpha", m.confirm)
 	}
@@ -442,7 +448,7 @@ func TestStopAsksForConfirmationFirst(t *testing.T) {
 		t.Fatal("any other key must cancel the confirmation")
 	}
 
-	m, _ = step(t, m, key("x"))
+	m, _ = chord(t, m, "s", "x")
 	m, cmd := step(t, m, key("y"))
 	if m.confirm != "" {
 		t.Fatal("y must clear the confirmation")
