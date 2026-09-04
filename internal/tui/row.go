@@ -128,7 +128,7 @@ func (r row) displayName() string {
 
 // openDir is the directory the interface opens for a session: the working
 // directory a tool of that session set, and the directory it started in when
-// there is none, or when the one it set is gone. See docs/mcp.md.
+// there is none, or when the one it set is gone. See docs/mcp/tools.md.
 func (r row) openDir() string {
 	if r.workDir != "" {
 		if info, err := os.Stat(r.workDir); err == nil && info.IsDir() {

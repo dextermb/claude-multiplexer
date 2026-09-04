@@ -24,8 +24,8 @@ grow one element to the left, so `~/a/api` and `~/b/api` read `a/api` and
 ### A creator group
 
 A control session can start another session with the `create_session` tool. See
-[../mcp.md](../mcp.md). The multiplexer records the caller, and the session it
-made joins the group of that control session, and not the group of its
+[../mcp/tools.md](../mcp/tools.md). The multiplexer records the caller, and the
+session it made joins the group of that control session, and not the group of its
 repository. So one group holds the work of one agent, whatever repository each
 member runs in.
 
@@ -99,7 +99,7 @@ A `waiting` row asked a question and holds for the answer. See
 [input.md](./input.md).
 
 A row marked `⇄` can prompt, stop, and archive the other sessions. Give a
-session that mark only when you mean it. See [mcp.md](../mcp.md).
+session that mark only when you mean it. See [mcp/grant.md](../mcp/grant.md).
 
 The busy glyph is the dot spinner (`⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏`). It turns while any
 session runs a turn, and it is the same spinner the output pane shows for
