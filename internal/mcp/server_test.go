@@ -26,6 +26,7 @@ type fakeSessions struct {
 	editor      string
 	terminal    *bool
 	editorPath  string
+	cleared     []string
 	failStop    error
 	failStopJob error
 }
@@ -48,6 +49,21 @@ func (f *fakeSessions) SetEditor(editor string, terminal *bool, by string) (stri
 	}
 	f.editorPath = "/tmp/config.json"
 	return f.editorPath, nil
+}
+
+func (f *fakeSessions) UnsetEditor(field, by string) (string, bool, error) {
+	f.cleared = append(f.cleared, field)
+	changed := f.editor != "" || f.terminal != nil
+	switch field {
+	case "editor":
+		f.editor = ""
+	case "terminal":
+		f.terminal = nil
+	default:
+		f.editor = ""
+		f.terminal = nil
+	}
+	return "/tmp/config.json", changed, nil
 }
 
 func (f *fakeSessions) SetTitle(name, title string) error {
@@ -513,4 +529,91 @@ func TestEverySessionGetsTheEditorTool(t *testing.T) {
 		}
 	}
 	t.Fatal("a session without the grant must still see set_editor")
+}
+
+func TestUnsetEditorToolClearsBothFields(t *testing.T) {
+	sessions := newFakeSessions()
+	sessions.editor = "zed"
+	yes := true
+	sessions.terminal = &yes
+	server := startServer(t, sessions)
+	token, err := server.Register("docs", false)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+
+	client := connect(t, server, token)
+	result := call(t, client, mcp.ToolUnsetEditor, map[string]any{})
+	if result.IsError {
+		t.Fatalf("unset_editor failed: %s", resultText(result))
+	}
+	if sessions.editor != "" || sessions.terminal != nil {
+		t.Fatalf("editor = %q, terminal = %v, want both cleared", sessions.editor, sessions.terminal)
+	}
+	if !strings.Contains(resultText(result), "no longer set") {
+		t.Fatalf("the answer does not say what it did:\n%s", resultText(result))
+	}
+}
+
+func TestUnsetEditorToolClearsOneField(t *testing.T) {
+	sessions := newFakeSessions()
+	sessions.editor = "zed"
+	yes := true
+	sessions.terminal = &yes
+	server := startServer(t, sessions)
+	token, err := server.Register("docs", false)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+
+	client := connect(t, server, token)
+	if result := call(t, client, mcp.ToolUnsetEditor, map[string]any{"field": "terminal"}); result.IsError {
+		t.Fatalf("unset_editor failed: %s", resultText(result))
+	}
+	if sessions.editor != "zed" {
+		t.Fatalf("editor = %q, want it untouched", sessions.editor)
+	}
+	if sessions.terminal != nil {
+		t.Fatalf("terminal = %v, want it cleared", sessions.terminal)
+	}
+}
+
+func TestUnsetEditorToolSaysWhenNothingWasSet(t *testing.T) {
+	sessions := newFakeSessions()
+	server := startServer(t, sessions)
+	token, err := server.Register("docs", false)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+
+	client := connect(t, server, token)
+	result := call(t, client, mcp.ToolUnsetEditor, map[string]any{})
+	if result.IsError {
+		t.Fatalf("unset_editor failed: %s", resultText(result))
+	}
+	if !strings.Contains(resultText(result), "was not set") {
+		t.Fatalf("the answer does not say that nothing was set:\n%s", resultText(result))
+	}
+}
+
+func TestEverySessionGetsTheUnsetEditorTool(t *testing.T) {
+	server := startServer(t, newFakeSessions())
+	token, err := server.Register("docs", false)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+
+	client := connect(t, server, token)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	tools, err := client.ListTools(ctx, nil)
+	if err != nil {
+		t.Fatalf("list tools: %v", err)
+	}
+	for _, tool := range tools.Tools {
+		if tool.Name == mcp.ToolUnsetEditor {
+			return
+		}
+	}
+	t.Fatal("a session without the grant must still see unset_editor")
 }

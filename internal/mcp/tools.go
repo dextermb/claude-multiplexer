@@ -60,6 +60,17 @@ type setEditorOut struct {
 	Message string `json:"message"`
 }
 
+type unsetEditorIn struct {
+	Field string `json:"field,omitempty" jsonschema:"which setting to clear: 'editor' for the editor, 'terminal' for the terminal flag, or 'both'; 'both' by default"`
+}
+
+type unsetEditorOut struct {
+	OK      bool   `json:"ok"`
+	Path    string `json:"path"`
+	Changed bool   `json:"changed"`
+	Message string `json:"message"`
+}
+
 type okOut struct {
 	OK      bool   `json:"ok"`
 	Message string `json:"message"`
@@ -173,6 +184,18 @@ func (s *Server) build(caller string, control bool) *sdk.Server {
 			return nil, setEditorOut{}, err
 		}
 		return nil, setEditorOut{OK: true, Path: path, Message: editorMessage(editor, in.Terminal, path)}, nil
+	})
+
+	sdk.AddTool(server, &sdk.Tool{
+		Name: ToolUnsetEditor,
+		Description: "Take the editor out of the settings file of the multiplexer, so the human falls back to $EDITOR and to the settings of Claude Code. " +
+			"Clear the editor, the terminal flag, or both.",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, in unsetEditorIn) (*sdk.CallToolResult, unsetEditorOut, error) {
+		path, changed, err := s.sessions.UnsetEditor(strings.TrimSpace(in.Field), caller)
+		if err != nil {
+			return nil, unsetEditorOut{}, err
+		}
+		return nil, unsetEditorOut{OK: true, Path: path, Changed: changed, Message: clearedMessage(in.Field, changed, path)}, nil
 	})
 
 	if !control {
@@ -290,4 +313,18 @@ func editorMessage(editor string, terminal *bool, path string) string {
 		parts = append(parts, "it is "+kind)
 	}
 	return strings.Join(parts, ", ") + ", in " + path
+}
+
+func clearedMessage(field string, changed bool, path string) string {
+	what := "the editor settings"
+	switch strings.TrimSpace(field) {
+	case "editor":
+		what = "the editor"
+	case "terminal":
+		what = "the terminal flag of the editor"
+	}
+	if !changed {
+		return what + " was not set in " + path
+	}
+	return what + " is no longer set in " + path
 }
