@@ -561,6 +561,31 @@ func TestTodosTrackTheLiveListAndRebuildFromTheTranscript(t *testing.T) {
 	}
 }
 
+func TestTasksTrackTheIncrementalToolsAndRebuildFromTheTranscript(t *testing.T) {
+	m := newTestManager(t)
+	name, err := m.Spawn(context.Background(), Spec{Name: "tasks-inc", Dir: t.TempDir()})
+	if err != nil {
+		t.Fatalf("Spawn: %v", err)
+	}
+	runOneTurn(t, m, name, "tasks")
+
+	waitFor(t, 10*time.Second, func() bool { return len(m.Todos(name)) == 3 })
+	live := m.Todos(name)
+	if live[0].Status != protocol.TodoCompleted || live[1].Status != protocol.TodoInProgress {
+		t.Fatalf("live tasks wrong: %+v", live)
+	}
+	if live[2].Content != "Third task" || live[2].Status != protocol.TodoPending {
+		t.Fatalf("the untouched task must stay pending: %+v", live)
+	}
+
+	retire(t, m, name)
+
+	rebuilt := m.Todos(name)
+	if len(rebuilt) != 3 || rebuilt[0].Status != protocol.TodoCompleted || rebuilt[2].Status != protocol.TodoPending {
+		t.Fatalf("tasks rebuilt from the transcript are wrong: %+v", rebuilt)
+	}
+}
+
 func TestResumeKeepsTheNameAndAddsToTheSameTranscript(t *testing.T) {
 	m := newTestManager(t)
 	dir := t.TempDir()

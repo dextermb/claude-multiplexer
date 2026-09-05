@@ -7,7 +7,7 @@ session runs and what it plans. The jobs sit above the tasks.
 ```
 ┌─────────────────────────────────┬──────────────────────────────┐
 │ › add the panel                 │ Jobs · 1/2                   │
-│ → TodoWrite 3 tasks             │                              │
+│ → TaskCreate Draw the panel     │                              │
 │ ← result                        │ ⚙ build the binary           │
 │ echo: add the panel             │ ✓ run the tests              │
 │                                 │                              │
@@ -25,8 +25,8 @@ The panel holds up to two sections, in this order:
 
 - The **jobs section** lists the background jobs of the session. See
   [sessions.md](sessions.md) for the job model and the other places a job shows.
-- The **tasks section** lists the tasks the session keeps with its `TodoWrite`
-  tool.
+- The **tasks section** lists the tasks the session keeps with its `TaskCreate`
+  and `TaskUpdate` tools.
 
 A section shows only when its list is not empty. So a session with jobs but no
 tasks shows the jobs section alone, and a session with tasks but no jobs shows
@@ -74,15 +74,25 @@ Each task has three parts:
 - `activeForm` — the present form, for example "Wiring the manager".
 - `status` — one of `pending`, `in_progress`, or `completed`.
 
-A session keeps its task list with the `TodoWrite` tool. Each time the list
-changes, the session sends an assistant message with a `TodoWrite` tool_use
-block. The block holds the whole list, so the newest block replaces the last
-one. There is no partial update to merge. See [protocol.md](../protocol.md).
+A session keeps its task list with two tools, `TaskCreate` and `TaskUpdate`.
+The list is incremental, not a whole-list replace:
 
-`protocol.Event.TodoWrite` reads the list from such a block. It returns the
-tasks and `true`. It returns `false` for any other message. An empty list still
-returns `true`, so the tasks section can clear when the session drops all its
-tasks.
+- A `TaskCreate` tool_use block adds one task. The block holds the task
+  `subject` (the `content`) and the `activeForm`. A new task starts `pending`.
+- A `TaskUpdate` tool_use block changes one task. The block holds the task id
+  and the new `status`.
+
+The session gives each task an id in creation order. So the first `TaskCreate`
+makes task `1`, the second makes task `2`, and a `TaskUpdate` names the task by
+that id. See [protocol.md](../protocol.md).
+
+`protocol.TaskTracker` folds the stream into the list. `Apply` adds a task for
+each `TaskCreate` block, and sets the status for each `TaskUpdate` block.
+`List` returns the tasks in creation order.
+
+An older session uses one `TodoWrite` tool instead. That block holds the whole
+list, so it replaces the last list. `TaskTracker.Apply` still reads it, so an
+old transcript keeps its tasks section. An empty `TodoWrite` clears the list.
 
 ## When the panel shows and hides
 
@@ -105,11 +115,11 @@ from the session snapshot, and the tasks come from the manager bus.
 
 ```
 session stream
-  └─ TodoWrite block                    task_* events
+  └─ TaskCreate / TaskUpdate block      task_* events
         │                                   │
         ▼                                   ▼
   manager pump                          session Job list
-  trackTodos                                │
+  trackTodos → TaskTracker                  │
         │                                   ▼
         ▼                          snapshot row.jobList  (m.selectedJobs)
   bus Event.Todos                          │
@@ -121,8 +131,9 @@ session stream
                  sidePanelView   drawn beside the output when a list is not empty
 ```
 
-The tasks list is the last `TodoWrite` in the stream. The manager holds it in
-memory for a live session, and publishes it on every event, the same way it
+The tasks list is the fold of every `TaskCreate` and `TaskUpdate` in the stream
+(or the last `TodoWrite`, for an old session). The manager holds a `TaskTracker`
+per live session, and publishes the list on every event, the same way it
 publishes the streaming text. So the tasks section stays current for a live
 session. The manager keeps the list on the close event, so a finished session
 still shows what it did.
