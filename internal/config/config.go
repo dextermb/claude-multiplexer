@@ -18,6 +18,30 @@ const FileName = "config.json"
 // caps it. See docs/tui/output.md.
 const DefaultBlockCap = 20
 
+// The buckets a block cap keys by. A block takes the bucket of its first line.
+// See docs/tui/output.md.
+const (
+	BucketPrompt  = "prompt"
+	BucketMessage = "message"
+	BucketTool    = "tool"
+	BucketMeta    = "meta"
+	BucketBash    = "bash"
+	BucketError   = "error"
+)
+
+// Buckets lists the block-cap buckets, in the order the docs name them.
+var Buckets = []string{BucketPrompt, BucketMessage, BucketTool, BucketMeta, BucketBash, BucketError}
+
+// ValidBucket reports whether name is a block-cap bucket.
+func ValidBucket(name string) bool {
+	for _, b := range Buckets {
+		if b == name {
+			return true
+		}
+	}
+	return false
+}
+
 // Names holds the settings directories of the program, in the order they are
 // read. The first one is where a new installation writes.
 var Names = []string{"claude-multiplexer", "multiplexer", "multiplexier"}
@@ -49,6 +73,10 @@ type Config struct {
 	// BlockCap is the rows a block draws before the pane caps it. Zero caps
 	// nothing, and nil takes DefaultBlockCap.
 	BlockCap *int `json:"blockCap,omitempty"`
+	// BlockCaps caps a block by its bucket. A number draws that many rows (0
+	// draws only the marker), null never caps, and an absent bucket takes
+	// BlockCap. See docs/config.md.
+	BlockCaps map[string]*int `json:"blockCaps,omitempty"`
 }
 
 // BlockCapOrDefault reads the cap out of the settings, and gives the default
@@ -58,6 +86,33 @@ func BlockCapOrDefault(cfg Config) int {
 		return DefaultBlockCap
 	}
 	return *cfg.BlockCap
+}
+
+// BlockCapFor resolves the cap for one bucket to a row count with two sentinels:
+// -1 never caps, 0 draws only the marker, and a positive number draws that many
+// rows. A bucket with its own entry wins; an absent bucket takes the global
+// BlockCap default. See docs/config.md.
+func BlockCapFor(cfg Config, bucket string) int {
+	if v, ok := cfg.BlockCaps[bucket]; ok {
+		if v == nil || *v < 0 {
+			return -1
+		}
+		return *v
+	}
+	if g := BlockCapOrDefault(cfg); g > 0 {
+		return g
+	}
+	return -1
+}
+
+// ResolveBlockCaps resolves every bucket to its row count, so the pane holds one
+// map of resolved caps. See docs/tui/output.md.
+func ResolveBlockCaps(cfg Config) map[string]int {
+	caps := make(map[string]int, len(Buckets))
+	for _, b := range Buckets {
+		caps[b] = BlockCapFor(cfg, b)
+	}
+	return caps
 }
 
 // Paths lists the settings files to look for, in order.
@@ -163,6 +218,19 @@ func Clear(cfg Config, field string) (Config, error) {
 	return cfg, nil
 }
 
+// SameEditor reports whether two settings hold the same editor and terminal
+// flag. Clear touches only these two fields, so UnsetEditor asks whether it
+// changed anything.
+func SameEditor(a, b Config) bool {
+	if a.Editor != b.Editor {
+		return false
+	}
+	if (a.EditorTerminal == nil) != (b.EditorTerminal == nil) {
+		return false
+	}
+	return a.EditorTerminal == nil || *a.EditorTerminal == *b.EditorTerminal
+}
+
 // Resolve puts the flags first, then the environment, then the settings file,
 // then the settings of Claude Code.
 func Resolve(flags, file, claude Config) Config {
@@ -181,6 +249,16 @@ func Resolve(flags, file, claude Config) Config {
 	}
 	if flags.BlockCap != nil {
 		out.BlockCap = flags.BlockCap
+	}
+	if len(flags.BlockCaps) > 0 {
+		merged := make(map[string]*int, len(out.BlockCaps)+len(flags.BlockCaps))
+		for bucket, rows := range out.BlockCaps {
+			merged[bucket] = rows
+		}
+		for bucket, rows := range flags.BlockCaps {
+			merged[bucket] = rows
+		}
+		out.BlockCaps = merged
 	}
 	return out
 }

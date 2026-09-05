@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/render"
 )
 
@@ -49,17 +50,27 @@ func (m Model) markerRow(hidden int, under bool) string {
 	return markerStyle.Width(m.outputWidth()).Render("  " + markerText(hidden, false))
 }
 
-// blockRows draws one block. It caps the block unless it is open, and returns
-// the rows, the rows it hides, and whether it drew a marker row.
+// capFor gives the resolved cap for a block of this class: -1 never caps, 0
+// draws only the marker, and a positive number draws that many rows.
+func (m Model) capFor(c render.Class) int {
+	if cap, ok := m.caps[render.BucketFor(c)]; ok {
+		return cap
+	}
+	return config.DefaultBlockCap
+}
+
+// blockRows draws one block. It caps the block by its bucket unless it is open,
+// and returns the rows, the rows it hides, and whether it drew a marker row.
 func (m Model) blockRows(index int, blk block) ([]string, int, bool) {
+	cap := m.capFor(m.shownLines[blk.from].Class)
 	rows := strings.Split(m.wrap(m.shownLines[blk.from:blk.to]), "\n")
-	if m.blockCap <= 0 || len(rows) <= m.blockCap {
+	if cap < 0 || (cap > 0 && len(rows) <= cap) {
 		return rows, 0, false
 	}
 	under := m.blockCursor == index
 	if m.expanded[index] {
 		return append(rows, m.markerRow(0, under)), 0, true
 	}
-	hidden := len(rows) - m.blockCap
-	return append(rows[:m.blockCap:m.blockCap], m.markerRow(hidden, under)), hidden, true
+	hidden := len(rows) - cap
+	return append(rows[:cap:cap], m.markerRow(hidden, under)), hidden, true
 }

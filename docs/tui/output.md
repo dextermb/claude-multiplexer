@@ -50,8 +50,13 @@ where a block ends.
 
 A block of more than 20 rows draws its first 20 rows and a marker row under
 them. 20 is the default, and `blockCap` in the settings file, `--block-cap`, and
-the `set_block_cap` tool each change it. A cap of `0` caps nothing. See
-[../config.md](../config.md).
+the `set_block_cap` tool each change it. A cap of `0` caps nothing.
+
+The cap keys by the block bucket, so each type of block caps on its own. A block
+takes the bucket of its first line: `prompt`, `message`, `tool`, `meta`, `bash`,
+or `error`. A bucket cap of `0` draws only the marker, so you open the block to
+read it, and a bucket set to `null` never caps. So you keep every message in
+full, and collapse the token line to a marker. See [../config.md](../config.md).
 
 ```
 → Bash ./scripts/build.sh
