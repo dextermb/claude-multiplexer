@@ -18,19 +18,36 @@ const FileName = "config.json"
 // caps it. See docs/tui/output.md.
 const DefaultBlockCap = 20
 
+// DefaultQuestionCap is the lines the question modal draws of one option label
+// or one option description before it caps them. See docs/tui/input.md.
+const DefaultQuestionCap = 2
+
 // The buckets a block cap keys by. A block takes the bucket of its first line.
-// See docs/tui/output.md.
+// The question buckets cap the question modal, not the pane. See
+// docs/tui/output.md and docs/tui/input.md.
 const (
-	BucketPrompt  = "prompt"
-	BucketMessage = "message"
-	BucketTool    = "tool"
-	BucketMeta    = "meta"
-	BucketBash    = "bash"
-	BucketError   = "error"
+	BucketPrompt              = "prompt"
+	BucketMessage             = "message"
+	BucketTool                = "tool"
+	BucketMeta                = "meta"
+	BucketBash                = "bash"
+	BucketError               = "error"
+	BucketQuestionOption      = "question_option"
+	BucketQuestionDescription = "question_description"
 )
 
 // Buckets lists the block-cap buckets, in the order the docs name them.
-var Buckets = []string{BucketPrompt, BucketMessage, BucketTool, BucketMeta, BucketBash, BucketError}
+var Buckets = []string{
+	BucketPrompt, BucketMessage, BucketTool, BucketMeta, BucketBash, BucketError,
+	BucketQuestionOption, BucketQuestionDescription,
+}
+
+// bucketDefaults holds the buckets that take a cap of their own when the
+// settings name none, in place of the global BlockCap default.
+var bucketDefaults = map[string]int{
+	BucketQuestionOption:      DefaultQuestionCap,
+	BucketQuestionDescription: DefaultQuestionCap,
+}
 
 // ValidBucket reports whether name is a block-cap bucket.
 func ValidBucket(name string) bool {
@@ -90,14 +107,21 @@ func BlockCapOrDefault(cfg Config) int {
 
 // BlockCapFor resolves the cap for one bucket to a row count with two sentinels:
 // -1 never caps, 0 draws only the marker, and a positive number draws that many
-// rows. A bucket with its own entry wins; an absent bucket takes the global
-// BlockCap default. See docs/config.md.
+// rows. A bucket with its own entry wins; a question bucket then takes
+// DefaultQuestionCap, and any other bucket takes the global BlockCap default.
+// See docs/config.md.
 func BlockCapFor(cfg Config, bucket string) int {
 	if v, ok := cfg.BlockCaps[bucket]; ok {
 		if v == nil || *v < 0 {
 			return -1
 		}
 		return *v
+	}
+	if def, ok := bucketDefaults[bucket]; ok {
+		if def > 0 {
+			return def
+		}
+		return -1
 	}
 	if g := BlockCapOrDefault(cfg); g > 0 {
 		return g

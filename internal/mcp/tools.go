@@ -79,7 +79,7 @@ type templatePathIn struct {
 }
 
 type setBlockCapIn struct {
-	Type      string `json:"type,omitempty" jsonschema:"the block type to cap: prompt, message, tool, meta, bash, or error; empty sets the default for every other type"`
+	Type      string `json:"type,omitempty" jsonschema:"the block type to cap: prompt, message, tool, meta, bash, error, question_option, or question_description; empty sets the default for every other pane type"`
 	Rows      *int   `json:"rows,omitempty" jsonschema:"the rows a block of this type draws before the pane caps it and offers to open the rest; 0 draws only the marker, so the human opens the block to read it"`
 	Unlimited bool   `json:"unlimited,omitempty" jsonschema:"true never caps this type, so the block always draws in full; do not give rows as well"`
 }
@@ -93,7 +93,7 @@ type setBlockCapOut struct {
 }
 
 type unsetBlockCapIn struct {
-	Type string `json:"type,omitempty" jsonschema:"the block type to clear: prompt, message, tool, meta, bash, or error; empty clears the default"`
+	Type string `json:"type,omitempty" jsonschema:"the block type to clear: prompt, message, tool, meta, bash, error, question_option, or question_description; empty clears the default"`
 }
 
 type unsetBlockCapOut struct {
@@ -271,6 +271,7 @@ func (s *Server) build(caller string, control bool) *sdk.Server {
 		Description: "Set how much of one block the session pane draws before it caps it. " +
 			"A block is one piece of content: a prompt, one message, one tool result, or the output of a ! command. " +
 			"Give 'type' to cap one kind of block (prompt, message, tool, meta, bash, or error), or no type to set the default for the rest. " +
+			"The question_option and question_description types cap the question modal, not the pane, and default to 2 lines. " +
 			"Give 'rows' to draw that many rows (0 draws only the marker), or 'unlimited' to never cap. " +
 			"The human opens the rest of a capped block in the pane. It writes the settings file of the multiplexer.",
 	}, func(_ context.Context, _ *sdk.CallToolRequest, in setBlockCapIn) (*sdk.CallToolResult, setBlockCapOut, error) {
