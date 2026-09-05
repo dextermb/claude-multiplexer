@@ -82,7 +82,7 @@ type entry struct {
 	partial   strings.Builder
 
 	todoMu sync.Mutex
-	todos  []protocol.Todo
+	tasks  protocol.TaskTracker
 
 	snapMu sync.Mutex
 	snap   session.Snapshot
@@ -135,7 +135,7 @@ func (e *entry) view() session.Snapshot {
 func (e *entry) todoList() []protocol.Todo {
 	e.todoMu.Lock()
 	defer e.todoMu.Unlock()
-	return e.todos
+	return e.tasks.List()
 }
 
 type totals struct {
@@ -253,7 +253,7 @@ func (m *Manager) Spawn(ctx context.Context, spec Spec) (string, error) {
 
 	if spec.ResumeID != "" {
 		item.lines.append(m.Replay(name))
-		item.todos = m.todosFromTranscript(name)
+		item.tasks = m.tasksFromTranscript(name)
 		item.lines.append([]render.Line{{Class: render.ClassMeta, Text: "— resumed —"}})
 		if stored, err := ReadMeta(item.path); err == nil {
 			stored.Archived = false
@@ -336,11 +336,9 @@ func trackTodos(item *entry, ev session.Event) []protocol.Todo {
 	item.todoMu.Lock()
 	defer item.todoMu.Unlock()
 	if ev.Kind == session.KindProtocol {
-		if list, ok := ev.Protocol.TodoWrite(); ok {
-			item.todos = list
-		}
+		item.tasks.Apply(ev.Protocol)
 	}
-	return item.todos
+	return item.tasks.List()
 }
 
 func (m *Manager) rememberSession(item *entry, snap session.Snapshot) {
@@ -416,24 +414,25 @@ func (m *Manager) Replay(name string) []render.Line {
 }
 
 // Todos returns the current task list of a session. A live session holds the
-// list in memory; a stored session gets it rebuilt from the transcript, which
-// is the last TodoWrite in the stream. See docs/tui/tasks.md.
+// list in memory; a stored session gets it rebuilt from the transcript. See
+// docs/tui/tasks.md.
 func (m *Manager) Todos(name string) []protocol.Todo {
 	if item, err := m.entry(name); err == nil {
 		return item.todoList()
 	}
-	return m.todosFromTranscript(name)
+	tasks := m.tasksFromTranscript(name)
+	return tasks.List()
 }
 
-func (m *Manager) todosFromTranscript(name string) []protocol.Todo {
+func (m *Manager) tasksFromTranscript(name string) protocol.TaskTracker {
+	var tasks protocol.TaskTracker
 	file, err := os.Open(transcriptPath(m.opts.Root, name))
 	if err != nil {
-		return nil
+		return tasks
 	}
 	defer file.Close()
 
 	reader := protocol.NewReader(file)
-	var todos []protocol.Todo
 	for {
 		ev, err := reader.Next()
 		if errors.Is(err, protocol.ErrNotJSON) {
@@ -442,11 +441,9 @@ func (m *Manager) todosFromTranscript(name string) []protocol.Todo {
 		if err != nil {
 			break
 		}
-		if list, ok := ev.TodoWrite(); ok {
-			todos = list
-		}
+		tasks.Apply(ev)
 	}
-	return todos
+	return tasks
 }
 
 func (m *Manager) Archive(name string, archived bool) error {
