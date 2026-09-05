@@ -101,10 +101,12 @@ one piece of content: a prompt, one message, one tool result, or the output of a
 
 `set_block_cap` writes the cap to the settings file, the same file `set_editor`
 writes. A `type` (prompt, message, tool, meta, bash, or error) caps one kind of
-block; no type sets the default for the rest. Give `rows` to draw that many rows
-(`0` draws only the marker), or `unlimited: true` to never cap. Give one, not
-both. A number below zero is an error. So a session that is about to print a
-large report can raise the cap, and lower it again after.
+block; no type sets the default for the rest. The `question_option` and
+`question_description` types cap the question modal, not the pane, and default to
+2 lines. Give `rows` to draw that many rows (`0` draws only the marker), or
+`unlimited: true` to never cap. Give one, not both. A number below zero is an
+error. So a session that is about to print a large report can raise the cap, and
+lower it again after.
 
 `unset_block_cap` takes a cap out again. A `type` clears that one kind, so it
 takes the default again; no type clears the default, and the pane returns to 20

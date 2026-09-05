@@ -144,6 +144,22 @@ never caps a message:
 The `--block-cap-type name=rows` flag sets one bucket for one run (`rows` of `-1`
 means `null`). The flag is repeatable, and it wins over the file.
 
+### The question modal caps
+
+Two more buckets cap the question modal, not the pane. A long option label or a
+long option description wraps across lines, and these buckets cap the lines it
+draws before a marker:
+
+| Bucket | The content it holds |
+|---|---|
+| `question_option` | One option label in the question modal. |
+| `question_description` | One option description in the question modal. |
+
+They take the same three states as the pane buckets, but an absent bucket takes
+a default of `2` lines, not the `blockCap` default. So the global `blockCap` does
+not reach them. The option under the cursor draws in full, so you read the rest
+by moving to it. See [tui/input.md](tui/input.md).
+
 ### A session writes the cap
 
 A session can write the cap itself, with the `set_block_cap` tool, and take it

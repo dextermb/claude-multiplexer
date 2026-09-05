@@ -2169,7 +2169,7 @@ func (m Model) groupHeader(item group) string {
 
 func (m Model) outputView() string {
 	if q := m.questions[m.sel]; q != nil {
-		return centre(m.outputWidth(), m.outputHeight(), q.View(m.outputWidth()))
+		return centre(m.outputWidth(), m.outputHeight(), q.View(m.outputWidth(), m.caps))
 	}
 	if len(m.rows) == 0 {
 		text := "No sessions yet.\n\nPress n to start one.\nPress ctrl+c to quit."
