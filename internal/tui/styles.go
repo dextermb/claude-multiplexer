@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"strings"
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
@@ -248,6 +249,49 @@ func truncate(text string, width int) string {
 		return "…"
 	}
 	return string(runes[:width-1]) + "…"
+}
+
+func wrapText(text string, width int) []string {
+	if width <= 0 {
+		return []string{text}
+	}
+	var lines []string
+	for _, para := range strings.Split(text, "\n") {
+		lines = append(lines, wrapParagraph(para, width)...)
+	}
+	if len(lines) == 0 {
+		return []string{""}
+	}
+	return lines
+}
+
+func wrapParagraph(para string, width int) []string {
+	var lines []string
+	line := ""
+	for _, word := range strings.Fields(para) {
+		for lipgloss.Width(word) > width {
+			head := string([]rune(word)[:width])
+			if line != "" {
+				lines = append(lines, line)
+				line = ""
+			}
+			lines = append(lines, head)
+			word = string([]rune(word)[width:])
+		}
+		switch {
+		case line == "":
+			line = word
+		case lipgloss.Width(line)+1+lipgloss.Width(word) <= width:
+			line += " " + word
+		default:
+			lines = append(lines, line)
+			line = word
+		}
+	}
+	if line != "" {
+		lines = append(lines, line)
+	}
+	return lines
 }
 
 func pad(text string, width int) string {
