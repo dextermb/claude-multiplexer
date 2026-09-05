@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/protocol"
 	"github.com/dextermb/claude-multiplexer/internal/session"
 )
@@ -251,5 +252,24 @@ func TestRenderClipsLongToolInput(t *testing.T) {
 	got := Text(Renderer{ToolWidth: 20}.Lines(ev))
 	if len(got) != 1 || len([]rune(got[0])) != len([]rune("→ Bash "))+21 {
 		t.Fatalf("lines = %q", got)
+	}
+}
+
+func TestBucketForMapsEveryClass(t *testing.T) {
+	cases := map[Class]string{
+		ClassPrompt:     config.BucketPrompt,
+		ClassText:       config.BucketMessage,
+		ClassThinking:   config.BucketMessage,
+		ClassToolUse:    config.BucketTool,
+		ClassToolResult: config.BucketTool,
+		ClassMeta:       config.BucketMeta,
+		ClassBash:       config.BucketBash,
+		ClassStderr:     config.BucketError,
+		ClassError:      config.BucketError,
+	}
+	for class, want := range cases {
+		if got := BucketFor(class); got != want {
+			t.Errorf("BucketFor(%d) = %q, want %q", class, got, want)
+		}
 	}
 }

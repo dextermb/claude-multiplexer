@@ -53,7 +53,7 @@ type storedMsg struct {
 	metas []manager.Meta
 }
 type settingsMsg struct {
-	blockCap int
+	caps map[string]int
 }
 type stoppedMsg struct {
 	name string
@@ -117,7 +117,7 @@ type Model struct {
 	blockStart  map[int]int
 	hiddenRows  map[int]int
 	blockCursor int
-	blockCap    int
+	caps        map[string]int
 	content     string
 	selection   selRange
 	prompt      textarea.Model
@@ -178,7 +178,7 @@ func New(opts Options) Model {
 		prompt:      prompt,
 		pathPicked:  -1,
 		blockCursor: -1,
-		blockCap:    config.DefaultBlockCap,
+		caps:        config.ResolveBlockCaps(config.Config{}),
 		focus:       focusSidebar,
 		mouseOn:     true,
 	}
@@ -385,20 +385,32 @@ func (m Model) readSettings() tea.Cmd {
 	return func() tea.Msg {
 		file, err := config.Load(opts.ConfigPaths...)
 		if err != nil {
-			return settingsMsg{blockCap: config.DefaultBlockCap}
+			return settingsMsg{caps: config.ResolveBlockCaps(config.Config{})}
 		}
 		merged := config.Resolve(opts.Config, file, config.LoadClaude(opts.ClaudePaths...))
-		return settingsMsg{blockCap: config.BlockCapOrDefault(merged)}
+		return settingsMsg{caps: config.ResolveBlockCaps(merged)}
 	}
 }
 
 func (m Model) handleSettings(msg settingsMsg) (tea.Model, tea.Cmd) {
-	if msg.blockCap == m.blockCap {
+	if sameCaps(msg.caps, m.caps) {
 		return m, nil
 	}
-	m.blockCap = msg.blockCap
+	m.caps = msg.caps
 	m.rebuildOutput()
 	return m, nil
+}
+
+func sameCaps(a, b map[string]int) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for k, v := range a {
+		if b[k] != v {
+			return false
+		}
+	}
+	return true
 }
 
 func (m Model) handleStored(msg storedMsg) (tea.Model, tea.Cmd) {

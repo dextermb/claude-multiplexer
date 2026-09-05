@@ -858,7 +858,8 @@ func TestTheWorkingDirThroughTheToolCarriesANotice(t *testing.T) {
 func TestSetBlockCapWritesTheSettingsFile(t *testing.T) {
 	m, path := withConfig(t)
 
-	got, err := m.SetBlockCap(40)
+	rows := 40
+	got, err := m.SetBlockCap("", &rows)
 	if err != nil {
 		t.Fatalf("SetBlockCap: %v", err)
 	}
@@ -880,7 +881,8 @@ func TestSetBlockCapKeepsTheEditorItDoesNotName(t *testing.T) {
 		t.Fatalf("SetEditor: %v", err)
 	}
 
-	if _, err := m.SetBlockCap(0); err != nil {
+	zero := 0
+	if _, err := m.SetBlockCap("", &zero); err != nil {
 		t.Fatalf("SetBlockCap: %v", err)
 	}
 	cfg, err := config.Load(path)
@@ -897,18 +899,20 @@ func TestSetBlockCapKeepsTheEditorItDoesNotName(t *testing.T) {
 
 func TestSetBlockCapRefusesALessThanZeroCap(t *testing.T) {
 	m, _ := withConfig(t)
-	if _, err := m.SetBlockCap(-1); err == nil {
+	neg := -1
+	if _, err := m.SetBlockCap("", &neg); err == nil {
 		t.Fatal("a cap below zero must be an error")
 	}
 }
 
 func TestUnsetBlockCapTakesTheCapOutOfTheFile(t *testing.T) {
 	m, path := withConfig(t)
-	if _, err := m.SetBlockCap(40); err != nil {
+	rows := 40
+	if _, err := m.SetBlockCap("", &rows); err != nil {
 		t.Fatalf("SetBlockCap: %v", err)
 	}
 
-	_, changed, err := m.UnsetBlockCap()
+	_, changed, err := m.UnsetBlockCap("")
 	if err != nil {
 		t.Fatalf("UnsetBlockCap: %v", err)
 	}
@@ -923,8 +927,66 @@ func TestUnsetBlockCapTakesTheCapOutOfTheFile(t *testing.T) {
 		t.Fatalf("blockCap = %v, want none", cfg.BlockCap)
 	}
 
-	if _, changed, err = m.UnsetBlockCap(); err != nil || changed {
+	if _, changed, err = m.UnsetBlockCap(""); err != nil || changed {
 		t.Fatalf("a second call changed nothing: changed = %v, err = %v", changed, err)
+	}
+}
+
+func TestSetBlockCapWritesOneType(t *testing.T) {
+	m, path := withConfig(t)
+
+	rows := 3
+	if _, err := m.SetBlockCap(config.BucketTool, &rows); err != nil {
+		t.Fatalf("SetBlockCap: %v", err)
+	}
+	if _, err := m.SetBlockCap(config.BucketMessage, nil); err != nil {
+		t.Fatalf("SetBlockCap unlimited: %v", err)
+	}
+	cfg, err := config.Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, ok := cfg.BlockCaps[config.BucketTool]; !ok || got == nil || *got != 3 {
+		t.Fatalf("tool cap = %v, want 3", cfg.BlockCaps[config.BucketTool])
+	}
+	got, ok := cfg.BlockCaps[config.BucketMessage]
+	if !ok || got != nil {
+		t.Fatalf("message cap = %v, want null", cfg.BlockCaps[config.BucketMessage])
+	}
+	if cfg.BlockCap != nil {
+		t.Fatalf("the default must stay unset, got %v", cfg.BlockCap)
+	}
+}
+
+func TestUnsetBlockCapClearsOneType(t *testing.T) {
+	m, path := withConfig(t)
+	rows := 3
+	if _, err := m.SetBlockCap(config.BucketBash, &rows); err != nil {
+		t.Fatalf("SetBlockCap: %v", err)
+	}
+
+	_, changed, err := m.UnsetBlockCap(config.BucketBash)
+	if err != nil || !changed {
+		t.Fatalf("UnsetBlockCap: changed = %v, err = %v", changed, err)
+	}
+	cfg, err := config.Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(cfg.BlockCaps) != 0 {
+		t.Fatalf("blockCaps = %v, want none", cfg.BlockCaps)
+	}
+
+	if _, changed, err = m.UnsetBlockCap(config.BucketBash); err != nil || changed {
+		t.Fatalf("a second call changed nothing: changed = %v, err = %v", changed, err)
+	}
+}
+
+func TestSetBlockCapRefusesAnUnknownType(t *testing.T) {
+	m, _ := withConfig(t)
+	rows := 5
+	if _, err := m.SetBlockCap("banana", &rows); err == nil {
+		t.Fatal("an unknown type must be an error")
 	}
 }
 
@@ -938,14 +1000,15 @@ func TestBlockCapThroughTheToolCarriesANotice(t *testing.T) {
 	defer sub.Close()
 
 	tools := &bridge{m: m}
-	if _, err := tools.SetBlockCap(40, name); err != nil {
+	rows := 40
+	if _, err := tools.SetBlockCap("", &rows, name); err != nil {
 		t.Fatalf("SetBlockCap: %v", err)
 	}
 	if ev := awaitNotice(t, sub); !strings.Contains(ev.Notice, "docs set the block cap to 40 rows") {
 		t.Fatalf("notice = %q", ev.Notice)
 	}
 
-	if _, _, err := tools.UnsetBlockCap(name); err != nil {
+	if _, _, err := tools.UnsetBlockCap("", name); err != nil {
 		t.Fatalf("UnsetBlockCap: %v", err)
 	}
 	if ev := awaitNotice(t, sub); !strings.Contains(ev.Notice, "docs cleared the block cap") {
