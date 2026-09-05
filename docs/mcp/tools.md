@@ -99,12 +99,16 @@ The session pane caps a long block and offers to open it in place. A block is
 one piece of content: a prompt, one message, one tool result, or the output of a
 `!` command. See [tui/output.md](../tui/output.md).
 
-`set_block_cap` writes `rows` to the settings file, the same file `set_editor`
-writes. `0` caps nothing, and a number below zero is an error. So a session that
-is about to print a large report can raise the cap, and lower it again after.
+`set_block_cap` writes the cap to the settings file, the same file `set_editor`
+writes. A `type` (prompt, message, tool, meta, bash, or error) caps one kind of
+block; no type sets the default for the rest. Give `rows` to draw that many rows
+(`0` draws only the marker), or `unlimited: true` to never cap. Give one, not
+both. A number below zero is an error. So a session that is about to print a
+large report can raise the cap, and lower it again after.
 
-`unset_block_cap` takes the cap out again, and the pane returns to its default
-of 20 rows. It answers with `changed: false` when the file held none.
+`unset_block_cap` takes a cap out again. A `type` clears that one kind, so it
+takes the default again; no type clears the default, and the pane returns to 20
+rows. It answers with `changed: false` when the file held no such cap.
 
 The interface reads the settings file again at each notice, so a new cap reaches
 the pane at once and the pane draws itself again. `--block-cap` still sits above

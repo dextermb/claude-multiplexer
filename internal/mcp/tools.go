@@ -79,14 +79,21 @@ type templatePathIn struct {
 }
 
 type setBlockCapIn struct {
-	Rows *int `json:"rows" jsonschema:"the rows one block draws in the session pane before the pane caps it and offers to open the rest; 0 caps nothing"`
+	Type      string `json:"type,omitempty" jsonschema:"the block type to cap: prompt, message, tool, meta, bash, or error; empty sets the default for every other type"`
+	Rows      *int   `json:"rows,omitempty" jsonschema:"the rows a block of this type draws before the pane caps it and offers to open the rest; 0 draws only the marker, so the human opens the block to read it"`
+	Unlimited bool   `json:"unlimited,omitempty" jsonschema:"true never caps this type, so the block always draws in full; do not give rows as well"`
 }
 
 type setBlockCapOut struct {
 	OK      bool   `json:"ok"`
 	Path    string `json:"path"`
-	Rows    int    `json:"rows"`
+	Type    string `json:"type,omitempty"`
+	Rows    *int   `json:"rows,omitempty"`
 	Message string `json:"message"`
+}
+
+type unsetBlockCapIn struct {
+	Type string `json:"type,omitempty" jsonschema:"the block type to clear: prompt, message, tool, meta, bash, or error; empty clears the default"`
 }
 
 type unsetBlockCapOut struct {
@@ -263,28 +270,55 @@ func (s *Server) build(caller string, control bool) *sdk.Server {
 		Name: ToolSetBlockCap,
 		Description: "Set how much of one block the session pane draws before it caps it. " +
 			"A block is one piece of content: a prompt, one message, one tool result, or the output of a ! command. " +
-			"The human opens the rest of a capped block in the pane. It writes the settings file of the multiplexer. Give 0 to cap nothing.",
+			"Give 'type' to cap one kind of block (prompt, message, tool, meta, bash, or error), or no type to set the default for the rest. " +
+			"Give 'rows' to draw that many rows (0 draws only the marker), or 'unlimited' to never cap. " +
+			"The human opens the rest of a capped block in the pane. It writes the settings file of the multiplexer.",
 	}, func(_ context.Context, _ *sdk.CallToolRequest, in setBlockCapIn) (*sdk.CallToolResult, setBlockCapOut, error) {
-		if in.Rows == nil || *in.Rows < 0 {
+		bucket := strings.TrimSpace(in.Type)
+		if bucket != "" && !config.ValidBucket(bucket) {
+			return nil, setBlockCapOut{}, ErrBadType
+		}
+		if in.Unlimited && in.Rows != nil {
+			return nil, setBlockCapOut{}, ErrCapBoth
+		}
+		var rows *int
+		switch {
+		case in.Unlimited:
+			if bucket == "" {
+				zero := 0
+				rows = &zero
+			}
+		case in.Rows != nil:
+			if *in.Rows < 0 {
+				return nil, setBlockCapOut{}, ErrBadCap
+			}
+			value := *in.Rows
+			rows = &value
+		default:
 			return nil, setBlockCapOut{}, ErrBadCap
 		}
-		path, err := s.sessions.SetBlockCap(*in.Rows, caller)
+		path, err := s.sessions.SetBlockCap(bucket, rows, caller)
 		if err != nil {
 			return nil, setBlockCapOut{}, err
 		}
-		return nil, setBlockCapOut{OK: true, Path: path, Rows: *in.Rows, Message: blockCapMessage(*in.Rows, path)}, nil
+		return nil, setBlockCapOut{OK: true, Path: path, Type: bucket, Rows: rows, Message: blockCapMessage(bucket, rows, path)}, nil
 	})
 
 	sdk.AddTool(server, &sdk.Tool{
 		Name: ToolUnsetBlockCap,
-		Description: "Take the block cap out of the settings file of the multiplexer, so the session pane returns to its default of " +
-			strconv.Itoa(config.DefaultBlockCap) + " rows for one block.",
-	}, func(_ context.Context, _ *sdk.CallToolRequest, _ struct{}) (*sdk.CallToolResult, unsetBlockCapOut, error) {
-		path, changed, err := s.sessions.UnsetBlockCap(caller)
+		Description: "Take a block cap out of the settings file of the multiplexer. " +
+			"Give 'type' to clear one kind of block, so it takes the default again, or no type to clear the default of " +
+			strconv.Itoa(config.DefaultBlockCap) + " rows.",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, in unsetBlockCapIn) (*sdk.CallToolResult, unsetBlockCapOut, error) {
+		bucket := strings.TrimSpace(in.Type)
+		if bucket != "" && !config.ValidBucket(bucket) {
+			return nil, unsetBlockCapOut{}, ErrBadType
+		}
+		path, changed, err := s.sessions.UnsetBlockCap(bucket, caller)
 		if err != nil {
 			return nil, unsetBlockCapOut{}, err
 		}
-		return nil, unsetBlockCapOut{OK: true, Path: path, Changed: changed, Message: blockCapClearedMessage(changed, path)}, nil
+		return nil, unsetBlockCapOut{OK: true, Path: path, Changed: changed, Message: blockCapClearedMessage(bucket, changed, path)}, nil
 	})
 
 	sdk.AddTool(server, &sdk.Tool{
@@ -437,14 +471,29 @@ func editorMessage(editor string, terminal *bool, path string) string {
 	return strings.Join(parts, ", ") + ", in " + path
 }
 
-func blockCapMessage(rows int, path string) string {
-	if rows == 0 {
-		return "the pane now caps no block, in " + path
+func blockCapMessage(bucket string, rows *int, path string) string {
+	if bucket == "" {
+		if rows == nil || *rows == 0 {
+			return "the pane now caps no block, in " + path
+		}
+		return "one block now draws " + strconv.Itoa(*rows) + " rows before the pane caps it, in " + path
 	}
-	return "one block now draws " + strconv.Itoa(rows) + " rows before the pane caps it, in " + path
+	if rows == nil {
+		return "the pane now caps no " + bucket + " block, in " + path
+	}
+	if *rows == 0 {
+		return "a " + bucket + " block now draws only the marker, in " + path
+	}
+	return "a " + bucket + " block now draws " + strconv.Itoa(*rows) + " rows before the pane caps it, in " + path
 }
 
-func blockCapClearedMessage(changed bool, path string) string {
+func blockCapClearedMessage(bucket string, changed bool, path string) string {
+	if bucket != "" {
+		if !changed {
+			return "the " + bucket + " block cap was not set in " + path
+		}
+		return "the " + bucket + " block cap is no longer set in " + path + ", so a " + bucket + " block takes the default"
+	}
 	if !changed {
 		return "the block cap was not set in " + path
 	}

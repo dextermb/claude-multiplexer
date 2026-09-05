@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/protocol"
 	"github.com/dextermb/claude-multiplexer/internal/session"
 )
@@ -26,6 +27,24 @@ const (
 	ClassError
 	ClassBash
 )
+
+// BucketFor names the block-cap bucket a class falls in. See docs/tui/output.md.
+func BucketFor(c Class) string {
+	switch c {
+	case ClassPrompt:
+		return config.BucketPrompt
+	case ClassText, ClassThinking:
+		return config.BucketMessage
+	case ClassToolUse, ClassToolResult:
+		return config.BucketTool
+	case ClassBash:
+		return config.BucketBash
+	case ClassStderr, ClassError:
+		return config.BucketError
+	default:
+		return config.BucketMeta
+	}
+}
 
 type Line struct {
 	Class Class
