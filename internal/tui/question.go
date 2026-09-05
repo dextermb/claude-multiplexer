@@ -7,6 +7,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 
+	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/protocol"
 )
 
@@ -144,8 +145,26 @@ func (d *questionDialog) answer() string {
 	return strings.Join(lines, "\n")
 }
 
-func (d *questionDialog) View(width int) string {
+func questionCap(caps map[string]int, bucket string) int {
+	if cap, ok := caps[bucket]; ok {
+		return cap
+	}
+	return config.DefaultQuestionCap
+}
+
+// capLines keeps at most cap lines and reports the rest as hidden. A focused
+// option draws in full, and a cap below zero never caps. See docs/tui/input.md.
+func capLines(lines []string, cap int, focused bool) ([]string, int) {
+	if focused || cap < 0 || len(lines) <= cap {
+		return lines, 0
+	}
+	return lines[:cap:cap], len(lines) - cap
+}
+
+func (d *questionDialog) View(width int, caps map[string]int) string {
 	inner := modalInner(width)
+	optionCap := questionCap(caps, config.BucketQuestionOption)
+	descriptionCap := questionCap(caps, config.BucketQuestionDescription)
 
 	question := d.current()
 	var b strings.Builder
@@ -170,20 +189,36 @@ func (d *questionDialog) View(width int) string {
 		if d.chosen[d.step][i] {
 			mark = "◉"
 		}
+		focused := i == d.cursor
+
+		var content []string
+		labelLines, labelHidden := capLines(wrapText(option.Label, textWidth), optionCap, focused)
+		content = append(content, labelLines...)
+		if labelHidden > 0 {
+			content = append(content, hintStyle.Render(markerText(labelHidden, false)))
+		}
+		if option.Description != "" {
+			descLines, descHidden := capLines(wrapText(option.Description, textWidth), descriptionCap, focused)
+			for _, line := range descLines {
+				content = append(content, hintStyle.Render(line))
+			}
+			if descHidden > 0 {
+				content = append(content, hintStyle.Render(markerText(descHidden, false)))
+			}
+		}
+		if len(content) == 0 {
+			content = append(content, "")
+		}
+
 		var block strings.Builder
-		for j, line := range wrapText(option.Label, textWidth) {
+		for j, line := range content {
 			if j == 0 {
 				block.WriteString(mark + " " + line)
 			} else {
 				block.WriteString("\n    " + line)
 			}
 		}
-		if option.Description != "" {
-			for _, line := range wrapText(option.Description, textWidth) {
-				block.WriteString("\n    " + hintStyle.Render(line))
-			}
-		}
-		if i == d.cursor {
+		if focused {
 			b.WriteString(selectedRowStyle.Width(rowWidth).Render("▸ " + block.String()))
 		} else {
 			b.WriteString(rowStyle.Width(rowWidth).Render("  " + block.String()))

@@ -4,9 +4,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/manager"
 	"github.com/dextermb/claude-multiplexer/internal/protocol"
 )
+
+func defaultCaps() map[string]int { return config.ResolveBlockCaps(config.Config{}) }
 
 func colourQuestion(multi bool) []protocol.Question {
 	return []protocol.Question{{
@@ -84,7 +87,7 @@ func TestQuestionWrapsLongOptionText(t *testing.T) {
 		Options:  []protocol.Option{{Label: label, Description: desc}},
 	}}
 	d := newQuestionDialog("alpha", q)
-	view := visible(d.View(60))
+	view := visible(d.View(60, defaultCaps()))
 	if strings.Contains(view, "…") {
 		t.Fatalf("a long option must wrap, not truncate:\n%s", view)
 	}
@@ -93,6 +96,48 @@ func TestQuestionWrapsLongOptionText(t *testing.T) {
 		if !strings.Contains(flat, want) {
 			t.Fatalf("the view dropped text %q:\n%s", want, view)
 		}
+	}
+}
+
+func TestQuestionCapsAnUnfocusedOption(t *testing.T) {
+	long := "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen"
+	q := []protocol.Question{{
+		Question: "Pick one",
+		Header:   "Pick",
+		Options:  []protocol.Option{{Label: "Short"}, {Label: long}},
+	}}
+	d := newQuestionDialog("alpha", q)
+
+	view := visible(d.View(60, defaultCaps()))
+	if !strings.Contains(view, "more line") {
+		t.Fatalf("an unfocused long option must show a marker:\n%s", view)
+	}
+
+	d.Update(key("down"))
+	view = visible(d.View(60, defaultCaps()))
+	if strings.Contains(view, "more line") {
+		t.Fatalf("the focused option must draw in full, with no marker:\n%s", view)
+	}
+	flat := strings.Join(strings.Fields(strings.ReplaceAll(view, "│", " ")), " ")
+	if !strings.Contains(flat, long) {
+		t.Fatalf("the focused option dropped text:\n%s", view)
+	}
+}
+
+func TestQuestionUnlimitedCapNeverCapsAnOption(t *testing.T) {
+	long := "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen"
+	q := []protocol.Question{{
+		Question: "Pick one",
+		Header:   "Pick",
+		Options:  []protocol.Option{{Label: "Short"}, {Label: long}},
+	}}
+	d := newQuestionDialog("alpha", q)
+
+	caps := defaultCaps()
+	caps[config.BucketQuestionOption] = -1
+	view := visible(d.View(60, caps))
+	if strings.Contains(view, "more line") {
+		t.Fatalf("an unlimited cap must not draw a marker:\n%s", view)
 	}
 }
 

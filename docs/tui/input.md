@@ -121,6 +121,12 @@ the focus. So focus the output pane to answer.
   dialog and switch sessions without an answer.
 - `Esc` dismisses the dialog without an answer.
 
+A long option label or a long option description wraps across lines. The dialog
+caps each at a small number of lines and draws a marker for the rest. The option
+under the cursor draws in full, so you read the rest by moving to it. The
+`question_option` and `question_description` caps set the line count, and default
+to 2. See [../config.md](../config.md).
+
 The answer goes back as the next prompt, one labelled line for each question,
 because the child already closed the tool call. For example, a choice of `Blue`
 with a note reads `Colour: Blue (a lighter shade)`. The answer moves the session
