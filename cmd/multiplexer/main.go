@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 
@@ -132,11 +133,14 @@ func tuiCommand(argv []string) int {
 		"does the editor draw in the terminal: yes, no, or auto")
 	blockCap := fs.Int("block-cap", -1,
 		"rows one block draws in the pane before it is capped, 0 for no cap (default from the settings file)")
+	var blockCapTypes blockCapTypeFlag
+	fs.Var(&blockCapTypes, "block-cap-type",
+		"cap one block type: name=rows, where name is "+strings.Join(config.Buckets, "/")+" and rows is 0 for the marker only or -1 for no cap (repeatable)")
 	if err := fs.Parse(argv); err != nil {
 		return 2
 	}
 
-	configPaths, editorFlags, err := settings(*configPath, *editor, *editorTerminal, *blockCap)
+	configPaths, editorFlags, err := settings(*configPath, *editor, *editorTerminal, *blockCap, blockCapTypes.caps)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "multiplexer: %v\n", err)
 		return 2
@@ -190,7 +194,39 @@ func tuiCommand(argv []string) int {
 // settings names the files that hold the settings, and reads the flags that
 // sit above them. The interface reads the file again at each key press, so a
 // tool can change it while the program runs. See docs/config.md.
-func settings(path, editor, terminal string, blockCap int) ([]string, config.Config, error) {
+// blockCapTypeFlag reads a repeated --block-cap-type name=rows into a map. A
+// rows of -1 caps nothing (a null in the settings file). See docs/config.md.
+type blockCapTypeFlag struct {
+	caps map[string]*int
+}
+
+func (f *blockCapTypeFlag) String() string { return "" }
+
+func (f *blockCapTypeFlag) Set(value string) error {
+	name, rows, ok := strings.Cut(value, "=")
+	if !ok {
+		return fmt.Errorf("--block-cap-type wants name=rows, got %q", value)
+	}
+	name = strings.TrimSpace(name)
+	if !config.ValidBucket(name) {
+		return fmt.Errorf("--block-cap-type name must be one of %s", strings.Join(config.Buckets, ", "))
+	}
+	n, err := strconv.Atoi(strings.TrimSpace(rows))
+	if err != nil {
+		return fmt.Errorf("--block-cap-type rows must be a number: %w", err)
+	}
+	if f.caps == nil {
+		f.caps = map[string]*int{}
+	}
+	if n < 0 {
+		f.caps[name] = nil
+	} else {
+		f.caps[name] = &n
+	}
+	return nil
+}
+
+func settings(path, editor, terminal string, blockCap int, blockCaps map[string]*int) ([]string, config.Config, error) {
 	paths := config.Paths()
 	if path != "" {
 		if _, err := os.Stat(path); err != nil {
@@ -216,6 +252,7 @@ func settings(path, editor, terminal string, blockCap int) ([]string, config.Con
 	if blockCap >= 0 {
 		flags.BlockCap = &blockCap
 	}
+	flags.BlockCaps = blockCaps
 	return paths, flags, nil
 }
 

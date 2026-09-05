@@ -341,3 +341,69 @@ func TestDefaultRootPrefersTheNewDirectoryWhenBothAreThere(t *testing.T) {
 		t.Fatalf("root = %q, want %q", got, want)
 	}
 }
+
+func TestBlockCapForResolvesThreeStates(t *testing.T) {
+	collapse := 0
+	preview := 4
+	never := -1
+	cfg := Config{BlockCaps: map[string]*int{
+		BucketMeta:    &collapse,
+		BucketTool:    &preview,
+		BucketMessage: nil,
+		BucketError:   &never,
+	}}
+	cases := map[string]int{
+		BucketMeta:    0,
+		BucketTool:    4,
+		BucketMessage: -1,
+		BucketError:   -1,
+		BucketPrompt:  DefaultBlockCap,
+	}
+	for bucket, want := range cases {
+		if got := BlockCapFor(cfg, bucket); got != want {
+			t.Errorf("BlockCapFor(%q) = %d, want %d", bucket, got, want)
+		}
+	}
+}
+
+func TestBlockCapForFallsToTheGlobalDefault(t *testing.T) {
+	zero := 0
+	if got := BlockCapFor(Config{BlockCap: &zero}, BucketTool); got != -1 {
+		t.Fatalf("a global cap of 0 never caps, got %d", got)
+	}
+	seven := 7
+	if got := BlockCapFor(Config{BlockCap: &seven}, BucketTool); got != 7 {
+		t.Fatalf("BlockCapFor = %d, want 7", got)
+	}
+	if got := BlockCapFor(Config{}, BucketTool); got != DefaultBlockCap {
+		t.Fatalf("BlockCapFor = %d, want %d", got, DefaultBlockCap)
+	}
+}
+
+func TestResolveMergesBlockCapsWithFlagsOnTop(t *testing.T) {
+	fileFive := 5
+	flagTen := 10
+	file := Config{BlockCaps: map[string]*int{BucketTool: &fileFive, BucketMeta: nil}}
+	flags := Config{BlockCaps: map[string]*int{BucketTool: &flagTen}}
+	out := Resolve(flags, file, Config{})
+	if got := out.BlockCaps[BucketTool]; got == nil || *got != 10 {
+		t.Fatalf("tool cap = %v, want the flag 10", out.BlockCaps[BucketTool])
+	}
+	if got, ok := out.BlockCaps[BucketMeta]; !ok || got != nil {
+		t.Fatalf("meta cap = %v, want the file null", out.BlockCaps[BucketMeta])
+	}
+	if _, ok := file.BlockCaps[BucketTool]; !ok || *file.BlockCaps[BucketTool] != 5 {
+		t.Fatal("Resolve must not change the file map")
+	}
+}
+
+func TestValidBucketNamesTheSix(t *testing.T) {
+	for _, b := range Buckets {
+		if !ValidBucket(b) {
+			t.Errorf("ValidBucket(%q) = false", b)
+		}
+	}
+	if ValidBucket("banana") {
+		t.Fatal("ValidBucket(banana) = true")
+	}
+}

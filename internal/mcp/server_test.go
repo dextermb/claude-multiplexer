@@ -28,6 +28,7 @@ type fakeSessions struct {
 	editorPath  string
 	cleared     []string
 	blockCap    *int
+	blockCaps   map[string]*int
 	workingDir  string
 	failWorkDir error
 	failStop    error
@@ -77,14 +78,26 @@ func (f *fakeSessions) TemplatePath(name string) (mcp.TemplatePath, error) {
 	}, nil
 }
 
-func (f *fakeSessions) SetBlockCap(rows int, by string) (string, error) {
-	f.blockCap = &rows
+func (f *fakeSessions) SetBlockCap(bucket string, rows *int, by string) (string, error) {
+	if bucket == "" {
+		f.blockCap = rows
+		return "/tmp/config.json", nil
+	}
+	if f.blockCaps == nil {
+		f.blockCaps = map[string]*int{}
+	}
+	f.blockCaps[bucket] = rows
 	return "/tmp/config.json", nil
 }
 
-func (f *fakeSessions) UnsetBlockCap(by string) (string, bool, error) {
-	changed := f.blockCap != nil
-	f.blockCap = nil
+func (f *fakeSessions) UnsetBlockCap(bucket, by string) (string, bool, error) {
+	if bucket == "" {
+		changed := f.blockCap != nil
+		f.blockCap = nil
+		return "/tmp/config.json", changed, nil
+	}
+	_, changed := f.blockCaps[bucket]
+	delete(f.blockCaps, bucket)
 	return "/tmp/config.json", changed, nil
 }
 
@@ -832,6 +845,94 @@ func TestUnsetBlockCapToolClearsTheCap(t *testing.T) {
 	}
 	if !strings.Contains(resultText(result), "20") {
 		t.Fatalf("the answer must name the default:\n%s", resultText(result))
+	}
+}
+
+func TestSetBlockCapToolWritesOneType(t *testing.T) {
+	sessions := newFakeSessions()
+	server := startServer(t, sessions)
+	token, err := server.Register("docs", false)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+	client := connect(t, server, token)
+
+	if result := call(t, client, mcp.ToolSetBlockCap, map[string]any{"type": "meta", "rows": 0}); result.IsError {
+		t.Fatalf("set_block_cap for a type failed: %s", resultText(result))
+	}
+	rows, ok := sessions.blockCaps["meta"]
+	if !ok || rows == nil || *rows != 0 {
+		t.Fatalf("meta cap = %v, want 0", sessions.blockCaps["meta"])
+	}
+	if sessions.blockCap != nil {
+		t.Fatalf("the default must stay unset, got %v", sessions.blockCap)
+	}
+}
+
+func TestSetBlockCapToolWritesAnUnlimitedType(t *testing.T) {
+	sessions := newFakeSessions()
+	server := startServer(t, sessions)
+	token, err := server.Register("docs", false)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+	client := connect(t, server, token)
+
+	if result := call(t, client, mcp.ToolSetBlockCap, map[string]any{"type": "message", "unlimited": true}); result.IsError {
+		t.Fatalf("set_block_cap unlimited failed: %s", resultText(result))
+	}
+	rows, ok := sessions.blockCaps["message"]
+	if !ok || rows != nil {
+		t.Fatalf("message cap = %v, want null", sessions.blockCaps["message"])
+	}
+}
+
+func TestSetBlockCapToolRefusesAnUnknownType(t *testing.T) {
+	sessions := newFakeSessions()
+	server := startServer(t, sessions)
+	token, err := server.Register("docs", false)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+	client := connect(t, server, token)
+
+	if result := call(t, client, mcp.ToolSetBlockCap, map[string]any{"type": "banana", "rows": 5}); !result.IsError {
+		t.Fatal("an unknown type must be an error")
+	}
+}
+
+func TestSetBlockCapToolRefusesRowsWithUnlimited(t *testing.T) {
+	sessions := newFakeSessions()
+	server := startServer(t, sessions)
+	token, err := server.Register("docs", false)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+	client := connect(t, server, token)
+
+	result := call(t, client, mcp.ToolSetBlockCap, map[string]any{"type": "tool", "rows": 5, "unlimited": true})
+	if !result.IsError {
+		t.Fatal("rows with unlimited must be an error")
+	}
+}
+
+func TestUnsetBlockCapToolClearsOneType(t *testing.T) {
+	sessions := newFakeSessions()
+	server := startServer(t, sessions)
+	token, err := server.Register("docs", false)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+	client := connect(t, server, token)
+
+	if result := call(t, client, mcp.ToolSetBlockCap, map[string]any{"type": "bash", "rows": 3}); result.IsError {
+		t.Fatalf("set_block_cap for a type failed: %s", resultText(result))
+	}
+	if result := call(t, client, mcp.ToolUnsetBlockCap, map[string]any{"type": "bash"}); result.IsError {
+		t.Fatalf("unset_block_cap for a type failed: %s", resultText(result))
+	}
+	if _, ok := sessions.blockCaps["bash"]; ok {
+		t.Fatalf("the bash cap must be cleared, got %v", sessions.blockCaps["bash"])
 	}
 }
 

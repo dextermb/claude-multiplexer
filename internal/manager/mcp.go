@@ -436,31 +436,47 @@ func (b *bridge) UnsetEditor(field, by string) (string, bool, error) {
 	return path, changed, nil
 }
 
-func (b *bridge) SetBlockCap(rows int, by string) (string, error) {
-	path, err := b.m.SetBlockCap(rows)
+func (b *bridge) SetBlockCap(bucket string, rows *int, by string) (string, error) {
+	path, err := b.m.SetBlockCap(bucket, rows)
 	if err != nil {
 		return "", err
 	}
-	b.m.notify(by, by+" "+blockCapNotice(rows), false)
+	b.m.notify(by, by+" "+blockCapNotice(bucket, rows), false)
 	return path, nil
 }
 
-func (b *bridge) UnsetBlockCap(by string) (string, bool, error) {
-	path, changed, err := b.m.UnsetBlockCap()
+func (b *bridge) UnsetBlockCap(bucket, by string) (string, bool, error) {
+	path, changed, err := b.m.UnsetBlockCap(bucket)
 	if err != nil {
 		return "", false, err
 	}
 	if changed {
-		b.m.notify(by, by+" cleared the block cap", false)
+		b.m.notify(by, by+" "+blockCapClearedNotice(bucket), false)
 	}
 	return path, changed, nil
 }
 
-func blockCapNotice(rows int) string {
-	if rows == 0 {
-		return "turned the block cap off"
+func blockCapNotice(bucket string, rows *int) string {
+	if bucket == "" {
+		if rows == nil || *rows == 0 {
+			return "turned the block cap off"
+		}
+		return "set the block cap to " + strconv.Itoa(*rows) + " rows"
 	}
-	return "set the block cap to " + strconv.Itoa(rows) + " rows"
+	if rows == nil {
+		return "turned the " + bucket + " block cap off"
+	}
+	if *rows == 0 {
+		return "set the " + bucket + " block cap to the marker only"
+	}
+	return "set the " + bucket + " block cap to " + strconv.Itoa(*rows) + " rows"
+}
+
+func blockCapClearedNotice(bucket string) string {
+	if bucket == "" {
+		return "cleared the block cap"
+	}
+	return "cleared the " + bucket + " block cap"
 }
 
 func clearedNotice(field string) string {
@@ -526,7 +542,7 @@ func (m *Manager) UnsetEditor(field string) (string, bool, error) {
 	if err != nil {
 		return "", false, err
 	}
-	if next == current {
+	if config.SameEditor(next, current) {
 		return path, false, nil
 	}
 	if err := config.Write(path, next); err != nil {
@@ -577,11 +593,18 @@ func (m *Manager) sessionDir(name string) (string, error) {
 }
 
 // SetBlockCap writes the rows a block draws before the pane caps it, so a
-// session can change how much of a large result the human sees. A cap of zero
-// caps nothing. See docs/config.md.
-func (m *Manager) SetBlockCap(rows int) (string, error) {
-	if rows < 0 {
+// session can change how much of a large result the human sees. An empty bucket
+// sets the default for every type; a bucket sets that one type. A nil rows caps
+// nothing (a bucket only). See docs/config.md.
+func (m *Manager) SetBlockCap(bucket string, rows *int) (string, error) {
+	if rows != nil && *rows < 0 {
 		return "", errors.New("manager: the block cap must be zero or more")
+	}
+	if bucket == "" && rows == nil {
+		return "", errors.New("manager: the default block cap needs a row count")
+	}
+	if bucket != "" && !config.ValidBucket(bucket) {
+		return "", errors.New("manager: unknown block type " + bucket)
 	}
 	path := config.Target(m.opts.ConfigPaths...)
 	if path == "" {
@@ -591,16 +614,28 @@ func (m *Manager) SetBlockCap(rows int) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	current.BlockCap = &rows
+	if bucket == "" {
+		current.BlockCap = rows
+	} else {
+		if current.BlockCaps == nil {
+			current.BlockCaps = map[string]*int{}
+		}
+		current.BlockCaps[bucket] = rows
+	}
 	if err := config.Write(path, current); err != nil {
 		return "", err
 	}
 	return path, nil
 }
 
-// UnsetBlockCap takes the block cap out of the settings file, so the pane
-// returns to config.DefaultBlockCap. It reports whether the file held one.
-func (m *Manager) UnsetBlockCap() (string, bool, error) {
+// UnsetBlockCap takes a block cap out of the settings file. An empty bucket
+// clears the default, so the pane returns to config.DefaultBlockCap; a bucket
+// clears that type, so it takes the default again. It reports whether the file
+// held the cap. See docs/config.md.
+func (m *Manager) UnsetBlockCap(bucket string) (string, bool, error) {
+	if bucket != "" && !config.ValidBucket(bucket) {
+		return "", false, errors.New("manager: unknown block type " + bucket)
+	}
 	path := config.Target(m.opts.ConfigPaths...)
 	if path == "" {
 		return "", false, errors.New("manager: no settings file to write")
@@ -609,10 +644,20 @@ func (m *Manager) UnsetBlockCap() (string, bool, error) {
 	if err != nil {
 		return "", false, err
 	}
-	if current.BlockCap == nil {
-		return path, false, nil
+	if bucket == "" {
+		if current.BlockCap == nil {
+			return path, false, nil
+		}
+		current.BlockCap = nil
+	} else {
+		if _, ok := current.BlockCaps[bucket]; !ok {
+			return path, false, nil
+		}
+		delete(current.BlockCaps, bucket)
+		if len(current.BlockCaps) == 0 {
+			current.BlockCaps = nil
+		}
 	}
-	current.BlockCap = nil
 	if err := config.Write(path, current); err != nil {
 		return "", false, err
 	}

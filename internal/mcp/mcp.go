@@ -51,6 +51,8 @@ var (
 	ErrNoEditor = errors.New("mcp: this tool needs an editor, a terminal flag, or both")
 	ErrNoDir    = errors.New("mcp: this tool needs a directory path")
 	ErrBadCap   = errors.New("mcp: the block cap must be zero or more rows")
+	ErrCapBoth  = errors.New("mcp: give rows or unlimited, not both")
+	ErrBadType  = errors.New("mcp: the block type must be prompt, message, tool, meta, bash, or error")
 )
 
 // AllowedTools names the tools a session may call, in the form Claude Code
@@ -137,8 +139,8 @@ type Sessions interface {
 	TemplatePath(name string) (TemplatePath, error)
 	SetEditor(editor string, terminal *bool, by string) (string, error)
 	UnsetEditor(field, by string) (string, bool, error)
-	SetBlockCap(rows int, by string) (string, error)
-	UnsetBlockCap(by string) (string, bool, error)
+	SetBlockCap(bucket string, rows *int, by string) (string, error)
+	UnsetBlockCap(bucket, by string) (string, bool, error)
 	SetWorkingDir(path, by string) (string, error)
 	UnsetWorkingDir(by string) (bool, error)
 	StopJob(target, jobID, by string) (int, error)
