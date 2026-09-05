@@ -159,6 +159,33 @@ func main() {
 				},
 			})
 		}
+		if text == "tasks" {
+			emit(map[string]any{
+				"type":       "assistant",
+				"session_id": sessionID,
+				"message": map[string]any{
+					"role":  "assistant",
+					"model": "fake-model",
+					"content": []map[string]any{
+						{"type": "tool_use", "id": "toolu_c1", "name": "TaskCreate", "input": map[string]any{"subject": "First task", "activeForm": "Doing the first task"}},
+						{"type": "tool_use", "id": "toolu_c2", "name": "TaskCreate", "input": map[string]any{"subject": "Second task", "activeForm": "Doing the second task"}},
+						{"type": "tool_use", "id": "toolu_c3", "name": "TaskCreate", "input": map[string]any{"subject": "Third task", "activeForm": "Doing the third task"}},
+					},
+				},
+			})
+			emit(map[string]any{
+				"type":       "assistant",
+				"session_id": sessionID,
+				"message": map[string]any{
+					"role":  "assistant",
+					"model": "fake-model",
+					"content": []map[string]any{
+						{"type": "tool_use", "id": "toolu_u1", "name": "TaskUpdate", "input": map[string]any{"taskId": "1", "status": "completed"}},
+						{"type": "tool_use", "id": "toolu_u2", "name": "TaskUpdate", "input": map[string]any{"taskId": "2", "status": "in_progress"}},
+					},
+				},
+			})
+		}
 		emit(map[string]any{
 			"type":       "assistant",
 			"session_id": sessionID,
