@@ -75,6 +75,27 @@ func TestQuestionChoiceWithNoteCombines(t *testing.T) {
 	}
 }
 
+func TestQuestionWrapsLongOptionText(t *testing.T) {
+	label := "This is a very long option label that must wrap across more than one line and not get cut off"
+	desc := "and this description is also long enough that it needs to wrap onto several lines inside the modal"
+	q := []protocol.Question{{
+		Question: "Pick one",
+		Header:   "Pick",
+		Options:  []protocol.Option{{Label: label, Description: desc}},
+	}}
+	d := newQuestionDialog("alpha", q)
+	view := visible(d.View(60))
+	if strings.Contains(view, "…") {
+		t.Fatalf("a long option must wrap, not truncate:\n%s", view)
+	}
+	flat := strings.Join(strings.Fields(strings.ReplaceAll(view, "│", " ")), " ")
+	for _, want := range []string{label, desc} {
+		if !strings.Contains(flat, want) {
+			t.Fatalf("the view dropped text %q:\n%s", want, view)
+		}
+	}
+}
+
 func TestQuestionEmptyStepWillNotSubmit(t *testing.T) {
 	d := newQuestionDialog("alpha", colourQuestion(false))
 	res, _ := d.Update(key("enter"))
