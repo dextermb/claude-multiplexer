@@ -164,22 +164,29 @@ func (d *questionDialog) View(width int) string {
 	b.WriteString("\n")
 
 	rowWidth := inner - 4
+	textWidth := rowWidth - 4
 	for i, option := range question.Options {
 		mark := "○"
 		if d.chosen[d.step][i] {
 			mark = "◉"
 		}
-		row := fmt.Sprintf("%s %s", mark, option.Label)
+		var block strings.Builder
+		for j, line := range wrapText(option.Label, textWidth) {
+			if j == 0 {
+				block.WriteString(mark + " " + line)
+			} else {
+				block.WriteString("\n    " + line)
+			}
+		}
 		if option.Description != "" {
-			room := rowWidth - len([]rune(row)) - 4
-			if room > 4 {
-				row += "  " + hintStyle.Render(truncate(option.Description, room))
+			for _, line := range wrapText(option.Description, textWidth) {
+				block.WriteString("\n    " + hintStyle.Render(line))
 			}
 		}
 		if i == d.cursor {
-			b.WriteString(selectedRowStyle.Width(rowWidth).Render("▸ " + row))
+			b.WriteString(selectedRowStyle.Width(rowWidth).Render("▸ " + block.String()))
 		} else {
-			b.WriteString(rowStyle.Width(rowWidth).Render("  " + row))
+			b.WriteString(rowStyle.Width(rowWidth).Render("  " + block.String()))
 		}
 		b.WriteString("\n")
 	}
