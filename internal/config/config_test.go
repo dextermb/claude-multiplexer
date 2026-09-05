@@ -397,7 +397,7 @@ func TestResolveMergesBlockCapsWithFlagsOnTop(t *testing.T) {
 	}
 }
 
-func TestValidBucketNamesTheSix(t *testing.T) {
+func TestValidBucketNamesEveryBucket(t *testing.T) {
 	for _, b := range Buckets {
 		if !ValidBucket(b) {
 			t.Errorf("ValidBucket(%q) = false", b)
@@ -405,5 +405,22 @@ func TestValidBucketNamesTheSix(t *testing.T) {
 	}
 	if ValidBucket("banana") {
 		t.Fatal("ValidBucket(banana) = true")
+	}
+}
+
+func TestQuestionBucketsDefaultToTwo(t *testing.T) {
+	for _, bucket := range []string{BucketQuestionOption, BucketQuestionDescription} {
+		if got := BlockCapFor(Config{}, bucket); got != DefaultQuestionCap {
+			t.Errorf("BlockCapFor(%q) = %d, want %d", bucket, got, DefaultQuestionCap)
+		}
+	}
+	forty := 40
+	if got := BlockCapFor(Config{BlockCap: &forty}, BucketQuestionOption); got != DefaultQuestionCap {
+		t.Fatalf("the global cap must not reach a question bucket, got %d", got)
+	}
+	five := 5
+	cfg := Config{BlockCaps: map[string]*int{BucketQuestionOption: &five}}
+	if got := BlockCapFor(cfg, BucketQuestionOption); got != 5 {
+		t.Fatalf("an entry must win, got %d", got)
 	}
 }
