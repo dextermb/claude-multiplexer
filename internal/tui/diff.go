@@ -11,8 +11,8 @@ import (
 	"github.com/dextermb/claude-multiplexer/internal/git"
 )
 
-// diffState is the cached working-tree diff of one session against HEAD. See
-// docs/tui/diff.md.
+// diffState is the cached working-tree diff of one session against origin/HEAD.
+// See docs/tui/diff.md.
 type diffState struct {
 	repo  bool
 	stat  git.Stat
