@@ -139,6 +139,7 @@ type Model struct {
 	diffSel         int
 	diffScroll      int
 	diffWidth       int
+	diffHalf        bool
 	diffLineNumbers bool
 	sidebarHidden   bool
 

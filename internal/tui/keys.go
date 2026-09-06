@@ -99,6 +99,7 @@ var sequenceActions = map[string]action{
 
 	"d +": Model.widenDiff,
 	"d -": Model.narrowDiff,
+	"d /": Model.toggleHalfDiff,
 	"d n": Model.toggleDiffNumbers,
 }
 

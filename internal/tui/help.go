@@ -49,6 +49,7 @@ var bindings = []binding{
 
 	{"The diff panel (d)", "d", "d +", "Widen the diff panel", "+ wider"},
 	{"The diff panel (d)", "d", "d -", "Narrow the diff panel", "- narrower"},
+	{"The diff panel (d)", "d", "d /", "Show the panel at half the screen, or the set width", "/ half"},
 	{"The diff panel (d)", "d", "d n", "Show or hide the line numbers", "n numbers"},
 
 	{"Moving", "", "j  k  up  down", "Move through the list, or scroll the output", ""},

@@ -67,6 +67,7 @@ keeps its output-scroll meaning.
 |---|---|
 | `d +` | Widen the diff panel |
 | `d -` | Narrow the diff panel |
+| `d /` | Show the panel at half the screen, or the set width |
 | `d n` | Show or hide the line numbers |
 
 ## The keys that work on their own
@@ -129,6 +130,7 @@ the panel holds the focus, these keys work:
 | `Enter` | Expand or collapse the selected file |
 | `pgup`, `pgdown` | Scroll the panel |
 | `d +`, `d -` | Widen or narrow the panel |
+| `d /` | Toggle the panel between half the screen and the set width |
 | `d n` | Show or hide the line numbers |
 | `Tab` | Move the focus on, and keep the panel open |
 | `s d` | Move the focus to the panel, or close it when it holds the focus |
