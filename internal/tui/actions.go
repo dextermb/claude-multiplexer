@@ -8,6 +8,7 @@ import (
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/session"
 	"github.com/dextermb/claude-multiplexer/internal/template"
 )
@@ -272,9 +273,11 @@ func (m Model) submitChoice() (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// openLayoutSwitcher opens the dialog that activates a saved layout. See
-// docs/tui/layouts.md.
+// openLayoutSwitcher opens the dialog that activates a saved layout. It re-reads
+// the settings file first, so a layout created or edited mid-session appears at
+// once. See docs/tui/layouts.md.
 func (m Model) openLayoutSwitcher() (tea.Model, tea.Cmd) {
+	m.reloadLayouts()
 	names := make([]string, 0, len(m.layouts))
 	for name := range m.layouts {
 		names = append(names, name)
@@ -289,20 +292,35 @@ func (m Model) openLayoutSwitcher() (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+// reloadLayouts reads the named layouts and the global active layout from the
+// settings file, so the switcher lists what is on disk now. Layouts live only in
+// the file, so no flag or Claude Code setting is merged. See docs/config.md.
+func (m *Model) reloadLayouts() {
+	file, err := config.Load(m.opts.ConfigPaths...)
+	if err != nil {
+		return
+	}
+	m.layouts = file.Layouts
+	m.activeLayout = file.ActiveLayout
+}
+
 func (m Model) submitLayoutSwitch() (tea.Model, tea.Cmd) {
 	d := m.layoutSwitch
 	m.layoutSwitch = nil
-	name := d.chosen()
-	if name == "" {
+	name, isDefault := d.choice()
+	if !d.allSessions && m.sel == "" {
+		m.errText = "no session is selected"
 		return m, nil
 	}
 	var err error
-	if d.allSessions {
+	switch {
+	case d.allSessions && isDefault:
+		_, _, err = m.mgr.UnsetActiveLayout()
+	case d.allSessions:
 		_, err = m.mgr.SetActiveLayout(name)
-	} else if m.sel == "" {
-		m.errText = "no session is selected"
-		return m, nil
-	} else {
+	case isDefault:
+		_, err = m.mgr.UnsetSessionLayout(m.sel)
+	default:
 		err = m.mgr.SetSessionLayout(m.sel, name)
 	}
 	if err != nil {
@@ -310,7 +328,11 @@ func (m Model) submitLayoutSwitch() (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 	m.diffWidth = 0
-	m.status = "layout " + name + " for " + d.scopeLabel()
+	label := name
+	if isDefault {
+		label = "default"
+	}
+	m.status = "layout " + label + " for " + d.scopeLabel()
 	m.refresh()
 	m.rebuildOutput()
 	return m, tea.Batch(m.readSettings(), reloadStored(m.mgr))
