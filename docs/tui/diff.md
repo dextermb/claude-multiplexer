@@ -68,6 +68,9 @@ See [keys.md](keys.md).
 maximum that keeps the output at least 40 columns. The panel remembers its width,
 so a hide and a later show keep it.
 
+`d /` shows the panel at half the screen, and `d /` again returns it to the set
+width. `d +` or `d -` leaves the half mode and adjusts the set width.
+
 The panel is not modal. While the panel is open, `Tab` adds it to the focus
 cycle: sidebar, prompt, output, then the diff panel. So you tab to the prompt to
 send the agent a message, and the diff stays on the screen. `s d` also moves the

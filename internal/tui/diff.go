@@ -150,24 +150,23 @@ func (m Model) diffKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// widenDiff, narrowDiff, and toggleDiffNumbers are the d +, d -, and d n
-// actions. The width persists on the model, so a hide and a later show keep it.
+// widenDiff, narrowDiff, toggleHalfDiff, and toggleDiffNumbers are the d +, d -,
+// d /, and d n actions. The width persists on the model, so a hide and a later
+// show keep it.
 func (m Model) widenDiff() (tea.Model, tea.Cmd)  { return m.resizeDiff(diffWidthStep) }
 func (m Model) narrowDiff() (tea.Model, tea.Cmd) { return m.resizeDiff(-diffWidthStep) }
 
 func (m Model) resizeDiff(delta int) (tea.Model, tea.Cmd) {
-	width := m.diffPanelWidth() + delta
-	most := m.baseOutputWidth() - minOutputWithPanel
-	if most < diffWidthMin {
-		most = diffWidthMin
-	}
-	if width < diffWidthMin {
-		width = diffWidthMin
-	}
-	if width > most {
-		width = most
-	}
-	m.diffWidth = width
+	m.diffWidth = m.clampDiffWidth(m.diffPanelWidth() + delta)
+	m.diffHalf = false
+	m.rebuildOutput()
+	return m, nil
+}
+
+// toggleHalfDiff is the d / action. It shows the panel at half the screen, or
+// returns it to the set width.
+func (m Model) toggleHalfDiff() (tea.Model, tea.Cmd) {
+	m.diffHalf = !m.diffHalf
 	m.rebuildOutput()
 	return m, nil
 }
@@ -290,13 +289,32 @@ const (
 	diffNumGutter = 5
 )
 
-// diffPanelWidth is the width of the diff panel: the remembered width, or the
-// default when none is set yet.
+// diffPanelWidth is the width of the diff panel: half the screen in the half
+// mode, else the remembered width, or the default when none is set yet.
 func (m Model) diffPanelWidth() int {
+	if m.diffHalf {
+		return m.clampDiffWidth(m.width / 2)
+	}
 	if m.diffWidth <= 0 {
 		return taskPanelWidth
 	}
-	return m.diffWidth
+	return m.clampDiffWidth(m.diffWidth)
+}
+
+// clampDiffWidth keeps the panel wide enough to read, but not so wide that the
+// output falls below its minimum.
+func (m Model) clampDiffWidth(width int) int {
+	most := m.baseOutputWidth() - minOutputWithPanel
+	if most < diffWidthMin {
+		most = diffWidthMin
+	}
+	if width < diffWidthMin {
+		width = diffWidthMin
+	}
+	if width > most {
+		width = most
+	}
+	return width
 }
 
 func (m Model) diffInner() int {

@@ -213,6 +213,29 @@ func TestResizingTheDiffPanelPersists(t *testing.T) {
 	}
 }
 
+func TestHalfWidthTogglesAndReturns(t *testing.T) {
+	m, mgr := newTestModel(t, "")
+	m = start(t, m, 160, 30)
+	m, _ = step(t, m, key("esc"))
+	m = spawn(t, m, mgr, "alpha", t.TempDir())
+
+	next, _ := m.openDiffPanel()
+	m = next.(Model)
+	set := m.diffPanelWidth()
+
+	next, _ = m.toggleHalfDiff()
+	m = next.(Model)
+	if m.diffPanelWidth() != m.clampDiffWidth(160/2) {
+		t.Fatalf("d / gave width %d, want about half the screen", m.diffPanelWidth())
+	}
+
+	next, _ = m.toggleHalfDiff()
+	m = next.(Model)
+	if m.diffPanelWidth() != set {
+		t.Fatalf("d / again must return to the set width %d, got %d", set, m.diffPanelWidth())
+	}
+}
+
 func TestTheDTargetStartsOnlyWithThePanelOpen(t *testing.T) {
 	if _, ok := sequenceTarget("d", false, false); ok {
 		t.Error("with the panel closed, d must not start a sequence")
