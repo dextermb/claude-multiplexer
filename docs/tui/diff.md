@@ -6,19 +6,23 @@ The interface reads the git changes of a session and shows them in two places:
 - A **diff panel** on the right of the pane, that lists the changed files and
   expands each one to its diff.
 
-Both read the working tree of the session working directory against `HEAD`. The
-working directory is `row.openDir`: the directory a tool of the session set, or
-the directory the session started in. See [sessions.md](sessions.md).
+Both read the working tree of the session working directory against
+`origin/HEAD`, the default branch of the remote. So the diff is the whole branch,
+the committed work and the uncommitted work together. The base falls back to
+`HEAD` when `origin/HEAD` does not resolve, for a repository with no remote.
+
+The working directory is `row.openDir`: the directory a tool of the session set,
+or the directory the session started in. See [sessions.md](sessions.md).
 
 ## The count in the bar
 
 The session bar shows the inserted lines in green and the deleted lines in red,
-for example `+120 −30`. The count is the total of the working-tree changes
-against `HEAD`.
+for example `+120 −30`. The count is the total of the changes against
+`origin/HEAD`.
 
 The count shows only when the working directory is a git work tree, and the tree
-differs from `HEAD`. A session outside a repository, or a clean tree, shows no
-count. The bar drops the low-priority parts first when it is short, so the count
+differs from `origin/HEAD`. A session outside a repository, or a tree with no
+change, shows no count. The bar drops the low-priority parts first when it is short, so the count
 stays while the token counts and the scroll mark go.
 
 ## The diff panel
@@ -71,8 +75,8 @@ select a session / a turn ends / open the panel
         │
         ▼
   diffCmd(name, dir)                 runs git in the working directory
-        │  git diff --name-status HEAD
-        │  git diff --numstat HEAD
+        │  git diff --name-status origin/HEAD
+        │  git diff --numstat origin/HEAD
         ▼
   diffMsg{name, repo, stat, files}   stored in m.diffs[name]
         │
@@ -86,7 +90,7 @@ An expanded file fetches its own diff:
 Enter on a collapsed file
         │
         ▼
-  fileDiffCmd(name, dir, path)       git diff HEAD -- path
+  fileDiffCmd(name, dir, path)       git diff origin/HEAD -- path
         │
         ▼
   fileDiffMsg{name, path, text}      rendered lines stored in m.fileDiffs[name][path]
@@ -108,9 +112,12 @@ hand edit outside the session shows only at the next turn.
 `internal/git` runs git and parses the output:
 
 - `Diff(dir)` reads the file list and the total stat from `git diff
-  --name-status HEAD` and `git diff --numstat HEAD`.
-- `FileDiff(dir, path)` reads one file's diff from `git diff HEAD -- path`.
+  --name-status origin/HEAD` and `git diff --numstat origin/HEAD`.
+- `FileDiff(dir, path)` reads one file's diff from `git diff origin/HEAD --
+  path`.
 - `IsRepo(dir)` reports whether the directory is a git work tree.
+- `baseRef(dir)` is `origin/HEAD`, or `HEAD` when the remote default does not
+  resolve.
 
 The command runner is a variable, so a test records the git arguments instead of
 running git.

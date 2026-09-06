@@ -1,5 +1,5 @@
-// Package git reads the working-tree diff of a directory against HEAD. See
-// docs/tui/diff.md.
+// Package git reads the working-tree diff of a directory against origin/HEAD.
+// See docs/tui/diff.md.
 package git
 
 import (
@@ -43,13 +43,14 @@ func IsRepo(dir string) bool {
 	return err == nil && strings.TrimSpace(out) == "true"
 }
 
-// Diff reads the working-tree changes of dir against HEAD.
+// Diff reads the working-tree changes of dir against the base.
 func Diff(dir string) (Stat, []FileChange, error) {
-	names, err := run(dir, "diff", "--name-status", "HEAD")
+	base := baseRef(dir)
+	names, err := run(dir, "diff", "--name-status", base)
 	if err != nil {
 		return Stat{}, nil, err
 	}
-	nums, err := run(dir, "diff", "--numstat", "HEAD")
+	nums, err := run(dir, "diff", "--numstat", base)
 	if err != nil {
 		return Stat{}, nil, err
 	}
@@ -57,9 +58,19 @@ func Diff(dir string) (Stat, []FileChange, error) {
 	return stat, files, nil
 }
 
-// FileDiff reads the working-tree diff of one file in dir against HEAD.
+// FileDiff reads the working-tree diff of one file in dir against the base.
 func FileDiff(dir, path string) (string, error) {
-	return run(dir, "diff", "HEAD", "--", path)
+	return run(dir, "diff", baseRef(dir), "--", path)
+}
+
+// baseRef is the ref the diff is measured from. It is origin/HEAD, the default
+// branch of the remote, so the diff is the whole branch. It falls back to HEAD
+// when origin/HEAD does not resolve, for a repository with no remote.
+func baseRef(dir string) string {
+	if _, err := run(dir, "rev-parse", "--verify", "--quiet", "origin/HEAD"); err == nil {
+		return "origin/HEAD"
+	}
+	return "HEAD"
 }
 
 // mergeDiff joins the name-status output and the numstat output into the file

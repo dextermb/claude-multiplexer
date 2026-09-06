@@ -65,6 +65,48 @@ func TestIsRepoReadsTheGitAnswer(t *testing.T) {
 	}
 }
 
+func TestDiffPrefersOriginHead(t *testing.T) {
+	old := run
+	defer func() { run = old }()
+
+	run = func(dir string, args ...string) (string, error) {
+		if args[0] == "rev-parse" {
+			return "sha\n", nil
+		}
+		if !hasArg(args, "origin/HEAD") {
+			t.Errorf("diff args = %v, want origin/HEAD", args)
+		}
+		return "", nil
+	}
+	Diff("/tmp/work")
+	FileDiff("/tmp/work", "app.go")
+}
+
+func hasArg(args []string, want string) bool {
+	for _, arg := range args {
+		if arg == want {
+			return true
+		}
+	}
+	return false
+}
+
+func TestDiffFallsBackToHeadWithoutARemote(t *testing.T) {
+	old := run
+	defer func() { run = old }()
+
+	run = func(dir string, args ...string) (string, error) {
+		if args[0] == "rev-parse" {
+			return "", errNotRepo
+		}
+		if hasArg(args, "origin/HEAD") {
+			t.Errorf("diff args = %v, want the HEAD fallback", args)
+		}
+		return "", nil
+	}
+	Diff("/tmp/work")
+}
+
 var errNotRepo = &gitError{}
 
 type gitError struct{}
