@@ -47,6 +47,10 @@ var bindings = []binding{
 
 	{"The output pane (o)", "o", "o m", "Switch between rendered markdown and raw text", "m markdown"},
 
+	{"The diff panel (d)", "d", "d +", "Widen the diff panel", "+ wider"},
+	{"The diff panel (d)", "d", "d -", "Narrow the diff panel", "- narrower"},
+	{"The diff panel (d)", "d", "d n", "Show or hide the line numbers", "n numbers"},
+
 	{"Moving", "", "j  k  up  down", "Move through the list, or scroll the output", ""},
 	{"Moving", "", "tab", "Move to the next pane", ""},
 	{"Moving", "", "enter", "Type into a session, or resume one that is not running", ""},

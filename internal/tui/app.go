@@ -131,14 +131,16 @@ type Model struct {
 	confirm     string
 	focus       focusArea
 
-	diffs         map[string]diffState
-	fileDiffs     map[string]map[string][]string
-	diffOpen      map[string]map[string]bool
-	diffFor       string
-	diffPanel     bool
-	diffSel       int
-	diffScroll    int
-	sidebarHidden bool
+	diffs           map[string]diffState
+	fileDiffs       map[string]map[string]string
+	diffOpen        map[string]map[string]bool
+	diffFor         string
+	diffPanel       bool
+	diffSel         int
+	diffScroll      int
+	diffWidth       int
+	diffLineNumbers bool
+	sidebarHidden   bool
 
 	width     int
 	height    int
@@ -175,7 +177,7 @@ func New(opts Options) Model {
 		todos:       make(map[string][]protocol.Todo),
 		questions:   make(map[string]*questionDialog),
 		diffs:       make(map[string]diffState),
-		fileDiffs:   make(map[string]map[string][]string),
+		fileDiffs:   make(map[string]map[string]string),
 		diffOpen:    make(map[string]map[string]bool),
 		folded:      make(map[string]bool),
 		roots:       make(map[string]string),
@@ -702,7 +704,7 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.seq != nil {
 		return m.resolveSequence(msg)
 	}
-	if target, ok := sequenceTarget(msg.String(), m.focus == focusPrompt); ok {
+	if target, ok := sequenceTarget(msg.String(), m.focus == focusPrompt, m.diffPanel); ok {
 		return m.startSequence(target)
 	}
 
@@ -921,6 +923,15 @@ func (m Model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 				return m.move(-1)
 			}
 			return m.move(1)
+		}
+		if m.diffPanel && msg.X >= m.width-m.diffPanelWidth() {
+			if msg.Button == tea.MouseButtonWheelUp {
+				m.diffScroll -= 3
+			} else {
+				m.diffScroll += 3
+			}
+			m.clampDiffScroll()
+			return m, nil
 		}
 		var cmd tea.Cmd
 		m.output, cmd = m.output.Update(msg)
@@ -1796,9 +1807,18 @@ func (m Model) baseOutputWidth() int {
 
 func (m Model) outputWidth() int {
 	if m.showSidePanel() {
-		return m.baseOutputWidth() - taskPanelWidth
+		return m.baseOutputWidth() - m.sidePanelWidth()
 	}
 	return m.baseOutputWidth()
+}
+
+// sidePanelWidth is the width of the panel beside the output: the resizable diff
+// panel when it is open, else the fixed jobs and tasks panel.
+func (m Model) sidePanelWidth() int {
+	if m.diffPanel {
+		return m.diffPanelWidth()
+	}
+	return taskPanelWidth
 }
 
 // showSidePanel says whether the side panel has room beside the output. It reads
@@ -1806,7 +1826,7 @@ func (m Model) outputWidth() int {
 // docs/tui/tasks.md.
 func (m Model) showSidePanel() bool {
 	if m.diffPanel {
-		return m.baseOutputWidth()-taskPanelWidth >= minOutputWithPanel
+		return m.baseOutputWidth()-m.sidePanelWidth() >= minOutputWithPanel
 	}
 	if len(m.todos[m.sel]) == 0 && len(m.selectedJobs()) == 0 {
 		return false

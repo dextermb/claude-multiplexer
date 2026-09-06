@@ -179,7 +179,7 @@ var (
 	diffDelStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("203"))
 	diffHunkStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("39"))
 	diffMetaStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
-	diffPathStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("252")).Bold(true)
+	diffNumStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
 )
 
 func classStyle(class render.Class) lipgloss.Style {

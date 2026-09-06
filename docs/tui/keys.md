@@ -58,6 +58,17 @@ forms work everywhere, so a sequence still starts while you type a prompt.
 |---|---|
 | `o m` | Switch between rendered markdown and raw text |
 
+## The diff panel: `d`
+
+The `d` target starts only while the diff panel is open. At every other time `d`
+keeps its output-scroll meaning.
+
+| Keys | Action |
+|---|---|
+| `d +` | Widen the diff panel |
+| `d -` | Narrow the diff panel |
+| `d n` | Show or hide the line numbers |
+
 ## The keys that work on their own
 
 `Tab` moves the focus through three panes in turn: the list, the prompt, and the
@@ -114,14 +125,17 @@ the panel holds the focus, these keys work:
 
 | Key | Action |
 |---|---|
-| `j`, `k`, `up`, `down` | Move the selected file |
+| `j`, `k`, `up`, `down` | Move the selected file, and scroll it into view |
 | `Enter` | Expand or collapse the selected file |
 | `pgup`, `pgdown` | Scroll the panel |
+| `d +`, `d -` | Widen or narrow the panel |
+| `d n` | Show or hide the line numbers |
 | `Tab` | Move the focus on, and keep the panel open |
 | `s d` | Move the focus to the panel, or close it when it holds the focus |
 | `Esc` | Close the panel |
 
-See [diff.md](./diff.md) for the count, the panel, and the live refresh.
+The mouse wheel scrolls the panel too. See [diff.md](./diff.md) for the count,
+the panel, and the live refresh.
 
 ### Renaming a session
 
