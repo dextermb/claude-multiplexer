@@ -69,7 +69,7 @@ var bindings = []binding{
 	{"The output", "", "pgup  pgdown", "Scroll a whole pane", ""},
 	{"The output", "", "g  G  home  end", "Go to the top, and to the bottom", ""},
 	{"The output", "", "[  ]", "Move the cursor between the capped blocks", ""},
-	{"The output", "", "enter", "Open or close the block under the cursor", ""},
+	{"The output", "", "enter  space", "Open or close the block under the cursor", ""},
 	{"The output", "", "i", "Move to the prompt", ""},
 
 	{"The new session form", "", "tab", "Complete the path, or move to the next field", ""},
