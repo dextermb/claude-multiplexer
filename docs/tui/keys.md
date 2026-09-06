@@ -57,6 +57,7 @@ forms work everywhere, so a sequence still starts while you type a prompt.
 | Keys | Action |
 |---|---|
 | `o m` | Switch between rendered markdown and raw text |
+| `o l` | Open the layouts, to switch between them. See [layouts.md](layouts.md) |
 
 ## The diff panel: `d`
 

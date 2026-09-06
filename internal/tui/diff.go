@@ -7,6 +7,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/ansi"
+	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/git"
 )
 
@@ -466,13 +467,17 @@ const (
 )
 
 // diffPanelWidth is the width of the diff panel: half the screen in the half
-// mode, else the remembered width, or the default when none is set yet.
+// mode, else the width the human set live, or the layout width when none is set.
 func (m Model) diffPanelWidth() int {
 	if m.diffHalf {
 		return m.clampDiffWidth(m.width / 2)
 	}
 	if m.diffWidth <= 0 {
-		return taskPanelWidth
+		w := m.layout.DiffWidth
+		if w < 1 {
+			w = config.DefaultDiffWidth
+		}
+		return m.clampDiffWidth(w)
 	}
 	return m.clampDiffWidth(m.diffWidth)
 }

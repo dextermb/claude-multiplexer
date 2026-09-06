@@ -52,7 +52,9 @@ type storedMsg struct {
 }
 
 type settingsMsg struct {
-	caps map[string]int
+	caps         map[string]int
+	layouts      map[string]config.Layout
+	activeLayout string
 }
 
 type stoppedMsg struct {
@@ -109,6 +111,7 @@ type Model struct {
 	questions    map[string]*questionDialog
 	choice       *choiceDialog
 	rename       *renameDialog
+	layoutSwitch *layoutSwitch
 	jobsModal    *jobsModal
 	pending      string
 	seq          *sequence
@@ -116,27 +119,30 @@ type Model struct {
 	sel          string
 	listOffset   int
 
-	output      viewport.Model
-	outputText  string
-	shownLines  []render.Line
-	expanded    map[int]bool
-	capped      []int
-	markerAt    map[int]int
-	blockStart  map[int]int
-	hiddenRows  map[int]int
-	blockCursor int
-	caps        map[string]int
-	content     string
-	selection   selRange
-	prompt      textarea.Model
-	pathMatches []pathMatch
-	pathPicked  int
-	pathStem    string
-	pathValue   string
-	pathBase    string
-	form        *form
-	confirm     string
-	focus       focusArea
+	output       viewport.Model
+	outputText   string
+	shownLines   []render.Line
+	expanded     map[int]bool
+	capped       []int
+	markerAt     map[int]int
+	blockStart   map[int]int
+	hiddenRows   map[int]int
+	blockCursor  int
+	caps         map[string]int
+	layouts      map[string]config.Layout
+	activeLayout string
+	layout       config.ResolvedLayout
+	content      string
+	selection    selRange
+	prompt       textarea.Model
+	pathMatches  []pathMatch
+	pathPicked   int
+	pathStem     string
+	pathValue    string
+	pathBase     string
+	form         *form
+	confirm      string
+	focus        focusArea
 
 	diffs           map[string]diffState
 	fileDiffs       map[string]map[string]string
@@ -177,7 +183,7 @@ func New(opts Options) Model {
 	prompt.Prompt = "> "
 	prompt.ShowLineNumbers = false
 	prompt.CharLimit = 0
-	prompt.SetHeight(promptRowsMin)
+	prompt.SetHeight(config.DefaultPromptMin)
 
 	return Model{
 		replays:     make(map[string][]render.Line),
@@ -203,6 +209,7 @@ func New(opts Options) Model {
 		pathPicked:  -1,
 		blockCursor: -1,
 		caps:        config.ResolveBlockCaps(config.Config{}),
+		layout:      config.DefaultLayout(),
 		focus:       focusSidebar,
 		mouseOn:     true,
 	}
@@ -412,7 +419,11 @@ func (m Model) readSettings() tea.Cmd {
 			return settingsMsg{caps: config.ResolveBlockCaps(config.Config{})}
 		}
 		merged := config.Resolve(opts.Config, file, config.LoadClaude(opts.ClaudePaths...))
-		return settingsMsg{caps: config.ResolveBlockCaps(merged)}
+		return settingsMsg{
+			caps:         config.ResolveBlockCaps(merged),
+			layouts:      merged.Layouts,
+			activeLayout: merged.ActiveLayout,
+		}
 	}
 }
 

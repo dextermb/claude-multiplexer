@@ -6,6 +6,7 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 
+	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/render"
 	"github.com/dextermb/claude-multiplexer/internal/session"
 )
@@ -20,20 +21,19 @@ func spinnerFrame(n int) string {
 	return spinnerFrames[n%len(spinnerFrames)]
 }
 
+// These name the built-in layout dimensions, so a Model with no layout draws the
+// same as before. A layout overrides them; see docs/tui.md and docs/config.md.
 const (
-	sidebarWidth   = 26
+	sidebarWidth   = config.DefaultSidebarWidth
 	promptHintRows = 1
-	promptRowsMin  = 1
-	promptRowsMax  = 4
+	promptRowsMin  = config.DefaultPromptMin
+	promptRowsMax  = config.DefaultPromptMax
 	statusHeight   = 1
 	titleHeight    = 0
 	barHeight      = 1
 	gutterWidth    = 1
 
-	sidebarInner = sidebarWidth - 1 - gutterWidth
-
-	taskPanelWidth     = 32
-	taskPanelInner     = taskPanelWidth - 2
+	taskPanelWidth     = config.DefaultTaskWidth
 	minOutputWithPanel = 40
 )
 

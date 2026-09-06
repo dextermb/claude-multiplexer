@@ -48,6 +48,9 @@ session adds to them, and does not restart them.
 | `SetWorkingDir(name, path)` | Point a session at the directory it works in now. A relative path resolves against the directory it started in. |
 | `UnsetWorkingDir(name)` | Take that directory off again, and report whether it had one. |
 | `WorkingDirs()` | The working directory of each live session that set one. |
+| `SaveLayout(name, dims, session)` | Write a named layout to the settings file, capturing the session's current dimensions. |
+| `SetActiveLayout(name)` / `SetSessionLayout(name, layout)` | Activate a layout for every session, or for one session in its `meta.json`. |
+| `SessionLayouts()` | The layout each live session names, so the interface resolves the selected session. |
 
 A resumed session starts with its past output already in the line buffer,
 followed by a `— resumed —` marker. So the pane reads as one conversation, and

@@ -83,11 +83,13 @@ func (m *Model) refresh() {
 	grants := m.mgr.Grants()
 	parents := m.mgr.Parents()
 	workDirs := m.mgr.WorkingDirs()
+	layouts := m.mgr.SessionLayouts()
 	for _, snap := range m.mgr.Snapshots() {
 		item := rowFromSnapshot(snap)
 		item.control = grants[snap.Name]
 		item.parent = parents[snap.Name]
 		item.workDir = workDirs[snap.Name]
+		item.layout = layouts[snap.Name]
 		rows = append(rows, item)
 	}
 	for _, meta := range m.stored {
@@ -116,6 +118,7 @@ func (m *Model) refresh() {
 		m.sel = ""
 	}
 	m.clampOffset()
+	m.applyLayout()
 }
 
 // syncJobsModal gives the open jobs dialog the jobs of its session, so a

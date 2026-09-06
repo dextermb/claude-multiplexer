@@ -15,6 +15,7 @@ type row struct {
 	title    string
 	dir      string
 	workDir  string
+	layout   string
 	group    string
 	parent   string
 	model    string
@@ -73,6 +74,7 @@ func rowFromMeta(meta manager.Meta) row {
 		mode:     meta.PermissionMode,
 		effort:   meta.Effort,
 		workDir:  meta.WorkingDir,
+		layout:   meta.Layout,
 		archived: meta.Archived,
 		control:  meta.Control,
 		parent:   meta.Parent,

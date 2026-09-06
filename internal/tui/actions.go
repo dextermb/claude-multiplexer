@@ -2,6 +2,7 @@ package tui
 
 import (
 	"context"
+	"sort"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textarea"
@@ -271,6 +272,50 @@ func (m Model) submitChoice() (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+// openLayoutSwitcher opens the dialog that activates a saved layout. See
+// docs/tui/layouts.md.
+func (m Model) openLayoutSwitcher() (tea.Model, tea.Cmd) {
+	names := make([]string, 0, len(m.layouts))
+	for name := range m.layouts {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	activeSession := ""
+	if item, ok := m.selectedRow(); ok {
+		activeSession = item.layout
+	}
+	m.layoutSwitch = newLayoutSwitch(m.sel, names, activeSession, m.activeLayout)
+	m.errText = ""
+	return m, nil
+}
+
+func (m Model) submitLayoutSwitch() (tea.Model, tea.Cmd) {
+	d := m.layoutSwitch
+	m.layoutSwitch = nil
+	name := d.chosen()
+	if name == "" {
+		return m, nil
+	}
+	var err error
+	if d.allSessions {
+		_, err = m.mgr.SetActiveLayout(name)
+	} else if m.sel == "" {
+		m.errText = "no session is selected"
+		return m, nil
+	} else {
+		err = m.mgr.SetSessionLayout(m.sel, name)
+	}
+	if err != nil {
+		m.errText = err.Error()
+		return m, nil
+	}
+	m.diffWidth = 0
+	m.status = "layout " + name + " for " + d.scopeLabel()
+	m.refresh()
+	m.rebuildOutput()
+	return m, tea.Batch(m.readSettings(), reloadStored(m.mgr))
+}
+
 func (m Model) openRename() (tea.Model, tea.Cmd) {
 	item, ok := m.selectedRow()
 	if !ok {
@@ -378,6 +423,7 @@ func (m Model) interrupt() (tea.Model, tea.Cmd) {
 	m.questions = map[string]*questionDialog{}
 	m.choice = nil
 	m.rename = nil
+	m.layoutSwitch = nil
 	m.jobsModal = nil
 	m.confirm = ""
 	m.prompt.Reset()
