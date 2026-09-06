@@ -1,6 +1,8 @@
 package tui
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -38,8 +40,9 @@ func TestLayoutSwitchStartsOnTheSessionLayoutAndTogglesScope(t *testing.T) {
 	if d.allSessions {
 		t.Fatal("a session is selected, so the scope must start at this session")
 	}
-	if d.chosen() != "b" {
-		t.Fatalf("the cursor must start on the session layout, chosen = %q", d.chosen())
+	name, isDefault := d.choice()
+	if isDefault || name != "b" {
+		t.Fatalf("the cursor must start on the session layout, got %q default=%v", name, isDefault)
 	}
 	d.Update(tea.KeyMsg{Type: tea.KeyTab})
 	if !d.allSessions {
@@ -51,5 +54,32 @@ func TestLayoutSwitchWithNoSessionUsesAllScope(t *testing.T) {
 	d := newLayoutSwitch("", []string{"a"}, "", "a")
 	if !d.allSessions {
 		t.Fatal("with no session selected, the scope must be all sessions")
+	}
+}
+
+func TestReloadLayoutsReadsTheFileFromDisk(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.json")
+	body := `{"activeLayout":"wide","layouts":{"wide":{"sidebarWidth":40}}}`
+	if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	m := Model{opts: Options{ConfigPaths: []string{path}}}
+	m.reloadLayouts()
+	if m.activeLayout != "wide" {
+		t.Fatalf("activeLayout = %q, want wide", m.activeLayout)
+	}
+	if _, ok := m.layouts["wide"]; !ok {
+		t.Fatalf("layouts = %+v, want a wide layout read from disk", m.layouts)
+	}
+}
+
+func TestLayoutSwitchDefaultRowIsFirstAndClears(t *testing.T) {
+	d := newLayoutSwitch("api", []string{"a", "b"}, "", "")
+	if name, isDefault := d.choice(); !isDefault || name != "" {
+		t.Fatalf("with no session layout the cursor must start on default, got %q default=%v", name, isDefault)
+	}
+	d.Update(tea.KeyMsg{Type: tea.KeyDown})
+	if name, isDefault := d.choice(); isDefault || name != "a" {
+		t.Fatalf("down from default must land on the first layout, got %q default=%v", name, isDefault)
 	}
 }

@@ -44,18 +44,20 @@ See [../manager.md](../manager.md).
 
 ## The switcher: `o l`
 
-`o l` opens the layout switcher. It lists the named layouts, and it marks the one
-active for the selected session. It only activates a layout. It does not create
-or edit one.
+`o l` opens the layout switcher. The first row is "default", and the named
+layouts follow it. The switcher marks the one active for the selected session.
+It only activates a layout. It does not create or edit one.
 
 - `↑` and `↓` move the cursor.
 - `Tab` switches the scope between "this session" and "all sessions".
-- `Enter` activates the layout at the scope.
+- `Enter` activates the row at the scope.
 - `Esc` closes the switcher.
 
 The scope "this session" sets the session override. The scope "all sessions"
-sets the global active layout. An empty list names the `save_layout` tool,
-because a layout is made by a tool or by the settings file, not by the interface.
+sets the global active layout. The "default" row clears the layout at the scope,
+so the session takes the global active layout, or the built-in dimensions. A
+layout is made by the `save_layout` tool or by the settings file, not by the
+interface.
 
 ## Create and edit a layout
 
