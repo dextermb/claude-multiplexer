@@ -12,6 +12,24 @@ Remove the lines and the box shrinks again.
 The output pane gives up the rows the box takes, and it takes them back. The
 window height never changes.
 
+## Recalling a prompt
+
+The box keeps every prompt you send, so you can reuse one without typing it
+again. The `↑` and `↓` arrow keys walk this list:
+
+- `↑` steps back to an older prompt, one at a time.
+- `↓` steps forward to a newer one, and past the newest it brings back the text
+  you were typing.
+
+The list is one shared list for the whole interface, not one for each session,
+so a prompt you send to one session is there for the next. Two sends of the same
+text in a row are kept once. The list lives for the run only, and it starts empty
+each time.
+
+The arrows move the list only from the edge of the box: `↑` from the first row,
+and `↓` from the last row. So a prompt of several rows still lets the cursor move
+inside the box, and the arrow reaches the list from the top or the bottom row.
+
 ## Naming a file with `@`
 
 Start a word with `@` and the box suggests paths. The names that match appear

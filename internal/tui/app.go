@@ -89,6 +89,9 @@ type Model struct {
 	replays      map[string][]render.Line
 	partials     map[string]string
 	queued       map[string][]string
+	history      []string
+	histIdx      int
+	histDraft    string
 	todos        map[string][]protocol.Todo
 	spinFrame    int
 	animating    bool
@@ -744,12 +747,54 @@ func (m Model) promptKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.prompt, cmd = m.prompt.Update(tea.KeyMsg{Type: tea.KeyEnter})
 		return m, cmd
 	}
+	if next, ok := m.historyKey(msg); ok {
+		return next, nil
+	}
 	if next, cmd, ok := m.mentionKey(msg); ok {
 		return next, cmd
 	}
 	var cmd tea.Cmd
 	m.prompt, cmd = m.prompt.Update(msg)
 	return m, cmd
+}
+
+// historyKey walks the submitted prompts with the up and down arrow keys; see docs/tui/input.md.
+func (m Model) historyKey(msg tea.KeyMsg) (Model, bool) {
+	switch msg.String() {
+	case "up":
+		if m.prompt.Line() != 0 || m.histIdx == 0 {
+			return m, false
+		}
+		if m.histIdx == len(m.history) {
+			m.histDraft = m.prompt.Value()
+		}
+		m.histIdx--
+		m.prompt.SetValue(m.history[m.histIdx])
+		return m, true
+	case "down":
+		if m.prompt.Line() != m.prompt.LineCount()-1 || m.histIdx >= len(m.history) {
+			return m, false
+		}
+		m.histIdx++
+		if m.histIdx == len(m.history) {
+			m.prompt.SetValue(m.histDraft)
+		} else {
+			m.prompt.SetValue(m.history[m.histIdx])
+		}
+		return m, true
+	}
+	return m, false
+}
+
+// recordHistory keeps a submitted prompt for later recall, without a consecutive duplicate.
+func (m *Model) recordHistory(text string) {
+	if text != "" {
+		if n := len(m.history); n == 0 || m.history[n-1] != text {
+			m.history = append(m.history, text)
+		}
+	}
+	m.histIdx = len(m.history)
+	m.histDraft = ""
 }
 
 func (m Model) jobsModalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
@@ -1198,6 +1243,7 @@ func (m Model) send() (tea.Model, tea.Cmd) {
 		m.errText = "this session is not running — press Enter to resume it"
 		return m, nil
 	}
+	m.recordHistory(text)
 	m.prompt.Reset()
 	return m.dispatch(text)
 }
