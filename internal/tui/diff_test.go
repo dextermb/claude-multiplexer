@@ -121,6 +121,29 @@ func TestBarShowsTheDiffCount(t *testing.T) {
 	}
 }
 
+func TestOpeningThePanelResizesTheOutput(t *testing.T) {
+	m, mgr := newTestModel(t, "")
+	m = start(t, m, 160, 30)
+	m, _ = step(t, m, key("esc"))
+	m = spawn(t, m, mgr, "alpha", t.TempDir())
+
+	full := m.output.Width
+	next, _ := m.openDiffPanel()
+	m = next.(Model)
+	if m.output.Width == full {
+		t.Fatal("opening the panel must shrink the output width")
+	}
+	if m.output.Width != m.outputWidth() {
+		t.Fatalf("output width = %d, want outputWidth %d", m.output.Width, m.outputWidth())
+	}
+
+	next, _ = m.closeDiffPanel()
+	m = next.(Model)
+	if m.output.Width != full {
+		t.Fatalf("closing must restore the output width to %d, got %d", full, m.output.Width)
+	}
+}
+
 func TestCollapsingTheSidebarReclaimsWidth(t *testing.T) {
 	m, mgr := newTestModel(t, "")
 	m = start(t, m, 120, 30)

@@ -105,6 +105,7 @@ func (m Model) openDiffPanel() (tea.Model, tea.Cmd) {
 	m.diffScroll = 0
 	m.focus = focusDiff
 	m.prompt.Blur()
+	m.rebuildOutput()
 	return m, m.diffRefreshCmd()
 }
 
@@ -113,6 +114,7 @@ func (m Model) closeDiffPanel() (tea.Model, tea.Cmd) {
 	if m.focus == focusDiff {
 		m.focus = focusOutput
 	}
+	m.rebuildOutput()
 	return m, nil
 }
 
