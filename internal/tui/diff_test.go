@@ -144,6 +144,38 @@ func TestOpeningThePanelResizesTheOutput(t *testing.T) {
 	}
 }
 
+func TestTabReachesTheOpenPanel(t *testing.T) {
+	m, mgr := newTestModel(t, "")
+	m = start(t, m, 160, 30)
+	m, _ = step(t, m, key("esc"))
+	m = spawn(t, m, mgr, "alpha", t.TempDir())
+
+	next, _ := m.openDiffPanel()
+	m = next.(Model)
+	m.focus = focusOutput
+
+	next, _ = m.toggleFocus()
+	m = next.(Model)
+	if m.focus != focusDiff {
+		t.Fatalf("Tab from the output must reach the diff panel, got %v", m.focus)
+	}
+
+	next, _ = m.toggleFocus()
+	m = next.(Model)
+	if m.focus != focusSidebar {
+		t.Fatalf("Tab from the panel must move on to the sidebar, got %v", m.focus)
+	}
+
+	next, _ = m.closeDiffPanel()
+	m = next.(Model)
+	m.focus = focusOutput
+	next, _ = m.toggleFocus()
+	m = next.(Model)
+	if m.focus != focusSidebar {
+		t.Fatalf("with the panel closed, Tab from the output skips it, got %v", m.focus)
+	}
+}
+
 func TestCollapsingTheSidebarReclaimsWidth(t *testing.T) {
 	m, mgr := newTestModel(t, "")
 	m = start(t, m, 120, 30)

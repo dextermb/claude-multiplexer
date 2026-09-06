@@ -4,7 +4,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
@@ -124,9 +123,7 @@ func (m Model) diffKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "esc":
 		return m.closeDiffPanel()
 	case "tab":
-		m.focus = focusPrompt
-		m.prompt.Focus()
-		return m, textarea.Blink
+		return m.toggleFocus()
 	case "up", "k":
 		if m.diffSel > 0 {
 			m.diffSel--

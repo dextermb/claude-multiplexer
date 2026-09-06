@@ -1203,6 +1203,11 @@ func (m Model) toggleFocus() (tea.Model, tea.Cmd) {
 		m.focus = focusOutput
 		m.prompt.Blur()
 		return m, nil
+	case focusOutput:
+		if m.diffPanel {
+			m.focus = focusDiff
+			return m, nil
+		}
 	}
 	m.focus = focusSidebar
 	return m, nil
