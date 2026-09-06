@@ -126,10 +126,12 @@ the panel holds the focus, these keys work:
 
 | Key | Action |
 |---|---|
-| `j`, `k` | Move the selected file, and scroll it into view |
-| `up`, `down` | Scroll the diff one line |
+| `j`, `k` | Step through an open diff, then to the next or previous file |
+| `up`, `down` | Scroll the panel one line |
 | `Enter` | Expand or collapse the selected file |
 | `pgup`, `pgdown` | Scroll the panel a page |
+| `g`, `G` | Go to the top or bottom of the open diff, or of the file list |
+| `}`, `{` | Jump to the next or previous empty line of an open diff |
 | `d +`, `d -` | Widen or narrow the panel |
 | `d /` | Toggle the panel between half the screen and the set width |
 | `d n` | Show or hide the line numbers |

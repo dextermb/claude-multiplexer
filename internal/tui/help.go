@@ -51,6 +51,9 @@ var bindings = []binding{
 	{"The diff panel (d)", "d", "d -", "Narrow the diff panel", "- narrower"},
 	{"The diff panel (d)", "d", "d /", "Show the panel at half the screen, or the set width", "/ half"},
 	{"The diff panel (d)", "d", "d n", "Show or hide the line numbers", "n numbers"},
+	{"The diff panel (d)", "", "j  k", "Step through an open diff, then to the next or previous file", ""},
+	{"The diff panel (d)", "", "g  G", "Go to the top or bottom of the open diff, or of the file list", ""},
+	{"The diff panel (d)", "", "}  {", "Jump to the next or previous empty line of an open diff", ""},
 
 	{"Moving", "", "j  k  up  down", "Move through the list, or scroll the output", ""},
 	{"Moving", "", "tab", "Move to the next pane", ""},

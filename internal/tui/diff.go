@@ -7,6 +7,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
 
 	"github.com/dextermb/claude-multiplexer/internal/git"
 )
@@ -151,17 +152,9 @@ func (m Model) diffKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "tab":
 		return m.toggleFocus()
 	case "k":
-		if m.diffSel > 0 {
-			m.diffSel--
-		}
-		m.ensureDiffSelVisible()
-		return m, nil
+		return m.diffCursorUp()
 	case "j":
-		if m.diffSel < len(files)-1 {
-			m.diffSel++
-		}
-		m.ensureDiffSelVisible()
-		return m, nil
+		return m.diffCursorDown()
 	case "up":
 		m.diffScroll--
 		m.clampDiffScroll()
@@ -178,10 +171,153 @@ func (m Model) diffKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.diffScroll += m.diffPage()
 		m.clampDiffScroll()
 		return m, nil
+	case "g":
+		if m.anyDiffOpen() {
+			m.diffScroll = 0
+			return m, nil
+		}
+		m.diffSel = 0
+		m.diffScroll = 0
+		return m, nil
+	case "G":
+		if m.anyDiffOpen() {
+			m.diffScroll = len(m.diffPanelLines())
+			m.clampDiffScroll()
+			return m, nil
+		}
+		m.diffSel = len(files) - 1
+		m.clampDiffSel()
+		m.ensureDiffSelVisible()
+		return m, nil
+	case "}", "shift+]":
+		return m.diffJumpDown()
+	case "{", "shift+[":
+		return m.diffJumpUp()
 	case "enter":
 		return m.toggleDiffFile()
 	}
 	return m, nil
+}
+
+// diffJumpDown and diffJumpUp are } and {. They scroll to the next and the
+// previous empty line of an open diff, like vim's paragraph motions. See
+// docs/tui/diff.md.
+func (m Model) diffJumpDown() (tea.Model, tea.Cmd) {
+	for _, row := range m.diffEmptyRows() {
+		if row > m.diffScroll {
+			m.diffScroll = row
+			m.clampDiffScroll()
+			break
+		}
+	}
+	return m, nil
+}
+
+func (m Model) diffJumpUp() (tea.Model, tea.Cmd) {
+	rows := m.diffEmptyRows()
+	for i := len(rows) - 1; i >= 0; i-- {
+		if rows[i] < m.diffScroll {
+			m.diffScroll = rows[i]
+			m.clampDiffScroll()
+			break
+		}
+	}
+	return m, nil
+}
+
+// diffEmptyRows lists, in order, the panel-line indices that show an empty line
+// of an open diff. It walks the panel the same way as diffPanelLines.
+func (m Model) diffEmptyRows() []int {
+	d, ok := m.diffs[m.sel]
+	if !ok || !d.repo {
+		return nil
+	}
+	var rows []int
+	line := 2
+	for _, file := range d.files {
+		line++
+		if !m.diffOpen[m.sel][file.Path] {
+			continue
+		}
+		for _, out := range m.diffFileBody(file.Path) {
+			if m.diffRowEmpty(out) {
+				rows = append(rows, line)
+			}
+			line++
+		}
+	}
+	return rows
+}
+
+// diffRowEmpty reports whether a rendered diff line has no code content, once its
+// line-number gutter and its +/− marker are removed.
+func (m Model) diffRowEmpty(rendered string) bool {
+	s := ansi.Strip(rendered)
+	if m.diffLineNumbers && len(s) >= diffNumGutter {
+		s = s[diffNumGutter:]
+	}
+	s = strings.TrimPrefix(s, "+")
+	s = strings.TrimPrefix(s, "-")
+	return strings.TrimSpace(s) == ""
+}
+
+// anyDiffOpen reports whether the selected session has an expanded file. It
+// scopes g and G: to the diff when a file is open, else to the file list.
+func (m Model) anyDiffOpen() bool {
+	return len(m.diffOpen[m.sel]) > 0
+}
+
+// diffCursorDown and diffCursorUp are j and k. On an open file, they scroll the
+// diff one line, so the content moves under a fixed viewport. At the bottom of an
+// open diff, j moves to the next file. k moves to the previous file, and enters
+// an open file at the bottom of its diff. See docs/tui/diff.md.
+func (m Model) diffCursorDown() (tea.Model, tea.Cmd) {
+	files := m.diffs[m.sel].files
+	if body := m.selectedBodyLen(); body > 0 {
+		last := m.diffFileLine(m.diffSel) + body
+		if last >= m.diffScroll+m.bodyHeight() {
+			m.diffScroll++
+			m.clampDiffScroll()
+			return m, nil
+		}
+	}
+	if m.diffSel < len(files)-1 {
+		m.diffSel++
+		m.ensureDiffSelVisible()
+	}
+	return m, nil
+}
+
+func (m Model) diffCursorUp() (tea.Model, tea.Cmd) {
+	if m.selectedBodyLen() > 0 && m.diffFileLine(m.diffSel) < m.diffScroll {
+		m.diffScroll--
+		m.clampDiffScroll()
+		return m, nil
+	}
+	if m.diffSel > 0 {
+		m.diffSel--
+		if body := m.selectedBodyLen(); body > 0 {
+			m.diffScroll = m.diffFileLine(m.diffSel) + body - m.bodyHeight() + 1
+			m.clampDiffScroll()
+		} else {
+			m.ensureDiffSelVisible()
+		}
+	}
+	return m, nil
+}
+
+// selectedBodyLen is the count of rendered diff lines of the selected file when
+// it is expanded, or 0 when it is collapsed.
+func (m Model) selectedBodyLen() int {
+	files := m.diffs[m.sel].files
+	if m.diffSel < 0 || m.diffSel >= len(files) {
+		return 0
+	}
+	path := files[m.diffSel].Path
+	if !m.diffOpen[m.sel][path] {
+		return 0
+	}
+	return len(m.diffFileBody(path))
 }
 
 // widenDiff, narrowDiff, toggleHalfDiff, and toggleDiffNumbers are the d +, d -,
@@ -281,9 +417,14 @@ func (m *Model) ensureDiffSelVisible() {
 
 // diffSelLine is the line index of the selected file row within the panel lines.
 func (m Model) diffSelLine() int {
+	return m.diffFileLine(m.diffSel)
+}
+
+// diffFileLine is the line index of a file's row within the panel lines.
+func (m Model) diffFileLine(target int) int {
 	line := 2
 	for i, file := range m.diffs[m.sel].files {
-		if i == m.diffSel {
+		if i == target {
 			return line
 		}
 		line++
@@ -396,7 +537,7 @@ func (m Model) diffPanelLines() []string {
 	for i, file := range d.files {
 		out = append(out, m.diffFileRow(i, file))
 		if m.diffOpen[m.sel][file.Path] {
-			out = append(out, m.diffFileBody(file.Path)...)
+			out = append(out, m.diffFileBodyAt(file.Path, m.diffScroll-len(out))...)
 		}
 	}
 	return out
@@ -436,16 +577,24 @@ func (m Model) diffFileRow(index int, file git.FileChange) string {
 }
 
 func (m Model) diffFileBody(path string) []string {
+	return m.diffFileBodyAt(path, -1)
+}
+
+// diffFileBodyAt renders a file's diff, and marks output line current as the
+// current line. A negative current marks nothing.
+func (m Model) diffFileBodyAt(path string, current int) []string {
 	text, ok := m.fileDiffs[m.sel][path]
 	if !ok {
 		return []string{diffMetaStyle.Render("  reading…")}
 	}
-	return m.renderDiffBody(text)
+	return m.renderDiffBody(text, current)
 }
 
 // renderDiffBody colours a raw git diff and wraps it to the panel width. It
 // drops the git file header, and shows new-file line numbers when they are on.
-func (m Model) renderDiffBody(text string) []string {
+// It marks the current line: it bolds the line number, or the text when the
+// numbers are off. See docs/tui/diff.md.
+func (m Model) renderDiffBody(text string, current int) []string {
 	content := m.diffInner()
 	if m.diffLineNumbers {
 		content -= diffNumGutter
@@ -476,13 +625,22 @@ func (m Model) renderDiffBody(text string) []string {
 			newLine++
 		}
 		for i, chunk := range wrapHard(line, content) {
-			row := style.Render(chunk)
+			marked := len(out) == current
+			lineStyle := style
+			if marked && !m.diffLineNumbers {
+				lineStyle = lineStyle.Bold(true)
+			}
+			row := lineStyle.Render(chunk)
 			if m.diffLineNumbers {
 				gutter := ""
 				if i == 0 {
 					gutter = number
 				}
-				row = diffNumStyle.Render(padLeft(gutter, diffNumGutter-1)+" ") + row
+				numStyle := diffNumStyle
+				if marked {
+					numStyle = diffCurNumStyle
+				}
+				row = numStyle.Render(padLeft(gutter, diffNumGutter-1)+" ") + row
 			}
 			out = append(out, row)
 		}

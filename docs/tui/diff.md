@@ -59,11 +59,26 @@ blank.
 
 ## Scrolling and the width
 
-The panel scrolls, through the list and the open diffs. `j` and `k` move the
-selected file, and the panel scrolls to keep the selected file in view. The arrow
-keys scroll the diff one line, so you step through a long file. `pgup` and
-`pgdown` move a page, and the mouse wheel moves a few lines. See
-[keys.md](keys.md).
+The panel scrolls, through the list and the open diffs. `j` and `k` move a cursor
+down and up. On a collapsed file, `j` and `k` move to the next and the previous
+file. On an open file, `j` and `k` step through the diff one line at a time. At
+the bottom of an open diff, `j` moves to the next file, so you can expand it. `k`
+into an open file above starts at the bottom of its diff, then steps up to the
+top. The arrow keys scroll the panel one line, `pgup` and `pgdown` move a page,
+and the mouse wheel moves a few lines. See [keys.md](keys.md).
+
+`g` and `G` go to the top and the bottom. Their scope depends on the panel. If a
+file is open, `g` and `G` scroll the panel to the top and the bottom of the diff.
+If no file is open, `g` and `G` move the selection to the first and the last file
+in the list.
+
+`}` and `{` (`shift+]` and `shift+[`) jump to the next and the previous empty
+line of an open diff, like the paragraph motions of vim. An empty line is a diff
+line with no code, once its marker and its line number are removed.
+
+The panel marks the current line, the top line of the view, so you see where a
+jump lands. When the line numbers are off, the current line is bold. When they
+are on, the line number is bold.
 
 `d +` widens the panel, and `d -` narrows it. The width has a minimum, and a
 maximum that keeps the output at least 40 columns. The panel remembers its width,
