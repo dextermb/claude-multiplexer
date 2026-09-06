@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"strconv"
 	"strings"
 	"testing"
 
@@ -13,7 +14,7 @@ func diffModel() Model {
 		focus:     focusDiff,
 		diffs:     make(map[string]diffState),
 		diffOpen:  make(map[string]map[string]bool),
-		fileDiffs: make(map[string]map[string][]string),
+		fileDiffs: make(map[string]map[string]string),
 	}
 }
 
@@ -36,7 +37,7 @@ func TestDiffPanelShowsAnExpandedFile(t *testing.T) {
 	m := diffModel()
 	m.diffs["a"] = diffState{repo: true, files: []git.FileChange{{Status: "M", Path: "app.go"}}}
 	m.diffOpen["a"] = map[string]bool{"app.go": true}
-	m.fileDiffs["a"] = map[string][]string{"app.go": styleDiffLine("+added line")}
+	m.fileDiffs["a"] = map[string]string{"app.go": "@@ -1 +1 @@\n+added line\n"}
 
 	text := visible(strings.Join(m.diffPanelLines(), "\n"))
 	if !strings.Contains(text, "added line") {
@@ -173,6 +174,104 @@ func TestTabReachesTheOpenPanel(t *testing.T) {
 	m = next.(Model)
 	if m.focus != focusSidebar {
 		t.Fatalf("with the panel closed, Tab from the output skips it, got %v", m.focus)
+	}
+}
+
+func TestResizingTheDiffPanelPersists(t *testing.T) {
+	m, mgr := newTestModel(t, "")
+	m = start(t, m, 160, 30)
+	m, _ = step(t, m, key("esc"))
+	m = spawn(t, m, mgr, "alpha", t.TempDir())
+
+	next, _ := m.openDiffPanel()
+	m = next.(Model)
+	start := m.diffPanelWidth()
+	wideOutput := m.outputWidth()
+
+	next, _ = m.widenDiff()
+	m = next.(Model)
+	if m.diffPanelWidth() != start+diffWidthStep {
+		t.Fatalf("d + gave width %d, want %d", m.diffPanelWidth(), start+diffWidthStep)
+	}
+	if m.outputWidth() >= wideOutput {
+		t.Fatal("a wider panel must shrink the output")
+	}
+
+	widened := m.diffPanelWidth()
+	next, _ = m.closeDiffPanel()
+	m = next.(Model)
+	next, _ = m.openDiffPanel()
+	m = next.(Model)
+	if m.diffPanelWidth() != widened {
+		t.Fatalf("the panel forgot its width: %d, want %d", m.diffPanelWidth(), widened)
+	}
+
+	next, _ = m.narrowDiff()
+	m = next.(Model)
+	if m.diffPanelWidth() != widened-diffWidthStep {
+		t.Fatalf("d - gave width %d, want %d", m.diffPanelWidth(), widened-diffWidthStep)
+	}
+}
+
+func TestTheDTargetStartsOnlyWithThePanelOpen(t *testing.T) {
+	if _, ok := sequenceTarget("d", false, false); ok {
+		t.Error("with the panel closed, d must not start a sequence")
+	}
+	if target, ok := sequenceTarget("d", false, true); !ok || target != "d" {
+		t.Errorf("with the panel open, d must start the d target, got %q %v", target, ok)
+	}
+}
+
+func TestLineNumbersToggle(t *testing.T) {
+	m := diffModel()
+	m.diffs["a"] = diffState{repo: true, files: []git.FileChange{{Status: "M", Path: "a.txt"}}}
+	m.diffOpen["a"] = map[string]bool{"a.txt": true}
+	m.fileDiffs["a"] = map[string]string{"a.txt": "@@ -1,2 +1,2 @@\n one\n+two\n"}
+
+	off := visible(strings.Join(m.diffPanelLines(), "\n"))
+
+	next, _ := m.toggleDiffNumbers()
+	m = next.(Model)
+	on := visible(strings.Join(m.diffPanelLines(), "\n"))
+
+	if strings.Contains(off, " 2 ") {
+		t.Errorf("line numbers must be off by default:\n%s", off)
+	}
+	if !strings.Contains(on, "2") {
+		t.Errorf("d n must show the new-file line numbers:\n%s", on)
+	}
+}
+
+func TestTheSelectedFileHasThePurpleBackground(t *testing.T) {
+	m := diffModel()
+	m.diffs["a"] = diffState{repo: true, files: []git.FileChange{
+		{Status: "M", Path: "a.txt"},
+		{Status: "M", Path: "b.txt"},
+	}}
+	m.diffSel = 1
+
+	lines := m.diffPanelLines()
+	selected, other := lines[3], lines[2]
+	if !strings.Contains(selected, "48;5;62") {
+		t.Errorf("the selected row must carry the purple background:\n%q", selected)
+	}
+	if strings.Contains(other, "48;5;62") {
+		t.Errorf("an unselected row must not carry the background:\n%q", other)
+	}
+}
+
+func TestSelectingAFileScrollsItIntoView(t *testing.T) {
+	m := diffModel()
+	files := make([]git.FileChange, 6)
+	for i := range files {
+		files[i] = git.FileChange{Status: "M", Path: "f" + strconv.Itoa(i)}
+	}
+	m.diffs["a"] = diffState{repo: true, files: files}
+
+	m.diffSel = 5
+	m.ensureDiffSelVisible()
+	if m.diffScroll == 0 {
+		t.Fatal("selecting a file below the fold must scroll the panel")
 	}
 }
 

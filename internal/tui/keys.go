@@ -26,10 +26,14 @@ var sequenceTargets = map[string]string{
 }
 
 // Inside the prompt only the control forms start a sequence, so every other key
-// stays text.
-func sequenceTarget(key string, inPrompt bool) (string, bool) {
+// stays text. The d target starts only while the diff panel is open, so d keeps
+// its output-scroll meaning at every other time.
+func sequenceTarget(key string, inPrompt, diffOpen bool) (string, bool) {
 	if inPrompt && !strings.HasPrefix(key, "ctrl+") {
 		return "", false
+	}
+	if key == "d" && diffOpen {
+		return "d", true
 	}
 	target, ok := sequenceTargets[key]
 	return target, ok
@@ -92,6 +96,10 @@ var sequenceActions = map[string]action{
 	"l e": Model.expandSidebar,
 
 	"o m": Model.toggleMarkdown,
+
+	"d +": Model.widenDiff,
+	"d -": Model.narrowDiff,
+	"d n": Model.toggleDiffNumbers,
 }
 
 // sequenceHints lists the action keys of a target, for the status bar.

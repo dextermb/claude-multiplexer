@@ -45,7 +45,7 @@ files, one to a row:
 
 Each row shows a fold mark, a status letter, the path, and the file's own
 `+I −D`. The status letter is the git letter: `M` (modified), `A` (added),
-`D` (deleted), or `R` (renamed).
+`D` (deleted), or `R` (renamed). The selected file has a purple background.
 
 `Enter` expands the selected file, and its coloured diff shows below the row.
 `Enter` again collapses it. The diff colours are green for an inserted line, red
@@ -53,9 +53,20 @@ for a deleted line, and blue for a hunk header. The panel drops the git file
 header, because a narrow panel has no room for it. A long line wraps to the panel
 width.
 
-The panel is narrow (about 30 columns), so the diff reads best for a small file.
-`pgup` and `pgdown` scroll the panel, through the list and the open diffs. The
-arrow keys, or `j` and `k`, move the selected file. See [keys.md](keys.md).
+`d n` shows or hides the line numbers. The number is the new-file line, in a
+grey gutter on the left. A deleted line has no new-file number, so its gutter is
+blank.
+
+## Scrolling and the width
+
+The panel scrolls, through the list and the open diffs. `pgup` and `pgdown` move
+a page, and the mouse wheel moves a few lines. The arrow keys, or `j` and `k`,
+move the selected file, and the panel scrolls to keep the selected file in view.
+See [keys.md](keys.md).
+
+`d +` widens the panel, and `d -` narrows it. The width has a minimum, and a
+maximum that keeps the output at least 40 columns. The panel remembers its width,
+so a hide and a later show keep it.
 
 The panel is not modal. While the panel is open, `Tab` adds it to the focus
 cycle: sidebar, prompt, output, then the diff panel. So you tab to the prompt to
@@ -125,7 +136,7 @@ running git.
 
 ## The panel and the jobs panel share the slot
 
-The diff panel uses the same place and the same width as the jobs and tasks
-panel. When the diff panel is open, it takes the slot, so the jobs and tasks
-panel does not show. The panel needs the same width as the jobs and tasks panel,
-and it hides on a narrow terminal. See [tasks.md](tasks.md).
+The diff panel uses the same place as the jobs and tasks panel. When the diff
+panel is open, it takes the slot, so the jobs and tasks panel does not show. The
+diff panel starts at the same width as the jobs and tasks panel, but `d +` and
+`d -` change it. The panel hides on a narrow terminal. See [tasks.md](tasks.md).
