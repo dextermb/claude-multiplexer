@@ -160,18 +160,27 @@ the session again.
 
 The form asks for a directory, a name, a model, a permission mode, an effort
 level, a control grant, and a first prompt. The directory comes first, because
-it is the only required field. The first prompt is sent as soon as the session starts, and it
-takes a `/preset` name. See [templates.md](../templates.md). It defaults to the
-current directory. An empty name becomes the last element of the directory.
+it is the only required field. The directory, the name, and the first prompt are
+text fields. The model, the permission mode, the effort, and the control are
+select fields.
+
+The first prompt is sent as soon as the session starts, and it takes a `/preset`
+name. See [templates.md](../templates.md). It defaults to the current directory.
+An empty name becomes the last element of the directory.
+
+The select fields do not take typed text. `↑` and `↓`, and `Tab`, move between
+the fields. `←` and `→` change the value of the select you are on, and the value
+wraps at each end. Each select opens on a default option, and the settings file
+sets that option; see [../config/new-session.md](../config/new-session.md).
+
+The model and the effort have a `default` option. This option sends nothing, so
+Claude Code takes the model or the effort from your project or global
+configuration. The permission mode always sends a mode. You can change the model,
+the mode, and the effort later with a key; see [keys.md](keys.md).
 
 The control field takes `yes` to let the session prompt, stop, and archive the
-other sessions. Anything else means no. See [mcp/grant.md](../mcp/grant.md)
-before you set it, because such a session can stop the work you are reading.
-
-The effort field is one of `low`, `medium`, `high`, `xhigh`, or `max`, or empty
-for the Claude Code default. The form checks the level before it starts. You can
-change the model, the mode, and the effort later with a key; see
-[keys.md](keys.md).
+other sessions. See [mcp/grant.md](../mcp/grant.md) before you set it, because
+such a session can stop the work you are reading.
 
 The directory field completes as you type. The names that match appear under
 it, and `Tab` grows the path:

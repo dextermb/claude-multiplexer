@@ -26,6 +26,14 @@ const (
 
 var fieldLabels = [fieldCount]string{"Directory", "Name", "Model", "Permission mode", "Effort", "Control", "First prompt"}
 
+// The option lists of the four select fields. An empty string sends nothing, so
+// Claude Code takes the project or global default. See docs/config/new-session.md.
+var (
+	modelOptions   = append([]string{""}, modelChoices...)
+	effortOptions  = append([]string{""}, session.EffortLevels...)
+	controlOptions = []string{"no", "yes"}
+)
+
 type formResult int
 
 const (
@@ -34,8 +42,43 @@ const (
 	formCancelled
 )
 
+// selectField is a one-row select that cycles a fixed list. It renders as
+// ‹ value ›, and left/right change the value. See docs/tui/input.md.
+type selectField struct {
+	options []string
+	labels  []string
+	cursor  int
+}
+
+func newSelect(options []string, current string) *selectField {
+	labels := make([]string, len(options))
+	for i, option := range options {
+		if option == "" {
+			labels[i] = "default"
+		} else {
+			labels[i] = option
+		}
+	}
+	s := &selectField{options: options, labels: labels}
+	for i, option := range options {
+		if option == current {
+			s.cursor = i
+			break
+		}
+	}
+	return s
+}
+
+func (s *selectField) cycle(delta int) {
+	s.cursor = (s.cursor + delta + len(s.options)) % len(s.options)
+}
+
+func (s *selectField) value() string { return s.options[s.cursor] }
+func (s *selectField) label() string { return s.labels[s.cursor] }
+
 type form struct {
 	inputs  [fieldCount]textinput.Model
+	selects [fieldCount]*selectField
 	focus   int
 	err     string
 	matches []string
@@ -43,31 +86,40 @@ type form struct {
 	stem    string
 }
 
-func newForm(dir, model, mode string) *form {
+func newForm(dir string, defaults newSessionDefaults) *form {
 	f := &form{}
 	placeholders := [fieldCount]string{
 		dir,
 		"taken from the directory",
-		"the Claude Code default",
-		mode,
-		"low, medium, high, xhigh, max",
-		"no — yes lets it drive other sessions",
+		"", "", "", "",
 		"optional, and /preset works here",
 	}
-	values := [fieldCount]string{dir, "", model, mode, "", "", ""}
 	for i := range f.inputs {
 		input := textinput.New()
 		input.Placeholder = placeholders[i]
-		input.SetValue(values[i])
 		input.CharLimit = 512
 		input.Width = 40
 		f.inputs[i] = input
 	}
+	f.inputs[fieldDir].SetValue(dir)
+	f.selects[fieldModel] = newSelect(modelOptions, defaults.model)
+	f.selects[fieldMode] = newSelect(modeChoices, defaults.mode)
+	f.selects[fieldEffort] = newSelect(effortOptions, defaults.effort)
+	f.selects[fieldControl] = newSelect(controlOptions, boolWord(defaults.control))
 	f.inputs[fieldDir].CursorEnd()
 	f.inputs[fieldDir].Focus()
 	f.suggest()
 	return f
 }
+
+func boolWord(value bool) string {
+	if value {
+		return "yes"
+	}
+	return "no"
+}
+
+func (f *form) isSelect(i int) bool { return f.selects[i] != nil }
 
 func (f *form) suggest() {
 	f.picked = -1
@@ -144,6 +196,15 @@ func (f *form) Update(msg tea.Msg) (formResult, tea.Cmd) {
 			f.move(-1)
 			return formOpen, nil
 		}
+		if f.isSelect(f.focus) {
+			switch key.String() {
+			case "left", "h":
+				f.selects[f.focus].cycle(-1)
+			case "right", "l":
+				f.selects[f.focus].cycle(1)
+			}
+			return formOpen, nil
+		}
 	}
 	var cmd tea.Cmd
 	f.inputs[f.focus], cmd = f.inputs[f.focus].Update(msg)
@@ -152,14 +213,21 @@ func (f *form) Update(msg tea.Msg) (formResult, tea.Cmd) {
 }
 
 func (f *form) move(delta int) {
-	f.inputs[f.focus].Blur()
+	if !f.isSelect(f.focus) {
+		f.inputs[f.focus].Blur()
+	}
 	f.focus = (f.focus + delta + fieldCount) % fieldCount
-	f.inputs[f.focus].Focus()
-	f.inputs[f.focus].CursorEnd()
+	if !f.isSelect(f.focus) {
+		f.inputs[f.focus].Focus()
+		f.inputs[f.focus].CursorEnd()
+	}
 	f.suggest()
 }
 
 func (f *form) insert(text string, paths bool) {
+	if f.isSelect(f.focus) {
+		return
+	}
 	input := &f.inputs[f.focus]
 	if paths && f.focus == fieldDir {
 		input.SetValue(directoryOf(unquote(text)))
@@ -213,41 +281,20 @@ func (f *form) validate() bool {
 		f.err = abs + " is not a directory"
 		return false
 	}
-	if effort := strings.TrimSpace(f.inputs[fieldEffort].Value()); effort != "" && !knownEffort(effort) {
-		f.err = "effort is one of " + strings.Join(session.EffortLevels, ", ")
-		return false
-	}
 	f.inputs[fieldDir].SetValue(abs)
 	f.err = ""
 	return true
-}
-
-func knownEffort(level string) bool {
-	for _, known := range session.EffortLevels {
-		if known == level {
-			return true
-		}
-	}
-	return false
 }
 
 func (f *form) spec() manager.Spec {
 	return manager.Spec{
 		Dir:            strings.TrimSpace(f.inputs[fieldDir].Value()),
 		Name:           strings.TrimSpace(f.inputs[fieldName].Value()),
-		Model:          strings.TrimSpace(f.inputs[fieldModel].Value()),
-		PermissionMode: strings.TrimSpace(f.inputs[fieldMode].Value()),
-		Effort:         strings.TrimSpace(f.inputs[fieldEffort].Value()),
-		Control:        affirmative(f.inputs[fieldControl].Value()),
+		Model:          f.selects[fieldModel].value(),
+		PermissionMode: f.selects[fieldMode].value(),
+		Effort:         f.selects[fieldEffort].value(),
+		Control:        f.selects[fieldControl].value() == "yes",
 	}
-}
-
-func affirmative(value string) bool {
-	switch strings.ToLower(strings.TrimSpace(value)) {
-	case "y", "yes", "true", "on", "1":
-		return true
-	}
-	return false
 }
 
 func (f *form) firstPrompt() string {
@@ -261,7 +308,11 @@ func (f *form) View(width int) string {
 	inner := modalInner(width)
 	for i := range f.inputs {
 		b.WriteString(fieldLabelStyle.Render(pad(fieldLabels[i], 16)))
-		b.WriteString(f.inputs[i].View())
+		if f.isSelect(i) {
+			b.WriteString(f.selectView(i))
+		} else {
+			b.WriteString(f.inputs[i].View())
+		}
 		b.WriteString("\n")
 		if i == fieldDir && f.focus == fieldDir {
 			if hint := pathHint(f.matches, f.picked, inner-18); hint != "" {
@@ -272,8 +323,26 @@ func (f *form) View(width int) string {
 	if f.err != "" {
 		b.WriteString("\n" + errorStyle.Render(f.err) + "\n")
 	}
-	b.WriteString("\n" + hintStyle.Render("tab complete · shift+tab walk · enter start · esc cancel"))
+	b.WriteString("\n" + hintStyle.Render(f.hint()))
 	return modalStyle.Width(inner).Render(b.String())
+}
+
+func (f *form) selectView(i int) string {
+	label := f.selects[i].label()
+	if i == f.focus {
+		return selectArrowStyle.Render("‹ ") + selectValueStyle.Render(label) + selectArrowStyle.Render(" ›")
+	}
+	return rowStyle.Render("  " + label)
+}
+
+func (f *form) hint() string {
+	switch {
+	case f.isSelect(f.focus):
+		return "←→ change · ↑↓ move · enter start · esc cancel"
+	case f.focus == fieldDir:
+		return "tab complete · shift+tab walk · enter start · esc cancel"
+	}
+	return "↑↓ move · enter start · esc cancel"
 }
 
 func centre(width, height int, content string) string {

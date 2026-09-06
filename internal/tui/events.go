@@ -14,6 +14,7 @@ func (m Model) handleSettings(msg settingsMsg) (tea.Model, tea.Cmd) {
 	prev := m.layout
 	m.layouts = msg.layouts
 	m.activeLayout = msg.activeLayout
+	m.sessionDefaults = msg.defaults
 	m.applyLayout()
 	if !capsChanged && m.layout == prev {
 		return m, nil
