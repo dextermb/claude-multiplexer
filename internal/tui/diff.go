@@ -3,12 +3,33 @@ package tui
 import (
 	"strconv"
 	"strings"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
 	"github.com/dextermb/claude-multiplexer/internal/git"
 )
+
+// diffRefreshInterval is how often the open panel re-reads the diff, so the
+// changes of a running agent show while it works. See docs/tui/diff.md.
+const diffRefreshInterval = 800 * time.Millisecond
+
+type diffTickMsg struct{}
+
+func diffTick() tea.Cmd {
+	return tea.Tick(diffRefreshInterval, func(time.Time) tea.Msg { return diffTickMsg{} })
+}
+
+// handleDiffTick re-reads the diff while the panel is open, then schedules the
+// next tick. It stops the loop when the panel closes.
+func (m Model) handleDiffTick() (tea.Model, tea.Cmd) {
+	if !m.diffPanel {
+		m.diffTicking = false
+		return m, nil
+	}
+	return m, tea.Batch(m.diffRefreshCmd(), diffTick())
+}
 
 // diffState is the cached working-tree diff of one session against origin/HEAD.
 // See docs/tui/diff.md.
@@ -105,7 +126,12 @@ func (m Model) openDiffPanel() (tea.Model, tea.Cmd) {
 	m.focus = focusDiff
 	m.prompt.Blur()
 	m.rebuildOutput()
-	return m, m.diffRefreshCmd()
+	cmds := []tea.Cmd{m.diffRefreshCmd()}
+	if !m.diffTicking {
+		m.diffTicking = true
+		cmds = append(cmds, diffTick())
+	}
+	return m, tea.Batch(cmds...)
 }
 
 func (m Model) closeDiffPanel() (tea.Model, tea.Cmd) {
@@ -124,17 +150,25 @@ func (m Model) diffKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.closeDiffPanel()
 	case "tab":
 		return m.toggleFocus()
-	case "up", "k":
+	case "k":
 		if m.diffSel > 0 {
 			m.diffSel--
 		}
 		m.ensureDiffSelVisible()
 		return m, nil
-	case "down", "j":
+	case "j":
 		if m.diffSel < len(files)-1 {
 			m.diffSel++
 		}
 		m.ensureDiffSelVisible()
+		return m, nil
+	case "up":
+		m.diffScroll--
+		m.clampDiffScroll()
+		return m, nil
+	case "down":
+		m.diffScroll++
+		m.clampDiffScroll()
 		return m, nil
 	case "pgup":
 		m.diffScroll -= m.diffPage()

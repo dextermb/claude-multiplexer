@@ -59,10 +59,11 @@ blank.
 
 ## Scrolling and the width
 
-The panel scrolls, through the list and the open diffs. `pgup` and `pgdown` move
-a page, and the mouse wheel moves a few lines. The arrow keys, or `j` and `k`,
-move the selected file, and the panel scrolls to keep the selected file in view.
-See [keys.md](keys.md).
+The panel scrolls, through the list and the open diffs. `j` and `k` move the
+selected file, and the panel scrolls to keep the selected file in view. The arrow
+keys scroll the diff one line, so you step through a long file. `pgup` and
+`pgdown` move a page, and the mouse wheel moves a few lines. See
+[keys.md](keys.md).
 
 `d +` widens the panel, and `d -` narrows it. The width has a minimum, and a
 maximum that keeps the output at least 40 columns. The panel remembers its width,
@@ -79,8 +80,12 @@ focus to the panel, and `s d` again closes it. `Esc` closes it.
 ## The panel stays current
 
 The panel refreshes as the agent changes files, so the list and the open diffs
-follow the work. An expanded file stays expanded across a refresh, keyed by its
-path.
+follow the work while a turn runs. An expanded file stays expanded across a
+refresh, keyed by its path.
+
+While the panel is open, a tick re-reads the diff every 800 milliseconds, so the
+changes of a running agent show as they arrive, not only at the end of the turn.
+The tick stops when the panel closes.
 
 The interface never runs git inside the view. The view stays pure. Git runs as a
 command, and the result returns as a message that the update loop stores.
@@ -111,16 +116,16 @@ Enter on a collapsed file
   fileDiffMsg{name, path, text}      rendered lines stored in m.fileDiffs[name][path]
 ```
 
-The diff refreshes at three points, each through `diffCmd`:
+The diff refreshes at these points, each through `diffCmd`:
 
 - The selected session changes.
-- A session event ends a turn (the state leaves busy). This point keeps the open
-  panel current while you work with the agent.
+- A session event ends a turn (the state leaves busy).
 - The diff panel opens.
+- A tick, every 800 milliseconds, while the panel is open. This point shows the
+  changes of a running agent as they arrive, not only at the end of the turn.
 
 On a refresh, the update loop re-fetches the diff of each file still open, so the
-open accordions follow the agent's changes. The interface adds no fast tick, so a
-hand edit outside the session shows only at the next turn.
+open accordions follow the agent's changes.
 
 ## Where it reads git
 
