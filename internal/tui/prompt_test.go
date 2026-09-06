@@ -126,7 +126,7 @@ func TestWrappedRowsCountsTheDisplayRows(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := wrappedRows(tc.text, tc.width); got != tc.want {
+			if got := wrappedRows(tc.text, tc.width, promptRowsMax); got != tc.want {
 				t.Fatalf("wrappedRows(%q, %d) = %d, want %d", tc.text, tc.width, got, tc.want)
 			}
 		})

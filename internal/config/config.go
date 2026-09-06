@@ -94,6 +94,12 @@ type Config struct {
 	// draws only the marker), null never caps, and an absent bucket takes
 	// BlockCap. See docs/config.md.
 	BlockCaps map[string]*int `json:"blockCaps,omitempty"`
+	// Layouts holds the named interface layouts, keyed by name. See
+	// docs/config.md.
+	Layouts map[string]Layout `json:"layouts,omitempty"`
+	// ActiveLayout names the layout every session takes, unless the session
+	// names its own. An empty string takes the built-in defaults.
+	ActiveLayout string `json:"activeLayout,omitempty"`
 }
 
 // BlockCapOrDefault reads the cap out of the settings, and gives the default
@@ -137,6 +143,101 @@ func ResolveBlockCaps(cfg Config) map[string]int {
 		caps[b] = BlockCapFor(cfg, b)
 	}
 	return caps
+}
+
+// The built-in layout dimensions, used when no layout sets one. See
+// docs/config.md and docs/tui.md.
+const (
+	DefaultSidebarWidth = 26
+	DefaultTaskWidth    = 32
+	DefaultDiffWidth    = 32
+	DefaultPromptMin    = 1
+	DefaultPromptMax    = 4
+)
+
+// Layout holds the interface dimensions a named layout sets. A nil field takes
+// the built-in default, so a layout may set only some of them. See
+// docs/config.md.
+type Layout struct {
+	PromptMin    *int `json:"promptMin,omitempty"`
+	PromptMax    *int `json:"promptMax,omitempty"`
+	SidebarWidth *int `json:"sidebarWidth,omitempty"`
+	TaskWidth    *int `json:"taskWidth,omitempty"`
+	DiffWidth    *int `json:"diffWidth,omitempty"`
+}
+
+// ResolvedLayout holds the dimensions after resolution, each one a concrete
+// number the interface reads.
+type ResolvedLayout struct {
+	PromptMin    int
+	PromptMax    int
+	SidebarWidth int
+	TaskWidth    int
+	DiffWidth    int
+}
+
+// DefaultLayout gives the built-in dimensions.
+func DefaultLayout() ResolvedLayout {
+	return ResolvedLayout{
+		PromptMin:    DefaultPromptMin,
+		PromptMax:    DefaultPromptMax,
+		SidebarWidth: DefaultSidebarWidth,
+		TaskWidth:    DefaultTaskWidth,
+		DiffWidth:    DefaultDiffWidth,
+	}
+}
+
+// ResolveLayout overlays the global layout, then the session layout, onto the
+// built-in defaults. A name that no layout holds falls through to the next
+// level, so a deleted layout never breaks a session. See docs/config.md.
+func ResolveLayout(layouts map[string]Layout, global, session string) ResolvedLayout {
+	out := DefaultLayout()
+	overlay := func(name string) {
+		layout, ok := layouts[name]
+		if name == "" || !ok {
+			return
+		}
+		if layout.PromptMin != nil {
+			out.PromptMin = *layout.PromptMin
+		}
+		if layout.PromptMax != nil {
+			out.PromptMax = *layout.PromptMax
+		}
+		if layout.SidebarWidth != nil {
+			out.SidebarWidth = *layout.SidebarWidth
+		}
+		if layout.TaskWidth != nil {
+			out.TaskWidth = *layout.TaskWidth
+		}
+		if layout.DiffWidth != nil {
+			out.DiffWidth = *layout.DiffWidth
+		}
+	}
+	overlay(global)
+	overlay(session)
+	return out.sane()
+}
+
+// sane keeps every dimension inside a readable range that does not depend on the
+// terminal size. The interface clamps each width again to the terminal it draws
+// in. See docs/tui.md.
+func (r ResolvedLayout) sane() ResolvedLayout {
+	if r.PromptMin < 1 {
+		r.PromptMin = 1
+	}
+	if r.PromptMax < r.PromptMin {
+		r.PromptMax = r.PromptMin
+	}
+	if r.SidebarWidth < DefaultSidebarWidth-16 {
+		r.SidebarWidth = DefaultSidebarWidth - 16
+	}
+	if r.TaskWidth < 16 {
+		r.TaskWidth = 16
+	}
+	if r.DiffWidth < 16 {
+		r.DiffWidth = 16
+	}
+	return r
 }
 
 // Paths lists the settings files to look for, in order.

@@ -46,6 +46,7 @@ var bindings = []binding{
 	{"The list (l)", "l", "l e", "Show the sidebar again", "e show"},
 
 	{"The output pane (o)", "o", "o m", "Switch between rendered markdown and raw text", "m markdown"},
+	{"The output pane (o)", "o", "o l", "Open the layouts, to switch between them", "l layouts"},
 
 	{"The diff panel (d)", "d", "d +", "Widen the diff panel", "+ wider"},
 	{"The diff panel (d)", "d", "d -", "Narrow the diff panel", "- narrower"},

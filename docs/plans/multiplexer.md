@@ -33,6 +33,10 @@ This file holds only the work that is not built. Delete it when nothing is left.
   version emits.
 - **A task router.** A queue, and dispatch to the first free session. This is a
   second product rather than a feature, so it needs its own plan.
+- **An expanded diff width, in a layout.** The half-diff mode (`d /`) is a
+  toggle today. A layout could hold an "expanded diff" width, so `d /` switches
+  to a width the layout sets, in place of the fixed half. The `Layout` struct
+  leaves room for the field. See [../tui/layouts.md](../tui/layouts.md).
 - **The sidebar groups, after they are used.** Two questions the build left
   open, both to answer from use. Must a fold survive a restart, which needs a
   file to hold it? And does a blank line between two groups read better than
