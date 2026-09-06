@@ -34,6 +34,10 @@ When the selected session has background jobs or a task list, a panel on the
 right of the pane shows them, and the output shrinks to make room. See
 [tui/tasks.md](tui/tasks.md).
 
+The session bar shows the git diff count of the session, for example `+120 −30`.
+`s d` opens a diff panel that lists the changed files and expands each one to its
+diff. See [tui/diff.md](tui/diff.md).
+
 ## Where a dialog draws
 
 A dialog draws in one of two regions.
@@ -73,6 +77,7 @@ never pushes the sidebar out of line.
 | [tui/input.md](tui/input.md) | The prompt box, dropping a file, and the new session form |
 | [tui/output.md](tui/output.md) | The colour of each line, streaming text, and the layout rule |
 | [tui/tasks.md](tui/tasks.md) | The side panel: the session's jobs and task list, their glyphs, and when it shows |
+| [tui/diff.md](tui/diff.md) | The git diff: the count in the bar, the file panel, the inline diff, and the refresh |
 
 Three things live outside this folder, because they are not only about the
 screen. Preset prompts are in [templates.md](./templates.md), what is rendered

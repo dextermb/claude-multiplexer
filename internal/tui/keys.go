@@ -26,10 +26,14 @@ var sequenceTargets = map[string]string{
 }
 
 // Inside the prompt only the control forms start a sequence, so every other key
-// stays text.
-func sequenceTarget(key string, inPrompt bool) (string, bool) {
+// stays text. The d target starts only while the diff panel is open, so d keeps
+// its output-scroll meaning at every other time.
+func sequenceTarget(key string, inPrompt, diffOpen bool) (string, bool) {
 	if inPrompt && !strings.HasPrefix(key, "ctrl+") {
 		return "", false
+	}
+	if key == "d" && diffOpen {
+		return "d", true
 	}
 	target, ok := sequenceTargets[key]
 	return target, ok
@@ -77,7 +81,8 @@ var sequenceActions = map[string]action{
 	"s x": Model.askToStop,
 	"s j": Model.openJobs,
 	"s f": Model.openInFiles,
-	"s d": Model.openInEditor,
+	"s d": Model.toggleDiffPanel,
+	"s E": Model.openInEditor,
 	"s m": func(m Model) (tea.Model, tea.Cmd) { return m.openChoice(settingModel) },
 	"s e": func(m Model) (tea.Model, tea.Cmd) { return m.openChoice(settingEffort) },
 	"s p": func(m Model) (tea.Model, tea.Cmd) { return m.openChoice(settingMode) },
@@ -86,8 +91,16 @@ var sequenceActions = map[string]action{
 	"l F": Model.foldOthers,
 	"l u": Model.unfoldAll,
 	"l a": Model.toggleArchived,
+	"l t": Model.toggleSidebar,
+	"l c": Model.collapseSidebar,
+	"l e": Model.expandSidebar,
 
 	"o m": Model.toggleMarkdown,
+
+	"d +": Model.widenDiff,
+	"d -": Model.narrowDiff,
+	"d /": Model.toggleHalfDiff,
+	"d n": Model.toggleDiffNumbers,
 }
 
 // sequenceHints lists the action keys of a target, for the status bar.

@@ -34,7 +34,8 @@ forms work everywhere, so a sequence still starts while you type a prompt.
 | `s x` | Stop the selected session, after a confirmation |
 | `s j` | Show the background jobs of the selected session |
 | `s f` | Open the working directory in the file manager |
-| `s d` | Open the working directory in the editor |
+| `s d` | Show the working-tree diff of the selected session |
+| `s E` | Open the working directory in the editor |
 | `s m` | Change the model of a running session |
 | `s e` | Change the effort of a running session |
 | `s p` | Change the permission mode of a running session |
@@ -47,12 +48,27 @@ forms work everywhere, so a sequence still starts while you type a prompt.
 | `l F` | Fold every group but the one you are in |
 | `l u` | Unfold every group |
 | `l a` | Show or hide the archived sessions |
+| `l t` | Hide or show the sidebar |
+| `l c` | Hide the sidebar, for more pane width |
+| `l e` | Show the sidebar again |
 
 ## The output pane: `o`
 
 | Keys | Action |
 |---|---|
 | `o m` | Switch between rendered markdown and raw text |
+
+## The diff panel: `d`
+
+The `d` target starts only while the diff panel is open. At every other time `d`
+keeps its output-scroll meaning.
+
+| Keys | Action |
+|---|---|
+| `d +` | Widen the diff panel |
+| `d -` | Narrow the diff panel |
+| `d /` | Show the panel at half the screen, or the set width |
+| `d n` | Show or hide the line numbers |
 
 ## The keys that work on their own
 
@@ -97,6 +113,35 @@ session that created them. `l f` folds the group of the selected session, and
 `l f` again unfolds it. `l F` folds every group but the one you are in, and
 `l u` unfolds every group. A fold moves the selection to a row you can see, and
 it is forgotten when the program stops. See [sessions.md](./sessions.md).
+
+### Hiding the sidebar
+
+`l c` hides the whole sidebar, and the output pane and the diff panel gain its
+width. `l e` shows the sidebar again, and `l t` toggles it. A hide is forgotten
+when the program stops. See [sessions.md](./sessions.md).
+
+### The diff panel
+
+`s d` opens the diff panel of the selected session, and gives it the focus. While
+the panel holds the focus, these keys work:
+
+| Key | Action |
+|---|---|
+| `j`, `k` | Step through an open diff, then to the next or previous file |
+| `up`, `down` | Scroll the panel one line |
+| `Enter` | Expand or collapse the selected file |
+| `pgup`, `pgdown` | Scroll the panel a page |
+| `g`, `G` | Go to the top or bottom of the open diff, or of the file list |
+| `}`, `{` | Jump to the next or previous empty line of an open diff |
+| `d +`, `d -` | Widen or narrow the panel |
+| `d /` | Toggle the panel between half the screen and the set width |
+| `d n` | Show or hide the line numbers |
+| `Tab` | Move the focus on, and keep the panel open |
+| `s d` | Move the focus to the panel, or close it when it holds the focus |
+| `Esc` | Close the panel |
+
+The mouse wheel scrolls the panel too. See [diff.md](./diff.md) for the count,
+the panel, and the live refresh.
 
 ### Renaming a session
 

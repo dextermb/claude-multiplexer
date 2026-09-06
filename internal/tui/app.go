@@ -29,6 +29,7 @@ const (
 	focusSidebar focusArea = iota
 	focusPrompt
 	focusOutput
+	focusDiff
 )
 
 type Options struct {
@@ -133,6 +134,19 @@ type Model struct {
 	confirm     string
 	focus       focusArea
 
+	diffs           map[string]diffState
+	fileDiffs       map[string]map[string]string
+	diffOpen        map[string]map[string]bool
+	diffFor         string
+	diffPanel       bool
+	diffSel         int
+	diffScroll      int
+	diffWidth       int
+	diffHalf        bool
+	diffLineNumbers bool
+	diffTicking     bool
+	sidebarHidden   bool
+
 	width     int
 	height    int
 	ready     bool
@@ -167,6 +181,9 @@ func New(opts Options) Model {
 		queued:      make(map[string][]string),
 		todos:       make(map[string][]protocol.Todo),
 		questions:   make(map[string]*questionDialog),
+		diffs:       make(map[string]diffState),
+		fileDiffs:   make(map[string]map[string]string),
+		diffOpen:    make(map[string]map[string]bool),
 		folded:      make(map[string]bool),
 		roots:       make(map[string]string),
 		expanded:    make(map[int]bool),
@@ -281,6 +298,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 	model.syncPromptHeight()
 	model.syncMentions()
+	if model.sel != model.diffFor {
+		model.diffFor = model.sel
+		if refresh := model.diffRefreshCmd(); refresh != nil {
+			cmd = tea.Batch(cmd, refresh)
+		}
+	}
 	return model, cmd
 }
 
@@ -336,6 +359,12 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleBash(msg)
 	case openedMsg:
 		return m.handleOpened(msg)
+	case diffMsg:
+		return m.handleDiff(msg)
+	case fileDiffMsg:
+		return m.handleFileDiff(msg)
+	case diffTickMsg:
+		return m.handleDiffTick()
 	case tea.MouseMsg:
 		return m.handleMouse(msg)
 	case tea.KeyMsg:
@@ -457,6 +486,11 @@ func (m Model) handleEvent(ev manager.Event) (tea.Model, tea.Cmd) {
 		m.resetBlockCursor()
 	}
 	cmds := []tea.Cmd{waitEvent(m.sub)}
+	if turnEnded {
+		if refresh := m.diffRefreshCmd(); refresh != nil {
+			cmds = append(cmds, refresh)
+		}
+	}
 	if cmd := m.maybeAskQuestion(ev); cmd != nil {
 		cmds = append(cmds, cmd)
 	}
@@ -677,8 +711,12 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.seq != nil {
 		return m.resolveSequence(msg)
 	}
-	if target, ok := sequenceTarget(msg.String(), m.focus == focusPrompt); ok {
+	if target, ok := sequenceTarget(msg.String(), m.focus == focusPrompt, m.diffPanel); ok {
 		return m.startSequence(target)
+	}
+
+	if m.focus == focusDiff {
+		return m.diffKey(msg)
 	}
 
 	switch msg.String() {
@@ -737,7 +775,7 @@ func (m Model) promptKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if next, cmd, ok := m.stopBusy(); ok {
 			return next, cmd
 		}
-		m.focus = focusSidebar
+		m.focus = m.retreatFocus()
 		m.prompt.Blur()
 		return m, nil
 	case "enter":
@@ -821,7 +859,7 @@ func (m Model) outputKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if next, cmd, ok := m.stopBusy(); ok {
 			return next, cmd
 		}
-		m.focus = focusSidebar
+		m.focus = m.retreatFocus()
 		return m, nil
 	case "enter":
 		if m.blockCursor >= 0 {
@@ -929,11 +967,20 @@ func (m Model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 		if msg.Action != tea.MouseActionPress {
 			return m, nil
 		}
-		if msg.X < sidebarWidth {
+		if !m.sidebarHidden && msg.X < sidebarWidth {
 			if msg.Button == tea.MouseButtonWheelUp {
 				return m.move(-1)
 			}
 			return m.move(1)
+		}
+		if m.diffPanel && msg.X >= m.width-m.diffPanelWidth() {
+			if msg.Button == tea.MouseButtonWheelUp {
+				m.diffScroll -= 3
+			} else {
+				m.diffScroll += 3
+			}
+			m.clampDiffScroll()
+			return m, nil
 		}
 		var cmd tea.Cmd
 		m.output, cmd = m.output.Update(msg)
@@ -967,7 +1014,7 @@ func (m Model) handleLeftMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 			m.setContent()
 			return m, nil
 		}
-		if msg.X >= sidebarWidth {
+		if m.sidebarHidden || msg.X >= sidebarWidth {
 			m.clearSelection()
 			m.focus = focusOutput
 			m.prompt.Blur()
@@ -1023,14 +1070,14 @@ func (m Model) blockAtRow(row int) (int, bool) {
 }
 
 func (m Model) outputPos(x, y int) (pos, bool) {
-	if x < sidebarWidth+gutterWidth {
+	if x < m.leftWidth()+gutterWidth {
 		return pos{}, false
 	}
 	row := y - barHeight
 	if row < 0 || row >= m.outputHeight() {
 		return pos{}, false
 	}
-	return pos{line: m.output.YOffset + row, col: x - sidebarWidth - gutterWidth}, true
+	return pos{line: m.output.YOffset + row, col: x - m.leftWidth() - gutterWidth}, true
 }
 
 func (m *Model) clearSelection() {
@@ -1216,9 +1263,30 @@ func (m Model) toggleFocus() (tea.Model, tea.Cmd) {
 		m.focus = focusOutput
 		m.prompt.Blur()
 		return m, nil
+	case focusOutput:
+		if m.diffPanel {
+			m.focus = focusDiff
+			return m, nil
+		}
+	}
+	// The next pane is the sidebar, but it is skipped when it is hidden, so the
+	// focus continues to the prompt.
+	if m.sidebarHidden {
+		m.focus = focusPrompt
+		m.prompt.Focus()
+		return m, textarea.Blink
 	}
 	m.focus = focusSidebar
 	return m, nil
+}
+
+// retreatFocus is the pane Esc leaves a pane for: the sidebar, or the output
+// when the sidebar is hidden.
+func (m Model) retreatFocus() focusArea {
+	if m.sidebarHidden {
+		return focusOutput
+	}
+	return focusSidebar
 }
 
 func (m Model) send() (tea.Model, tea.Cmd) {
@@ -1787,8 +1855,16 @@ func (m Model) visibleRowIndexes() []int {
 	return out
 }
 
+// leftWidth is the width of the left sidebar, or zero when it is collapsed.
+func (m Model) leftWidth() int {
+	if m.sidebarHidden {
+		return 0
+	}
+	return sidebarWidth
+}
+
 func (m Model) baseOutputWidth() int {
-	width := m.width - sidebarWidth - gutterWidth
+	width := m.width - m.leftWidth() - gutterWidth
 	if width < 10 {
 		return 10
 	}
@@ -1797,15 +1873,27 @@ func (m Model) baseOutputWidth() int {
 
 func (m Model) outputWidth() int {
 	if m.showSidePanel() {
-		return m.baseOutputWidth() - taskPanelWidth
+		return m.baseOutputWidth() - m.sidePanelWidth()
 	}
 	return m.baseOutputWidth()
+}
+
+// sidePanelWidth is the width of the panel beside the output: the resizable diff
+// panel when it is open, else the fixed jobs and tasks panel.
+func (m Model) sidePanelWidth() int {
+	if m.diffPanel {
+		return m.diffPanelWidth()
+	}
+	return taskPanelWidth
 }
 
 // showSidePanel says whether the side panel has room beside the output. It reads
 // baseOutputWidth, not outputWidth, because outputWidth depends on it. See
 // docs/tui/tasks.md.
 func (m Model) showSidePanel() bool {
+	if m.diffPanel {
+		return m.baseOutputWidth()-m.sidePanelWidth() >= minOutputWithPanel
+	}
 	if len(m.todos[m.sel]) == 0 && len(m.selectedJobs()) == 0 {
 		return false
 	}
@@ -2101,7 +2189,10 @@ func (m Model) View() string {
 	if !m.ready {
 		return "starting…"
 	}
-	body := lipgloss.JoinHorizontal(lipgloss.Top, m.sidebarView(), withEdge(m.paneView(), m.focus == focusOutput))
+	body := withEdge(m.paneView(), m.focus == focusOutput)
+	if !m.sidebarHidden {
+		body = lipgloss.JoinHorizontal(lipgloss.Top, m.sidebarView(), body)
+	}
 	if dialog, ok := m.bodyDialogView(); ok {
 		body = dialog
 	}
@@ -2251,6 +2342,9 @@ func (m Model) outputView() string {
 }
 
 func (m Model) sidePanelView() string {
+	if m.diffPanel {
+		return m.diffPanelView()
+	}
 	var rows []string
 	if jobs := orderJobs(m.selectedJobs()); len(jobs) > 0 {
 		running := 0
@@ -2383,6 +2477,9 @@ func (m Model) barRights(item row) []string {
 
 func (m Model) rightSegs(item row) []barSeg {
 	segs := []barSeg{{item.label, item.style().Background(barBackground)}}
+	if d, ok := m.diffs[item.name]; ok && d.repo && !d.stat.Empty() {
+		segs = append(segs, barSeg{barDiffCount(d.stat), barStyle})
+	}
 	if item.live && item.context > 0 {
 		segs = append(segs, barSeg{contextLabel(item), barMutedStyle})
 	}
