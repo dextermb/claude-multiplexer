@@ -152,7 +152,10 @@ type stopJobOut struct {
 }
 
 func (s *Server) build(caller string, control bool) *sdk.Server {
-	server := sdk.NewServer(&sdk.Implementation{Name: ServerName, Version: version}, nil)
+	server := sdk.NewServer(
+		&sdk.Implementation{Name: ServerName, Version: version},
+		&sdk.ServerOptions{Instructions: instructions()},
+	)
 
 	sdk.AddTool(server, &sdk.Tool{
 		Name:        ToolRename,

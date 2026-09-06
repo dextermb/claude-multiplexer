@@ -18,6 +18,7 @@ name without a migration.
 | [mcp/grant.md](mcp/grant.md) | Which tools need the control grant, what a tool refuses, and two agents in a circle |
 | [mcp/transport.md](mcp/transport.md) | The HTTP server, the token of a session, and what the installed Claude Code was proven to do |
 | [mcp/notices.md](mcp/notices.md) | How a change with no session event behind it still reaches the screen |
+| [mcp/rules.md](mcp/rules.md) | The rules the multiplexer injects into every session, and how to add one |
 
 For the stream between the multiplexer and one child, see
 [protocol.md](./protocol.md). For the manager the tools call, see
