@@ -1123,8 +1123,31 @@ func (m Model) setAllFolds(unfold bool) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) openNewForm() (tea.Model, tea.Cmd) {
-	m.form = newForm(m.opts.DefaultDir, m.opts.DefaultModel, m.opts.DefaultPermissionMode)
+	m.form = newForm(m.newFormDir(), m.opts.DefaultModel, m.opts.DefaultPermissionMode)
 	return m, textinputBlink()
+}
+
+// newFormDir is the directory a new session starts in: the repository root of
+// the selected session group, or the directory of the control session at the
+// root of a control session group. It falls back to the default directory when
+// nothing is selected.
+func (m Model) newFormDir() string {
+	item, ok := m.selectedRow()
+	if !ok {
+		return m.opts.DefaultDir
+	}
+	if creator, ok := strings.CutPrefix(item.group, byPrefix); ok {
+		for _, control := range m.rows {
+			if control.name == creator {
+				return control.dir
+			}
+		}
+		return item.dir
+	}
+	if root, ok := strings.CutPrefix(item.group, dirPrefix); ok && root != "" {
+		return root
+	}
+	return m.opts.DefaultDir
 }
 
 func (m Model) toggleArchived() (tea.Model, tea.Cmd) {
