@@ -100,6 +100,13 @@ type Config struct {
 	// ActiveLayout names the layout every session takes, unless the session
 	// names its own. An empty string takes the built-in defaults.
 	ActiveLayout string `json:"activeLayout,omitempty"`
+	// DefaultModel, DefaultPermissionMode, DefaultEffort, and DefaultControl set
+	// the option each field of the new session form opens on. See
+	// docs/config/new-session.md.
+	DefaultModel          string `json:"defaultModel,omitempty"`
+	DefaultPermissionMode string `json:"defaultPermissionMode,omitempty"`
+	DefaultEffort         string `json:"defaultEffort,omitempty"`
+	DefaultControl        *bool  `json:"defaultControl,omitempty"`
 }
 
 // BlockCapOrDefault reads the cap out of the settings, and gives the default

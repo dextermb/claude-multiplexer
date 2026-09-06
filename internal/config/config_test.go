@@ -125,6 +125,23 @@ func TestTheEditorTerminalField(t *testing.T) {
 	}
 }
 
+func TestTheNewSessionDefaults(t *testing.T) {
+	dir := t.TempDir()
+	path := write(t, dir, "multiplexer",
+		`{"defaultModel": "sonnet", "defaultPermissionMode": "plan", "defaultEffort": "high", "defaultControl": true}`)
+
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.DefaultModel != "sonnet" || cfg.DefaultPermissionMode != "plan" || cfg.DefaultEffort != "high" {
+		t.Fatalf("defaults = %+v, want the file values", cfg)
+	}
+	if cfg.DefaultControl == nil || !*cfg.DefaultControl {
+		t.Fatalf("defaultControl = %v, want true", cfg.DefaultControl)
+	}
+}
+
 func TestTheLadderOrder(t *testing.T) {
 	file := Config{Editor: "from-file"}
 
