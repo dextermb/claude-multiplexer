@@ -134,6 +134,10 @@ var (
 
 	fieldLabelStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
 
+	selectArrowStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("62"))
+
+	selectValueStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("15"))
+
 	questionTextStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("15")).Bold(true)
 
 	emptyStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("244")).Padding(2, 4)

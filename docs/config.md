@@ -49,6 +49,10 @@ a typing mistake.
 | `blockCaps` | A separate cap for one type of block | [config/blocks.md](config/blocks.md) |
 | `layouts` | The named interface layouts, keyed by name | [config/layouts.md](config/layouts.md) |
 | `activeLayout` | The layout every session takes, unless the session names its own | [config/layouts.md](config/layouts.md) |
+| `defaultModel` | The model the new session form opens on | [config/new-session.md](config/new-session.md) |
+| `defaultPermissionMode` | The permission mode the new session form opens on | [config/new-session.md](config/new-session.md) |
+| `defaultEffort` | The effort the new session form opens on | [config/new-session.md](config/new-session.md) |
+| `defaultControl` | `true` when the new session form opens on a control grant | [config/new-session.md](config/new-session.md) |
 
 ## The pages
 
@@ -57,3 +61,4 @@ a typing mistake.
 | [config/editor.md](config/editor.md) | Which editor `s d` opens, terminal against window editors, the file manager, and a launch that fails |
 | [config/blocks.md](config/blocks.md) | The block cap: the default, a cap for one type, the question modal caps, and the tool |
 | [config/layouts.md](config/layouts.md) | The named interface layouts and the global active layout |
+| [config/new-session.md](config/new-session.md) | The option each field of the new session form opens on |
