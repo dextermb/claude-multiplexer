@@ -101,6 +101,9 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.rename != nil {
 		return m.renameKey(msg)
 	}
+	if m.layoutSwitch != nil {
+		return m.layoutSwitchKey(msg)
+	}
 	if m.jobsModal != nil {
 		return m.jobsModalKey(msg)
 	}
@@ -354,6 +357,18 @@ func (m Model) renameKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case formSubmitted:
 		return m.submitRename()
+	}
+	return m, cmd
+}
+
+func (m Model) layoutSwitchKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	result, cmd := m.layoutSwitch.Update(msg)
+	switch result {
+	case formCancelled:
+		m.layoutSwitch = nil
+		return m, nil
+	case formSubmitted:
+		return m.submitLayoutSwitch()
 	}
 	return m, cmd
 }

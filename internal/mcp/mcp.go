@@ -27,6 +27,11 @@ const (
 	ToolUnsetBlockCap   = "unset_block_cap"
 	ToolSetWorkingDir   = "set_working_dir"
 	ToolUnsetWorkingDir = "unset_working_dir"
+	ToolListLayouts     = "list_layouts"
+	ToolSaveLayout      = "save_layout"
+	ToolDeleteLayout    = "delete_layout"
+	ToolSetLayout       = "set_layout"
+	ToolUnsetLayout     = "unset_layout"
 	ToolSend            = "send_message"
 	ToolStop            = "stop_session"
 	ToolArchive         = "archive_session"
@@ -38,7 +43,8 @@ const (
 // the control grant.
 var (
 	OpenTools = []string{ToolRename, ToolList, ToolMessages, ToolListJobs, ToolConfigPath, ToolTemplatePath,
-		ToolSetEditor, ToolUnsetEditor, ToolSetBlockCap, ToolUnsetBlockCap, ToolSetWorkingDir, ToolUnsetWorkingDir}
+		ToolSetEditor, ToolUnsetEditor, ToolSetBlockCap, ToolUnsetBlockCap, ToolSetWorkingDir, ToolUnsetWorkingDir,
+		ToolListLayouts, ToolSaveLayout, ToolDeleteLayout, ToolSetLayout, ToolUnsetLayout}
 	ControlTools = []string{ToolSend, ToolStop, ToolArchive, ToolCreate, ToolStopJob}
 )
 
@@ -53,6 +59,16 @@ var (
 	ErrBadCap   = errors.New("mcp: the block cap must be zero or more rows")
 	ErrCapBoth  = errors.New("mcp: give rows or unlimited, not both")
 	ErrBadType  = errors.New("mcp: the block type must be prompt, message, tool, meta, bash, or error")
+	ErrNoLayout = errors.New("mcp: this tool needs a layout name")
+	ErrBadScope = errors.New("mcp: the scope must be session or all")
+	ErrBadDim   = errors.New("mcp: a layout dimension must be one or more")
+)
+
+// The scopes a layout tool takes. ScopeSession sets the calling session; ScopeAll
+// sets the global default. See docs/mcp/tools.md.
+const (
+	ScopeSession = "session"
+	ScopeAll     = "all"
 )
 
 // AllowedTools names the tools a session may call, in the form Claude Code
@@ -114,6 +130,31 @@ type ConfigPath struct {
 	Target string   `json:"target"`
 }
 
+// LayoutDims are the interface dimensions a layout sets. A nil field takes the
+// built-in default, so a layout may set only some of them. See docs/mcp/tools.md.
+type LayoutDims struct {
+	PromptMin    *int `json:"promptMin,omitempty"`
+	PromptMax    *int `json:"promptMax,omitempty"`
+	SidebarWidth *int `json:"sidebarWidth,omitempty"`
+	TaskWidth    *int `json:"taskWidth,omitempty"`
+	DiffWidth    *int `json:"diffWidth,omitempty"`
+}
+
+// LayoutInfo is one row of list_layouts.
+type LayoutInfo struct {
+	Name string `json:"name"`
+	LayoutDims
+}
+
+// LayoutList is the output of list_layouts: the named layouts, the global active
+// layout, and the layout of the calling session. See docs/mcp/tools.md.
+type LayoutList struct {
+	Session       string       `json:"session"`
+	ActiveGlobal  string       `json:"active_global,omitempty"`
+	ActiveSession string       `json:"active_session,omitempty"`
+	Layouts       []LayoutInfo `json:"layouts"`
+}
+
 // TemplatePath names the directories one session reads a preset prompt from,
 // in the order they are read. See docs/mcp/tools.md.
 type TemplatePath struct {
@@ -143,6 +184,11 @@ type Sessions interface {
 	UnsetBlockCap(bucket, by string) (string, bool, error)
 	SetWorkingDir(path, by string) (string, error)
 	UnsetWorkingDir(by string) (bool, error)
+	Layouts(session string) (LayoutList, error)
+	SaveLayout(name string, dims LayoutDims, by string) (string, error)
+	DeleteLayout(name, by string) (string, bool, error)
+	SetLayout(name, scope, by string) (string, error)
+	UnsetLayout(scope, by string) (string, bool, error)
 	StopJob(target, jobID, by string) (int, error)
 }
 

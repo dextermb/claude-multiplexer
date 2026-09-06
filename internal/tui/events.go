@@ -9,10 +9,15 @@ import (
 )
 
 func (m Model) handleSettings(msg settingsMsg) (tea.Model, tea.Cmd) {
-	if sameCaps(msg.caps, m.caps) {
+	capsChanged := !sameCaps(msg.caps, m.caps)
+	m.caps = msg.caps
+	prev := m.layout
+	m.layouts = msg.layouts
+	m.activeLayout = msg.activeLayout
+	m.applyLayout()
+	if !capsChanged && m.layout == prev {
 		return m, nil
 	}
-	m.caps = msg.caps
 	m.rebuildOutput()
 	return m, nil
 }

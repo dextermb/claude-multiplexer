@@ -96,6 +96,7 @@ var sequenceActions = map[string]action{
 	"l e": Model.expandSidebar,
 
 	"o m": Model.toggleMarkdown,
+	"o l": Model.openLayoutSwitcher,
 
 	"d +": Model.widenDiff,
 	"d -": Model.narrowDiff,

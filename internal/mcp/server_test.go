@@ -14,34 +14,78 @@ import (
 )
 
 type fakeSessions struct {
-	titles      map[string]string
-	sent        []string
-	stopped     []string
-	archived    map[string]bool
-	created     []string
-	list        []mcp.Session
-	messages    map[string][]mcp.Message
-	jobs        map[string][]mcp.Job
-	stoppedJobs []string
-	editor      string
-	terminal    *bool
-	editorPath  string
-	cleared     []string
-	blockCap    *int
-	blockCaps   map[string]*int
-	workingDir  string
-	failWorkDir error
-	failStop    error
-	failStopJob error
+	titles        map[string]string
+	sent          []string
+	stopped       []string
+	archived      map[string]bool
+	created       []string
+	list          []mcp.Session
+	messages      map[string][]mcp.Message
+	jobs          map[string][]mcp.Job
+	stoppedJobs   []string
+	editor        string
+	terminal      *bool
+	editorPath    string
+	cleared       []string
+	blockCap      *int
+	blockCaps     map[string]*int
+	workingDir    string
+	layouts       map[string]mcp.LayoutDims
+	activeLayout  string
+	sessionLayout map[string]string
+	failWorkDir   error
+	failStop      error
+	failStopJob   error
 }
 
 func newFakeSessions() *fakeSessions {
 	return &fakeSessions{
-		titles:   make(map[string]string),
-		archived: make(map[string]bool),
-		messages: make(map[string][]mcp.Message),
-		jobs:     make(map[string][]mcp.Job),
+		titles:        make(map[string]string),
+		archived:      make(map[string]bool),
+		messages:      make(map[string][]mcp.Message),
+		jobs:          make(map[string][]mcp.Job),
+		layouts:       make(map[string]mcp.LayoutDims),
+		sessionLayout: make(map[string]string),
 	}
+}
+
+func (f *fakeSessions) Layouts(session string) (mcp.LayoutList, error) {
+	out := mcp.LayoutList{Session: session, ActiveGlobal: f.activeLayout, ActiveSession: f.sessionLayout[session]}
+	for name, dims := range f.layouts {
+		out.Layouts = append(out.Layouts, mcp.LayoutInfo{Name: name, LayoutDims: dims})
+	}
+	return out, nil
+}
+
+func (f *fakeSessions) SaveLayout(name string, dims mcp.LayoutDims, by string) (string, error) {
+	f.layouts[name] = dims
+	return "/tmp/config.json", nil
+}
+
+func (f *fakeSessions) DeleteLayout(name, by string) (string, bool, error) {
+	_, ok := f.layouts[name]
+	delete(f.layouts, name)
+	return "/tmp/config.json", ok, nil
+}
+
+func (f *fakeSessions) SetLayout(name, scope, by string) (string, error) {
+	if scope == mcp.ScopeAll {
+		f.activeLayout = name
+		return "/tmp/config.json", nil
+	}
+	f.sessionLayout[by] = name
+	return "", nil
+}
+
+func (f *fakeSessions) UnsetLayout(scope, by string) (string, bool, error) {
+	if scope == mcp.ScopeAll {
+		had := f.activeLayout != ""
+		f.activeLayout = ""
+		return "/tmp/config.json", had, nil
+	}
+	_, had := f.sessionLayout[by]
+	delete(f.sessionLayout, by)
+	return "", had, nil
 }
 
 func (f *fakeSessions) SetEditor(editor string, terminal *bool, by string) (string, error) {

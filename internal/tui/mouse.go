@@ -17,7 +17,7 @@ func (m Model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 		if msg.Action != tea.MouseActionPress {
 			return m, nil
 		}
-		if !m.sidebarHidden && msg.X < sidebarWidth {
+		if !m.sidebarHidden && msg.X < m.sidebarCols() {
 			if msg.Button == tea.MouseButtonWheelUp {
 				return m.move(-1)
 			}
@@ -64,7 +64,7 @@ func (m Model) handleLeftMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 			m.setContent()
 			return m, nil
 		}
-		if m.sidebarHidden || msg.X >= sidebarWidth {
+		if m.sidebarHidden || msg.X >= m.sidebarCols() {
 			m.clearSelection()
 			m.focus = focusOutput
 			m.prompt.Blur()

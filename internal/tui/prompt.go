@@ -4,6 +4,8 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
+
+	"github.com/dextermb/claude-multiplexer/internal/config"
 )
 
 func (m Model) promptHeight() int {
@@ -11,12 +13,22 @@ func (m Model) promptHeight() int {
 }
 
 func (m *Model) syncPromptHeight() {
-	rows := wrappedRows(m.prompt.Value(), m.prompt.Width())
-	if rows < promptRowsMin {
-		rows = promptRowsMin
+	min, max := m.layout.PromptMin, m.layout.PromptMax
+	if min < 1 {
+		min = config.DefaultPromptMin
 	}
-	if rows > promptRowsMax {
-		rows = promptRowsMax
+	if max < min {
+		max = config.DefaultPromptMax
+	}
+	if max < min {
+		max = min
+	}
+	rows := wrappedRows(m.prompt.Value(), m.prompt.Width(), max)
+	if rows < min {
+		rows = min
+	}
+	if rows > max {
+		rows = max
 	}
 	if rows == m.prompt.Height() {
 		return
@@ -30,17 +42,20 @@ func (m *Model) syncPromptHeight() {
 }
 
 // wrappedRows counts the display rows of text at width, the way the textarea
-// wraps it; see docs/tui/input.md.
-func wrappedRows(text string, width int) int {
+// wraps it, and stops at max rows; see docs/tui/input.md.
+func wrappedRows(text string, width, max int) int {
 	if width <= 0 {
-		return promptRowsMin
+		return 1
 	}
 	rows := 0
 	for _, line := range strings.Split(text, "\n") {
 		rows += lineRows(line, width)
-		if rows >= promptRowsMax {
-			return promptRowsMax
+		if rows >= max {
+			return max
 		}
+	}
+	if rows < 1 {
+		return 1
 	}
 	return rows
 }
