@@ -74,8 +74,10 @@ starts.
 Press `l c` to hide the whole sidebar. The output pane and the diff panel gain
 its width, so a wide diff has more room. Press `l e` to show the sidebar again,
 and press `l t` to toggle it. A hide moves the focus off the sidebar, to the
-output. The multiplexer does not remember a hide. The sidebar is open when the
-program starts. See [keys.md](./keys.md) and [diff.md](./diff.md).
+output. While the sidebar is hidden, `Tab` and `Esc` skip it, so the focus never
+lands on a pane you cannot see. The multiplexer does not remember a hide. The
+sidebar is open when the program starts. See [keys.md](./keys.md) and
+[diff.md](./diff.md).
 
 ## Live rows and stored rows
 

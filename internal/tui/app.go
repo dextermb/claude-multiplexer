@@ -769,7 +769,7 @@ func (m Model) promptKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if next, cmd, ok := m.stopBusy(); ok {
 			return next, cmd
 		}
-		m.focus = focusSidebar
+		m.focus = m.retreatFocus()
 		m.prompt.Blur()
 		return m, nil
 	case "enter":
@@ -811,7 +811,7 @@ func (m Model) outputKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if next, cmd, ok := m.stopBusy(); ok {
 			return next, cmd
 		}
-		m.focus = focusSidebar
+		m.focus = m.retreatFocus()
 		return m, nil
 	case "enter":
 		if m.blockCursor >= 0 {
@@ -1221,8 +1221,24 @@ func (m Model) toggleFocus() (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 	}
+	// The next pane is the sidebar, but it is skipped when it is hidden, so the
+	// focus continues to the prompt.
+	if m.sidebarHidden {
+		m.focus = focusPrompt
+		m.prompt.Focus()
+		return m, textarea.Blink
+	}
 	m.focus = focusSidebar
 	return m, nil
+}
+
+// retreatFocus is the pane Esc leaves a pane for: the sidebar, or the output
+// when the sidebar is hidden.
+func (m Model) retreatFocus() focusArea {
+	if m.sidebarHidden {
+		return focusOutput
+	}
+	return focusSidebar
 }
 
 func (m Model) send() (tea.Model, tea.Cmd) {
