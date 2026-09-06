@@ -27,15 +27,9 @@ func blocks(lines []render.Line) []block {
 	return out
 }
 
-func markerText(hidden int, under bool) string {
+func markerText(hidden int) string {
 	if hidden <= 0 {
-		if under {
-			return "⋯ show less · enter to close"
-		}
 		return "⋯ show less"
-	}
-	if under {
-		return fmt.Sprintf("⋯ %d more lines · enter to open", hidden)
 	}
 	if hidden == 1 {
 		return "⋯ 1 more line"
@@ -45,9 +39,9 @@ func markerText(hidden int, under bool) string {
 
 func (m Model) markerRow(hidden int, under bool) string {
 	if under {
-		return markerCursorStyle.Width(m.outputWidth()).Render("▸ " + markerText(hidden, true))
+		return markerCursorStyle.Width(m.outputWidth()).Render("▸ " + markerText(hidden))
 	}
-	return markerStyle.Width(m.outputWidth()).Render("  " + markerText(hidden, false))
+	return markerStyle.Width(m.outputWidth()).Render("  " + markerText(hidden))
 }
 
 // capFor gives the resolved cap for a block of this class: -1 never caps, 0

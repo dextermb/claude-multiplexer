@@ -195,7 +195,7 @@ func (d *questionDialog) View(width int, caps map[string]int) string {
 		labelLines, labelHidden := capLines(wrapText(option.Label, textWidth), optionCap, focused)
 		content = append(content, labelLines...)
 		if labelHidden > 0 {
-			content = append(content, hintStyle.Render(markerText(labelHidden, false)))
+			content = append(content, hintStyle.Render(markerText(labelHidden)))
 		}
 		if option.Description != "" {
 			descLines, descHidden := capLines(wrapText(option.Description, textWidth), descriptionCap, focused)
@@ -203,7 +203,7 @@ func (d *questionDialog) View(width int, caps map[string]int) string {
 				content = append(content, hintStyle.Render(line))
 			}
 			if descHidden > 0 {
-				content = append(content, hintStyle.Render(markerText(descHidden, false)))
+				content = append(content, hintStyle.Render(markerText(descHidden)))
 			}
 		}
 		if len(content) == 0 {

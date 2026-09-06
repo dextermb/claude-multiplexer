@@ -48,8 +48,9 @@ Each row shows a fold mark, a status letter, the path, and the file's own
 `D` (deleted), or `R` (renamed). The selected file has a purple background.
 
 `Enter` expands the selected file, and its coloured diff shows below the row.
-`Enter` again collapses it. The diff colours are green for an inserted line, red
-for a deleted line, and blue for a hunk header. The panel drops the git file
+`Enter` again collapses it. `Space` does the same as `Enter` here. The diff
+colours are green for an inserted line, red for a deleted line, and blue for a
+hunk header. The panel drops the git file
 header, because a narrow panel has no room for it. A long line wraps to the panel
 width.
 

@@ -89,6 +89,24 @@ func TestTogglingAFileFetchesThenHidesIt(t *testing.T) {
 	}
 }
 
+func TestSpaceTogglesADiffFileLikeEnter(t *testing.T) {
+	m := diffModel()
+	m.rows = []row{{name: "a", dir: "/tmp/a"}}
+	m.diffs["a"] = diffState{repo: true, files: []git.FileChange{{Status: "M", Path: "app.go"}}}
+
+	next, _ := m.diffKey(key(" "))
+	m = next.(Model)
+	if !m.diffOpen["a"]["app.go"] {
+		t.Fatal("space must open the file like enter")
+	}
+
+	next, _ = m.diffKey(key(" "))
+	m = next.(Model)
+	if m.diffOpen["a"]["app.go"] {
+		t.Fatal("space must close the file again")
+	}
+}
+
 func TestTheDiffTickStopsWhenThePanelCloses(t *testing.T) {
 	m := diffModel()
 	m.rows = []row{{name: "a", dir: "/tmp/a"}}

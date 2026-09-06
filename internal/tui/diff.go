@@ -191,7 +191,7 @@ func (m Model) diffKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.diffJumpDown()
 	case "{", "shift+[":
 		return m.diffJumpUp()
-	case "enter":
+	case "enter", " ":
 		return m.toggleDiffFile()
 	}
 	return m, nil

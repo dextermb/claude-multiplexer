@@ -63,7 +63,7 @@ full, and collapse the token line to a marker. See [../config.md](../config.md).
 ← go: downloading github.com/charmbracelet/bubbletea v1.3.4
   go: downloading github.com/charmbracelet/lipgloss v1.1.0
   … 18 more rows of the body …
-▸ ⋯ 4193 more lines · enter to open
+▸ ⋯ 4193 more lines
 ```
 
 The cap counts the rows the pane draws, after the text is wrapped to the width
@@ -75,7 +75,8 @@ of the block holds its place on the screen while it opens and closes, so the
 text under your eyes does not jump.
 
 **The cursor.** The marker row of one block carries `▸` and a highlight. That is
-the block cursor, and it names the block that `Enter` opens. `]` and `[` move it
+the block cursor, and it names the block that `Enter` opens. `Space` does the
+same as `Enter` here. `]` and `[` move it
 to the next capped block and to the block before, and the pane scrolls to it
 only when it is out of sight. A click on any marker row opens that block.
 

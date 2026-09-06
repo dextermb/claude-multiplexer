@@ -288,6 +288,11 @@ func (m Model) outputKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.focus = focusPrompt
 		m.prompt.Focus()
 		return m, textarea.Blink
+	case " ":
+		if m.blockCursor >= 0 {
+			m.toggleBlock(m.blockCursor)
+		}
+		return m, nil
 	case "]":
 		m.moveBlockCursor(1)
 	case "[":

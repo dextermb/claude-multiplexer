@@ -111,6 +111,26 @@ func TestEnterOpensTheBlockUnderTheCursorAndClosesItAgain(t *testing.T) {
 	}
 }
 
+func TestSpaceOpensTheBlockUnderTheCursorAndClosesItAgain(t *testing.T) {
+	m := outputModel(t)
+	m.appendOutput([]render.Line{{Class: render.ClassToolResult, Text: body(50)}})
+	if m.blockCursor < 0 {
+		t.Fatal("the cursor must sit on the capped block")
+	}
+
+	m, _ = step(t, m, key(" "))
+	view := visible(m.outputText)
+	if !strings.Contains(view, "line 50") {
+		t.Fatalf("space must open the block like enter:\n%s", view)
+	}
+
+	m, _ = step(t, m, key(" "))
+	view = visible(m.outputText)
+	if strings.Contains(view, "line 50") {
+		t.Fatalf("space must close the block again:\n%s", view)
+	}
+}
+
 func TestTheBracketKeysWalkTheCappedBlocksAndStopAtTheEnds(t *testing.T) {
 	m := outputModel(t)
 	m.appendOutput([]render.Line{{Class: render.ClassToolResult, Text: body(30)}})
