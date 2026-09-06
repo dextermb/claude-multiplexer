@@ -57,9 +57,10 @@ The panel is narrow (about 30 columns), so the diff reads best for a small file.
 `pgup` and `pgdown` scroll the panel, through the list and the open diffs. The
 arrow keys, or `j` and `k`, move the selected file. See [keys.md](keys.md).
 
-The panel is not modal. `Tab` moves the focus to the prompt and keeps the panel
-open, so you send prompts to the agent while the diff stays on the screen. `s d`
-moves the focus back to the panel, and `s d` again closes it. `Esc` closes it.
+The panel is not modal. While the panel is open, `Tab` adds it to the focus
+cycle: sidebar, prompt, output, then the diff panel. So you tab to the prompt to
+send the agent a message, and the diff stays on the screen. `s d` also moves the
+focus to the panel, and `s d` again closes it. `Esc` closes it.
 
 ## The panel stays current
 

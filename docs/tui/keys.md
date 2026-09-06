@@ -117,7 +117,7 @@ the panel holds the focus, these keys work:
 | `j`, `k`, `up`, `down` | Move the selected file |
 | `Enter` | Expand or collapse the selected file |
 | `pgup`, `pgdown` | Scroll the panel |
-| `Tab` | Move to the prompt, and keep the panel open |
+| `Tab` | Move the focus on, and keep the panel open |
 | `s d` | Move the focus to the panel, or close it when it holds the focus |
 | `Esc` | Close the panel |
 
