@@ -175,11 +175,12 @@ var (
 	barAddStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("42")).Background(barBackground)
 	barDelStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("203")).Background(barBackground)
 
-	diffAddStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("42"))
-	diffDelStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("203"))
-	diffHunkStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("39"))
-	diffMetaStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
-	diffNumStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+	diffAddStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("42"))
+	diffDelStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("203"))
+	diffHunkStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("39"))
+	diffMetaStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
+	diffNumStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+	diffCurNumStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("252")).Bold(true)
 )
 
 func classStyle(class render.Class) lipgloss.Style {

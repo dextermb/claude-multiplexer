@@ -223,6 +223,207 @@ func TestArrowsScrollAndJKPickFiles(t *testing.T) {
 	}
 }
 
+func longDiffModel(t *testing.T) Model {
+	t.Helper()
+	m := diffModel()
+	m.height = 20
+	m.diffs["a"] = diffState{repo: true, files: []git.FileChange{
+		{Status: "M", Path: "f0"},
+		{Status: "M", Path: "f1"},
+	}}
+	m.diffOpen["a"] = map[string]bool{"f0": true}
+	body := "@@ -1,100 +1,100 @@\n"
+	for i := range 100 {
+		body += "+line " + strconv.Itoa(i) + "\n"
+	}
+	m.fileDiffs["a"] = map[string]string{"f0": body}
+	if m.selectedBodyLen() <= m.bodyHeight() {
+		t.Fatalf("the open diff must be taller than the viewport (%d vs %d)", m.selectedBodyLen(), m.bodyHeight())
+	}
+	return m
+}
+
+func TestJScrollsAnOpenDiffThenMovesToTheNextFile(t *testing.T) {
+	m := longDiffModel(t)
+
+	next, _ := m.diffKey(key("j"))
+	m = next.(Model)
+	if m.diffSel != 0 {
+		t.Fatalf("j in a long open diff must not move the file yet, got %d", m.diffSel)
+	}
+	if m.diffScroll == 0 {
+		t.Fatal("j must scroll through the open diff")
+	}
+
+	for range 500 {
+		if m.diffSel == 1 {
+			break
+		}
+		next, _ = m.diffKey(key("j"))
+		m = next.(Model)
+	}
+	if m.diffSel != 1 {
+		t.Fatal("j at the bottom of the diff must move to the next file")
+	}
+}
+
+func TestKEntersThePreviousOpenDiffAtItsBottom(t *testing.T) {
+	m := longDiffModel(t)
+	m.diffSel = 1
+	m.ensureDiffSelVisible()
+
+	next, _ := m.diffKey(key("k"))
+	m = next.(Model)
+	if m.diffSel != 0 {
+		t.Fatalf("k must move to the previous file, got %d", m.diffSel)
+	}
+
+	row := m.diffFileLine(0)
+	last := row + m.selectedBodyLen()
+	if last < m.diffScroll || last >= m.diffScroll+m.bodyHeight() {
+		t.Fatalf("k must reveal the bottom of the previous diff, scroll %d last %d", m.diffScroll, last)
+	}
+	if row >= m.diffScroll {
+		t.Fatal("k must enter the previous diff at its bottom, not its top")
+	}
+
+	before := m.diffScroll
+	next, _ = m.diffKey(key("k"))
+	m = next.(Model)
+	if m.diffScroll != before-1 {
+		t.Fatalf("k must then scroll up the diff, got %d want %d", m.diffScroll, before-1)
+	}
+}
+
+func TestTheCurrentLineIsMarked(t *testing.T) {
+	m := diffModel()
+	m.height = 30
+	m.diffs["a"] = diffState{repo: true, files: []git.FileChange{{Status: "M", Path: "f0"}}}
+	m.diffOpen["a"] = map[string]bool{"f0": true}
+	m.fileDiffs["a"] = map[string]string{"f0": "@@ -1,3 +1,3 @@\n+one\n+two\n+three\n"}
+
+	const target = 4 // header, blank, row, hunk, then "+one"
+
+	m.diffScroll = target
+	marked := m.diffPanelLines()[target]
+	m.diffScroll = 0
+	plain := m.diffPanelLines()[target]
+	if marked == plain {
+		t.Fatalf("numbers off: the current line must render differently:\n marked %q\n plain  %q", marked, plain)
+	}
+
+	m.diffLineNumbers = true
+	m.diffScroll = target
+	markedNum := m.diffPanelLines()[target]
+	m.diffScroll = 0
+	plainNum := m.diffPanelLines()[target]
+	if markedNum == plainNum {
+		t.Fatalf("numbers on: the current line number must render differently:\n marked %q\n plain  %q", markedNum, plainNum)
+	}
+}
+
+func TestBracketsJumpBetweenTheEmptyLines(t *testing.T) {
+	m := diffModel()
+	m.height = 12
+	m.diffs["a"] = diffState{repo: true, files: []git.FileChange{{Status: "M", Path: "f0"}}}
+	m.diffOpen["a"] = map[string]bool{"f0": true}
+
+	var b strings.Builder
+	b.WriteString("@@ -1,60 +1,60 @@\n")
+	for i := range 60 {
+		if i%10 == 0 {
+			b.WriteString("+\n")
+		} else {
+			b.WriteString("+line " + strconv.Itoa(i) + "\n")
+		}
+	}
+	m.fileDiffs["a"] = map[string]string{"f0": b.String()}
+
+	rows := m.diffEmptyRows()
+	if len(rows) < 3 {
+		t.Fatalf("expected several empty rows, got %v", rows)
+	}
+
+	next, _ := m.diffKey(key("}"))
+	m = next.(Model)
+	if m.diffScroll != rows[0] {
+		t.Fatalf("shift+] must jump to the first empty line %d, got %d", rows[0], m.diffScroll)
+	}
+
+	next, _ = m.diffKey(key("}"))
+	m = next.(Model)
+	if m.diffScroll != rows[1] {
+		t.Fatalf("shift+] again must jump to the next empty line %d, got %d", rows[1], m.diffScroll)
+	}
+
+	next, _ = m.diffKey(key("{"))
+	m = next.(Model)
+	if m.diffScroll != rows[0] {
+		t.Fatalf("shift+[ must jump back to the previous empty line %d, got %d", rows[0], m.diffScroll)
+	}
+}
+
+func TestGAndCapitalGJumpTheFileListWhenClosed(t *testing.T) {
+	m := diffModel()
+	files := make([]git.FileChange, 6)
+	for i := range files {
+		files[i] = git.FileChange{Status: "M", Path: "f" + strconv.Itoa(i)}
+	}
+	m.diffs["a"] = diffState{repo: true, files: files}
+	m.diffSel = 2
+
+	next, _ := m.diffKey(key("G"))
+	m = next.(Model)
+	if m.diffSel != 5 {
+		t.Fatalf("G with no file open must select the last file, got %d", m.diffSel)
+	}
+
+	next, _ = m.diffKey(key("g"))
+	m = next.(Model)
+	if m.diffSel != 0 {
+		t.Fatalf("g with no file open must select the first file, got %d", m.diffSel)
+	}
+	if m.diffScroll != 0 {
+		t.Fatalf("g must scroll the list to the top, got %d", m.diffScroll)
+	}
+}
+
+func TestGAndCapitalGScrollTheDiffWhenOpen(t *testing.T) {
+	m := diffModel()
+	m.height = 30
+	files := make([]git.FileChange, 3)
+	for i := range files {
+		files[i] = git.FileChange{Status: "M", Path: "f" + strconv.Itoa(i)}
+	}
+	m.diffs["a"] = diffState{repo: true, files: files}
+	m.diffOpen["a"] = map[string]bool{"f0": true}
+	body := "@@ -1 +1 @@\n"
+	for i := range 200 {
+		body += "+line " + strconv.Itoa(i) + "\n"
+	}
+	m.fileDiffs["a"] = map[string]string{"f0": body}
+	m.diffSel = 0
+
+	next, _ := m.diffKey(key("G"))
+	m = next.(Model)
+	if m.diffSel != 0 {
+		t.Fatalf("G with a file open must not move the selection, got %d", m.diffSel)
+	}
+	if m.diffScroll == 0 {
+		t.Fatal("G with a file open must scroll to the bottom of the diff")
+	}
+	bottom := m.diffScroll
+
+	next, _ = m.diffKey(key("g"))
+	m = next.(Model)
+	if m.diffScroll != 0 {
+		t.Fatalf("g with a file open must scroll to the top, got %d", m.diffScroll)
+	}
+	if bottom <= 0 {
+		t.Fatal("the diff must be long enough to scroll")
+	}
+}
+
 func TestResizingTheDiffPanelPersists(t *testing.T) {
 	m, mgr := newTestModel(t, "")
 	m = start(t, m, 160, 30)
