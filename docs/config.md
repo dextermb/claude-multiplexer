@@ -2,7 +2,7 @@
 
 One file holds the settings that are not a flag on the command line: the editor,
 which `s d` opens on the working directory of the selected session, the block cap
-of the session pane, and the interface layouts. See [tui/keys.md](tui/keys.md).
+of the session pane, and the interface layouts.
 
 ## Where the file is
 
@@ -36,208 +36,24 @@ a typing mistake.
 {
   "editor": "nvim",
   "editorTerminal": true,
-  "blockCap": 20
-}
-```
-
-| Field | What it holds |
-|---|---|
-| `editor` | The command line that opens a directory, such as `code -n` |
-| `editorTerminal` | `true` when the editor draws in the terminal. Leave it out to let the list below decide |
-| `blockCap` | The rows one block draws in the session pane before the pane caps it. `0` caps nothing |
-| `layouts` | The named interface layouts, keyed by name. See the layouts below |
-| `activeLayout` | The layout every session takes, unless the session names its own |
-
-## Which editor
-
-Five sources name the editor. The first one that names one wins:
-
-| Order | Source | Example |
-|---|---|---|
-| 1 | `--editor` | `multiplexer --editor "code -n"` |
-| 2 | `$VISUAL` | `export VISUAL=nvim` |
-| 3 | `$EDITOR` | `export EDITOR=vi` |
-| 4 | `editor` in the settings file | `{"editor": "zed"}` |
-| 5 | `env.VISUAL`, then `env.EDITOR`, in the settings of Claude Code | `{"env": {"EDITOR": "zed --wait"}}` |
-
-When no source names an editor, `s d` opens nothing, and the status bar reads
-`no editor: set --editor, $EDITOR, or the config file`.
-
-### The settings of Claude Code
-
-Many people already name their editor in `~/.claude/settings.json`, in the
-`env` block that Claude Code puts into the environment of a shell. So the last
-rung reads that file, and you get an editor without setting one twice.
-
-`$CLAUDE_CONFIG_DIR` moves the file, the same as it does for Claude Code
-itself. The program reads the global file only, not the settings of a project.
-
-The file belongs to another program, so this one is careful with it: it never
-writes it, and a file that is missing, or that does not parse, is not an error.
-It simply names no editor. `set_editor` always writes the settings file of the
-multiplexer.
-
-The value is a command line, split on the spaces, such as `code -n`. The
-directory is added as the last argument. The command runs without a shell, so
-quotes, variables, and pipes are not read.
-
-A session can write these two fields itself, with the `set_editor` tool, and
-take them out again with `unset_editor`. `set_editor` makes the file when there
-is none, and `unset_editor` makes none. The interface reads the file at each
-`s d`, so the next one opens the new editor. A flag still wins, because the
-flag sits above the file. See [mcp/tools.md](mcp/tools.md).
-
-## The block cap
-
-The session pane draws at most so many rows of one block, and then a marker
-row that opens the rest in place. A block is one piece of content: your prompt,
-one message, one tool result, or the output of a `!` command. See
-[tui/output.md](tui/output.md).
-
-### The default cap, for every type
-
-The `blockCap` default caps every block the same way. Three sources name it, and
-the first one that names one wins:
-
-| Order | Source | Example |
-|---|---|---|
-| 1 | `--block-cap` | `multiplexer --block-cap 40` |
-| 2 | `blockCap` in the settings file | `{"blockCap": 40}` |
-| 3 | The built-in default | 20 rows |
-
-A default of `0` caps nothing, so every block draws in full. A default below
-zero is an error, from the flag and from the tool.
-
-### A cap for one type
-
-`blockCaps` sets a separate cap for one type of block. A block takes the bucket
-of its first line:
-
-| Bucket | The content it holds |
-|---|---|
-| `prompt` | Your prompt. |
-| `message` | The text and the thinking of the assistant. |
-| `tool` | A tool call, and its result. |
-| `meta` | The session line, the token line, and the result line. |
-| `bash` | The output of a `!` command. |
-| `error` | An error, and a line from stderr. |
-
-Each bucket takes one of three states:
-
-- a number `N` draws `N` rows, then the marker. `0` draws only the marker, so
-  you open the block to read any of it.
-- `null` never caps the bucket, so the block draws in full.
-- no entry takes the `blockCap` default.
-
-For example, this file collapses the token and result lines to a marker, and
-never caps a message:
-
-```json
-{
   "blockCap": 20,
-  "blockCaps": {
-    "meta": 0,
-    "message": null
-  }
+  "activeLayout": "wide"
 }
 ```
 
-The `--block-cap-type name=rows` flag sets one bucket for one run (`rows` of `-1`
-means `null`). The flag is repeatable, and it wins over the file.
-
-### The question modal caps
-
-Two more buckets cap the question modal, not the pane. A long option label or a
-long option description wraps across lines, and these buckets cap the lines it
-draws before a marker:
-
-| Bucket | The content it holds |
-|---|---|
-| `question_option` | One option label in the question modal. |
-| `question_description` | One option description in the question modal. |
-
-They take the same three states as the pane buckets, but an absent bucket takes
-a default of `2` lines, not the `blockCap` default. So the global `blockCap` does
-not reach them. The option under the cursor draws in full, so you read the rest
-by moving to it. See [tui/input.md](tui/input.md).
-
-### A session writes the cap
-
-A session can write the cap itself, with the `set_block_cap` tool, and take it
-out again with `unset_block_cap`. Both tools take an optional `type`, so a
-session sets or clears one bucket, or the default. The interface reads the file
-again at each notice, so a new cap reaches the pane at once, and the pane draws
-itself again. See [mcp/tools.md](mcp/tools.md).
-
-## The terminal editor, and the window editor
-
-A terminal editor (vim, nvim, helix) draws in the terminal, so the interface
-steps aside: it releases the terminal, the editor runs in its place, and the
-interface draws itself again when the editor stops.
-
-A window editor (code, zed) has its own window, so it starts beside the
-interface. The interface stays on the screen, and the status bar shows
-`opened <dir>`. The editor keeps running after the interface stops.
-
-Three sources say which kind an editor is. The first one that speaks wins:
-
-| Order | Source | Value |
+| Field | What it holds | Read it in |
 |---|---|---|
-| 1 | `--editor-terminal` | `yes`, `no`, or `auto` (the default) |
-| 2 | `editorTerminal` in the settings file | `true` or `false` |
-| 3 | The list of known terminal editors | `ed`, `emacs`, `helix`, `hx`, `joe`, `kak`, `micro`, `nano`, `nvim`, `vi`, `vim`, `vis` |
+| `editor` | The command line that opens a directory, such as `code -n` | [config/editor.md](config/editor.md) |
+| `editorTerminal` | `true` when the editor draws in the terminal | [config/editor.md](config/editor.md) |
+| `blockCap` | The rows one block draws in the session pane before the pane caps it | [config/blocks.md](config/blocks.md) |
+| `blockCaps` | A separate cap for one type of block | [config/blocks.md](config/blocks.md) |
+| `layouts` | The named interface layouts, keyed by name | [config/layouts.md](config/layouts.md) |
+| `activeLayout` | The layout every session takes, unless the session names its own | [config/layouts.md](config/layouts.md) |
 
-The list reads the base name of the command, so `/usr/local/bin/nvim` is a
-terminal editor. An editor the list does not name is a window editor, so say
-`--editor-terminal yes` for a terminal editor that is not on the list.
+## The pages
 
-## The file manager
-
-`s f` opens the working directory in the file manager. It is not a setting,
-because each platform has one:
-
-| Platform | Command |
+| Page | Read it for |
 |---|---|
-| darwin | `open <dir>` |
-| windows | `explorer <dir>` |
-| other | `xdg-open <dir>` |
-
-The file manager always starts beside the interface, and never takes the
-terminal.
-
-## The layouts
-
-A layout is a named set of interface dimensions. `layouts` holds the named
-layouts, and `activeLayout` names the one every session takes. A session names
-its own layout in its `meta.json`, which overrides `activeLayout`. See
-[tui/layouts.md](tui/layouts.md) and [manager.md](manager.md).
-
-```json
-{
-  "activeLayout": "wide",
-  "layouts": {
-    "wide":    { "sidebarWidth": 34, "diffWidth": 60, "promptMax": 6 },
-    "compact": { "sidebarWidth": 20, "taskWidth": 24, "promptMax": 2 }
-  }
-}
-```
-
-| Field | What it sets | Built-in default |
-|---|---|---|
-| `promptMin` | The least rows the prompt bar draws | 1 |
-| `promptMax` | The most rows the prompt bar grows to | 4 |
-| `sidebarWidth` | The columns of the session list sidebar | 26 |
-| `taskWidth` | The columns of the task and background job panel | 32 |
-| `diffWidth` | The columns of the diff panel | 32 |
-
-A layout sets only the fields it holds, and the rest take the built-in default.
-The multiplexer resolves the dimensions in three steps: the session layout, then
-`activeLayout`, then the built-in defaults. The `save_layout`, `set_layout`, and
-other tools write these fields. See [mcp/tools.md](mcp/tools.md).
-
-## When a program does not start
-
-A command that does not start — no such binary, or no permission — leaves the
-reason in the status bar, such as
-`editor: exec: "zed": executable file not found in $PATH`. The interface keeps
-running.
+| [config/editor.md](config/editor.md) | Which editor `s d` opens, terminal against window editors, the file manager, and a launch that fails |
+| [config/blocks.md](config/blocks.md) | The block cap: the default, a cap for one type, the question modal caps, and the tool |
+| [config/layouts.md](config/layouts.md) | The named interface layouts and the global active layout |
