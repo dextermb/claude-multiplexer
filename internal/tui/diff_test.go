@@ -298,6 +298,42 @@ func TestSelectingAFileScrollsItIntoView(t *testing.T) {
 	}
 }
 
+func TestTabSkipsTheHiddenSidebar(t *testing.T) {
+	m, mgr := newTestModel(t, "")
+	m = start(t, m, 160, 30)
+	m, _ = step(t, m, key("esc"))
+	m = spawn(t, m, mgr, "alpha", t.TempDir())
+
+	next, _ := m.collapseSidebar()
+	m = next.(Model)
+	m.focus = focusOutput
+
+	next, _ = m.toggleFocus()
+	m = next.(Model)
+	if m.focus != focusPrompt {
+		t.Fatalf("Tab from the output must skip the hidden sidebar and reach the prompt, got %v", m.focus)
+	}
+
+	for i := 0; i < 5; i++ {
+		next, _ = m.toggleFocus()
+		m = next.(Model)
+		if m.focus == focusSidebar {
+			t.Fatalf("cycle step %d landed on the hidden sidebar", i)
+		}
+	}
+}
+
+func TestEscDoesNotRetreatToTheHiddenSidebar(t *testing.T) {
+	m := Model{sidebarHidden: true}
+	if m.retreatFocus() == focusSidebar {
+		t.Fatal("Esc must not retreat to the hidden sidebar")
+	}
+	m.sidebarHidden = false
+	if m.retreatFocus() != focusSidebar {
+		t.Fatal("Esc retreats to the sidebar when it is shown")
+	}
+}
+
 func TestCollapsingTheSidebarReclaimsWidth(t *testing.T) {
 	m, mgr := newTestModel(t, "")
 	m = start(t, m, 120, 30)
