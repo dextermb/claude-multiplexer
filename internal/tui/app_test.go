@@ -94,6 +94,31 @@ func key(name string) tea.KeyMsg {
 	return tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(name)}
 }
 
+func TestNewFormDir(t *testing.T) {
+	m := Model{opts: Options{DefaultDir: "/default"}}
+	m.rows = []row{
+		{name: "control", dir: "/repos/one", group: byPrefix + "control"},
+		{name: "child", dir: "/tmp/child", group: byPrefix + "control"},
+		{name: "plain", dir: "/repos/two/sub", group: dirPrefix + "/repos/two"},
+	}
+
+	cases := []struct {
+		sel  string
+		want string
+	}{
+		{sel: "", want: "/default"},
+		{sel: "child", want: "/repos/one"},
+		{sel: "control", want: "/repos/one"},
+		{sel: "plain", want: "/repos/two"},
+	}
+	for _, tc := range cases {
+		m.sel = tc.sel
+		if got := m.newFormDir(); got != tc.want {
+			t.Errorf("newFormDir with sel %q = %q, want %q", tc.sel, got, tc.want)
+		}
+	}
+}
+
 var ansiCodes = regexp.MustCompile(`\x1b\[[0-9;]*m`)
 
 func visible(text string) string {
