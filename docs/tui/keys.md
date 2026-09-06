@@ -69,6 +69,7 @@ output.
 | `[`, `]` (in the output) | Move the cursor between the capped blocks |
 | `i` (in the output) | Move to the prompt |
 | `ctrl+j` | Add a new line inside the prompt |
+| `↑`, `↓` (in the prompt) | Recall an older or a newer prompt you sent |
 | `Shift+Tab` (in the prompt) | Walk the paths that match an `@` word |
 | `Esc` | Stop a running turn, leave the prompt or the output, close a dialog, or cancel a sequence |
 | `n` or `ctrl+n` | Open the new session form |
