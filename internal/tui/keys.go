@@ -77,7 +77,8 @@ var sequenceActions = map[string]action{
 	"s x": Model.askToStop,
 	"s j": Model.openJobs,
 	"s f": Model.openInFiles,
-	"s d": Model.openInEditor,
+	"s d": Model.toggleDiffPanel,
+	"s E": Model.openInEditor,
 	"s m": func(m Model) (tea.Model, tea.Cmd) { return m.openChoice(settingModel) },
 	"s e": func(m Model) (tea.Model, tea.Cmd) { return m.openChoice(settingEffort) },
 	"s p": func(m Model) (tea.Model, tea.Cmd) { return m.openChoice(settingMode) },
@@ -86,6 +87,9 @@ var sequenceActions = map[string]action{
 	"l F": Model.foldOthers,
 	"l u": Model.unfoldAll,
 	"l a": Model.toggleArchived,
+	"l t": Model.toggleSidebar,
+	"l c": Model.collapseSidebar,
+	"l e": Model.expandSidebar,
 
 	"o m": Model.toggleMarkdown,
 }

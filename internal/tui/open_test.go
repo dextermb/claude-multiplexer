@@ -91,7 +91,7 @@ func TestTheEditorKeyOpensAWindowEditor(t *testing.T) {
 	seen := recordLaunches(t)
 	m, dir := openModel(t, "code -n")
 
-	m, cmd := chord(t, m, "s", "d")
+	m, cmd := chord(t, m, "s", "E")
 	m = run(t, m, cmd)
 
 	if len(*seen) != 1 {
@@ -113,7 +113,7 @@ func TestTheEditorKeyGivesATerminalEditorTheTerminal(t *testing.T) {
 	seen := recordLaunches(t)
 	m, dir := openModel(t, "nvim")
 
-	m, cmd := chord(t, m, "s", "d")
+	m, cmd := chord(t, m, "s", "E")
 	m = run(t, m, cmd)
 
 	if len(*seen) != 1 {
@@ -131,7 +131,7 @@ func TestTheEditorKeyReportsThatNoEditorIsSet(t *testing.T) {
 	seen := recordLaunches(t)
 	m, _ := openModel(t, "")
 
-	m, cmd := chord(t, m, "s", "d")
+	m, cmd := chord(t, m, "s", "E")
 	if cmd != nil {
 		t.Fatal("no editor must start nothing")
 	}
@@ -154,10 +154,11 @@ func TestAFailedLaunchShowsTheError(t *testing.T) {
 
 func TestTheKeyListNamesBothKeys(t *testing.T) {
 	m, _ := openModel(t, "")
+	m = start(t, m, 160, 60)
 	m, _ = step(t, m, key("?"))
 
 	view := m.View()
-	for _, want := range []string{"s f", "s d", "file manager", "editor"} {
+	for _, want := range []string{"s f", "s E", "file manager", "editor"} {
 		if !strings.Contains(view, want) {
 			t.Errorf("the key list does not name %q:\n%s", want, view)
 		}
@@ -208,7 +209,7 @@ func TestTheEditorKeyReadsTheSettingsFile(t *testing.T) {
 	m, dir := openModel(t, "")
 	m = settingsFile(t, m, `{"editor": "zed"}`)
 
-	m, cmd := chord(t, m, "s", "d")
+	m, cmd := chord(t, m, "s", "E")
 	m = run(t, m, cmd)
 
 	if len(*seen) != 1 {
@@ -224,13 +225,13 @@ func TestTheEditorKeyFollowsAFileWrittenAfterTheStart(t *testing.T) {
 	m, dir := openModel(t, "")
 	m = settingsFile(t, m, `{"editor": "zed"}`)
 
-	m, cmd := chord(t, m, "s", "d")
+	m, cmd := chord(t, m, "s", "E")
 	m = run(t, m, cmd)
 
 	if err := os.WriteFile(m.opts.ConfigPaths[0], []byte(`{"editor": "nvim"}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	m, cmd = chord(t, m, "s", "d")
+	m, cmd = chord(t, m, "s", "E")
 	m = run(t, m, cmd)
 
 	if len(*seen) != 2 {
@@ -250,7 +251,7 @@ func TestTheFlagStillBeatsTheSettingsFile(t *testing.T) {
 	m, dir := openModel(t, "code")
 	m = settingsFile(t, m, `{"editor": "zed"}`)
 
-	m, cmd := chord(t, m, "s", "d")
+	m, cmd := chord(t, m, "s", "E")
 	m = run(t, m, cmd)
 
 	if got := (*seen)[0].line; got != "code "+dir {
@@ -263,7 +264,7 @@ func TestABadSettingsFileShowsTheReason(t *testing.T) {
 	m, _ := openModel(t, "")
 	m = settingsFile(t, m, "{editor: zed}")
 
-	m, cmd := chord(t, m, "s", "d")
+	m, cmd := chord(t, m, "s", "E")
 	if cmd != nil {
 		t.Fatal("a file that does not parse must start nothing")
 	}
@@ -291,7 +292,7 @@ func TestTheEditorKeyFallsBackToTheClaudeSettings(t *testing.T) {
 	m, dir := openModel(t, "")
 	m = claudeFile(t, m, `{"env": {"EDITOR": "zed --wait"}}`)
 
-	m, cmd := chord(t, m, "s", "d")
+	m, cmd := chord(t, m, "s", "E")
 	m = run(t, m, cmd)
 
 	if len(*seen) != 1 {
@@ -308,7 +309,7 @@ func TestTheSettingsFileBeatsTheClaudeSettingsAtTheKeyPress(t *testing.T) {
 	m = settingsFile(t, m, `{"editor": "nvim"}`)
 	m = claudeFile(t, m, `{"env": {"EDITOR": "zed"}}`)
 
-	m, cmd := chord(t, m, "s", "d")
+	m, cmd := chord(t, m, "s", "E")
 	m = run(t, m, cmd)
 
 	if got := (*seen)[0].line; got != "nvim "+dir {
@@ -328,7 +329,7 @@ func TestTheKeysOpenTheWorkingDirectory(t *testing.T) {
 	}
 	m.refresh()
 
-	m, cmd := chord(t, m, "s", "d")
+	m, cmd := chord(t, m, "s", "E")
 	m = run(t, m, cmd)
 	m, cmd = chord(t, m, "s", "f")
 	m = run(t, m, cmd)
@@ -361,7 +362,7 @@ func TestTheKeysFallBackWhenTheWorkingDirectoryIsGone(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	m, cmd := chord(t, m, "s", "d")
+	m, cmd := chord(t, m, "s", "E")
 	m = run(t, m, cmd)
 
 	if got := (*seen)[0].line; got != "code "+dir {
@@ -373,7 +374,7 @@ func TestTheKeysUseTheStartDirectoryWithNoWorkingDirectory(t *testing.T) {
 	seen := recordLaunches(t)
 	m, dir := openModel(t, "code")
 
-	m, cmd := chord(t, m, "s", "d")
+	m, cmd := chord(t, m, "s", "E")
 	m = run(t, m, cmd)
 
 	if got := (*seen)[0].line; got != "code "+dir {

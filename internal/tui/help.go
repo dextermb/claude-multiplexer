@@ -31,7 +31,8 @@ var bindings = []binding{
 	{"The session (s)", "s", "s x", "Stop the selected session, after a confirmation", "x stop"},
 	{"The session (s)", "s", "s j", "Show the background jobs of the selected session", "j jobs"},
 	{"The session (s)", "s", "s f", "Open the working directory in the file manager", "f folder"},
-	{"The session (s)", "s", "s d", "Open the working directory in the editor", "d editor"},
+	{"The session (s)", "s", "s d", "Show the working-tree diff of the selected session", "d diff"},
+	{"The session (s)", "s", "s E", "Open the working directory in the editor", "E editor"},
 	{"The session (s)", "s", "s m", "Change the model", "m model"},
 	{"The session (s)", "s", "s e", "Change the effort (the thinking budget)", "e effort"},
 	{"The session (s)", "s", "s p", "Change the permission mode", "p mode"},
@@ -40,6 +41,9 @@ var bindings = []binding{
 	{"The list (l)", "l", "l F", "Fold every group but this one", "F others"},
 	{"The list (l)", "l", "l u", "Unfold every group", "u unfold"},
 	{"The list (l)", "l", "l a", "Show or hide the archived sessions", "a archived"},
+	{"The list (l)", "l", "l t", "Hide or show the sidebar", "t sidebar"},
+	{"The list (l)", "l", "l c", "Hide the sidebar, for more pane width", "c hide"},
+	{"The list (l)", "l", "l e", "Show the sidebar again", "e show"},
 
 	{"The output pane (o)", "o", "o m", "Switch between rendered markdown and raw text", "m markdown"},
 
