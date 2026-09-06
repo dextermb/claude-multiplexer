@@ -103,6 +103,61 @@ type workingDirOut struct {
 	Message string `json:"message"`
 }
 
+type listLayoutsIn struct {
+	Session string `json:"session,omitempty" jsonschema:"the session to read the active layout of; empty means this session"`
+}
+
+type saveLayoutIn struct {
+	Name         string `json:"name" jsonschema:"the name of the layout to create or replace"`
+	PromptMin    *int   `json:"promptMin,omitempty" jsonschema:"the least rows the prompt bar draws; leave it out to keep the current value"`
+	PromptMax    *int   `json:"promptMax,omitempty" jsonschema:"the most rows the prompt bar grows to; leave it out to keep the current value"`
+	SidebarWidth *int   `json:"sidebarWidth,omitempty" jsonschema:"the columns of the session list sidebar; leave it out to keep the current value"`
+	TaskWidth    *int   `json:"taskWidth,omitempty" jsonschema:"the columns of the task and background job panel; leave it out to keep the current value"`
+	DiffWidth    *int   `json:"diffWidth,omitempty" jsonschema:"the columns of the diff panel; leave it out to keep the current value"`
+}
+
+type saveLayoutOut struct {
+	OK      bool   `json:"ok"`
+	Path    string `json:"path"`
+	Name    string `json:"name"`
+	Message string `json:"message"`
+}
+
+type deleteLayoutIn struct {
+	Name string `json:"name" jsonschema:"the name of the layout to remove"`
+}
+
+type deleteLayoutOut struct {
+	OK      bool   `json:"ok"`
+	Path    string `json:"path"`
+	Changed bool   `json:"changed"`
+	Message string `json:"message"`
+}
+
+type setLayoutIn struct {
+	Name  string `json:"name" jsonschema:"the name of the layout to activate"`
+	Scope string `json:"scope,omitempty" jsonschema:"'session' sets this session, 'all' sets the global default; 'session' by default"`
+}
+
+type setLayoutOut struct {
+	OK      bool   `json:"ok"`
+	Path    string `json:"path,omitempty"`
+	Scope   string `json:"scope"`
+	Message string `json:"message"`
+}
+
+type unsetLayoutIn struct {
+	Scope string `json:"scope,omitempty" jsonschema:"'session' clears this session, 'all' clears the global default; 'session' by default"`
+}
+
+type unsetLayoutOut struct {
+	OK      bool   `json:"ok"`
+	Path    string `json:"path,omitempty"`
+	Scope   string `json:"scope"`
+	Changed bool   `json:"changed"`
+	Message string `json:"message"`
+}
+
 type okOut struct {
 	OK      bool   `json:"ok"`
 	Message string `json:"message"`

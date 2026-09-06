@@ -14,6 +14,7 @@ func (s *Server) build(caller string, control bool) *sdk.Server {
 
 	s.addReadTools(server, caller)
 	s.addConfigTools(server, caller)
+	s.addLayoutTools(server, caller)
 
 	if control {
 		s.addControlTools(server, caller)

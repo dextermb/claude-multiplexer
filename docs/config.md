@@ -1,9 +1,8 @@
 # The settings file
 
-One file holds the settings that are not a flag on the command line. Today it
-holds two: the editor, which `s d` opens on the working directory of the
-selected session, and the block cap of the session pane. See
-[tui/keys.md](tui/keys.md).
+One file holds the settings that are not a flag on the command line: the editor,
+which `s d` opens on the working directory of the selected session, the block cap
+of the session pane, and the interface layouts. See [tui/keys.md](tui/keys.md).
 
 ## Where the file is
 
@@ -46,6 +45,8 @@ a typing mistake.
 | `editor` | The command line that opens a directory, such as `code -n` |
 | `editorTerminal` | `true` when the editor draws in the terminal. Leave it out to let the list below decide |
 | `blockCap` | The rows one block draws in the session pane before the pane caps it. `0` caps nothing |
+| `layouts` | The named interface layouts, keyed by name. See the layouts below |
+| `activeLayout` | The layout every session takes, unless the session names its own |
 
 ## Which editor
 
@@ -203,6 +204,36 @@ because each platform has one:
 
 The file manager always starts beside the interface, and never takes the
 terminal.
+
+## The layouts
+
+A layout is a named set of interface dimensions. `layouts` holds the named
+layouts, and `activeLayout` names the one every session takes. A session names
+its own layout in its `meta.json`, which overrides `activeLayout`. See
+[tui/layouts.md](tui/layouts.md) and [manager.md](manager.md).
+
+```json
+{
+  "activeLayout": "wide",
+  "layouts": {
+    "wide":    { "sidebarWidth": 34, "diffWidth": 60, "promptMax": 6 },
+    "compact": { "sidebarWidth": 20, "taskWidth": 24, "promptMax": 2 }
+  }
+}
+```
+
+| Field | What it sets | Built-in default |
+|---|---|---|
+| `promptMin` | The least rows the prompt bar draws | 1 |
+| `promptMax` | The most rows the prompt bar grows to | 4 |
+| `sidebarWidth` | The columns of the session list sidebar | 26 |
+| `taskWidth` | The columns of the task and background job panel | 32 |
+| `diffWidth` | The columns of the diff panel | 32 |
+
+A layout sets only the fields it holds, and the rest take the built-in default.
+The multiplexer resolves the dimensions in three steps: the session layout, then
+`activeLayout`, then the built-in defaults. The `save_layout`, `set_layout`, and
+other tools write these fields. See [mcp/tools.md](mcp/tools.md).
 
 ## When a program does not start
 

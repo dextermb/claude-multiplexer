@@ -21,7 +21,9 @@ in `internal/tui`. It talks only to the manager, which is described in
  3 sessions · 1 busy · $0.0881  n new · t preset · s session · l list · o output · ? keys · q quit
 ```
 
-The sidebar is 26 columns. The sessions are grouped under a header that names
+The sidebar is 26 columns by default, and a layout can change its width, the
+task panel width, the diff panel width, and the prompt bar height. See
+[tui/layouts.md](tui/layouts.md). The sessions are grouped under a header that names
 the group and counts its rows: one group for each repository, and one for the
 work of each control session. Each row shows a state glyph, the display name,
 and `⇢n` when prompts wait in the queue. The selected row has a
@@ -78,6 +80,7 @@ never pushes the sidebar out of line.
 | [tui/output.md](tui/output.md) | The colour of each line, streaming text, and the layout rule |
 | [tui/tasks.md](tui/tasks.md) | The side panel: the session's jobs and task list, their glyphs, and when it shows |
 | [tui/diff.md](tui/diff.md) | The git diff: the count in the bar, the file panel, the inline diff, and the refresh |
+| [tui/layouts.md](tui/layouts.md) | The layouts: the four dimensions, the precedence, the switcher, and where a layout lives |
 
 Three things live outside this folder, because they are not only about the
 screen. Preset prompts are in [templates.md](./templates.md), what is rendered

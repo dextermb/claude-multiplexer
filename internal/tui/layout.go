@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/protocol"
 	"github.com/dextermb/claude-multiplexer/internal/session"
 )
@@ -51,7 +52,59 @@ func (m Model) leftWidth() int {
 	if m.sidebarHidden {
 		return 0
 	}
-	return sidebarWidth
+	return m.sidebarCols()
+}
+
+// applyLayout resolves the dimensions of the selected session, so the sidebar,
+// the panels, and the prompt draw at the layout of that session. See
+// docs/tui.md.
+func (m *Model) applyLayout() {
+	name := ""
+	if item, ok := m.selectedRow(); ok {
+		name = item.layout
+	}
+	m.layout = config.ResolveLayout(m.layouts, m.activeLayout, name)
+	m.syncPromptHeight()
+	m.output.Width = m.outputWidth()
+	m.output.Height = m.outputHeight()
+}
+
+// sidebarCols is the width of the session list sidebar, from the layout, kept
+// narrow enough that the output pane keeps its minimum. A Model with no layout
+// takes the built-in default.
+func (m Model) sidebarCols() int {
+	w := m.layout.SidebarWidth
+	if w < 1 {
+		w = config.DefaultSidebarWidth
+	}
+	if lim := m.width - 10; lim > 0 && w > lim {
+		w = lim
+	}
+	if w < 1 {
+		w = 1
+	}
+	return w
+}
+
+func (m Model) sidebarInnerCols() int {
+	inner := m.sidebarCols() - 1 - gutterWidth
+	if inner < 1 {
+		inner = 1
+	}
+	return inner
+}
+
+// taskCols is the width of the task and background job panel, from the layout. A
+// Model with no layout takes the built-in default.
+func (m Model) taskCols() int {
+	if m.layout.TaskWidth < 1 {
+		return config.DefaultTaskWidth
+	}
+	return m.layout.TaskWidth
+}
+
+func (m Model) taskInnerCols() int {
+	return m.taskCols() - 2
 }
 
 func (m Model) baseOutputWidth() int {
@@ -75,7 +128,7 @@ func (m Model) sidePanelWidth() int {
 	if m.diffPanel {
 		return m.diffPanelWidth()
 	}
-	return taskPanelWidth
+	return m.taskCols()
 }
 
 // showSidePanel says whether the side panel has room beside the output. It reads
@@ -88,7 +141,7 @@ func (m Model) showSidePanel() bool {
 	if len(m.todos[m.sel]) == 0 && len(m.selectedJobs()) == 0 {
 		return false
 	}
-	return m.baseOutputWidth()-taskPanelWidth >= minOutputWithPanel
+	return m.baseOutputWidth()-m.taskCols() >= minOutputWithPanel
 }
 
 func (m Model) View() string {
@@ -144,6 +197,8 @@ func (m Model) bodyDialogView() (string, bool) {
 		return centre(width, height, m.picker.View(width)), true
 	case m.form != nil:
 		return centre(width, height, m.form.View(width)), true
+	case m.layoutSwitch != nil:
+		return centre(width, height, m.layoutSwitch.View(width)), true
 	}
 	return "", false
 }
@@ -174,14 +229,14 @@ func (m Model) sidebarView() string {
 		rows = append(rows, m.sessionRow(m.rows[line.row]))
 	}
 	for len(rows) < m.bodyHeight() {
-		rows = append(rows, strings.Repeat(" ", sidebarInner))
+		rows = append(rows, strings.Repeat(" ", m.sidebarInnerCols()))
 	}
-	block := sidebarStyle.Width(sidebarInner).Height(m.bodyHeight()).Render(strings.Join(rows, "\n"))
+	block := sidebarStyle.Width(m.sidebarInnerCols()).Height(m.bodyHeight()).Render(strings.Join(rows, "\n"))
 	return withEdge(block, m.focus == focusSidebar)
 }
 
 func (m Model) sessionRow(item row) string {
-	width := sidebarInner
+	width := m.sidebarInnerCols()
 	badge := ""
 	if item.control && !headsGroup(item) {
 		badge = " " + controlMark
@@ -224,7 +279,7 @@ func (m Model) groupHeader(item group) string {
 		label = controlMark + " " + label
 	}
 	count := strconv.Itoa(item.count)
-	width := sidebarInner - 3 - lipgloss.Width(glyph) - len(count)
+	width := m.sidebarInnerCols() - 3 - lipgloss.Width(glyph) - len(count)
 	if width < 1 {
 		width = 1
 	}
@@ -282,7 +337,7 @@ func (m Model) sidePanelView() string {
 		}
 	}
 	block := strings.Join(rows, "\n")
-	return taskPanelStyle.Width(taskPanelWidth - 1).Height(m.bodyHeight()).Render(block)
+	return taskPanelStyle.Width(m.taskCols() - 1).Height(m.bodyHeight()).Render(block)
 }
 
 func (m Model) panelJobRow(job session.Job) string {
@@ -294,7 +349,7 @@ func (m Model) panelJobRow(job session.Job) string {
 	if !job.Status.Running() {
 		textStyle = rowMutedStyle
 	}
-	return jobStyle(job.Status).Render(jobGlyph(job.Status)) + " " + textStyle.Render(truncate(desc, taskPanelInner-2))
+	return jobStyle(job.Status).Render(jobGlyph(job.Status)) + " " + textStyle.Render(truncate(desc, m.taskInnerCols()-2))
 }
 
 func (m Model) taskRow(todo protocol.Todo, busy bool) string {
@@ -312,7 +367,7 @@ func (m Model) taskRow(todo protocol.Todo, busy bool) string {
 			glyph = spinnerFrame(m.spinFrame)
 		}
 	}
-	return glyphStyle.Render(glyph) + " " + textStyle.Render(truncate(text, taskPanelInner-2))
+	return glyphStyle.Render(glyph) + " " + textStyle.Render(truncate(text, m.taskInnerCols()-2))
 }
 
 func (m Model) barView() string {
