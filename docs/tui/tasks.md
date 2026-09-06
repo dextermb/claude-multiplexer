@@ -108,6 +108,10 @@ takes the full width. The panel returns when the terminal is wide enough.
 The panel follows the selected session. A job or a task list from another
 session does not open it.
 
+The diff panel uses the same slot and the same width. When the diff panel is
+open, it takes the slot, so the jobs and tasks panel does not show. See
+[diff.md](diff.md).
+
 ## How the lists reach the panel
 
 Both lists are derived, not stored, and each has its own source. The jobs come
