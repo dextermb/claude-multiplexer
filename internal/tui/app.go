@@ -3,6 +3,7 @@ package tui
 import (
 	"context"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/charmbracelet/bubbles/textarea"
@@ -55,6 +56,37 @@ type settingsMsg struct {
 	caps         map[string]int
 	layouts      map[string]config.Layout
 	activeLayout string
+	defaults     newSessionDefaults
+}
+
+// newSessionDefaults holds the option each field of the new session form opens
+// on, after the CLI flags, the settings file, and the built-ins resolve. See
+// docs/config/new-session.md.
+type newSessionDefaults struct {
+	model   string
+	mode    string
+	effort  string
+	control bool
+}
+
+// resolveSessionDefaults puts the CLI flag first, then the settings file, then
+// the built-in. See docs/config/new-session.md.
+func resolveSessionDefaults(opts Options, file config.Config) newSessionDefaults {
+	return newSessionDefaults{
+		model:   firstNonEmpty(opts.DefaultModel, file.DefaultModel),
+		mode:    firstNonEmpty(opts.DefaultPermissionMode, file.DefaultPermissionMode, session.DefaultPermissionMode),
+		effort:  file.DefaultEffort,
+		control: file.DefaultControl != nil && *file.DefaultControl,
+	}
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			return value
+		}
+	}
+	return ""
 }
 
 type stoppedMsg struct {
@@ -119,30 +151,31 @@ type Model struct {
 	sel          string
 	listOffset   int
 
-	output       viewport.Model
-	outputText   string
-	shownLines   []render.Line
-	expanded     map[int]bool
-	capped       []int
-	markerAt     map[int]int
-	blockStart   map[int]int
-	hiddenRows   map[int]int
-	blockCursor  int
-	caps         map[string]int
-	layouts      map[string]config.Layout
-	activeLayout string
-	layout       config.ResolvedLayout
-	content      string
-	selection    selRange
-	prompt       textarea.Model
-	pathMatches  []pathMatch
-	pathPicked   int
-	pathStem     string
-	pathValue    string
-	pathBase     string
-	form         *form
-	confirm      string
-	focus        focusArea
+	output          viewport.Model
+	outputText      string
+	shownLines      []render.Line
+	expanded        map[int]bool
+	capped          []int
+	markerAt        map[int]int
+	blockStart      map[int]int
+	hiddenRows      map[int]int
+	blockCursor     int
+	caps            map[string]int
+	layouts         map[string]config.Layout
+	activeLayout    string
+	sessionDefaults newSessionDefaults
+	layout          config.ResolvedLayout
+	content         string
+	selection       selRange
+	prompt          textarea.Model
+	pathMatches     []pathMatch
+	pathPicked      int
+	pathStem        string
+	pathValue       string
+	pathBase        string
+	form            *form
+	confirm         string
+	focus           focusArea
 
 	diffs           map[string]diffState
 	fileDiffs       map[string]map[string]string
@@ -174,9 +207,6 @@ func New(opts Options) Model {
 			opts.DefaultDir = cwd
 		}
 	}
-	if opts.DefaultPermissionMode == "" {
-		opts.DefaultPermissionMode = session.DefaultPermissionMode
-	}
 
 	prompt := textarea.New()
 	prompt.Placeholder = "Type a prompt, then press Enter"
@@ -186,32 +216,33 @@ func New(opts Options) Model {
 	prompt.SetHeight(config.DefaultPromptMin)
 
 	return Model{
-		replays:     make(map[string][]render.Line),
-		partials:    make(map[string]string),
-		queued:      make(map[string][]string),
-		todos:       make(map[string][]protocol.Todo),
-		questions:   make(map[string]*questionDialog),
-		diffs:       make(map[string]diffState),
-		fileDiffs:   make(map[string]map[string]string),
-		diffOpen:    make(map[string]map[string]bool),
-		folded:      make(map[string]bool),
-		roots:       make(map[string]string),
-		expanded:    make(map[int]bool),
-		markerAt:    make(map[int]int),
-		blockStart:  make(map[int]int),
-		hiddenRows:  make(map[int]int),
-		md:          markdown.New(),
-		opts:        opts,
-		mgr:         opts.Manager,
-		sub:         opts.Manager.Subscribe(manager.DefaultSubscriberBuffer),
-		output:      viewport.New(0, 0),
-		prompt:      prompt,
-		pathPicked:  -1,
-		blockCursor: -1,
-		caps:        config.ResolveBlockCaps(config.Config{}),
-		layout:      config.DefaultLayout(),
-		focus:       focusSidebar,
-		mouseOn:     true,
+		replays:         make(map[string][]render.Line),
+		partials:        make(map[string]string),
+		queued:          make(map[string][]string),
+		todos:           make(map[string][]protocol.Todo),
+		questions:       make(map[string]*questionDialog),
+		diffs:           make(map[string]diffState),
+		fileDiffs:       make(map[string]map[string]string),
+		diffOpen:        make(map[string]map[string]bool),
+		folded:          make(map[string]bool),
+		roots:           make(map[string]string),
+		expanded:        make(map[int]bool),
+		markerAt:        make(map[int]int),
+		blockStart:      make(map[int]int),
+		hiddenRows:      make(map[int]int),
+		md:              markdown.New(),
+		opts:            opts,
+		sessionDefaults: resolveSessionDefaults(opts, config.Config{}),
+		mgr:             opts.Manager,
+		sub:             opts.Manager.Subscribe(manager.DefaultSubscriberBuffer),
+		output:          viewport.New(0, 0),
+		prompt:          prompt,
+		pathPicked:      -1,
+		blockCursor:     -1,
+		caps:            config.ResolveBlockCaps(config.Config{}),
+		layout:          config.DefaultLayout(),
+		focus:           focusSidebar,
+		mouseOn:         true,
 	}
 }
 
@@ -416,13 +447,17 @@ func (m Model) readSettings() tea.Cmd {
 	return func() tea.Msg {
 		file, err := config.Load(opts.ConfigPaths...)
 		if err != nil {
-			return settingsMsg{caps: config.ResolveBlockCaps(config.Config{})}
+			return settingsMsg{
+				caps:     config.ResolveBlockCaps(config.Config{}),
+				defaults: resolveSessionDefaults(opts, config.Config{}),
+			}
 		}
 		merged := config.Resolve(opts.Config, file, config.LoadClaude(opts.ClaudePaths...))
 		return settingsMsg{
 			caps:         config.ResolveBlockCaps(merged),
 			layouts:      merged.Layouts,
 			activeLayout: merged.ActiveLayout,
+			defaults:     resolveSessionDefaults(opts, merged),
 		}
 	}
 }

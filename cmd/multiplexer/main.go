@@ -120,8 +120,8 @@ func tuiCommand(argv []string) int {
 	}
 	root := fs.String("root", "", "state directory (default ~/.claude-multiplexer)")
 	model := fs.String("model", "", "default model for a new session")
-	mode := fs.String("permission-mode", session.DefaultPermissionMode,
-		"default permission mode: acceptEdits, auto, bypassPermissions, default, dontAsk, or plan")
+	mode := fs.String("permission-mode", "",
+		"default permission mode: acceptEdits, auto, bypassPermissions, default, dontAsk, or plan (default from the settings file, then auto)")
 	claudePath := fs.String("claude", session.DefaultClaudePath, "path to the claude binary")
 	dir := fs.String("dir", "", "start one session in this directory at once")
 	control := fs.Bool("control", false, "let the session started by --dir drive the other sessions")

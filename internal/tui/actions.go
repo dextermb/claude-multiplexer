@@ -21,7 +21,7 @@ func (m *Model) maybeOpenForm() tea.Cmd {
 	if m.form != nil || len(m.rows) > 0 || m.opts.InitialDir != "" {
 		return nil
 	}
-	m.form = newForm(m.opts.DefaultDir, m.opts.DefaultModel, m.opts.DefaultPermissionMode)
+	m.form = newForm(m.opts.DefaultDir, m.sessionDefaults)
 	return textarea.Blink
 }
 
@@ -82,7 +82,7 @@ func (m Model) archiveSelected() (tea.Model, tea.Cmd) {
 }
 
 func (m Model) openNewForm() (tea.Model, tea.Cmd) {
-	m.form = newForm(m.newFormDir(), m.opts.DefaultModel, m.opts.DefaultPermissionMode)
+	m.form = newForm(m.newFormDir(), m.sessionDefaults)
 	return m, textinputBlink()
 }
 
