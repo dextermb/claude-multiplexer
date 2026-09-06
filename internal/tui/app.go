@@ -141,6 +141,7 @@ type Model struct {
 	diffWidth       int
 	diffHalf        bool
 	diffLineNumbers bool
+	diffTicking     bool
 	sidebarHidden   bool
 
 	width     int
@@ -359,6 +360,8 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleDiff(msg)
 	case fileDiffMsg:
 		return m.handleFileDiff(msg)
+	case diffTickMsg:
+		return m.handleDiffTick()
 	case tea.MouseMsg:
 		return m.handleMouse(msg)
 	case tea.KeyMsg:

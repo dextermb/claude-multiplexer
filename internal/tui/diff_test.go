@@ -89,6 +89,28 @@ func TestTogglingAFileFetchesThenHidesIt(t *testing.T) {
 	}
 }
 
+func TestTheDiffTickStopsWhenThePanelCloses(t *testing.T) {
+	m := diffModel()
+	m.rows = []row{{name: "a", dir: "/tmp/a"}}
+	m.diffPanel = true
+	m.diffTicking = true
+
+	_, cmd := m.handleDiffTick()
+	if cmd == nil {
+		t.Fatal("an open panel must keep ticking")
+	}
+
+	m.diffPanel = false
+	next, cmd := m.handleDiffTick()
+	m = next.(Model)
+	if m.diffTicking {
+		t.Fatal("a closed panel must stop ticking")
+	}
+	if cmd != nil {
+		t.Fatal("a closed panel must not schedule another tick")
+	}
+}
+
 func TestHandleDiffRefreshesTheOpenFiles(t *testing.T) {
 	m := diffModel()
 	m.rows = []row{{name: "a", dir: "/tmp/a"}}
@@ -174,6 +196,30 @@ func TestTabReachesTheOpenPanel(t *testing.T) {
 	m = next.(Model)
 	if m.focus != focusSidebar {
 		t.Fatalf("with the panel closed, Tab from the output skips it, got %v", m.focus)
+	}
+}
+
+func TestArrowsScrollAndJKPickFiles(t *testing.T) {
+	m := diffModel()
+	files := make([]git.FileChange, 8)
+	for i := range files {
+		files[i] = git.FileChange{Status: "M", Path: "f" + strconv.Itoa(i)}
+	}
+	m.diffs["a"] = diffState{repo: true, files: files}
+
+	next, _ := m.diffKey(key("down"))
+	m = next.(Model)
+	if m.diffScroll != 1 {
+		t.Fatalf("down must scroll one line, got %d", m.diffScroll)
+	}
+	if m.diffSel != 0 {
+		t.Fatalf("down must not move the file selection, got %d", m.diffSel)
+	}
+
+	next, _ = m.diffKey(key("j"))
+	m = next.(Model)
+	if m.diffSel != 1 {
+		t.Fatalf("j must move the file selection, got %d", m.diffSel)
 	}
 }
 

@@ -126,9 +126,10 @@ the panel holds the focus, these keys work:
 
 | Key | Action |
 |---|---|
-| `j`, `k`, `up`, `down` | Move the selected file, and scroll it into view |
+| `j`, `k` | Move the selected file, and scroll it into view |
+| `up`, `down` | Scroll the diff one line |
 | `Enter` | Expand or collapse the selected file |
-| `pgup`, `pgdown` | Scroll the panel |
+| `pgup`, `pgdown` | Scroll the panel a page |
 | `d +`, `d -` | Widen or narrow the panel |
 | `d /` | Toggle the panel between half the screen and the set width |
 | `d n` | Show or hide the line numbers |
