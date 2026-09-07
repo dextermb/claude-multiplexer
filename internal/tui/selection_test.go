@@ -29,6 +29,26 @@ func TestSelectedText(t *testing.T) {
 	}
 }
 
+func TestSelectedTextTrimsTrailingWhitespace(t *testing.T) {
+	lines := []string{"hello   ", "  padded  \t", "third"}
+	cases := []struct {
+		name string
+		a, b pos
+		want string
+	}{
+		{"one line drops trailing spaces", pos{0, 0}, pos{0, 8}, "hello"},
+		{"trailing whitespace kept off, newlines kept", pos{0, 0}, pos{2, 5}, "hello\n  padded\nthird"},
+		{"blank line stays blank", pos{0, 5}, pos{2, 0}, "\n  padded\n"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if got := selectedText(lines, c.a, c.b); got != c.want {
+				t.Fatalf("selectedText = %q, want %q", got, c.want)
+			}
+		})
+	}
+}
+
 func TestDragInTheOutputCopies(t *testing.T) {
 	m, _ := newTestModel(t, "")
 	m = start(t, m, 100, 24)
