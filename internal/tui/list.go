@@ -83,12 +83,14 @@ func (m *Model) refresh() {
 	grants := m.mgr.Grants()
 	parents := m.mgr.Parents()
 	workDirs := m.mgr.WorkingDirs()
+	projects := m.mgr.Projects()
 	layouts := m.mgr.SessionLayouts()
 	for _, snap := range m.mgr.Snapshots() {
 		item := rowFromSnapshot(snap)
 		item.control = grants[snap.Name]
 		item.parent = parents[snap.Name]
 		item.workDir = workDirs[snap.Name]
+		item.projectDirs = projects[snap.Name]
 		item.layout = layouts[snap.Name]
 		rows = append(rows, item)
 	}

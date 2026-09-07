@@ -153,6 +153,93 @@ func (s *Server) addConfigTools(server *sdk.Server, caller string) {
 		}
 		return nil, workingDirOut{OK: true, Changed: changed, Message: message}, nil
 	})
+
+	sdk.AddTool(server, &sdk.Tool{
+		Name: ToolListProject,
+		Description: "The directories of a session's project, in order. " +
+			"A session works in one directory by default, and a project lets it work in several, so the diff panel groups the changes by directory. " +
+			"Give a session name, or leave it empty for this session.",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, in listProjectIn) (*sdk.CallToolResult, projectOut, error) {
+		target, err := targetOrSelf(in.Session, caller)
+		if err != nil {
+			return nil, projectOut{}, err
+		}
+		dirs, err := s.sessions.Project(target)
+		if err != nil {
+			return nil, projectOut{}, err
+		}
+		return nil, projectOut{OK: true, Dirs: dirs, Message: projectListMessage(target, dirs)}, nil
+	})
+
+	sdk.AddTool(server, &sdk.Tool{
+		Name: ToolAddProjectDir,
+		Description: "Add one directory to this session's project, so the diff panel shows its changes in a section of its own. " +
+			"Call it for each code base a single change spans. The directory must exist.",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, in projectDirIn) (*sdk.CallToolResult, projectOut, error) {
+		path := strings.TrimSpace(in.Path)
+		if path == "" {
+			return nil, projectOut{}, ErrNoDir
+		}
+		dirs, err := s.sessions.AddProjectDir(path, caller)
+		if err != nil {
+			return nil, projectOut{}, err
+		}
+		return nil, projectOut{OK: true, Dirs: dirs, Changed: true,
+			Message: caller + " has " + strconv.Itoa(len(dirs)) + " directories in its project now"}, nil
+	})
+
+	sdk.AddTool(server, &sdk.Tool{
+		Name: ToolRemoveProject,
+		Description: "Take one directory out of this session's project, so the diff panel no longer shows its changes. " +
+			"Call it when a directory is no longer part of the change.",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, in projectDirIn) (*sdk.CallToolResult, projectOut, error) {
+		path := strings.TrimSpace(in.Path)
+		if path == "" {
+			return nil, projectOut{}, ErrNoDir
+		}
+		dirs, err := s.sessions.RemoveProjectDir(path, caller)
+		if err != nil {
+			return nil, projectOut{}, err
+		}
+		return nil, projectOut{OK: true, Dirs: dirs, Changed: true,
+			Message: caller + " has " + strconv.Itoa(len(dirs)) + " directories in its project now"}, nil
+	})
+
+	sdk.AddTool(server, &sdk.Tool{
+		Name: ToolSetProject,
+		Description: "Replace the whole ordered set of directories of this session's project. " +
+			"Give every directory the change spans. Every directory must exist. An empty list clears the project.",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, in setProjectIn) (*sdk.CallToolResult, projectOut, error) {
+		dirs, err := s.sessions.SetProject(in.Paths, caller)
+		if err != nil {
+			return nil, projectOut{}, err
+		}
+		return nil, projectOut{OK: true, Dirs: dirs, Changed: true,
+			Message: caller + " has " + strconv.Itoa(len(dirs)) + " directories in its project now"}, nil
+	})
+
+	sdk.AddTool(server, &sdk.Tool{
+		Name: ToolClearProject,
+		Description: "Empty this session's project, so the session works in one directory again. " +
+			"The diff panel shows one section again.",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, _ struct{}) (*sdk.CallToolResult, projectOut, error) {
+		changed, err := s.sessions.ClearProject(caller)
+		if err != nil {
+			return nil, projectOut{}, err
+		}
+		message := caller + " had no project"
+		if changed {
+			message = caller + " works in one directory again"
+		}
+		return nil, projectOut{OK: true, Changed: changed, Message: message}, nil
+	})
+}
+
+func projectListMessage(session string, dirs []string) string {
+	if len(dirs) == 0 {
+		return session + " has no project, so it works in one directory"
+	}
+	return session + " has " + strconv.Itoa(len(dirs)) + " directories in its project"
 }
 
 func editorMessage(editor string, terminal *bool, path string) string {

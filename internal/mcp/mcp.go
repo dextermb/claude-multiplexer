@@ -27,6 +27,11 @@ const (
 	ToolUnsetBlockCap   = "unset_block_cap"
 	ToolSetWorkingDir   = "set_working_dir"
 	ToolUnsetWorkingDir = "unset_working_dir"
+	ToolListProject     = "list_project"
+	ToolAddProjectDir   = "add_project_dir"
+	ToolRemoveProject   = "remove_project_dir"
+	ToolSetProject      = "set_project"
+	ToolClearProject    = "clear_project"
 	ToolListLayouts     = "list_layouts"
 	ToolSaveLayout      = "save_layout"
 	ToolDeleteLayout    = "delete_layout"
@@ -44,6 +49,7 @@ const (
 var (
 	OpenTools = []string{ToolRename, ToolList, ToolMessages, ToolListJobs, ToolConfigPath, ToolTemplatePath,
 		ToolSetEditor, ToolUnsetEditor, ToolSetBlockCap, ToolUnsetBlockCap, ToolSetWorkingDir, ToolUnsetWorkingDir,
+		ToolListProject, ToolAddProjectDir, ToolRemoveProject, ToolSetProject, ToolClearProject,
 		ToolListLayouts, ToolSaveLayout, ToolDeleteLayout, ToolSetLayout, ToolUnsetLayout}
 	ControlTools = []string{ToolSend, ToolStop, ToolArchive, ToolCreate, ToolStopJob}
 )
@@ -187,6 +193,11 @@ type Sessions interface {
 	UnsetBlockCap(bucket, by string) (string, bool, error)
 	SetWorkingDir(path, by string) (string, error)
 	UnsetWorkingDir(by string) (bool, error)
+	Project(session string) ([]string, error)
+	SetProject(paths []string, by string) ([]string, error)
+	AddProjectDir(path, by string) ([]string, error)
+	RemoveProjectDir(path, by string) ([]string, error)
+	ClearProject(by string) (bool, error)
 	Layouts(session string) (LayoutList, error)
 	SaveLayout(name string, dims LayoutDims, by string) (string, error)
 	DeleteLayout(name, by string) (string, bool, error)

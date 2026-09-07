@@ -491,8 +491,8 @@ func (m Model) barRights(item row) []string {
 
 func (m Model) rightSegs(item row) []barSeg {
 	segs := []barSeg{{item.label, item.style().Background(barBackground)}}
-	if d, ok := m.diffs[item.name]; ok && d.repo && !d.stat.Empty() {
-		segs = append(segs, barSeg{barDiffCount(d.stat), barStyle})
+	if d, ok := m.diffs[item.name]; ok && d.anyRepo() && !d.stat().Empty() {
+		segs = append(segs, barSeg{barDiffCount(d.stat()), barStyle})
 	}
 	if item.live && item.context > 0 {
 		segs = append(segs, barSeg{contextLabel(item), barMutedStyle})

@@ -18,6 +18,11 @@ grant. See [grant.md](grant.md).
 | `unset_block_cap` | — | Takes the block cap out of the settings file, so the pane returns to 20 rows. | open |
 | `set_working_dir` | `path` | Says which directory the calling session works in now. | open |
 | `unset_working_dir` | — | Takes the working directory off the calling session. | open |
+| `list_project` | `session` | The directories of a session's project, in order. An empty session means the caller. | open |
+| `add_project_dir` | `path` | Adds one directory to the caller's project. | open |
+| `remove_project_dir` | `path` | Takes one directory out of the caller's project. | open |
+| `set_project` | `paths` | Replaces the whole ordered set of the caller's project directories. | open |
+| `clear_project` | — | Empties the caller's project, so it works in one directory again. | open |
 | `list_layouts` | `session` | The named layouts, the global active layout, and the layout of one session. | open |
 | `save_layout` | `name`, dimensions | Creates or replaces a layout. It captures the current dimensions, and a dimension overrides the captured one. | open |
 | `delete_layout` | `name` | Removes a named layout from the settings file. | open |
@@ -141,6 +146,28 @@ See [tui/keys.md](../tui/keys.md).
 `unset_working_dir` takes it off again, and answers with `changed: false` when
 there was none. The working directory sits in `meta.json`, so a resumed session
 keeps it. See [manager.md](../manager.md).
+
+### The project
+
+A session works in one directory by default. A project lets one session work in
+several directories at once, so one change can span two or more code bases. The
+diff panel groups the changes by directory, one section for each. See
+[../tui/diff.md](../tui/diff.md).
+
+`add_project_dir` adds one directory, and `remove_project_dir` takes one out.
+`set_project` replaces the whole ordered set with `paths`, and an empty list
+clears it. `clear_project` empties the project, and answers with
+`changed: false` when there was none. `list_project` reads the directories, in
+order.
+
+Each tool resolves and validates a path the same way `set_working_dir` does: a
+relative path is resolved against the directory the session started in, and the
+directory must exist. The set holds no duplicate, and it keeps the order the
+directories were added. The project sits in the `working_dirs` field of
+`meta.json`, so a resumed session keeps it. See [manager.md](../manager.md).
+
+When a session has a project, `s f` and `s d` open the first directory of the
+set, unless `set_working_dir` names another. See [tui/keys.md](../tui/keys.md).
 
 ### The layouts
 

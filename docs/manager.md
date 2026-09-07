@@ -48,6 +48,10 @@ session adds to them, and does not restart them.
 | `SetWorkingDir(name, path)` | Point a session at the directory it works in now. A relative path resolves against the directory it started in. |
 | `UnsetWorkingDir(name)` | Take that directory off again, and report whether it had one. |
 | `WorkingDirs()` | The working directory of each live session that set one. |
+| `Project(name)` / `SetProject(name, paths)` | Read, or replace, the ordered set of project directories of a session. |
+| `AddProjectDir(name, path)` / `RemoveProjectDir(name, path)` | Add or take one directory of a session's project. |
+| `ClearProject(name)` | Empty a session's project, and report whether it had one. |
+| `Projects()` | The project directories of each live session that has a project. |
 | `SaveLayout(name, dims, session)` | Write a named layout to the settings file, capturing the session's current dimensions. |
 | `SetActiveLayout(name)` / `SetSessionLayout(name, layout)` | Activate a layout for every session, or for one session in its `meta.json`. |
 | `SessionLayouts()` | The layout each live session names, so the interface resolves the selected session. |
@@ -91,6 +95,13 @@ move into a worktree. It says so with a tool, and the record keeps the answer
 in `working_dir`, so the interface opens the right place and a resumed session
 keeps it. The directory a session started in never changes. See
 [mcp/tools.md](./mcp/tools.md).
+
+A project is a set of directories one session works in at once, kept in
+`working_dirs`. It lets one change span several code bases, and the diff panel
+groups the changes by directory. The set is separate from `working_dir`: a
+project widens what the diff reads, and `working_dir` says which one directory
+the human opens. See [mcp/tools.md](./mcp/tools.md) and
+[tui/diff.md](./tui/diff.md).
 
 The state of each session lives under `<root>/sessions/<name>/`, which holds
 `transcript.jsonl` and `meta.json`. With no `--root`, the root is

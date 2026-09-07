@@ -10,7 +10,8 @@ func TestInstructionsNamesWorkingDirTools(t *testing.T) {
 	if got == "" {
 		t.Fatal("instructions() is empty; the embedded rules are missing")
 	}
-	for _, name := range []string{ToolSetWorkingDir, ToolUnsetWorkingDir} {
+	for _, name := range []string{ToolSetWorkingDir, ToolUnsetWorkingDir,
+		ToolAddProjectDir, ToolRemoveProject, ToolClearProject} {
 		if !strings.Contains(got, name) {
 			t.Errorf("instructions() does not name %q", name)
 		}

@@ -11,31 +11,32 @@ import (
 )
 
 type row struct {
-	name     string
-	title    string
-	dir      string
-	workDir  string
-	layout   string
-	group    string
-	parent   string
-	model    string
-	mode     string
-	effort   string
-	live     bool
-	archived bool
-	control  bool
-	state    session.State
-	label    string
-	queued   int
-	turns    int
-	cost     float64
-	last     time.Duration
-	input    int
-	output   int
-	context  int
-	jobs     int
-	jobList  []session.Job
-	meta     manager.Meta
+	name        string
+	title       string
+	dir         string
+	workDir     string
+	projectDirs []string
+	layout      string
+	group       string
+	parent      string
+	model       string
+	mode        string
+	effort      string
+	live        bool
+	archived    bool
+	control     bool
+	state       session.State
+	label       string
+	queued      int
+	turns       int
+	cost        float64
+	last        time.Duration
+	input       int
+	output      int
+	context     int
+	jobs        int
+	jobList     []session.Job
+	meta        manager.Meta
 }
 
 func rowFromSnapshot(snap session.Snapshot) row {
@@ -67,23 +68,24 @@ func rowFromMeta(meta manager.Meta) row {
 		label = "archived"
 	}
 	return row{
-		name:     meta.Name,
-		title:    meta.Title,
-		dir:      meta.Dir,
-		model:    meta.Model,
-		mode:     meta.PermissionMode,
-		effort:   meta.Effort,
-		workDir:  meta.WorkingDir,
-		layout:   meta.Layout,
-		archived: meta.Archived,
-		control:  meta.Control,
-		parent:   meta.Parent,
-		label:    label,
-		turns:    meta.Turns,
-		cost:     meta.Cost,
-		input:    meta.InputTokens,
-		output:   meta.OutputTokens,
-		meta:     meta,
+		name:        meta.Name,
+		title:       meta.Title,
+		dir:         meta.Dir,
+		model:       meta.Model,
+		mode:        meta.PermissionMode,
+		effort:      meta.Effort,
+		workDir:     meta.WorkingDir,
+		projectDirs: meta.WorkingDirs,
+		layout:      meta.Layout,
+		archived:    meta.Archived,
+		control:     meta.Control,
+		parent:      meta.Parent,
+		label:       label,
+		turns:       meta.Turns,
+		cost:        meta.Cost,
+		input:       meta.InputTokens,
+		output:      meta.OutputTokens,
+		meta:        meta,
 	}
 }
 
@@ -137,5 +139,18 @@ func (r row) openDir() string {
 			return r.workDir
 		}
 	}
+	if len(r.projectDirs) > 0 {
+		return r.projectDirs[0]
+	}
 	return r.dir
+}
+
+// diffDirs is the set of directories the diff panel groups the changes by: the
+// project directories when the session has a project, else the one directory it
+// opens. See docs/tui/diff.md.
+func (r row) diffDirs() []string {
+	if len(r.projectDirs) > 0 {
+		return r.projectDirs
+	}
+	return []string{r.openDir()}
 }

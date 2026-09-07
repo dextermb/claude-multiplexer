@@ -30,6 +30,7 @@ type fakeSessions struct {
 	blockCap      *int
 	blockCaps     map[string]*int
 	workingDir    string
+	project       []string
 	layouts       map[string]mcp.LayoutDims
 	activeLayout  string
 	sessionLayout map[string]string
@@ -173,6 +174,49 @@ func (f *fakeSessions) UnsetWorkingDir(by string) (bool, error) {
 		return false, nil
 	}
 	f.workingDir = ""
+	return true, nil
+}
+
+func (f *fakeSessions) Project(session string) ([]string, error) {
+	return f.project, nil
+}
+
+func (f *fakeSessions) SetProject(paths []string, by string) ([]string, error) {
+	if f.failWorkDir != nil {
+		return nil, f.failWorkDir
+	}
+	f.project = nil
+	for _, path := range paths {
+		f.project = append(f.project, "/repo/"+path)
+	}
+	return f.project, nil
+}
+
+func (f *fakeSessions) AddProjectDir(path, by string) ([]string, error) {
+	if f.failWorkDir != nil {
+		return nil, f.failWorkDir
+	}
+	f.project = append(f.project, "/repo/"+path)
+	return f.project, nil
+}
+
+func (f *fakeSessions) RemoveProjectDir(path, by string) ([]string, error) {
+	full := "/repo/" + path
+	var kept []string
+	for _, dir := range f.project {
+		if dir != full {
+			kept = append(kept, dir)
+		}
+	}
+	f.project = kept
+	return f.project, nil
+}
+
+func (f *fakeSessions) ClearProject(by string) (bool, error) {
+	if len(f.project) == 0 {
+		return false, nil
+	}
+	f.project = nil
 	return true, nil
 }
 
@@ -811,6 +855,94 @@ func TestEverySessionGetsTheWorkingDirTools(t *testing.T) {
 	}
 
 	want := map[string]bool{mcp.ToolSetWorkingDir: false, mcp.ToolUnsetWorkingDir: false}
+	for _, tool := range tools.Tools {
+		if _, ok := want[tool.Name]; ok {
+			want[tool.Name] = true
+		}
+	}
+	for name, found := range want {
+		if !found {
+			t.Errorf("a session without the grant must still see %s", name)
+		}
+	}
+}
+
+func TestProjectToolsAddRemoveAndClear(t *testing.T) {
+	sessions := newFakeSessions()
+	client := workingDirClient(t, sessions)
+
+	if result := call(t, client, mcp.ToolAddProjectDir, map[string]any{"path": "one"}); result.IsError {
+		t.Fatalf("add_project_dir failed: %s", resultText(result))
+	}
+	if result := call(t, client, mcp.ToolAddProjectDir, map[string]any{"path": "two"}); result.IsError {
+		t.Fatalf("add_project_dir failed: %s", resultText(result))
+	}
+	if len(sessions.project) != 2 {
+		t.Fatalf("project = %v, want two directories", sessions.project)
+	}
+
+	list := call(t, client, mcp.ToolListProject, map[string]any{})
+	if !strings.Contains(resultText(list), "2 directories") {
+		t.Fatalf("list_project does not report the count:\n%s", resultText(list))
+	}
+
+	if result := call(t, client, mcp.ToolRemoveProject, map[string]any{"path": "one"}); result.IsError {
+		t.Fatalf("remove_project_dir failed: %s", resultText(result))
+	}
+	if len(sessions.project) != 1 || sessions.project[0] != "/repo/two" {
+		t.Fatalf("project = %v, want [/repo/two]", sessions.project)
+	}
+
+	if result := call(t, client, mcp.ToolClearProject, map[string]any{}); result.IsError {
+		t.Fatalf("clear_project failed: %s", resultText(result))
+	}
+	if len(sessions.project) != 0 {
+		t.Fatalf("project = %v, want none after clear", sessions.project)
+	}
+	again := call(t, client, mcp.ToolClearProject, map[string]any{})
+	if !strings.Contains(resultText(again), "had no project") {
+		t.Fatalf("a second clear must say there was none:\n%s", resultText(again))
+	}
+}
+
+func TestSetProjectToolReplacesTheSet(t *testing.T) {
+	sessions := newFakeSessions()
+	client := workingDirClient(t, sessions)
+
+	result := call(t, client, mcp.ToolSetProject, map[string]any{"paths": []any{"one", "two"}})
+	if result.IsError {
+		t.Fatalf("set_project failed: %s", resultText(result))
+	}
+	if len(sessions.project) != 2 || sessions.project[0] != "/repo/one" {
+		t.Fatalf("project = %v, want the two resolved paths", sessions.project)
+	}
+}
+
+func TestAddProjectDirToolNeedsAPath(t *testing.T) {
+	sessions := newFakeSessions()
+	client := workingDirClient(t, sessions)
+
+	if result := call(t, client, mcp.ToolAddProjectDir, map[string]any{"path": "  "}); !result.IsError {
+		t.Fatal("an empty path must be an error")
+	}
+	if len(sessions.project) != 0 {
+		t.Fatalf("project = %v, want none", sessions.project)
+	}
+}
+
+func TestEverySessionGetsTheProjectTools(t *testing.T) {
+	client := workingDirClient(t, newFakeSessions())
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	tools, err := client.ListTools(ctx, nil)
+	if err != nil {
+		t.Fatalf("list tools: %v", err)
+	}
+
+	want := map[string]bool{
+		mcp.ToolListProject: false, mcp.ToolAddProjectDir: false, mcp.ToolRemoveProject: false,
+		mcp.ToolSetProject: false, mcp.ToolClearProject: false,
+	}
 	for _, tool := range tools.Tools {
 		if _, ok := want[tool.Name]; ok {
 			want[tool.Name] = true

@@ -32,4 +32,5 @@ copy the rule text.
 
 | File | What it tells the session |
 |---|---|
+| `project-dirs.md` | Use a project when one change spans two or more code bases: `add_project_dir` for each directory, `remove_project_dir` or `clear_project` when a directory drops out. |
 | `worktree-working-dir.md` | Call `set_working_dir` after you move into a worktree, and `unset_working_dir` after you collapse it, so `s f` and `s d` open the right directory. |
