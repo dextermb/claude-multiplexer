@@ -80,6 +80,7 @@ var sequenceActions = map[string]action{
 	"s a": Model.archiveSelected,
 	"s x": Model.askToStop,
 	"s j": Model.openJobs,
+	"s k": Model.focusTaskPanel,
 	"s f": Model.openInFiles,
 	"s d": Model.toggleDiffPanel,
 	"s E": Model.openInEditor,

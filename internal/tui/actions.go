@@ -34,6 +34,19 @@ func (m Model) openJobs() (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+// focusTaskPanel is the s k action. It moves the focus to the task and job
+// panel, so its scroll keys work. See docs/tui/tasks.md.
+func (m Model) focusTaskPanel() (tea.Model, tea.Cmd) {
+	if m.diffPanel || !m.showSidePanel() {
+		m.status = "no task panel to focus"
+		return m, nil
+	}
+	m.focus = focusTask
+	m.prompt.Blur()
+	m.errText = ""
+	return m, nil
+}
+
 func (m Model) toggleMarkdown() (tea.Model, tea.Cmd) {
 	m.showRaw = !m.showRaw
 	m.status = "markdown on"
@@ -133,6 +146,10 @@ func (m Model) toggleFocus() (tea.Model, tea.Cmd) {
 	case focusOutput:
 		if m.diffPanel {
 			m.focus = focusDiff
+			return m, nil
+		}
+		if m.showSidePanel() {
+			m.focus = focusTask
 			return m, nil
 		}
 	}

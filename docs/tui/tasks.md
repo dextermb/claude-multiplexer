@@ -112,6 +112,23 @@ The diff panel uses the same slot and the same width. When the diff panel is
 open, it takes the slot, so the jobs and tasks panel does not show. See
 [diff.md](diff.md).
 
+## Scrolling and focus
+
+A long list is taller than the panel, so the panel scrolls. To scroll it, first
+give it the focus. `s k` moves the focus to the panel, and `Tab` reaches it too,
+after the output. The panel takes the focus only when it shows. A focused panel
+draws its left border in the highlight colour, the same as the diff panel.
+
+While the panel holds the focus, `j`, `k`, `up`, and `down` scroll one line, `u`
+and `d` scroll half a panel, `pgup` and `pgdown` scroll a whole panel, and `g`
+and `G` go to the top and the bottom. `Esc` leaves the panel for the output. The
+mouse wheel scrolls the panel when the pointer is over it, without a focus
+change. See [keys/navigation.md](keys/navigation.md).
+
+The panel follows the selected session, so the scroll returns to the top when
+you select a different session. When the panel stops showing while it holds the
+focus, the focus moves to the output.
+
 ## How the lists reach the panel
 
 Both lists are derived, not stored, and each has its own source. The jobs come

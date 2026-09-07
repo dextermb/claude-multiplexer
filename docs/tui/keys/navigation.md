@@ -40,6 +40,25 @@ the panel holds the focus, these keys work:
 The mouse wheel scrolls the panel too. See [../diff.md](../diff.md) for the count,
 the panel, and the live refresh.
 
+## The task and job panel
+
+`s k` moves the focus to the task and job panel, and `Tab` reaches it too. The
+panel takes the focus only when it shows. A focused panel draws its left border
+in the highlight colour. While the panel holds the focus, these keys work:
+
+| Key | Action |
+|---|---|
+| `j`, `k`, `up`, `down` | Scroll one line |
+| `u`, `d` | Scroll half a panel |
+| `pgup`, `pgdown` | Scroll a whole panel |
+| `g`, `G` | Go to the top, and to the bottom |
+| `Tab` | Move the focus on |
+| `Esc` | Leave the panel for the output |
+
+The mouse wheel scrolls the panel too, when the pointer is over it. The scroll
+returns to the top when you select a different session. See [../tasks.md](../tasks.md)
+for the panel content.
+
 ## Scrolling the output
 
 Give the output pane the focus with `Tab`, or click in it. Then:

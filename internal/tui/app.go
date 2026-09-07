@@ -25,6 +25,7 @@ const (
 	focusPrompt
 	focusOutput
 	focusDiff
+	focusTask
 )
 
 type Options struct {
@@ -189,6 +190,8 @@ type Model struct {
 	diffLineNumbers bool
 	diffTicking     bool
 	sidebarHidden   bool
+	taskScroll      int
+	taskFor         string
 
 	width     int
 	height    int
@@ -345,6 +348,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if refresh := model.diffRefreshCmd(); refresh != nil {
 			cmd = tea.Batch(cmd, refresh)
 		}
+	}
+	if model.sel != model.taskFor {
+		model.taskFor = model.sel
+		model.taskScroll = 0
+	}
+	if model.focus == focusTask && (model.diffPanel || !model.showSidePanel()) {
+		model.focus = focusOutput
 	}
 	return model, cmd
 }

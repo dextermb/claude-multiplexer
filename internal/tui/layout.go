@@ -306,6 +306,18 @@ func (m Model) sidePanelView() string {
 	if m.diffPanel {
 		return m.diffPanelView()
 	}
+	lines := m.taskPanelLines()
+	height := m.bodyHeight()
+	scroll := clampScroll(m.taskScroll, len(lines), height)
+	end := scroll + height
+	if end > len(lines) {
+		end = len(lines)
+	}
+	block := strings.Join(lines[scroll:end], "\n")
+	return sidePanelStyle(m.focus == focusTask).Width(m.taskCols() - 1).Height(height).Render(block)
+}
+
+func (m Model) taskPanelLines() []string {
 	var rows []string
 	if jobs := orderJobs(m.selectedJobs()); len(jobs) > 0 {
 		running := 0
@@ -336,8 +348,21 @@ func (m Model) sidePanelView() string {
 			rows = append(rows, m.taskRow(todo, busy))
 		}
 	}
-	block := strings.Join(rows, "\n")
-	return taskPanelStyle.Width(m.taskCols() - 1).Height(m.bodyHeight()).Render(block)
+	return rows
+}
+
+func (m *Model) clampTaskScroll() {
+	m.taskScroll = clampScroll(m.taskScroll, len(m.taskPanelLines()), m.bodyHeight())
+}
+
+// sidePanelStyle is the border of a side panel: the highlight colour when the
+// panel holds the focus, and the muted colour otherwise. The task panel and the
+// diff panel share it.
+func sidePanelStyle(focused bool) lipgloss.Style {
+	if focused {
+		return taskPanelStyle.BorderForeground(lipgloss.Color("62"))
+	}
+	return taskPanelStyle
 }
 
 func (m Model) panelJobRow(job session.Job) string {

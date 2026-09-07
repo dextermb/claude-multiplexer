@@ -30,6 +30,7 @@ var bindings = []binding{
 	{"The session (s)", "s", "s a", "Archive the selected session, or bring it back", "a archive"},
 	{"The session (s)", "s", "s x", "Stop the selected session, after a confirmation", "x stop"},
 	{"The session (s)", "s", "s j", "Show the background jobs of the selected session", "j jobs"},
+	{"The session (s)", "s", "s k", "Move the focus to the task and job panel", "k tasks"},
 	{"The session (s)", "s", "s f", "Open the working directory in the file manager", "f folder"},
 	{"The session (s)", "s", "s d", "Show the working-tree diff of the selected session", "d diff"},
 	{"The session (s)", "s", "s E", "Open the working directory in the editor", "E editor"},
@@ -55,6 +56,11 @@ var bindings = []binding{
 	{"The diff panel (d)", "", "j  k", "Step through an open diff, then to the next or previous file", ""},
 	{"The diff panel (d)", "", "g  G", "Go to the top or bottom of the open diff, or of the file list", ""},
 	{"The diff panel (d)", "", "}  {", "Jump to the next or previous empty line of an open diff", ""},
+
+	{"The task panel", "", "j  k  up  down", "Scroll the task and job panel one line", ""},
+	{"The task panel", "", "u  d", "Scroll half a panel", ""},
+	{"The task panel", "", "pgup  pgdown", "Scroll a whole panel", ""},
+	{"The task panel", "", "g  G", "Go to the top, and to the bottom", ""},
 
 	{"Moving", "", "j  k  up  down", "Move through the list, or scroll the output", ""},
 	{"Moving", "", "tab", "Move to the next pane", ""},

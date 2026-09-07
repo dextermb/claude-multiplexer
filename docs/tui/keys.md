@@ -39,6 +39,7 @@ forms work everywhere, so a sequence still starts while you type a prompt.
 | `s a` | Archive the selected session, or bring it back |
 | `s x` | Stop the selected session, after a confirmation |
 | `s j` | Show the background jobs of the selected session |
+| `s k` | Move the focus to the task and job panel |
 | `s f` | Open the working directory in the file manager |
 | `s d` | Show the working-tree diff of the selected session |
 | `s E` | Open the working directory in the editor |
@@ -85,8 +86,9 @@ See [keys/navigation.md](keys/navigation.md) for the full diff panel keys.
 
 ## The keys that work on their own
 
-`Tab` moves the focus through three panes in turn: the list, the prompt, and the
-output.
+`Tab` moves the focus through the panes in turn: the list, the prompt, the
+output, and then the side panel when one shows (the diff panel, or the task and
+job panel).
 
 | Key | Action |
 |---|---|
@@ -138,6 +140,7 @@ shows the actions of that target instead.
 - A click on the prompt area moves the focus there.
 - The wheel over the sidebar moves the selection.
 - The wheel over the output scrolls it.
+- The wheel over the task panel or the diff panel scrolls that panel.
 - A left-drag over the output selects text.
 
 Drag over the output to select text. When you release the mouse, the interface

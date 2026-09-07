@@ -32,6 +32,15 @@ func (m Model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 			m.clampDiffScroll()
 			return m, nil
 		}
+		if !m.diffPanel && m.showSidePanel() && msg.X >= m.width-m.taskCols() {
+			if msg.Button == tea.MouseButtonWheelUp {
+				m.taskScroll -= 3
+			} else {
+				m.taskScroll += 3
+			}
+			m.clampTaskScroll()
+			return m, nil
+		}
 		var cmd tea.Cmd
 		m.output, cmd = m.output.Update(msg)
 		return m, cmd
