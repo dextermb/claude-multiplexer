@@ -22,8 +22,8 @@ in `internal/tui`. It talks only to the manager, which is described in
 ```
 
 The sidebar is 26 columns by default, and a layout can change its width, the
-task panel width, the diff panel width, and the prompt bar height. See
-[tui/layouts.md](tui/layouts.md). The sessions are grouped under a header that names
+task panel width, the diff panel position and size, and the prompt bar height.
+See [tui/layouts.md](tui/layouts.md). The sessions are grouped under a header that names
 the group and counts its rows: one group for each repository, and one for the
 work of each control session. Each row shows a state glyph, the display name,
 and `⇢n` when prompts wait in the queue. The selected row has a

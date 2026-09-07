@@ -173,9 +173,10 @@ func layoutOf(dims mcp.LayoutDims) config.Layout {
 	return config.Layout{
 		PromptMin:    dims.PromptMin,
 		PromptMax:    dims.PromptMax,
-		SidebarWidth: dims.SidebarWidth,
-		TaskWidth:    dims.TaskWidth,
-		DiffWidth:    dims.DiffWidth,
+		SidebarSize:  dims.SidebarSize,
+		TaskSize:     dims.TaskSize,
+		DiffSize:     dims.DiffSize,
+		DiffPosition: dims.DiffPosition,
 	}
 }
 

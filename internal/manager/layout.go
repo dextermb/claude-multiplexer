@@ -86,9 +86,10 @@ func (m *Manager) SaveLayout(name string, dims config.Layout, session string) (s
 	layout := config.Layout{
 		PromptMin:    intPtr(resolved.PromptMin),
 		PromptMax:    intPtr(resolved.PromptMax),
-		SidebarWidth: intPtr(resolved.SidebarWidth),
-		TaskWidth:    intPtr(resolved.TaskWidth),
-		DiffWidth:    intPtr(resolved.DiffWidth),
+		SidebarSize:  intPtr(resolved.SidebarSize),
+		TaskSize:     intPtr(resolved.TaskSize),
+		DiffSize:     intPtr(resolved.DiffSize),
+		DiffPosition: strPtr(resolved.DiffPosition),
 	}
 	overlay(&layout, dims)
 	if current.Layouts == nil {
@@ -217,9 +218,10 @@ func dimsOf(layout config.Layout) mcp.LayoutDims {
 	return mcp.LayoutDims{
 		PromptMin:    layout.PromptMin,
 		PromptMax:    layout.PromptMax,
-		SidebarWidth: layout.SidebarWidth,
-		TaskWidth:    layout.TaskWidth,
-		DiffWidth:    layout.DiffWidth,
+		SidebarSize:  layout.SidebarSize,
+		TaskSize:     layout.TaskSize,
+		DiffSize:     layout.DiffSize,
+		DiffPosition: layout.DiffPosition,
 	}
 }
 
@@ -230,15 +232,20 @@ func overlay(base *config.Layout, dims config.Layout) {
 	if dims.PromptMax != nil {
 		base.PromptMax = dims.PromptMax
 	}
-	if dims.SidebarWidth != nil {
-		base.SidebarWidth = dims.SidebarWidth
+	if dims.SidebarSize != nil {
+		base.SidebarSize = dims.SidebarSize
 	}
-	if dims.TaskWidth != nil {
-		base.TaskWidth = dims.TaskWidth
+	if dims.TaskSize != nil {
+		base.TaskSize = dims.TaskSize
 	}
-	if dims.DiffWidth != nil {
-		base.DiffWidth = dims.DiffWidth
+	if dims.DiffSize != nil {
+		base.DiffSize = dims.DiffSize
+	}
+	if dims.DiffPosition != nil {
+		base.DiffPosition = dims.DiffPosition
 	}
 }
 
 func intPtr(n int) *int { return &n }
+
+func strPtr(s string) *string { return &s }

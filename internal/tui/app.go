@@ -185,7 +185,7 @@ type Model struct {
 	diffPanel       bool
 	diffSel         int
 	diffScroll      int
-	diffWidth       int
+	diffSize        int
 	diffHalf        bool
 	diffLineNumbers bool
 	diffTicking     bool

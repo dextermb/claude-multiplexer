@@ -9,7 +9,7 @@ import (
 func TestSaveLayoutCapturesDefaultsAndKeepsOverrides(t *testing.T) {
 	m, path := withConfig(t)
 	forty := 40
-	if _, err := m.SaveLayout("wide", config.Layout{SidebarWidth: &forty}, ""); err != nil {
+	if _, err := m.SaveLayout("wide", config.Layout{SidebarSize: &forty}, ""); err != nil {
 		t.Fatalf("SaveLayout: %v", err)
 	}
 	cfg, err := config.Load(path)
@@ -20,11 +20,14 @@ func TestSaveLayoutCapturesDefaultsAndKeepsOverrides(t *testing.T) {
 	if !ok {
 		t.Fatal("the layout was not saved")
 	}
-	if got.SidebarWidth == nil || *got.SidebarWidth != 40 {
-		t.Fatalf("sidebar = %v, want the override 40", got.SidebarWidth)
+	if got.SidebarSize == nil || *got.SidebarSize != 40 {
+		t.Fatalf("sidebar = %v, want the override 40", got.SidebarSize)
 	}
-	if got.TaskWidth == nil || *got.TaskWidth != config.DefaultTaskWidth {
-		t.Fatalf("task = %v, want the captured default %d", got.TaskWidth, config.DefaultTaskWidth)
+	if got.TaskSize == nil || *got.TaskSize != config.DefaultTaskSize {
+		t.Fatalf("task = %v, want the captured default %d", got.TaskSize, config.DefaultTaskSize)
+	}
+	if got.DiffPosition == nil || *got.DiffPosition != config.DiffRight {
+		t.Fatalf("diff position = %v, want the captured default %q", got.DiffPosition, config.DiffRight)
 	}
 }
 

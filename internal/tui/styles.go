@@ -24,7 +24,7 @@ func spinnerFrame(n int) string {
 // These name the built-in layout dimensions, so a Model with no layout draws the
 // same as before. A layout overrides them; see docs/tui.md and docs/config.md.
 const (
-	sidebarWidth   = config.DefaultSidebarWidth
+	sidebarWidth   = config.DefaultSidebarSize
 	promptHintRows = 1
 	promptRowsMin  = config.DefaultPromptMin
 	promptRowsMax  = config.DefaultPromptMax
@@ -33,8 +33,9 @@ const (
 	barHeight      = 1
 	gutterWidth    = 1
 
-	taskPanelWidth     = config.DefaultTaskWidth
-	minOutputWithPanel = 40
+	taskPanelWidth           = config.DefaultTaskSize
+	minOutputWithPanel       = 40
+	minOutputHeightWithPanel = 6
 )
 
 const edgeMark = "▎"

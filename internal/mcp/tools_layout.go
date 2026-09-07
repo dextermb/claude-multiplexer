@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 
+	"github.com/dextermb/claude-multiplexer/internal/config"
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -11,7 +12,7 @@ func (s *Server) addLayoutTools(server *sdk.Server, caller string) {
 	sdk.AddTool(server, &sdk.Tool{
 		Name: ToolListLayouts,
 		Description: "The named interface layouts, the global active layout, and the layout of one session. " +
-			"A layout sets the prompt bar height, the session list width, the task panel width, and the diff panel width. " +
+			"A layout sets the prompt bar height, the session list width, the task panel width, the diff panel position, and the diff panel size. " +
 			"Give a session name, or leave it empty for this session.",
 	}, func(_ context.Context, _ *sdk.CallToolRequest, in listLayoutsIn) (*sdk.CallToolResult, LayoutList, error) {
 		target, err := targetOrSelf(in.Session, caller)
@@ -39,9 +40,10 @@ func (s *Server) addLayoutTools(server *sdk.Server, caller string) {
 		dims := LayoutDims{
 			PromptMin:    in.PromptMin,
 			PromptMax:    in.PromptMax,
-			SidebarWidth: in.SidebarWidth,
-			TaskWidth:    in.TaskWidth,
-			DiffWidth:    in.DiffWidth,
+			SidebarSize:  in.SidebarSize,
+			TaskSize:     in.TaskSize,
+			DiffSize:     in.DiffSize,
+			DiffPosition: in.DiffPosition,
 		}
 		if err := checkDims(dims); err != nil {
 			return nil, saveLayoutOut{}, err
@@ -139,9 +141,16 @@ func scopeOrSession(scope string) (string, error) {
 }
 
 func checkDims(dims LayoutDims) error {
-	for _, v := range []*int{dims.PromptMin, dims.PromptMax, dims.SidebarWidth, dims.TaskWidth, dims.DiffWidth} {
+	for _, v := range []*int{dims.PromptMin, dims.PromptMax, dims.SidebarSize, dims.TaskSize, dims.DiffSize} {
 		if v != nil && *v < 1 {
 			return ErrBadDim
+		}
+	}
+	if dims.DiffPosition != nil {
+		switch *dims.DiffPosition {
+		case config.DiffLeft, config.DiffRight, config.DiffTop, config.DiffBottom:
+		default:
+			return ErrBadPosition
 		}
 	}
 	return nil

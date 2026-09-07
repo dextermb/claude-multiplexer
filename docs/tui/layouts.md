@@ -4,18 +4,22 @@ A layout is a named set of interface dimensions. The multiplexer resolves one
 layout for the selected session, and it draws the sidebar, the panels, and the
 prompt at those dimensions.
 
-## The four dimensions
+## The dimensions
 
 | Dimension | What it sets | Built-in default |
 |---|---|---|
 | prompt bar | the least and the most rows the prompt bar draws | 1 and 4 |
 | session list | the width of the session list sidebar | 26 |
 | task panel | the width of the task and background job panel | 32 |
-| diff panel | the width of the diff panel | 32 |
+| diff position | the side the diff panel draws on | right |
+| diff panel | the size of the diff panel | 32 columns, 12 rows |
 
 The prompt bar still grows to fit the text, between the least and the most rows.
-The diff panel width is the width `s d` opens. `d +` and `d -` change it live,
-and that change is transient, so it does not write the layout. See
+The diff position is left, right, top, or bottom. The diff size is columns on a
+vertical side (left or right), and rows on a horizontal side (top or bottom). An
+unset size takes the column default on a vertical side, and the row default on a
+horizontal side. The size is the size `s d` opens. `d +` and `d -` change it
+live, and that change is transient, so it does not write the layout. See
 [diff.md](diff.md).
 
 ## The precedence

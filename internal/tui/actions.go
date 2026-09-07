@@ -344,7 +344,7 @@ func (m Model) submitLayoutSwitch() (tea.Model, tea.Cmd) {
 		m.errText = err.Error()
 		return m, nil
 	}
-	m.diffWidth = 0
+	m.diffSize = 0
 	label := name
 	if isDefault {
 		label = "default"
