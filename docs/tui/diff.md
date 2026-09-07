@@ -91,6 +91,13 @@ A layout puts the diff panel on any of four sides. Left and right are vertical
 sides, so the panel is a narrow column beside the output. Top and bottom are
 horizontal sides, so the panel is a wide band above or below the output.
 
+A vertical panel has a border on the side next to the output, and a horizontal
+band has a rule on the same side: a line above a bottom band, and below a top
+band. The border carries the highlight colour when the panel holds the focus.
+The band is flush with the output on the left, and takes the full output width,
+so the output shrinks to give the band its rows. The rule sits inside those
+rows, so the band and the output together still fit the pane.
+
 On a vertical side the files draw in one column, and an open file's diff shows
 inline, right after its row. On a horizontal side the panel is short and wide,
 so the files draw in a grid of two or more columns. An open file's diff then

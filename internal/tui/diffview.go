@@ -6,18 +6,46 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/dextermb/claude-multiplexer/internal/config"
 )
+
+// diffBandStyle is the style of a horizontal diff panel: a plain band, flush
+// with the output and its full width, with one border row that separates it from
+// the output. The rule is above a bottom panel and below a top panel, and it
+// carries the highlight colour when the panel holds the focus. A vertical panel
+// keeps the left border of sidePanelStyle. See docs/tui/diff.md.
+func diffBandStyle(focused, bottom bool) lipgloss.Style {
+	color := lipgloss.Color("240")
+	if focused {
+		color = lipgloss.Color("62")
+	}
+	return lipgloss.NewStyle().
+		Border(lipgloss.NormalBorder(), bottom, false, !bottom, false).
+		BorderForeground(color)
+}
 
 func (m Model) diffPanelView() string {
 	lines := m.diffPanelLines()
+	if m.diffHorizontal() {
+		height := m.diffContentHeight()
+		block := m.diffWindow(lines, height)
+		bottom := m.layout.DiffPosition == config.DiffBottom
+		return diffBandStyle(m.focus == focusDiff, bottom).Width(m.diffPanelWidth()).Height(height).Render(block)
+	}
 	height := m.diffPanelHeight()
+	block := m.diffWindow(lines, height)
+	return sidePanelStyle(m.focus == focusDiff).Width(m.diffPanelWidth() - 1).Height(height).Render(block)
+}
+
+// diffWindow is the slice of panel lines the view shows, scrolled and clamped to
+// the rows the panel body holds.
+func (m Model) diffWindow(lines []string, height int) string {
 	scroll := clampScroll(m.diffScroll, len(lines), height)
 	end := scroll + height
 	if end > len(lines) {
 		end = len(lines)
 	}
-	block := strings.Join(lines[scroll:end], "\n")
-	return sidePanelStyle(m.focus == focusDiff).Width(m.diffPanelWidth() - 1).Height(height).Render(block)
+	return strings.Join(lines[scroll:end], "\n")
 }
 
 func (m Model) diffPanelLines() []string {

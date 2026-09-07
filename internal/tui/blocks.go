@@ -20,6 +20,7 @@ func (m *Model) rebuildOutput() {
 	}
 	lines := m.linesFor(m.sel)
 	m.output.Width = m.outputWidth()
+	m.output.Height = m.outputHeight()
 	m.shownLines = append([]render.Line(nil), lines...)
 	m.redrawBlocks()
 	m.resetBlockCursor()

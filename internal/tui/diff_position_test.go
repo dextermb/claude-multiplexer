@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/git"
@@ -64,6 +65,74 @@ func TestDiffBottomUsesFullWidthAndShortensOutput(t *testing.T) {
 	}
 	if want := m.bodyHeight() - barHeight - h; m.outputHeight() != want {
 		t.Fatalf("output height = %d, want %d (shrunk by the panel)", m.outputHeight(), want)
+	}
+}
+
+func TestHorizontalDiffPanelShrinksOutputViewport(t *testing.T) {
+	m, mgr := newTestModel(t, "")
+	m = start(t, m, 160, 40)
+	m, _ = step(t, m, key("esc"))
+	m = spawn(t, m, mgr, "alpha", t.TempDir())
+
+	m.layouts = map[string]config.Layout{"stack": {DiffPosition: posPtr(config.DiffBottom), DiffSize: sizePtr(10)}}
+	m.activeLayout = "stack"
+	m.applyLayout()
+	tall := m.output.Height
+
+	next, _ := m.openDiffPanel()
+	m = next.(Model)
+	if m.output.Height >= tall {
+		t.Fatalf("output viewport height = %d, want less than %d (shrunk for the panel)", m.output.Height, tall)
+	}
+	if m.output.Height != m.outputHeight() {
+		t.Fatalf("output viewport height = %d, want outputHeight %d", m.output.Height, m.outputHeight())
+	}
+
+	next, _ = m.closeDiffPanel()
+	m = next.(Model)
+	if m.output.Height != tall {
+		t.Fatalf("closing must restore the output viewport height to %d, got %d", tall, m.output.Height)
+	}
+}
+
+func TestHorizontalDiffPanelIsFlushFullWidth(t *testing.T) {
+	m := gridModel(80, 40, sampleFiles(3))
+	if m.diffInner() != m.diffPanelWidth() {
+		t.Fatalf("horizontal diffInner = %d, want the full panel width %d (no border inset)", m.diffInner(), m.diffPanelWidth())
+	}
+	if m.diffPanelWidth() != m.baseOutputWidth() {
+		t.Fatalf("horizontal panel width = %d, want the full output width %d", m.diffPanelWidth(), m.baseOutputWidth())
+	}
+}
+
+func TestHorizontalDiffPanelHasSeparatorWithinFootprint(t *testing.T) {
+	for _, tc := range []struct {
+		pos     string
+		ruleTop bool
+	}{
+		{config.DiffBottom, true},
+		{config.DiffTop, false},
+	} {
+		m := gridModel(80, 40, sampleFiles(2))
+		m.layout.DiffPosition = tc.pos
+
+		if want := m.diffPanelHeight() - 1; m.diffContentHeight() != want {
+			t.Fatalf("%s: content height = %d, want %d (one row for the rule)", tc.pos, m.diffContentHeight(), want)
+		}
+
+		panel := m.diffPanelView()
+		if h := lipgloss.Height(panel); h != m.diffPanelHeight() {
+			t.Fatalf("%s: rendered panel height = %d, want the footprint %d", tc.pos, h, m.diffPanelHeight())
+		}
+
+		rows := strings.Split(panel, "\n")
+		rule := rows[len(rows)-1]
+		if tc.ruleTop {
+			rule = rows[0]
+		}
+		if !strings.Contains(ansi.Strip(rule), "─") {
+			t.Fatalf("%s: the separator rule must sit on the side next to the output", tc.pos)
+		}
 	}
 }
 

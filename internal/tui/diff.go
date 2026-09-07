@@ -513,7 +513,7 @@ func (m *Model) clampDiffSel() {
 }
 
 func (m *Model) clampDiffScroll() {
-	m.diffScroll = clampScroll(m.diffScroll, len(m.diffPanelLines()), m.diffPanelHeight())
+	m.diffScroll = clampScroll(m.diffScroll, len(m.diffPanelLines()), m.diffContentHeight())
 }
 
 // gridCols is the column count of the horizontal file grid, from the panel
@@ -542,7 +542,7 @@ func (m Model) diffGridMove(delta int) (tea.Model, tea.Cmd) {
 // ensureDiffSelVisible scrolls the panel so the selected file row is on screen.
 func (m *Model) ensureDiffSelVisible() {
 	line := m.diffSelLine()
-	height := m.diffPanelHeight()
+	height := m.diffContentHeight()
 	if line < m.diffScroll {
 		m.diffScroll = line
 	}
@@ -596,7 +596,7 @@ func (m Model) diffFileLine(target int) int {
 }
 
 func (m Model) diffPage() int {
-	page := m.diffPanelHeight() - 2
+	page := m.diffContentHeight() - 2
 	if page < 1 {
 		page = 1
 	}
@@ -673,6 +673,19 @@ func (m Model) diffPanelHeight() int {
 	return m.bodyHeight()
 }
 
+// diffContentHeight is the rows the panel body draws inside its footprint. A
+// horizontal panel gives one row to the separator border, so its body is one row
+// shorter than the footprint. A vertical panel has no such border.
+func (m Model) diffContentHeight() int {
+	if m.diffHorizontal() {
+		if h := m.diffPanelHeight() - 1; h >= 1 {
+			return h
+		}
+		return 1
+	}
+	return m.diffPanelHeight()
+}
+
 func (m Model) clampDiffExtent(size int) int {
 	if m.diffHorizontal() {
 		return m.clampDiffRows(size)
@@ -713,6 +726,9 @@ func (m Model) clampDiffRows(rows int) int {
 }
 
 func (m Model) diffInner() int {
+	if m.diffHorizontal() {
+		return m.diffPanelWidth()
+	}
 	return m.diffPanelWidth() - 2
 }
 
