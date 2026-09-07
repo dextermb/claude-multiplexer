@@ -243,6 +243,20 @@ func (m *Manager) WorkingDirs() map[string]string {
 	return out
 }
 
+// Projects reports the project directories of each live session that has a
+// project. The interface groups the diff by these directories.
+func (m *Manager) Projects() map[string][]string {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	out := make(map[string][]string, len(m.entries))
+	for name, item := range m.entries {
+		if dirs := item.metaCopy().WorkingDirs; len(dirs) > 0 {
+			out[name] = dirs
+		}
+	}
+	return out
+}
+
 func (m *Manager) Grants() map[string]bool {
 	m.mu.Lock()
 	defer m.mu.Unlock()

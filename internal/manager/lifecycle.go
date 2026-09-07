@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"sync"
 	"time"
 
@@ -173,17 +174,9 @@ func (m *Manager) SetWorkingDir(name, path string) (string, error) {
 		return "", err
 	}
 	meta := item.metaCopy()
-	full := path
-	if !filepath.IsAbs(full) {
-		full = filepath.Join(meta.Dir, full)
-	}
-	full = filepath.Clean(full)
-	info, err := os.Stat(full)
+	full, err := resolveDir(meta.Dir, path)
 	if err != nil {
 		return "", err
-	}
-	if !info.IsDir() {
-		return "", fmt.Errorf("%s: not a directory", full)
 	}
 	meta.WorkingDir = full
 	item.setMeta(meta)
@@ -210,6 +203,129 @@ func (m *Manager) UnsetWorkingDir(name string) (bool, error) {
 		return false, err
 	}
 	return true, nil
+}
+
+// resolveDir turns a path a tool gives into an absolute, clean directory. A
+// relative path is resolved against base. The directory must exist.
+func resolveDir(base, path string) (string, error) {
+	full := path
+	if !filepath.IsAbs(full) {
+		full = filepath.Join(base, full)
+	}
+	full = filepath.Clean(full)
+	info, err := os.Stat(full)
+	if err != nil {
+		return "", err
+	}
+	if !info.IsDir() {
+		return "", fmt.Errorf("%s: not a directory", full)
+	}
+	return full, nil
+}
+
+// Project reads the directories of a session's project, in order. The list is
+// empty when the session has no project. See docs/mcp/tools.md.
+func (m *Manager) Project(name string) ([]string, error) {
+	item, err := m.entry(name)
+	if err != nil {
+		return nil, err
+	}
+	return item.metaCopy().WorkingDirs, nil
+}
+
+// SetProject replaces the whole ordered set of project directories. Every path
+// is resolved and validated, and the result is de-duplicated in order.
+func (m *Manager) SetProject(name string, paths []string) ([]string, error) {
+	item, err := m.entry(name)
+	if err != nil {
+		return nil, err
+	}
+	meta := item.metaCopy()
+	dirs, err := resolveDirs(meta.Dir, paths)
+	if err != nil {
+		return nil, err
+	}
+	return m.writeProject(item, meta, dirs)
+}
+
+// AddProjectDir adds one directory to a session's project, and returns the new
+// list. A directory that is already in the project is left as it is.
+func (m *Manager) AddProjectDir(name, path string) ([]string, error) {
+	item, err := m.entry(name)
+	if err != nil {
+		return nil, err
+	}
+	meta := item.metaCopy()
+	full, err := resolveDir(meta.Dir, path)
+	if err != nil {
+		return nil, err
+	}
+	return m.writeProject(item, meta, appendUnique(meta.WorkingDirs, full))
+}
+
+// RemoveProjectDir takes one directory out of a session's project, and returns
+// the new list. It resolves the path the same way it was added.
+func (m *Manager) RemoveProjectDir(name, path string) ([]string, error) {
+	item, err := m.entry(name)
+	if err != nil {
+		return nil, err
+	}
+	meta := item.metaCopy()
+	full, err := resolveDir(meta.Dir, path)
+	if err != nil {
+		return nil, err
+	}
+	var kept []string
+	for _, dir := range meta.WorkingDirs {
+		if dir != full {
+			kept = append(kept, dir)
+		}
+	}
+	return m.writeProject(item, meta, kept)
+}
+
+// ClearProject empties a session's project, and reports whether it had one.
+func (m *Manager) ClearProject(name string) (bool, error) {
+	item, err := m.entry(name)
+	if err != nil {
+		return false, err
+	}
+	meta := item.metaCopy()
+	if len(meta.WorkingDirs) == 0 {
+		return false, nil
+	}
+	if _, err := m.writeProject(item, meta, nil); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func (m *Manager) writeProject(item *entry, meta Meta, dirs []string) ([]string, error) {
+	meta.WorkingDirs = dirs
+	item.setMeta(meta)
+	if err := writeMeta(item.path, meta); err != nil {
+		return nil, err
+	}
+	return dirs, nil
+}
+
+func resolveDirs(base string, paths []string) ([]string, error) {
+	var out []string
+	for _, path := range paths {
+		full, err := resolveDir(base, path)
+		if err != nil {
+			return nil, err
+		}
+		out = appendUnique(out, full)
+	}
+	return out, nil
+}
+
+func appendUnique(dirs []string, dir string) []string {
+	if slices.Contains(dirs, dir) {
+		return dirs
+	}
+	return append(dirs, dir)
 }
 
 // SetTitle renames a session. A live session takes the new title and persists it

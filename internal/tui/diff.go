@@ -31,64 +31,139 @@ func (m Model) handleDiffTick() (tea.Model, tea.Cmd) {
 	return m, tea.Batch(m.diffRefreshCmd(), diffTick())
 }
 
-// diffState is the cached working-tree diff of one session against origin/HEAD.
+// dirDiff is the cached working-tree diff of one directory against origin/HEAD.
 // See docs/tui/diff.md.
-type diffState struct {
+type dirDiff struct {
+	dir   string
 	repo  bool
 	stat  git.Stat
 	files []git.FileChange
 	err   error
 }
 
+// projectDiff is the diff of a session, one group per directory of its project.
+// A session with no project has one group. See docs/tui/diff.md.
+type projectDiff struct {
+	groups []dirDiff
+}
+
+// fileKey names one changed file within a project: its directory and its path.
+// The directory keeps two files of the same path in different directories
+// apart. See docs/tui/diff.md.
+type fileKey struct {
+	dir  string
+	path string
+}
+
+// diffEntry is one selectable file of the panel, flattened across the groups in
+// order. The navigation indexes this list.
+type diffEntry struct {
+	dir  string
+	file git.FileChange
+}
+
+func (p projectDiff) entries() []diffEntry {
+	var out []diffEntry
+	for _, g := range p.groups {
+		for _, f := range g.files {
+			out = append(out, diffEntry{dir: g.dir, file: f})
+		}
+	}
+	return out
+}
+
+func (p projectDiff) totalFiles() int {
+	n := 0
+	for _, g := range p.groups {
+		n += len(g.files)
+	}
+	return n
+}
+
+func (p projectDiff) anyRepo() bool {
+	for _, g := range p.groups {
+		if g.repo {
+			return true
+		}
+	}
+	return false
+}
+
+func (p projectDiff) stat() git.Stat {
+	var out git.Stat
+	for _, g := range p.groups {
+		out.Insertions += g.stat.Insertions
+		out.Deletions += g.stat.Deletions
+		out.Files += g.stat.Files
+	}
+	return out
+}
+
+func (m Model) diffEntries() []diffEntry {
+	return m.diffs[m.sel].entries()
+}
+
+// multiGroup reports whether the selected session's diff has more than one
+// group, so the panel draws a header for each directory.
+func (m Model) multiGroup() bool {
+	return len(m.diffs[m.sel].groups) > 1
+}
+
+func (e diffEntry) key() fileKey {
+	return fileKey{dir: e.dir, path: e.file.Path}
+}
+
 type diffMsg struct {
-	name  string
-	repo  bool
-	stat  git.Stat
-	files []git.FileChange
-	err   error
+	name   string
+	groups []dirDiff
 }
 
 type fileDiffMsg struct {
 	name string
+	dir  string
 	path string
 	text string
 	err  error
 }
 
-// diffRefreshCmd reads the diff of the selected session.
+// diffRefreshCmd reads the diff of every directory of the selected session's
+// project.
 func (m Model) diffRefreshCmd() tea.Cmd {
 	item, ok := m.selectedRow()
 	if !ok {
 		return nil
 	}
-	return diffCmd(item.name, item.openDir())
+	return projectDiffCmd(item.name, item.diffDirs())
 }
 
-func diffCmd(name, dir string) tea.Cmd {
+func projectDiffCmd(name string, dirs []string) tea.Cmd {
 	return func() tea.Msg {
-		if dir == "" || !git.IsRepo(dir) {
-			return diffMsg{name: name}
+		groups := make([]dirDiff, 0, len(dirs))
+		for _, dir := range dirs {
+			if dir == "" || !git.IsRepo(dir) {
+				groups = append(groups, dirDiff{dir: dir})
+				continue
+			}
+			stat, files, err := git.Diff(dir)
+			groups = append(groups, dirDiff{dir: dir, repo: true, stat: stat, files: files, err: err})
 		}
-		stat, files, err := git.Diff(dir)
-		return diffMsg{name: name, repo: true, stat: stat, files: files, err: err}
+		return diffMsg{name: name, groups: groups}
 	}
 }
 
 func fileDiffCmd(name, dir, path string) tea.Cmd {
 	return func() tea.Msg {
 		text, err := git.FileDiff(dir, path)
-		return fileDiffMsg{name: name, path: path, text: text, err: err}
+		return fileDiffMsg{name: name, dir: dir, path: path, text: text, err: err}
 	}
 }
 
 func (m Model) handleDiff(msg diffMsg) (tea.Model, tea.Cmd) {
-	m.diffs[msg.name] = diffState{repo: msg.repo, stat: msg.stat, files: msg.files, err: msg.err}
+	m.diffs[msg.name] = projectDiff{groups: msg.groups}
 	m.clampDiffSel()
 	var cmds []tea.Cmd
-	if item, ok := m.rowByName(msg.name); ok {
-		for path := range m.diffOpen[msg.name] {
-			cmds = append(cmds, fileDiffCmd(msg.name, item.openDir(), path))
-		}
+	for key := range m.diffOpen[msg.name] {
+		cmds = append(cmds, fileDiffCmd(msg.name, key.dir, key.path))
 	}
 	return m, tea.Batch(cmds...)
 }
@@ -99,9 +174,9 @@ func (m Model) handleFileDiff(msg fileDiffMsg) (tea.Model, tea.Cmd) {
 		text = "diff failed: " + msg.err.Error()
 	}
 	if m.fileDiffs[msg.name] == nil {
-		m.fileDiffs[msg.name] = make(map[string]string)
+		m.fileDiffs[msg.name] = make(map[fileKey]string)
 	}
-	m.fileDiffs[msg.name][msg.path] = text
+	m.fileDiffs[msg.name][fileKey{dir: msg.dir, path: msg.path}] = text
 	return m, nil
 }
 
@@ -144,7 +219,7 @@ func (m Model) closeDiffPanel() (tea.Model, tea.Cmd) {
 }
 
 func (m Model) diffKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	files := m.diffs[m.sel].files
+	entries := m.diffEntries()
 	switch msg.String() {
 	case "esc":
 		return m.closeDiffPanel()
@@ -200,7 +275,7 @@ func (m Model) diffKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.clampDiffScroll()
 			return m, nil
 		}
-		m.diffSel = len(files) - 1
+		m.diffSel = len(entries) - 1
 		m.clampDiffSel()
 		m.ensureDiffSelVisible()
 		return m, nil
@@ -244,8 +319,8 @@ func (m Model) diffJumpUp() (tea.Model, tea.Cmd) {
 // of an open diff. On a horizontal side it scans the rendered lines, because the
 // open diffs sit below the grid, not inline.
 func (m Model) diffEmptyRows() []int {
-	d, ok := m.diffs[m.sel]
-	if !ok || !d.repo {
+	p, ok := m.diffs[m.sel]
+	if !ok || !p.anyRepo() {
 		return nil
 	}
 	if m.diffHorizontal() {
@@ -257,18 +332,31 @@ func (m Model) diffEmptyRows() []int {
 		}
 		return rows
 	}
+	multi := m.multiGroup()
 	var rows []int
 	line := 2
-	for _, file := range d.files {
-		line++
-		if !m.diffOpen[m.sel][file.Path] {
+	for _, g := range p.groups {
+		if multi {
+			line++
+		}
+		if !g.repo || len(g.files) == 0 {
+			if multi {
+				line++
+			}
 			continue
 		}
-		for _, out := range m.diffFileBody(file.Path) {
-			if m.diffRowEmpty(out) {
-				rows = append(rows, line)
-			}
+		for _, file := range g.files {
 			line++
+			key := fileKey{dir: g.dir, path: file.Path}
+			if !m.diffOpen[m.sel][key] {
+				continue
+			}
+			for _, out := range m.diffFileBody(key) {
+				if m.diffRowEmpty(out) {
+					rows = append(rows, line)
+				}
+				line++
+			}
 		}
 	}
 	return rows
@@ -297,7 +385,7 @@ func (m Model) anyDiffOpen() bool {
 // open diff, j moves to the next file. k moves to the previous file, and enters
 // an open file at the bottom of its diff. See docs/tui/diff.md.
 func (m Model) diffCursorDown() (tea.Model, tea.Cmd) {
-	files := m.diffs[m.sel].files
+	entries := m.diffEntries()
 	if body := m.selectedBodyLen(); body > 0 {
 		last := m.diffFileLine(m.diffSel) + body
 		if last >= m.diffScroll+m.bodyHeight() {
@@ -306,7 +394,7 @@ func (m Model) diffCursorDown() (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 	}
-	if m.diffSel < len(files)-1 {
+	if m.diffSel < len(entries)-1 {
 		m.diffSel++
 		m.ensureDiffSelVisible()
 	}
@@ -334,15 +422,15 @@ func (m Model) diffCursorUp() (tea.Model, tea.Cmd) {
 // selectedBodyLen is the count of rendered diff lines of the selected file when
 // it is expanded, or 0 when it is collapsed.
 func (m Model) selectedBodyLen() int {
-	files := m.diffs[m.sel].files
-	if m.diffSel < 0 || m.diffSel >= len(files) {
+	entries := m.diffEntries()
+	if m.diffSel < 0 || m.diffSel >= len(entries) {
 		return 0
 	}
-	path := files[m.diffSel].Path
-	if !m.diffOpen[m.sel][path] {
+	key := entries[m.diffSel].key()
+	if !m.diffOpen[m.sel][key] {
 		return 0
 	}
-	return len(m.diffFileBody(path))
+	return len(m.diffFileBody(key))
 }
 
 // widenDiff, narrowDiff, toggleHalfDiff, and toggleDiffNumbers are the d +, d -,
@@ -374,29 +462,26 @@ func (m Model) toggleDiffNumbers() (tea.Model, tea.Cmd) {
 }
 
 func (m Model) toggleDiffFile() (tea.Model, tea.Cmd) {
-	files := m.diffs[m.sel].files
-	if m.diffSel < 0 || m.diffSel >= len(files) {
+	entries := m.diffEntries()
+	if m.diffSel < 0 || m.diffSel >= len(entries) {
 		return m, nil
 	}
-	path := files[m.diffSel].Path
+	entry := entries[m.diffSel]
+	key := entry.key()
 	open := m.diffOpen[m.sel]
 	if open == nil {
-		open = make(map[string]bool)
+		open = make(map[fileKey]bool)
 		m.diffOpen[m.sel] = open
 	}
-	if open[path] {
-		delete(open, path)
+	if open[key] {
+		delete(open, key)
 		return m, nil
 	}
-	open[path] = true
-	if _, cached := m.fileDiffs[m.sel][path]; cached {
+	open[key] = true
+	if _, cached := m.fileDiffs[m.sel][key]; cached {
 		return m, nil
 	}
-	item, ok := m.selectedRow()
-	if !ok {
-		return m, nil
-	}
-	return m, fileDiffCmd(m.sel, item.openDir(), path)
+	return m, fileDiffCmd(m.sel, entry.dir, entry.file.Path)
 }
 
 // toggleSidebar, collapseSidebar, and expandSidebar are the l t, l c, and l e
@@ -418,7 +503,7 @@ func (m Model) setSidebar(hidden bool) (tea.Model, tea.Cmd) {
 }
 
 func (m *Model) clampDiffSel() {
-	n := len(m.diffs[m.sel].files)
+	n := len(m.diffEntries())
 	if m.diffSel >= n {
 		m.diffSel = n - 1
 	}
@@ -434,17 +519,17 @@ func (m *Model) clampDiffScroll() {
 // gridCols is the column count of the horizontal file grid, from the panel
 // width. See docs/tui/diff.md.
 func (m Model) gridCols() int {
-	files := m.diffs[m.sel].files
-	if len(files) == 0 {
+	n := len(m.diffEntries())
+	if n == 0 {
 		return 1
 	}
-	return m.diffGridCols(len(files))
+	return m.diffGridCols(n)
 }
 
 // diffGridMove is the h, l, j, and k motion in the horizontal grid. It moves the
 // selection by delta files, and keeps it on screen.
 func (m Model) diffGridMove(delta int) (tea.Model, tea.Cmd) {
-	n := len(m.diffs[m.sel].files)
+	n := len(m.diffEntries())
 	next := m.diffSel + delta
 	if n == 0 || next < 0 || next >= n {
 		return m, nil
@@ -477,16 +562,34 @@ func (m Model) diffSelLine() int {
 	return m.diffFileLine(m.diffSel)
 }
 
-// diffFileLine is the line index of a file's row within the panel lines.
+// diffFileLine is the line index of a file's row within the panel lines. It
+// walks the groups the same way the panel draws them, so the header of each
+// group and the message of an empty group shift the row down. See docs/tui/diff.md.
 func (m Model) diffFileLine(target int) int {
+	p := m.diffs[m.sel]
+	multi := len(p.groups) > 1
 	line := 2
-	for i, file := range m.diffs[m.sel].files {
-		if i == target {
-			return line
+	idx := 0
+	for _, g := range p.groups {
+		if multi {
+			line++
 		}
-		line++
-		if m.diffOpen[m.sel][file.Path] {
-			line += len(m.diffFileBody(file.Path))
+		if !g.repo || len(g.files) == 0 {
+			if multi {
+				line++
+			}
+			continue
+		}
+		for _, file := range g.files {
+			if idx == target {
+				return line
+			}
+			line++
+			key := fileKey{dir: g.dir, path: file.Path}
+			if m.diffOpen[m.sel][key] {
+				line += len(m.diffFileBody(key))
+			}
+			idx++
 		}
 	}
 	return line
@@ -498,15 +601,6 @@ func (m Model) diffPage() int {
 		page = 1
 	}
 	return page
-}
-
-func (m Model) rowByName(name string) (row, bool) {
-	for _, item := range m.rows {
-		if item.name == name {
-			return item, true
-		}
-	}
-	return row{}, false
 }
 
 func barDiffCount(stat git.Stat) string {

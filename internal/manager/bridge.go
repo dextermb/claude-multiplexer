@@ -100,6 +100,53 @@ func (b *bridge) UnsetWorkingDir(by string) (bool, error) {
 	return changed, nil
 }
 
+func (b *bridge) Project(session string) ([]string, error) { return b.m.Project(session) }
+
+func (b *bridge) SetProject(paths []string, by string) ([]string, error) {
+	dirs, err := b.m.SetProject(by, paths)
+	if err != nil {
+		return nil, err
+	}
+	b.m.notify(by, by+" set its project to "+projectSummary(dirs), true)
+	return dirs, nil
+}
+
+func (b *bridge) AddProjectDir(path, by string) ([]string, error) {
+	dirs, err := b.m.AddProjectDir(by, path)
+	if err != nil {
+		return nil, err
+	}
+	b.m.notify(by, by+" added "+path+" to its project", true)
+	return dirs, nil
+}
+
+func (b *bridge) RemoveProjectDir(path, by string) ([]string, error) {
+	dirs, err := b.m.RemoveProjectDir(by, path)
+	if err != nil {
+		return nil, err
+	}
+	b.m.notify(by, by+" removed "+path+" from its project", true)
+	return dirs, nil
+}
+
+func (b *bridge) ClearProject(by string) (bool, error) {
+	changed, err := b.m.ClearProject(by)
+	if err != nil {
+		return false, err
+	}
+	if changed {
+		b.m.notify(by, by+" cleared its project", true)
+	}
+	return changed, nil
+}
+
+func projectSummary(dirs []string) string {
+	if len(dirs) == 0 {
+		return "no directories"
+	}
+	return strconv.Itoa(len(dirs)) + " directories"
+}
+
 func (b *bridge) Layouts(session string) (mcp.LayoutList, error) {
 	return b.m.LayoutList(session)
 }

@@ -178,9 +178,9 @@ type Model struct {
 	confirm         string
 	focus           focusArea
 
-	diffs           map[string]diffState
-	fileDiffs       map[string]map[string]string
-	diffOpen        map[string]map[string]bool
+	diffs           map[string]projectDiff
+	fileDiffs       map[string]map[fileKey]string
+	diffOpen        map[string]map[fileKey]bool
 	diffFor         string
 	diffPanel       bool
 	diffSel         int
@@ -224,9 +224,9 @@ func New(opts Options) Model {
 		queued:          make(map[string][]string),
 		todos:           make(map[string][]protocol.Todo),
 		questions:       make(map[string]*questionDialog),
-		diffs:           make(map[string]diffState),
-		fileDiffs:       make(map[string]map[string]string),
-		diffOpen:        make(map[string]map[string]bool),
+		diffs:           make(map[string]projectDiff),
+		fileDiffs:       make(map[string]map[fileKey]string),
+		diffOpen:        make(map[string]map[fileKey]bool),
 		folded:          make(map[string]bool),
 		roots:           make(map[string]string),
 		expanded:        make(map[int]bool),

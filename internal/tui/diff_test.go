@@ -12,18 +12,29 @@ func diffModel() Model {
 	return Model{
 		sel:       "a",
 		focus:     focusDiff,
-		diffs:     make(map[string]diffState),
-		diffOpen:  make(map[string]map[string]bool),
-		fileDiffs: make(map[string]map[string]string),
+		diffs:     make(map[string]projectDiff),
+		diffOpen:  make(map[string]map[fileKey]bool),
+		fileDiffs: make(map[string]map[fileKey]string),
 	}
+}
+
+// oneGroup wraps a flat file list as a single-directory project, the shape of a
+// session with no project.
+func oneGroup(files ...git.FileChange) projectDiff {
+	return projectDiff{groups: []dirDiff{{repo: true, files: files}}}
+}
+
+// fk is the file key of a path in a single-directory project (empty directory).
+func fk(path string) fileKey {
+	return fileKey{path: path}
 }
 
 func TestDiffPanelListsFilesAndCounts(t *testing.T) {
 	m := diffModel()
-	m.diffs["a"] = diffState{repo: true, files: []git.FileChange{
-		{Status: "M", Path: "app.go", Insertions: 12, Deletions: 3},
-		{Status: "A", Path: "git.go", Insertions: 40, Deletions: 0},
-	}}
+	m.diffs["a"] = oneGroup(
+		git.FileChange{Status: "M", Path: "app.go", Insertions: 12, Deletions: 3},
+		git.FileChange{Status: "A", Path: "git.go", Insertions: 40, Deletions: 0},
+	)
 
 	text := visible(strings.Join(m.diffPanelLines(), "\n"))
 	for _, want := range []string{"Changes · 2", "app.go", "+12", "−3", "git.go", "+40"} {
@@ -35,16 +46,16 @@ func TestDiffPanelListsFilesAndCounts(t *testing.T) {
 
 func TestDiffPanelShowsAnExpandedFile(t *testing.T) {
 	m := diffModel()
-	m.diffs["a"] = diffState{repo: true, files: []git.FileChange{{Status: "M", Path: "app.go"}}}
-	m.diffOpen["a"] = map[string]bool{"app.go": true}
-	m.fileDiffs["a"] = map[string]string{"app.go": "@@ -1 +1 @@\n+added line\n"}
+	m.diffs["a"] = oneGroup(git.FileChange{Status: "M", Path: "app.go"})
+	m.diffOpen["a"] = map[fileKey]bool{fk("app.go"): true}
+	m.fileDiffs["a"] = map[fileKey]string{fk("app.go"): "@@ -1 +1 @@\n+added line\n"}
 
 	text := visible(strings.Join(m.diffPanelLines(), "\n"))
 	if !strings.Contains(text, "added line") {
 		t.Errorf("an open file must show its diff:\n%s", text)
 	}
 
-	m.diffOpen["a"] = map[string]bool{}
+	m.diffOpen["a"] = map[fileKey]bool{}
 	text = visible(strings.Join(m.diffPanelLines(), "\n"))
 	if strings.Contains(text, "added line") {
 		t.Errorf("a closed file must hide its diff:\n%s", text)
@@ -57,25 +68,61 @@ func TestDiffPanelStates(t *testing.T) {
 		t.Errorf("an unread session must say so: %q", got)
 	}
 
-	m.diffs["a"] = diffState{repo: false}
+	m.diffs["a"] = projectDiff{groups: []dirDiff{{repo: false}}}
 	if got := visible(strings.Join(m.diffPanelLines(), "\n")); !strings.Contains(got, "not a git repository") {
 		t.Errorf("a non-repository must say so: %q", got)
 	}
 
-	m.diffs["a"] = diffState{repo: true}
+	m.diffs["a"] = projectDiff{groups: []dirDiff{{repo: true}}}
 	if got := visible(strings.Join(m.diffPanelLines(), "\n")); !strings.Contains(got, "no changes") {
 		t.Errorf("a clean tree must say so: %q", got)
+	}
+}
+
+func TestDiffPanelGroupsByDirectory(t *testing.T) {
+	m := diffModel()
+	m.diffs["a"] = projectDiff{groups: []dirDiff{
+		{dir: "/repo/api", repo: true, stat: git.Stat{Insertions: 5}, files: []git.FileChange{{Status: "M", Path: "main.go", Insertions: 5}}},
+		{dir: "/repo/web", repo: true, stat: git.Stat{Insertions: 9}, files: []git.FileChange{{Status: "M", Path: "main.go", Insertions: 9}}},
+	}}
+
+	text := visible(strings.Join(m.diffPanelLines(), "\n"))
+	for _, want := range []string{"Changes · 2", "api", "web", "main.go"} {
+		if !strings.Contains(text, want) {
+			t.Errorf("the grouped panel does not show %q:\n%s", want, text)
+		}
+	}
+	if got := m.diffEntries(); len(got) != 2 {
+		t.Fatalf("diffEntries = %d, want 2 across the two directories", len(got))
+	}
+}
+
+func TestSameNamedFilesInTwoDirectoriesExpandApart(t *testing.T) {
+	m := diffModel()
+	m.diffs["a"] = projectDiff{groups: []dirDiff{
+		{dir: "/repo/api", repo: true, files: []git.FileChange{{Status: "M", Path: "main.go"}}},
+		{dir: "/repo/web", repo: true, files: []git.FileChange{{Status: "M", Path: "main.go"}}},
+	}}
+	m.diffOpen["a"] = map[fileKey]bool{{dir: "/repo/api", path: "main.go"}: true}
+	m.fileDiffs["a"] = map[fileKey]string{{dir: "/repo/api", path: "main.go"}: "@@ -1 +1 @@\n+api change\n"}
+
+	text := visible(strings.Join(m.diffPanelLines(), "\n"))
+	if !strings.Contains(text, "api change") {
+		t.Errorf("the open api file must show its diff:\n%s", text)
+	}
+	if strings.Count(text, "api change") != 1 {
+		t.Errorf("only the api file is open, so its diff must show once:\n%s", text)
 	}
 }
 
 func TestTogglingAFileFetchesThenHidesIt(t *testing.T) {
 	m := diffModel()
 	m.rows = []row{{name: "a", dir: "/tmp/a"}}
-	m.diffs["a"] = diffState{repo: true, files: []git.FileChange{{Status: "M", Path: "app.go"}}}
+	m.diffs["a"] = oneGroup(git.FileChange{Status: "M", Path: "app.go"})
 
 	next, cmd := m.toggleDiffFile()
 	m = next.(Model)
-	if !m.diffOpen["a"]["app.go"] {
+	if !m.diffOpen["a"][fk("app.go")] {
 		t.Fatal("the first toggle must open the file")
 	}
 	if cmd == nil {
@@ -84,7 +131,7 @@ func TestTogglingAFileFetchesThenHidesIt(t *testing.T) {
 
 	next, _ = m.toggleDiffFile()
 	m = next.(Model)
-	if m.diffOpen["a"]["app.go"] {
+	if m.diffOpen["a"][fk("app.go")] {
 		t.Fatal("the second toggle must close the file")
 	}
 }
@@ -92,17 +139,17 @@ func TestTogglingAFileFetchesThenHidesIt(t *testing.T) {
 func TestSpaceTogglesADiffFileLikeEnter(t *testing.T) {
 	m := diffModel()
 	m.rows = []row{{name: "a", dir: "/tmp/a"}}
-	m.diffs["a"] = diffState{repo: true, files: []git.FileChange{{Status: "M", Path: "app.go"}}}
+	m.diffs["a"] = oneGroup(git.FileChange{Status: "M", Path: "app.go"})
 
 	next, _ := m.diffKey(key(" "))
 	m = next.(Model)
-	if !m.diffOpen["a"]["app.go"] {
+	if !m.diffOpen["a"][fk("app.go")] {
 		t.Fatal("space must open the file like enter")
 	}
 
 	next, _ = m.diffKey(key(" "))
 	m = next.(Model)
-	if m.diffOpen["a"]["app.go"] {
+	if m.diffOpen["a"][fk("app.go")] {
 		t.Fatal("space must close the file again")
 	}
 }
@@ -132,11 +179,11 @@ func TestTheDiffTickStopsWhenThePanelCloses(t *testing.T) {
 func TestHandleDiffRefreshesTheOpenFiles(t *testing.T) {
 	m := diffModel()
 	m.rows = []row{{name: "a", dir: "/tmp/a"}}
-	m.diffOpen["a"] = map[string]bool{"app.go": true}
+	m.diffOpen["a"] = map[fileKey]bool{fk("app.go"): true}
 
-	next, cmd := m.handleDiff(diffMsg{name: "a", repo: true, files: []git.FileChange{{Status: "M", Path: "app.go"}}})
+	next, cmd := m.handleDiff(diffMsg{name: "a", groups: []dirDiff{{repo: true, files: []git.FileChange{{Status: "M", Path: "app.go"}}}}})
 	m = next.(Model)
-	if !m.diffs["a"].repo {
+	if !m.diffs["a"].anyRepo() {
 		t.Fatal("handleDiff must store the state")
 	}
 	if cmd == nil {
@@ -150,15 +197,31 @@ func TestBarShowsTheDiffCount(t *testing.T) {
 	m, _ = step(t, m, key("esc"))
 	m = spawn(t, m, mgr, "alpha", t.TempDir())
 
-	m.diffs["alpha"] = diffState{repo: true, stat: git.Stat{Insertions: 12, Deletions: 3, Files: 1}}
+	m.diffs["alpha"] = projectDiff{groups: []dirDiff{{repo: true, stat: git.Stat{Insertions: 12, Deletions: 3, Files: 1}}}}
 	bar := visible(m.barView())
 	if !strings.Contains(bar, "+12") || !strings.Contains(bar, "−3") {
 		t.Errorf("the bar must show the diff count:\n%s", bar)
 	}
 
-	m.diffs["alpha"] = diffState{repo: true, stat: git.Stat{}}
+	m.diffs["alpha"] = projectDiff{groups: []dirDiff{{repo: true, stat: git.Stat{}}}}
 	if bar := visible(m.barView()); strings.Contains(bar, "+0") {
 		t.Errorf("a clean tree must show no count:\n%s", bar)
+	}
+}
+
+func TestBarSumsTheDiffCountAcrossDirectories(t *testing.T) {
+	m, mgr := newTestModel(t, "")
+	m = start(t, m, 160, 30)
+	m, _ = step(t, m, key("esc"))
+	m = spawn(t, m, mgr, "alpha", t.TempDir())
+
+	m.diffs["alpha"] = projectDiff{groups: []dirDiff{
+		{repo: true, stat: git.Stat{Insertions: 4, Deletions: 1, Files: 1}},
+		{repo: true, stat: git.Stat{Insertions: 8, Deletions: 2, Files: 1}},
+	}}
+	bar := visible(m.barView())
+	if !strings.Contains(bar, "+12") || !strings.Contains(bar, "−3") {
+		t.Errorf("the bar must sum the count across the directories:\n%s", bar)
 	}
 }
 
@@ -223,7 +286,7 @@ func TestArrowsScrollAndJKPickFiles(t *testing.T) {
 	for i := range files {
 		files[i] = git.FileChange{Status: "M", Path: "f" + strconv.Itoa(i)}
 	}
-	m.diffs["a"] = diffState{repo: true, files: files}
+	m.diffs["a"] = oneGroup(files...)
 
 	next, _ := m.diffKey(key("down"))
 	m = next.(Model)
@@ -245,16 +308,16 @@ func longDiffModel(t *testing.T) Model {
 	t.Helper()
 	m := diffModel()
 	m.height = 20
-	m.diffs["a"] = diffState{repo: true, files: []git.FileChange{
-		{Status: "M", Path: "f0"},
-		{Status: "M", Path: "f1"},
-	}}
-	m.diffOpen["a"] = map[string]bool{"f0": true}
+	m.diffs["a"] = oneGroup(
+		git.FileChange{Status: "M", Path: "f0"},
+		git.FileChange{Status: "M", Path: "f1"},
+	)
+	m.diffOpen["a"] = map[fileKey]bool{fk("f0"): true}
 	body := "@@ -1,100 +1,100 @@\n"
 	for i := range 100 {
 		body += "+line " + strconv.Itoa(i) + "\n"
 	}
-	m.fileDiffs["a"] = map[string]string{"f0": body}
+	m.fileDiffs["a"] = map[fileKey]string{fk("f0"): body}
 	if m.selectedBodyLen() <= m.bodyHeight() {
 		t.Fatalf("the open diff must be taller than the viewport (%d vs %d)", m.selectedBodyLen(), m.bodyHeight())
 	}
@@ -316,9 +379,9 @@ func TestKEntersThePreviousOpenDiffAtItsBottom(t *testing.T) {
 func TestTheCurrentLineIsMarked(t *testing.T) {
 	m := diffModel()
 	m.height = 30
-	m.diffs["a"] = diffState{repo: true, files: []git.FileChange{{Status: "M", Path: "f0"}}}
-	m.diffOpen["a"] = map[string]bool{"f0": true}
-	m.fileDiffs["a"] = map[string]string{"f0": "@@ -1,3 +1,3 @@\n+one\n+two\n+three\n"}
+	m.diffs["a"] = oneGroup(git.FileChange{Status: "M", Path: "f0"})
+	m.diffOpen["a"] = map[fileKey]bool{fk("f0"): true}
+	m.fileDiffs["a"] = map[fileKey]string{fk("f0"): "@@ -1,3 +1,3 @@\n+one\n+two\n+three\n"}
 
 	const target = 4 // header, blank, row, hunk, then "+one"
 
@@ -343,8 +406,8 @@ func TestTheCurrentLineIsMarked(t *testing.T) {
 func TestBracketsJumpBetweenTheEmptyLines(t *testing.T) {
 	m := diffModel()
 	m.height = 12
-	m.diffs["a"] = diffState{repo: true, files: []git.FileChange{{Status: "M", Path: "f0"}}}
-	m.diffOpen["a"] = map[string]bool{"f0": true}
+	m.diffs["a"] = oneGroup(git.FileChange{Status: "M", Path: "f0"})
+	m.diffOpen["a"] = map[fileKey]bool{fk("f0"): true}
 
 	var b strings.Builder
 	b.WriteString("@@ -1,60 +1,60 @@\n")
@@ -355,7 +418,7 @@ func TestBracketsJumpBetweenTheEmptyLines(t *testing.T) {
 			b.WriteString("+line " + strconv.Itoa(i) + "\n")
 		}
 	}
-	m.fileDiffs["a"] = map[string]string{"f0": b.String()}
+	m.fileDiffs["a"] = map[fileKey]string{fk("f0"): b.String()}
 
 	rows := m.diffEmptyRows()
 	if len(rows) < 3 {
@@ -387,7 +450,7 @@ func TestGAndCapitalGJumpTheFileListWhenClosed(t *testing.T) {
 	for i := range files {
 		files[i] = git.FileChange{Status: "M", Path: "f" + strconv.Itoa(i)}
 	}
-	m.diffs["a"] = diffState{repo: true, files: files}
+	m.diffs["a"] = oneGroup(files...)
 	m.diffSel = 2
 
 	next, _ := m.diffKey(key("G"))
@@ -413,13 +476,13 @@ func TestGAndCapitalGScrollTheDiffWhenOpen(t *testing.T) {
 	for i := range files {
 		files[i] = git.FileChange{Status: "M", Path: "f" + strconv.Itoa(i)}
 	}
-	m.diffs["a"] = diffState{repo: true, files: files}
-	m.diffOpen["a"] = map[string]bool{"f0": true}
+	m.diffs["a"] = oneGroup(files...)
+	m.diffOpen["a"] = map[fileKey]bool{fk("f0"): true}
 	body := "@@ -1 +1 @@\n"
 	for i := range 200 {
 		body += "+line " + strconv.Itoa(i) + "\n"
 	}
-	m.fileDiffs["a"] = map[string]string{"f0": body}
+	m.fileDiffs["a"] = map[fileKey]string{fk("f0"): body}
 	m.diffSel = 0
 
 	next, _ := m.diffKey(key("G"))
@@ -512,9 +575,9 @@ func TestTheDTargetStartsOnlyWithThePanelOpen(t *testing.T) {
 
 func TestLineNumbersToggle(t *testing.T) {
 	m := diffModel()
-	m.diffs["a"] = diffState{repo: true, files: []git.FileChange{{Status: "M", Path: "a.txt"}}}
-	m.diffOpen["a"] = map[string]bool{"a.txt": true}
-	m.fileDiffs["a"] = map[string]string{"a.txt": "@@ -1,2 +1,2 @@\n one\n+two\n"}
+	m.diffs["a"] = oneGroup(git.FileChange{Status: "M", Path: "a.txt"})
+	m.diffOpen["a"] = map[fileKey]bool{fk("a.txt"): true}
+	m.fileDiffs["a"] = map[fileKey]string{fk("a.txt"): "@@ -1,2 +1,2 @@\n one\n+two\n"}
 
 	off := visible(strings.Join(m.diffPanelLines(), "\n"))
 
@@ -532,10 +595,10 @@ func TestLineNumbersToggle(t *testing.T) {
 
 func TestTheSelectedFileHasThePurpleBackground(t *testing.T) {
 	m := diffModel()
-	m.diffs["a"] = diffState{repo: true, files: []git.FileChange{
-		{Status: "M", Path: "a.txt"},
-		{Status: "M", Path: "b.txt"},
-	}}
+	m.diffs["a"] = oneGroup(
+		git.FileChange{Status: "M", Path: "a.txt"},
+		git.FileChange{Status: "M", Path: "b.txt"},
+	)
 	m.diffSel = 1
 
 	lines := m.diffPanelLines()
@@ -554,7 +617,7 @@ func TestSelectingAFileScrollsItIntoView(t *testing.T) {
 	for i := range files {
 		files[i] = git.FileChange{Status: "M", Path: "f" + strconv.Itoa(i)}
 	}
-	m.diffs["a"] = diffState{repo: true, files: files}
+	m.diffs["a"] = oneGroup(files...)
 
 	m.diffSel = 5
 	m.ensureDiffSelVisible()

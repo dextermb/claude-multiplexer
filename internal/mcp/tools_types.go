@@ -103,6 +103,25 @@ type workingDirOut struct {
 	Message string `json:"message"`
 }
 
+type listProjectIn struct {
+	Session string `json:"session,omitempty" jsonschema:"the session to read the project of; empty means this session"`
+}
+
+type projectDirIn struct {
+	Path string `json:"path" jsonschema:"a directory to add to or remove from this session's project; a relative path is resolved against the directory the session started in"`
+}
+
+type setProjectIn struct {
+	Paths []string `json:"paths" jsonschema:"the whole ordered set of directories of this session's project; a relative path is resolved against the directory the session started in"`
+}
+
+type projectOut struct {
+	OK      bool     `json:"ok"`
+	Dirs    []string `json:"dirs"`
+	Changed bool     `json:"changed"`
+	Message string   `json:"message"`
+}
+
 type listLayoutsIn struct {
 	Session string `json:"session,omitempty" jsonschema:"the session to read the active layout of; empty means this session"`
 }

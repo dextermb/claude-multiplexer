@@ -855,6 +855,90 @@ func TestTheWorkingDirThroughTheToolCarriesANotice(t *testing.T) {
 	}
 }
 
+func TestProjectAddsAndRemovesDirectories(t *testing.T) {
+	m := withMCP(t)
+	dir := t.TempDir()
+	one := filepath.Join(dir, "one")
+	two := filepath.Join(dir, "two")
+	for _, d := range []string{one, two} {
+		if err := os.Mkdir(d, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	name, err := m.Spawn(context.Background(), Spec{Dir: dir, Name: "api"})
+	if err != nil {
+		t.Fatalf("Spawn: %v", err)
+	}
+
+	dirs, err := m.AddProjectDir(name, "one")
+	if err != nil {
+		t.Fatalf("AddProjectDir: %v", err)
+	}
+	if len(dirs) != 1 || dirs[0] != one {
+		t.Fatalf("dirs = %v, want [%q]", dirs, one)
+	}
+	if dirs, err = m.AddProjectDir(name, "one"); err != nil || len(dirs) != 1 {
+		t.Fatalf("a duplicate added a second entry: %v (err %v)", dirs, err)
+	}
+	if dirs, err = m.AddProjectDir(name, "two"); err != nil || len(dirs) != 2 {
+		t.Fatalf("dirs = %v (err %v), want two entries", dirs, err)
+	}
+
+	meta, err := ReadMeta(metaPath(m.opts.Root, name))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(meta.WorkingDirs) != 2 || meta.WorkingDirs[0] != one || meta.WorkingDirs[1] != two {
+		t.Fatalf("the record holds %v, want [%q %q]", meta.WorkingDirs, one, two)
+	}
+
+	if dirs, err = m.RemoveProjectDir(name, "one"); err != nil || len(dirs) != 1 || dirs[0] != two {
+		t.Fatalf("dirs = %v (err %v), want [%q]", dirs, err, two)
+	}
+}
+
+func TestSetProjectReplacesTheWholeSet(t *testing.T) {
+	m := withMCP(t)
+	dir := t.TempDir()
+	one := filepath.Join(dir, "one")
+	two := filepath.Join(dir, "two")
+	for _, d := range []string{one, two} {
+		if err := os.Mkdir(d, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	name, err := m.Spawn(context.Background(), Spec{Dir: dir, Name: "api"})
+	if err != nil {
+		t.Fatalf("Spawn: %v", err)
+	}
+
+	dirs, err := m.SetProject(name, []string{"one", "two", "one"})
+	if err != nil {
+		t.Fatalf("SetProject: %v", err)
+	}
+	if len(dirs) != 2 || dirs[0] != one || dirs[1] != two {
+		t.Fatalf("dirs = %v, want [%q %q] with the duplicate dropped", dirs, one, two)
+	}
+
+	if _, err := m.SetProject(name, []string{"nowhere"}); err == nil {
+		t.Fatal("a path that is not there must give an error")
+	}
+	if got, _ := m.Project(name); len(got) != 2 {
+		t.Fatalf("a failed SetProject changed the set to %v", got)
+	}
+
+	changed, err := m.ClearProject(name)
+	if err != nil || !changed {
+		t.Fatalf("ClearProject = %v (err %v), want true", changed, err)
+	}
+	if got, _ := m.Project(name); len(got) != 0 {
+		t.Fatalf("the project holds %v after a clear, want none", got)
+	}
+	if changed, _ = m.ClearProject(name); changed {
+		t.Fatal("a second clear reported a change")
+	}
+}
+
 func TestSetBlockCapWritesTheSettingsFile(t *testing.T) {
 	m, path := withConfig(t)
 

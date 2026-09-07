@@ -23,6 +23,7 @@ type Meta struct {
 	InputTokens     int       `json:"input_tokens"`
 	OutputTokens    int       `json:"output_tokens"`
 	WorkingDir      string    `json:"working_dir,omitempty"`
+	WorkingDirs     []string  `json:"working_dirs,omitempty"`
 	Layout          string    `json:"layout,omitempty"`
 	Control         bool      `json:"control,omitempty"`
 	Parent          string    `json:"parent,omitempty"`
@@ -37,6 +38,7 @@ func (m Meta) sameAs(other Meta) bool {
 		m.PermissionMode == other.PermissionMode &&
 		m.Effort == other.Effort &&
 		m.WorkingDir == other.WorkingDir &&
+		sameStrings(m.WorkingDirs, other.WorkingDirs) &&
 		m.Layout == other.Layout &&
 		m.Control == other.Control &&
 		m.Turns == other.Turns &&
@@ -44,6 +46,18 @@ func (m Meta) sameAs(other Meta) bool {
 		m.InputTokens == other.InputTokens &&
 		m.OutputTokens == other.OutputTokens &&
 		m.Archived == other.Archived
+}
+
+func sameStrings(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }
 
 func writeMeta(path string, meta Meta) error {

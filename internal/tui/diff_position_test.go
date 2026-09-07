@@ -23,7 +23,7 @@ func gridModel(width, height int, files []git.FileChange) Model {
 		PromptMax:    1,
 	}
 	m.diffPanel = true
-	m.diffs["a"] = diffState{repo: true, files: files}
+	m.diffs["a"] = oneGroup(files...)
 	return m
 }
 
@@ -82,8 +82,8 @@ func TestDiffGridIsMultiColumnAndOpensBelow(t *testing.T) {
 		t.Fatalf("closed panel has %d lines, want %d (header plus grid rows)", closed, want)
 	}
 
-	m.diffOpen["a"] = map[string]bool{files[0].Path: true}
-	m.fileDiffs["a"] = map[string]string{files[0].Path: "@@ -1 +1 @@\n+added line\n"}
+	m.diffOpen["a"] = map[fileKey]bool{fk(files[0].Path): true}
+	m.fileDiffs["a"] = map[fileKey]string{fk(files[0].Path): "@@ -1 +1 @@\n+added line\n"}
 	open := m.diffPanelLines()
 	if len(open) <= closed {
 		t.Fatal("opening a file must add its diff below the grid")

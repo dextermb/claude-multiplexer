@@ -1,11 +1,11 @@
 package tui
 
 import (
+	"path/filepath"
 	"strconv"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/dextermb/claude-multiplexer/internal/git"
 )
 
 func (m Model) diffPanelView() string {
@@ -21,57 +21,91 @@ func (m Model) diffPanelView() string {
 }
 
 func (m Model) diffPanelLines() []string {
-	d, ok := m.diffs[m.sel]
-	if !ok {
+	p, ok := m.diffs[m.sel]
+	if !ok || len(p.groups) == 0 {
 		return []string{diffMetaStyle.Render("reading…")}
 	}
-	if !d.repo {
+	if len(p.groups) == 1 && !p.groups[0].repo {
 		return []string{diffMetaStyle.Render("not a git repository")}
 	}
 	if m.diffHorizontal() {
-		return m.diffGridLines(d.files)
+		return m.diffGridLines(p)
 	}
-	out := []string{taskHeaderStyle.Render("Changes · " + strconv.Itoa(len(d.files))), ""}
-	if len(d.files) == 0 {
+	out := []string{taskHeaderStyle.Render("Changes · " + strconv.Itoa(p.totalFiles())), ""}
+	multi := len(p.groups) > 1
+	if !multi && p.totalFiles() == 0 {
 		return append(out, diffMetaStyle.Render("no changes"))
 	}
-	for i, file := range d.files {
-		out = append(out, m.diffFileRow(i, file))
-		if m.diffOpen[m.sel][file.Path] {
-			out = append(out, m.diffFileBodyAt(file.Path, m.diffScroll-len(out))...)
+	idx := 0
+	for _, g := range p.groups {
+		if multi {
+			out = append(out, m.diffGroupHeader(g))
+		}
+		if !g.repo {
+			out = append(out, diffMetaStyle.Render("  not a git repository"))
+			continue
+		}
+		if len(g.files) == 0 {
+			out = append(out, diffMetaStyle.Render("  no changes"))
+			continue
+		}
+		for _, file := range g.files {
+			entry := diffEntry{dir: g.dir, file: file}
+			out = append(out, m.diffFileRow(idx, entry))
+			if m.diffOpen[m.sel][entry.key()] {
+				out = append(out, m.diffFileBodyAt(entry.key(), m.diffScroll-len(out))...)
+			}
+			idx++
 		}
 	}
 	return out
 }
 
-// diffGridLines draws the files of a horizontal panel in a grid, then draws each
-// open file's diff in one region below the whole grid. See docs/tui/diff.md.
-func (m Model) diffGridLines(files []git.FileChange) []string {
-	out := []string{taskHeaderStyle.Render("Changes · " + strconv.Itoa(len(files)))}
-	if len(files) == 0 {
+// diffGroupHeader is the header line of one directory of a project: its short
+// name and its change count. See docs/tui/diff.md.
+func (m Model) diffGroupHeader(g dirDiff) string {
+	width := m.diffInner()
+	left := taskHeaderStyle.Render(truncate(shortDir(g.dir), width-12))
+	counts := diffAddStyle.Render("+"+strconv.Itoa(g.stat.Insertions)) + " " +
+		diffDelStyle.Render("−"+strconv.Itoa(g.stat.Deletions))
+	gap := width - lipgloss.Width(left) - lipgloss.Width(counts)
+	if gap < 1 {
+		gap = 1
+	}
+	return left + strings.Repeat(" ", gap) + counts
+}
+
+// diffGridLines draws every file of a horizontal panel in one grid, then draws
+// each open file's diff below the grid. It tags a cell with its directory when
+// the project has more than one. See docs/tui/diff.md.
+func (m Model) diffGridLines(p projectDiff) []string {
+	entries := p.entries()
+	out := []string{taskHeaderStyle.Render("Changes · " + strconv.Itoa(len(entries)))}
+	if len(entries) == 0 {
 		return append(out, "", diffMetaStyle.Render("no changes"))
 	}
-	cols := m.diffGridCols(len(files))
+	multi := len(p.groups) > 1
+	cols := m.diffGridCols(len(entries))
 	cellW := m.diffInner() / cols
-	rows := (len(files) + cols - 1) / cols
+	rows := (len(entries) + cols - 1) / cols
 	for r := 0; r < rows; r++ {
 		cells := make([]string, 0, cols)
 		for c := 0; c < cols; c++ {
 			i := r*cols + c
-			if i >= len(files) {
+			if i >= len(entries) {
 				cells = append(cells, strings.Repeat(" ", cellW))
 				continue
 			}
-			cells = append(cells, m.diffFileCell(i, files[i], cellW))
+			cells = append(cells, m.diffFileCell(i, entries[i], cellW, multi))
 		}
 		out = append(out, lipgloss.JoinHorizontal(lipgloss.Top, cells...))
 	}
-	for _, file := range files {
-		if !m.diffOpen[m.sel][file.Path] {
+	for _, e := range entries {
+		if !m.diffOpen[m.sel][e.key()] {
 			continue
 		}
-		out = append(out, "", taskHeaderStyle.Render(truncate(file.Path, m.diffInner())))
-		out = append(out, m.diffFileBody(file.Path)...)
+		out = append(out, "", taskHeaderStyle.Render(truncate(entryLabel(e, multi), m.diffInner())))
+		out = append(out, m.diffFileBody(e.key())...)
 	}
 	return out
 }
@@ -90,13 +124,32 @@ func (m Model) diffGridCols(n int) int {
 	return cols
 }
 
-func (m Model) diffFileRow(index int, file git.FileChange) string {
-	return m.diffFileCell(index, file, m.diffInner())
+func (m Model) diffFileRow(index int, entry diffEntry) string {
+	return m.diffFileCell(index, entry, m.diffInner(), false)
 }
 
-func (m Model) diffFileCell(index int, file git.FileChange, width int) string {
+// shortDir is the display name of a directory in a group header: its base name.
+func shortDir(dir string) string {
+	if dir == "" {
+		return "(directory)"
+	}
+	return filepath.Base(dir)
+}
+
+// entryLabel is the file name the panel shows for an entry. It prefixes the
+// directory's short name when the project has more than one directory, so a file
+// name that repeats across directories stays distinct.
+func entryLabel(e diffEntry, showDir bool) string {
+	if showDir {
+		return shortDir(e.dir) + "/" + e.file.Path
+	}
+	return e.file.Path
+}
+
+func (m Model) diffFileCell(index int, entry diffEntry, width int, showDir bool) string {
+	file := entry.file
 	glyph := foldShutMark
-	if m.diffOpen[m.sel][file.Path] {
+	if m.diffOpen[m.sel][entry.key()] {
 		glyph = foldOpenMark
 	}
 	head := glyph + " " + file.Status + " "
@@ -105,7 +158,7 @@ func (m Model) diffFileCell(index int, file git.FileChange, width int) string {
 	if room < 4 {
 		room = 4
 	}
-	name := truncate(file.Path, room)
+	name := truncate(entryLabel(entry, showDir), room)
 
 	if index == m.diffSel {
 		text := head + name
@@ -126,14 +179,14 @@ func (m Model) diffFileCell(index int, file git.FileChange, width int) string {
 	return left + strings.Repeat(" ", gap) + counts
 }
 
-func (m Model) diffFileBody(path string) []string {
-	return m.diffFileBodyAt(path, -1)
+func (m Model) diffFileBody(key fileKey) []string {
+	return m.diffFileBodyAt(key, -1)
 }
 
 // diffFileBodyAt renders a file's diff, and marks output line current as the
 // current line. A negative current marks nothing.
-func (m Model) diffFileBodyAt(path string, current int) []string {
-	text, ok := m.fileDiffs[m.sel][path]
+func (m Model) diffFileBodyAt(key fileKey, current int) []string {
+	text, ok := m.fileDiffs[m.sel][key]
 	if !ok {
 		return []string{diffMetaStyle.Render("  reading…")}
 	}

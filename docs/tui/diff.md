@@ -7,13 +7,17 @@ The interface reads the git changes of a session and shows them in two places:
   expands each one to its diff. A layout sets the side: left, right (the
   default), top, or bottom. See [layouts.md](layouts.md).
 
-Both read the working tree of the session working directory against
-`origin/HEAD`, the default branch of the remote. So the diff is the whole branch,
-the committed work and the uncommitted work together. The base falls back to
-`HEAD` when `origin/HEAD` does not resolve, for a repository with no remote.
+Both read the working tree of each session directory against `origin/HEAD`, the
+default branch of the remote. So the diff is the whole branch, the committed work
+and the uncommitted work together. The base falls back to `HEAD` when
+`origin/HEAD` does not resolve, for a repository with no remote.
 
-The working directory is `row.openDir`: the directory a tool of the session set,
-or the directory the session started in. See [sessions.md](sessions.md).
+A session reads one directory by default, `row.openDir`: the directory a tool of
+the session set, or the directory the session started in. A session with a
+project reads every directory of the project, one diff for each. `row.diffDirs`
+gives the set: the project directories when there is a project, else the one
+open directory. See [sessions.md](sessions.md) and
+[../mcp/tools.md](../mcp/tools.md).
 
 ## The count in the bar
 
@@ -21,9 +25,10 @@ The session bar shows the inserted lines in green and the deleted lines in red,
 for example `+120 −30`. The count is the total of the changes against
 `origin/HEAD`.
 
-The count shows only when the working directory is a git work tree, and the tree
+The count shows only when a session directory is a git work tree, and the tree
 differs from `origin/HEAD`. A session outside a repository, or a tree with no
-change, shows no count. The bar drops the low-priority parts first when it is short, so the count
+change, shows no count. A session with a project sums the count across every
+directory of the project. The bar drops the low-priority parts first when it is short, so the count
 stays while the token counts and the scroll mark go.
 
 ## The diff panel
@@ -54,6 +59,31 @@ colours are green for an inserted line, red for a deleted line, and blue for a
 hunk header. The panel drops the git file
 header, because a narrow panel has no room for it. A long line wraps to the panel
 width.
+
+### The project groups
+
+A session with a project shows one section for each directory of the project. A
+group header names the directory (its short name) and its own `+I −D`, and the
+changed files of that directory follow under it:
+
+```
+┌──────────────────────────────┐
+│ Changes · 3                  │
+│                              │
+│ api                    +12 −3 │
+│ ▸ M main.go            +12 −3 │
+│ web                    +40 −0 │
+│ ▾ A main.go            +40 −0 │
+│   @@ -0,0 +1,40 @@            │
+│   +package web               │
+└──────────────────────────────┘
+```
+
+A session with no project shows no group header, so the panel looks the same as
+before. `j` and `k` move through the files across the group boundary, and a file
+of one directory expands on its own, so two files of the same name in two
+directories stay apart. On a horizontal side the grid stays flat, and a cell
+carries its directory's short name when the project has more than one directory.
 
 ## The position and the grid
 
