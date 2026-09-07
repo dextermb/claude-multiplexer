@@ -58,7 +58,7 @@ a typing mistake.
 
 | Page | Read it for |
 |---|---|
-| [config/editor.md](config/editor.md) | Which editor `s d` opens, terminal against window editors, the file manager, and a launch that fails |
+| [config/editor.md](config/editor.md) | Which editor `s E` opens, terminal against window editors, the file manager, and a launch that fails |
 | [config/blocks.md](config/blocks.md) | The block cap: the default, a cap for one type, the question modal caps, and the tool |
 | [config/layouts.md](config/layouts.md) | The named interface layouts and the global active layout |
 | [config/new-session.md](config/new-session.md) | The option each field of the new session form opens on |

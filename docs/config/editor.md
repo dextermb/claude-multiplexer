@@ -1,9 +1,13 @@
 # The editor
 
-`s d` opens the working directory of the selected session in your editor. This
+`s E` opens the working directories of the selected session in your editor. This
 page names the editor, says how the interface runs it, and covers the file
 manager that `s f` opens. For where the settings file lives, see
 [../config.md](../config.md).
+
+A session works in one directory by default. A session with a project works in
+several, and both keys open every directory of the set (`row.diffDirs`). See
+[../tui/diff.md](../tui/diff.md).
 
 ## Which editor
 
@@ -17,7 +21,7 @@ Five sources name the editor. The first one that names one wins:
 | 4 | `editor` in the settings file | `{"editor": "zed"}` |
 | 5 | `env.VISUAL`, then `env.EDITOR`, in the settings of Claude Code | `{"env": {"EDITOR": "zed --wait"}}` |
 
-When no source names an editor, `s d` opens nothing, and the status bar reads
+When no source names an editor, `s E` opens nothing, and the status bar reads
 `no editor: set --editor, $EDITOR, or the config file`.
 
 ### The settings of Claude Code
@@ -41,7 +45,7 @@ quotes, variables, and pipes are not read.
 A session can write these two fields itself, with the `set_editor` tool, and
 take them out again with `unset_editor`. `set_editor` makes the file when there
 is none, and `unset_editor` makes none. The interface reads the file at each
-`s d`, so the next one opens the new editor. A flag still wins, because the
+`s E`, so the next one opens the new editor. A flag still wins, because the
 flag sits above the file. See [../mcp/tools.md](../mcp/tools.md).
 
 ## The terminal editor, and the window editor
@@ -53,6 +57,11 @@ interface draws itself again when the editor stops.
 A window editor (code, zed) has its own window, so it starts beside the
 interface. The interface stays on the screen, and the status bar shows
 `opened <dir>`. The editor keeps running after the interface stops.
+
+For a session with a project, a window editor opens one window for each
+directory of the set. A terminal editor cannot open several windows, because it
+holds the terminal, so it takes every directory as an argument of one process
+instead (for example `nvim api web`).
 
 Three sources say which kind an editor is. The first one that speaks wins:
 
@@ -68,7 +77,7 @@ terminal editor. An editor the list does not name is a window editor, so say
 
 ## The file manager
 
-`s f` opens the working directory in the file manager. It is not a setting,
+`s f` opens the working directories in the file manager. It is not a setting,
 because each platform has one:
 
 | Platform | Command |
@@ -78,7 +87,8 @@ because each platform has one:
 | other | `xdg-open <dir>` |
 
 The file manager always starts beside the interface, and never takes the
-terminal.
+terminal. For a session with a project, `s f` opens one file manager window for
+each directory of the set.
 
 ## When a program does not start
 
