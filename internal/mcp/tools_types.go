@@ -205,6 +205,10 @@ type okOut struct {
 	Message string `json:"message"`
 }
 
+type apiURLOut struct {
+	URL string `json:"url"`
+}
+
 type sendOut struct {
 	OK      bool   `json:"ok"`
 	Queued  int    `json:"queued"`

@@ -54,6 +54,7 @@ const (
 	ToolRunSchedule        = "run_schedule"
 	ToolSchedulePath       = "get_schedule_path"
 
+	ToolAPIURL          = "get_api_url"
 	ToolCreateAPIAdmin  = "create_api_admin"
 	ToolRotateAPIAdmin  = "rotate_api_admin"
 	ToolRevokeAPIAdmin  = "revoke_api_admin"
@@ -74,7 +75,7 @@ var (
 		ToolListProject, ToolAddProjectDir, ToolRemoveProject, ToolSetProject, ToolClearProject,
 		ToolListLayouts, ToolSaveLayout, ToolDeleteLayout, ToolSetLayout, ToolUnsetLayout,
 		ToolCreateSchedule, ToolUpdateSchedule, ToolListSchedules, ToolDeleteSchedule, ToolSetScheduleEnabled, ToolRunSchedule,
-		ToolSchedulePath}
+		ToolSchedulePath, ToolAPIURL}
 	ControlTools = []string{ToolSend, ToolStop, ToolArchive, ToolCreate, ToolStopJob,
 		ToolCreateAPIAdmin, ToolRotateAPIAdmin, ToolRevokeAPIAdmin,
 		ToolCreateAPIClient, ToolUpdateAPIClient, ToolRotateAPIClient, ToolRevokeAPIClient,

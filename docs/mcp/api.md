@@ -82,7 +82,8 @@ whole range is taken.
 
 The port moves inside the range across restarts, so the manager writes the exact
 base URL to `api/endpoint.json` each start. A client reads that file, or it scans
-the range, or it calls the `get_api_endpoint` tool from a control session.
+the range. Any session calls `get_api_url` for the base URL. A control session
+calls `get_api_endpoint` for the base URL and the port range.
 
 ## The surfaces
 

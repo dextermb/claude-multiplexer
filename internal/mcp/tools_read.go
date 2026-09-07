@@ -64,4 +64,11 @@ func (s *Server) addReadTools(server *sdk.Server, caller string) {
 		}
 		return nil, listJobsOut{Session: target, Jobs: jobs}, nil
 	})
+
+	sdk.AddTool(server, &sdk.Tool{
+		Name:        ToolAPIURL,
+		Description: "The base URL of the external API, on loopback. It grants nothing without a client secret. A control session manages the clients; see " + ToolListAPIClients + ".",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, _ struct{}) (*sdk.CallToolResult, apiURLOut, error) {
+		return nil, apiURLOut{URL: s.sessions.APIEndpoint().URL}, nil
+	})
 }
