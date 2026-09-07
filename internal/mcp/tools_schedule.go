@@ -7,7 +7,7 @@ import (
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-func (s *Server) addScheduleTools(server *sdk.Server, caller string) {
+func (s *Server) addScheduleTools(server *sdk.Server, caller string, control bool) {
 	sdk.AddTool(server, &sdk.Tool{
 		Name: ToolCreateSchedule,
 		Description: "Create a durable schedule that runs a prompt on a cron. " +
@@ -33,7 +33,7 @@ func (s *Server) addScheduleTools(server *sdk.Server, caller string) {
 			Model:          strings.TrimSpace(in.Model),
 			PermissionMode: strings.TrimSpace(in.PermissionMode),
 			Effort:         strings.TrimSpace(in.Effort),
-			Control:        in.Control,
+			Control:        in.Control && control,
 		}, caller)
 		if err != nil {
 			return nil, scheduleOut{}, err

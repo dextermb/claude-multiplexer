@@ -43,6 +43,7 @@ type fakeSessions struct {
 	schedules     map[string]mcp.Schedule
 	scheduleRuns  []string
 	failSchedule  error
+	lastControl   bool
 }
 
 func newFakeSessions() *fakeSessions {
@@ -304,6 +305,7 @@ func (f *fakeSessions) CreateSchedule(in mcp.ScheduleInput, by string) (mcp.Sche
 	if name == "" {
 		name = "schedule"
 	}
+	f.lastControl = in.Control
 	sched := mcp.Schedule{Name: name, Cron: in.Cron, Dir: in.Dir, Prompt: in.Prompt, Session: in.Session, Model: in.Model, Enabled: true}
 	f.schedules[name] = sched
 	return sched, nil

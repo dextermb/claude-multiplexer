@@ -246,7 +246,7 @@ type createScheduleIn struct {
 	Model          string `json:"model,omitempty" jsonschema:"the model of the session the run starts; the default model when it is empty"`
 	PermissionMode string `json:"permission_mode,omitempty" jsonschema:"the permission mode of the session the run starts; the default when it is empty"`
 	Effort         string `json:"effort,omitempty" jsonschema:"the effort level of the session the run starts"`
-	Control        bool   `json:"control,omitempty" jsonschema:"true gives the session the control grant, so its own tools can drive other sessions"`
+	Control        bool   `json:"control,omitempty" jsonschema:"true gives the session the control grant, so its own tools can drive other sessions; only a caller that holds the control grant may set it, and the multiplexer drops it otherwise"`
 }
 
 type scheduleOut struct {

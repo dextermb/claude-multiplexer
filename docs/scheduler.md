@@ -3,9 +3,9 @@
 A schedule is a durable, recurring task. The multiplexer runs it on its own
 clock. A schedule survives a restart, because it lives on disk, not in a session.
 
-The example is a session that polls a website every few minutes. A control
-session creates the schedule with `create_schedule`, and the manager runs it from
-then on. See [mcp/tools.md](mcp/tools.md) for the five tools.
+The example is a session that polls a website every few minutes. Any session
+creates the schedule with `create_schedule`, and the manager runs it from then
+on. See [mcp/tools.md](mcp/tools.md) for the five tools.
 
 ## Why the manager owns the clock
 
@@ -48,7 +48,7 @@ schedules never share a write.
 | `model` | The model of the session a run starts |
 | `permission_mode` | The permission mode of that session |
 | `effort` | The effort level of that session |
-| `control` | True gives that session the control grant |
+| `control` | True gives that session the control grant; only a control caller may set it |
 | `enabled` | True runs the schedule; false pauses it |
 | `created_at` | When the schedule was created |
 | `last_run` | When the schedule last ran |
@@ -113,9 +113,10 @@ file.
 
 ## The workflows
 
-- **Create.** A control session calls `create_schedule` with a cron, a directory,
-  and a prompt. The manager validates all three, writes the file, and returns the
-  name.
+- **Create.** Any session calls `create_schedule` with a cron, a directory, and a
+  prompt. The manager validates all three, writes the file, and returns the name.
+  Only a control caller may set the `control` field, and the manager drops it from
+  a plain caller, so a plain session cannot reach the control grant this way.
 - **Run.** The clock runs the schedule, in spawn mode or reuse mode. `run_schedule`
   runs a schedule at once, whatever its cron says, to test it.
 - **Pause and resume.** `set_schedule_enabled` flips `enabled`. A paused schedule
@@ -125,6 +126,6 @@ file.
 
 ## What is not here yet
 
-The first version has no panel in the interface. A control session reads the
-schedules with `list_schedules`. A schedule stores a raw prompt only, not a
+The first version has no panel in the interface. A session reads the schedules
+with `list_schedules`. A schedule stores a raw prompt only, not a
 reference to a template. See [templates.md](templates.md) for the template system.
