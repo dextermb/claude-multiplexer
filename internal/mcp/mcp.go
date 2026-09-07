@@ -4,6 +4,7 @@ package mcp
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -21,6 +22,8 @@ const (
 	ToolListJobs        = "list_jobs"
 	ToolConfigPath      = "get_config_path"
 	ToolTemplatePath    = "get_template_path"
+	ToolSetConfig       = "set_config"
+	ToolUnsetConfig     = "unset_config"
 	ToolSetEditor       = "set_editor"
 	ToolUnsetEditor     = "unset_editor"
 	ToolSetBlockCap     = "set_block_cap"
@@ -48,6 +51,7 @@ const (
 // the control grant.
 var (
 	OpenTools = []string{ToolRename, ToolList, ToolMessages, ToolListJobs, ToolConfigPath, ToolTemplatePath,
+		ToolSetConfig, ToolUnsetConfig,
 		ToolSetEditor, ToolUnsetEditor, ToolSetBlockCap, ToolUnsetBlockCap, ToolSetWorkingDir, ToolUnsetWorkingDir,
 		ToolListProject, ToolAddProjectDir, ToolRemoveProject, ToolSetProject, ToolClearProject,
 		ToolListLayouts, ToolSaveLayout, ToolDeleteLayout, ToolSetLayout, ToolUnsetLayout}
@@ -55,19 +59,20 @@ var (
 )
 
 var (
-	ErrSelfSend = errors.New("mcp: a session cannot send a prompt to itself")
-	ErrSelfStop = errors.New("mcp: a session cannot stop itself")
-	ErrNoTarget = errors.New("mcp: this tool needs a session name")
-	ErrNoPath   = errors.New("mcp: this tool needs a directory path")
-	ErrNoJob    = errors.New("mcp: this tool needs a job id")
-	ErrNoEditor = errors.New("mcp: this tool needs an editor, a terminal flag, or both")
-	ErrNoDir    = errors.New("mcp: this tool needs a directory path")
-	ErrBadCap   = errors.New("mcp: the block cap must be zero or more rows")
-	ErrCapBoth  = errors.New("mcp: give rows or unlimited, not both")
-	ErrBadType  = errors.New("mcp: the block type must be prompt, message, tool, meta, bash, or error")
-	ErrNoLayout = errors.New("mcp: this tool needs a layout name")
-	ErrBadScope = errors.New("mcp: the scope must be session or all")
-	ErrBadDim   = errors.New("mcp: a layout dimension must be one or more")
+	ErrSelfSend     = errors.New("mcp: a session cannot send a prompt to itself")
+	ErrSelfStop     = errors.New("mcp: a session cannot stop itself")
+	ErrNoTarget     = errors.New("mcp: this tool needs a session name")
+	ErrNoPath       = errors.New("mcp: this tool needs a directory path")
+	ErrNoJob        = errors.New("mcp: this tool needs a job id")
+	ErrNoConfigPath = errors.New("mcp: this tool needs a settings path")
+	ErrNoEditor     = errors.New("mcp: this tool needs an editor, a terminal flag, or both")
+	ErrNoDir        = errors.New("mcp: this tool needs a directory path")
+	ErrBadCap       = errors.New("mcp: the block cap must be zero or more rows")
+	ErrCapBoth      = errors.New("mcp: give rows or unlimited, not both")
+	ErrBadType      = errors.New("mcp: the block type must be prompt, message, tool, meta, bash, or error")
+	ErrNoLayout     = errors.New("mcp: this tool needs a layout name")
+	ErrBadScope     = errors.New("mcp: the scope must be session or all")
+	ErrBadDim       = errors.New("mcp: a layout dimension must be one or more")
 
 	ErrBadPosition = errors.New("mcp: the diff position must be left, right, top, or bottom")
 )
@@ -187,6 +192,8 @@ type Sessions interface {
 	Jobs(name string) ([]Job, error)
 	ConfigPath() ConfigPath
 	TemplatePath(name string) (TemplatePath, error)
+	SetConfig(path string, value json.RawMessage, by string) (string, error)
+	UnsetConfig(path, by string) (string, bool, error)
 	SetEditor(editor string, terminal *bool, by string) (string, error)
 	UnsetEditor(field, by string) (string, bool, error)
 	SetBlockCap(bucket string, rows *int, by string) (string, error)

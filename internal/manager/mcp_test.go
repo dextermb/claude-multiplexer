@@ -608,6 +608,74 @@ func TestSetEditorMakesTheSettingsFile(t *testing.T) {
 	}
 }
 
+func TestSetConfigWritesTheSettingsFile(t *testing.T) {
+	m, path := withConfig(t)
+
+	got, err := m.SetConfig("blockCaps.tool", json.RawMessage(`3`))
+	if err != nil {
+		t.Fatalf("SetConfig: %v", err)
+	}
+	if got != path {
+		t.Fatalf("path = %q, want %q", got, path)
+	}
+	cfg, err := config.Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rows, ok := cfg.BlockCaps["tool"]
+	if !ok || rows == nil || *rows != 3 {
+		t.Fatalf("blockCaps.tool = %v, want 3", cfg.BlockCaps["tool"])
+	}
+}
+
+func TestSetConfigRejectsAnUnknownKey(t *testing.T) {
+	m, path := withConfig(t)
+
+	if _, err := m.SetConfig("edtior", json.RawMessage(`"nvim"`)); err == nil {
+		t.Fatal("SetConfig took an unknown key, want an error")
+	}
+	if _, err := os.Stat(path); err == nil {
+		t.Fatal("the settings file was written, want it left alone")
+	}
+}
+
+func TestUnsetConfigRemovesTheKey(t *testing.T) {
+	m, path := withConfig(t)
+	if _, err := m.SetConfig("blockCap", json.RawMessage(`40`)); err != nil {
+		t.Fatalf("SetConfig: %v", err)
+	}
+
+	got, changed, err := m.UnsetConfig("blockCap")
+	if err != nil {
+		t.Fatalf("UnsetConfig: %v", err)
+	}
+	if got != path {
+		t.Fatalf("path = %q, want %q", got, path)
+	}
+	if !changed {
+		t.Fatal("changed = false, want true")
+	}
+	cfg, err := config.Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.BlockCap != nil {
+		t.Fatalf("blockCap = %v, want nil", cfg.BlockCap)
+	}
+}
+
+func TestUnsetConfigReportsAMissingKey(t *testing.T) {
+	m, _ := withConfig(t)
+
+	_, changed, err := m.UnsetConfig("blockCap")
+	if err != nil {
+		t.Fatalf("UnsetConfig: %v", err)
+	}
+	if changed {
+		t.Fatal("changed = true, want false for a key that is not there")
+	}
+}
+
 func TestSetEditorKeepsTheFieldItIsNotGiven(t *testing.T) {
 	m, path := withConfig(t)
 	yes := true

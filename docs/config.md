@@ -54,6 +54,32 @@ a typing mistake.
 | `defaultEffort` | The effort the new session form opens on | [config/new-session.md](config/new-session.md) |
 | `defaultControl` | `true` when the new session form opens on a control grant | [config/new-session.md](config/new-session.md) |
 
+## Write any key by its path
+
+A session writes one field with the tool that owns it, such as `set_editor` or
+`set_block_cap`. It writes any field with `set_config`, and it removes any field
+with `unset_config`. Both tools take a dot path and reach a nested key:
+
+| Path | The key it writes |
+|---|---|
+| `editor` | The editor command |
+| `blockCap` | The default block cap |
+| `blockCaps.tool` | The cap for one block type |
+| `layouts.wide.sidebarSize` | One dimension of the layout named `wide` |
+| `defaultModel` | The model the new session form opens on |
+
+`set_config` also takes a `value`, as any JSON value: a string, a number, a
+boolean, an object, or `null`. It checks the path and the value against the
+settings before it writes, so an unknown field or a wrong type fails and the
+file stays as it was. A field inside a layout is checked the same way.
+
+The check cannot catch a mistyped map key, because `blockCaps` and `layouts`
+take any key. So `blockCaps.tol` writes a key the program never reads. Read the
+key back with `get_config_path` and the file to confirm it.
+
+The interface reads the file again after each write, so a change takes effect at
+once. See [mcp/tools.md](mcp/tools.md).
+
 ## The pages
 
 | Page | Read it for |
