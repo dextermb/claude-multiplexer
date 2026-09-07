@@ -397,6 +397,12 @@ func (m *Manager) Remove(name string) error {
 }
 
 func (m *Manager) Shutdown(ctx context.Context) {
+	if m.schedStop != nil {
+		close(m.schedStop)
+		m.schedWG.Wait()
+		m.schedStop = nil
+	}
+
 	m.mu.Lock()
 	items := make([]*entry, 0, len(m.order))
 	for _, name := range m.order {

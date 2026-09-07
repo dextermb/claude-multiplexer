@@ -236,3 +236,50 @@ type stopJobOut struct {
 	Queued  int    `json:"queued"`
 	Message string `json:"message"`
 }
+
+type createScheduleIn struct {
+	Cron           string `json:"cron" jsonschema:"a 5-field cron expression in local time, such as '*/5 * * * *' for every 5 minutes or '0 9 * * 1-5' for 09:00 on weekdays"`
+	Dir            string `json:"dir" jsonschema:"the directory the run works in; a relative path is resolved against the directory the multiplexer runs in"`
+	Prompt         string `json:"prompt" jsonschema:"the prompt the schedule sends on each run"`
+	Name           string `json:"name,omitempty" jsonschema:"an optional name for the schedule; the multiplexer derives one from the directory when it is empty"`
+	Session        string `json:"session,omitempty" jsonschema:"leave empty to start a fresh session each run; give a session name to reuse one session, so it keeps its memory across runs"`
+	Model          string `json:"model,omitempty" jsonschema:"the model of the session the run starts; the default model when it is empty"`
+	PermissionMode string `json:"permission_mode,omitempty" jsonschema:"the permission mode of the session the run starts; the default when it is empty"`
+	Effort         string `json:"effort,omitempty" jsonschema:"the effort level of the session the run starts"`
+	Control        bool   `json:"control,omitempty" jsonschema:"true gives the session the control grant, so its own tools can drive other sessions"`
+}
+
+type scheduleOut struct {
+	OK       bool     `json:"ok"`
+	Schedule Schedule `json:"schedule"`
+	Message  string   `json:"message"`
+}
+
+type listSchedulesOut struct {
+	Schedules []Schedule `json:"schedules"`
+}
+
+type deleteScheduleIn struct {
+	Name string `json:"name" jsonschema:"the name of the schedule to remove"`
+}
+
+type deleteScheduleOut struct {
+	OK      bool   `json:"ok"`
+	Changed bool   `json:"changed"`
+	Message string `json:"message"`
+}
+
+type setScheduleEnabledIn struct {
+	Name    string `json:"name" jsonschema:"the name of the schedule to change"`
+	Enabled bool   `json:"enabled" jsonschema:"true runs the schedule on its cron; false pauses it, and keeps it on disk"`
+}
+
+type runScheduleIn struct {
+	Name string `json:"name" jsonschema:"the name of the schedule to run now, whatever its cron says"`
+}
+
+type runScheduleOut struct {
+	OK      bool   `json:"ok"`
+	Session string `json:"session"`
+	Message string `json:"message"`
+}

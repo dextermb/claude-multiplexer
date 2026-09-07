@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/mcp"
@@ -334,4 +335,79 @@ func editorNotice(editor string, terminal *bool) string {
 
 func (b *bridge) StopJob(target, jobID, by string) (int, error) {
 	return b.m.StopJobFrom(target, by, jobID)
+}
+
+func (b *bridge) CreateSchedule(in mcp.ScheduleInput, by string) (mcp.Schedule, error) {
+	sched, err := b.m.CreateSchedule(ScheduleSpec{
+		Name:           in.Name,
+		Cron:           in.Cron,
+		Dir:            in.Dir,
+		Prompt:         in.Prompt,
+		Session:        in.Session,
+		Model:          in.Model,
+		PermissionMode: in.PermissionMode,
+		Effort:         in.Effort,
+		Control:        in.Control,
+	})
+	if err != nil {
+		return mcp.Schedule{}, err
+	}
+	b.m.notify(by, by+" created the schedule "+sched.Name, true)
+	return scheduleView(sched), nil
+}
+
+func (b *bridge) ListSchedules() []mcp.Schedule {
+	list := b.m.ListSchedules()
+	out := make([]mcp.Schedule, 0, len(list))
+	for _, sched := range list {
+		out = append(out, scheduleView(sched))
+	}
+	return out
+}
+
+func (b *bridge) DeleteSchedule(name, by string) (bool, error) {
+	if err := b.m.DeleteSchedule(name); err != nil {
+		return false, err
+	}
+	b.m.notify(by, by+" deleted the schedule "+name, true)
+	return true, nil
+}
+
+func (b *bridge) SetScheduleEnabled(name string, on bool, by string) (mcp.Schedule, error) {
+	sched, err := b.m.SetScheduleEnabled(name, on)
+	if err != nil {
+		return mcp.Schedule{}, err
+	}
+	verb := "enabled"
+	if !on {
+		verb = "paused"
+	}
+	b.m.notify(by, by+" "+verb+" the schedule "+name, true)
+	return scheduleView(sched), nil
+}
+
+func (b *bridge) RunSchedule(name, by string) (string, error) {
+	session, err := b.m.RunSchedule(name)
+	if err != nil {
+		return "", err
+	}
+	b.m.notify(session, by+" ran the schedule "+name, true)
+	return session, nil
+}
+
+func scheduleView(s Schedule) mcp.Schedule {
+	view := mcp.Schedule{
+		Name:        s.Name,
+		Cron:        s.Cron,
+		Dir:         s.Dir,
+		Prompt:      s.Prompt,
+		Session:     s.Session,
+		Model:       s.Model,
+		Enabled:     s.Enabled,
+		LastSession: s.LastSession,
+	}
+	if !s.LastRun.IsZero() {
+		view.LastRun = s.LastRun.Format(time.RFC3339)
+	}
+	return view
 }

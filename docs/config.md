@@ -26,7 +26,8 @@ there, or the program stops.
 
 `--root` moves the state directory, which holds the sessions. It does not move
 this file. The sessions and the settings live apart. See
-[manager.md](manager.md).
+[manager.md](manager.md). The state directory also holds the schedules, in
+`schedules/`. See [scheduler.md](scheduler.md).
 
 A file that is not there is not an error, and neither is an empty file. A file
 that does not parse stops the program at start, because a silent fallback hides

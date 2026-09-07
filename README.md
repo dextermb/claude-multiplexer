@@ -118,6 +118,7 @@ caps it. `--config <path>` names another file. See
 | [docs/sessions.md](docs/sessions.md) | One child process: its states, its queue, and its transcript |
 | [docs/protocol.md](docs/protocol.md) | The stream-json wire format, and what Claude Code really sends |
 | [docs/mcp.md](docs/mcp.md) | The tools a session can call: renaming itself, and driving its neighbours |
+| [docs/scheduler.md](docs/scheduler.md) | Durable, recurring tasks: the record, the two run modes, and the clock |
 
 `docs/plans/` holds the thinking that came before the code. It records what is
 still ahead. It is not a specification, so do not follow it.

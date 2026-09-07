@@ -18,6 +18,7 @@ func (s *Server) build(caller string, control bool) *sdk.Server {
 
 	if control {
 		s.addControlTools(server, caller)
+		s.addScheduleTools(server, caller)
 	}
 
 	return server
