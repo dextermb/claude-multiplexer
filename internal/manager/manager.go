@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/dextermb/claude-multiplexer/internal/api"
 	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/mcp"
 	"github.com/dextermb/claude-multiplexer/internal/protocol"
@@ -27,6 +28,7 @@ var (
 	ErrBadCron         = errors.New("manager: the cron expression is not valid")
 	ErrNoPrompt        = errors.New("manager: a schedule needs a prompt")
 	ErrUnknownSchedule = errors.New("manager: unknown schedule")
+	ErrNoAPIStore      = errors.New("manager: the api is not started")
 )
 
 type Options struct {
@@ -37,6 +39,8 @@ type Options struct {
 	ClaudePath            string
 	DefaultModel          string
 	DefaultPermissionMode string
+	APIPortStart          int
+	APIPortEnd            int
 }
 
 type Spec struct {
@@ -51,6 +55,7 @@ type Spec struct {
 	Control        bool
 	Parent         string
 	Scheduled      string
+	Owner          string
 }
 
 type Event struct {
@@ -71,9 +76,10 @@ type Event struct {
 }
 
 type Manager struct {
-	opts Options
-	bus  *Bus
-	mcp  *mcp.Server
+	opts     Options
+	bus      *Bus
+	mcp      *mcp.Server
+	apiStore *api.Store
 
 	mu      sync.Mutex
 	entries map[string]*entry
@@ -103,6 +109,12 @@ func New(opts Options) (*Manager, error) {
 	if opts.DefaultPermissionMode == "" {
 		opts.DefaultPermissionMode = session.DefaultPermissionMode
 	}
+	if opts.APIPortStart <= 0 {
+		opts.APIPortStart = mcp.DefaultAPIPortStart
+	}
+	if opts.APIPortEnd < opts.APIPortStart {
+		opts.APIPortEnd = mcp.DefaultAPIPortEnd
+	}
 	m := &Manager{
 		opts:      opts,
 		bus:       NewBus(),
@@ -116,6 +128,8 @@ func New(opts Options) (*Manager, error) {
 func (m *Manager) Subscribe(buffer int) *Subscription { return m.bus.Subscribe(buffer) }
 
 func (m *Manager) Root() string { return m.opts.Root }
+
+func (m *Manager) apiPortRange() (int, int) { return m.opts.APIPortStart, m.opts.APIPortEnd }
 
 func (m *Manager) pump(item *entry) {
 	defer m.pumps.Done()

@@ -73,6 +73,7 @@ func (m *Manager) Spawn(ctx context.Context, spec Spec) (string, error) {
 			Effort:         spec.Effort,
 			Control:        spec.Control,
 			Scheduled:      spec.Scheduled,
+			Owner:          spec.Owner,
 			CreatedAt:      time.Now(),
 		},
 	}

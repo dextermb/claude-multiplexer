@@ -381,10 +381,41 @@ func (f *fakeSessions) RunSchedule(name, by string) (string, error) {
 	return name + "-run", nil
 }
 
+func (f *fakeSessions) CreateAPIAdmin() (string, error) { return "admin-secret", nil }
+
+func (f *fakeSessions) RotateAPIAdmin() (string, error) { return "admin-secret-2", nil }
+
+func (f *fakeSessions) RevokeAPIAdmin() error { return nil }
+
+func (f *fakeSessions) CreateAPIClient(name string) (mcp.APIClient, string, error) {
+	return mcp.APIClient{ClientID: "client-1", Name: name}, "client-secret", nil
+}
+
+func (f *fakeSessions) UpdateAPIClient(id string, name *string, disabled *bool) (mcp.APIClient, error) {
+	out := mcp.APIClient{ClientID: id}
+	if name != nil {
+		out.Name = *name
+	}
+	if disabled != nil {
+		out.Disabled = *disabled
+	}
+	return out, nil
+}
+
+func (f *fakeSessions) RotateAPIClient(id string) (string, error) { return "client-secret-2", nil }
+
+func (f *fakeSessions) RevokeAPIClient(id string) error { return nil }
+
+func (f *fakeSessions) ListAPIClients() []mcp.APIClient { return nil }
+
+func (f *fakeSessions) APIEndpoint() mcp.APIEndpoint {
+	return mcp.APIEndpoint{URL: "http://127.0.0.1:0", PortStart: 51890, PortEnd: 51899}
+}
+
 func startServer(t *testing.T, sessions mcp.Sessions) *mcp.Server {
 	t.Helper()
 	server := mcp.NewServer(sessions)
-	if err := server.Start(); err != nil {
+	if err := server.Start(0, 0); err != nil {
 		t.Fatalf("start: %v", err)
 	}
 	t.Cleanup(func() {

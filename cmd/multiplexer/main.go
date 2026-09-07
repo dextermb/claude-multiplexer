@@ -16,6 +16,7 @@ import (
 
 	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/manager"
+	"github.com/dextermb/claude-multiplexer/internal/mcp"
 	"github.com/dextermb/claude-multiplexer/internal/protocol"
 	"github.com/dextermb/claude-multiplexer/internal/render"
 	"github.com/dextermb/claude-multiplexer/internal/session"
@@ -126,6 +127,8 @@ func tuiCommand(argv []string) int {
 	dir := fs.String("dir", "", "start one session in this directory at once")
 	control := fs.Bool("control", false, "let the session started by --dir drive the other sessions")
 	maxLines := fs.Int("max-lines", manager.DefaultMaxLines, "output lines kept in memory for each session")
+	apiPortStart := fs.Int("api-port-start", mcp.DefaultAPIPortStart, "lowest loopback port the external API binds to")
+	apiPortEnd := fs.Int("api-port-end", mcp.DefaultAPIPortEnd, "highest loopback port the external API binds to")
 	verbose := fs.Bool("v", false, "show state changes, thinking, and full tool results")
 	configPath := fs.String("config", "", "settings file (default ~/.config/multiplexer/config.json)")
 	editor := fs.String("editor", "", "editor for the working directory (default $VISUAL, then $EDITOR)")
@@ -154,6 +157,8 @@ func tuiCommand(argv []string) int {
 		ClaudePath:            *claudePath,
 		DefaultModel:          *model,
 		DefaultPermissionMode: *mode,
+		APIPortStart:          *apiPortStart,
+		APIPortEnd:            *apiPortEnd,
 	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "multiplexer: %v\n", err)

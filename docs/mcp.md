@@ -17,6 +17,7 @@ name without a migration.
 | [mcp/tools.md](mcp/tools.md) | Every tool: its arguments, what it does, and the three it takes to change a setting |
 | [mcp/grant.md](mcp/grant.md) | Which tools need the control grant, what a tool refuses, and two agents in a circle |
 | [mcp/transport.md](mcp/transport.md) | The HTTP server, the token of a session, and what the installed Claude Code was proven to do |
+| [mcp/api.md](mcp/api.md) | The API a program outside the multiplexer reaches, its two secrets, and the sessions a client owns |
 | [mcp/notices.md](mcp/notices.md) | How a change with no session event behind it still reaches the screen |
 | [mcp/rules.md](mcp/rules.md) | The rules the multiplexer injects into every session, and how to add one |
 

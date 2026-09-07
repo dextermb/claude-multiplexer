@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/dextermb/claude-multiplexer/internal/api"
 	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/mcp"
 	"github.com/dextermb/claude-multiplexer/internal/protocol"
@@ -24,12 +25,37 @@ func (m *Manager) StartMCP() error {
 	if m.mcp != nil {
 		return nil
 	}
+	store, err := api.Open(m.opts.Root)
+	if err != nil {
+		return err
+	}
+	m.apiStore = store
 	server := mcp.NewServer(&bridge{m: m})
-	if err := server.Start(); err != nil {
+	server.EnableAPI(store, m.apiSessions)
+	start, end := m.apiPortRange()
+	if err := server.Start(start, end); err != nil {
 		return err
 	}
 	m.mcp = server
+	m.writeEndpoint()
 	return nil
+}
+
+// writeEndpoint records the base URL of the API, so a client reads the exact
+// address after a restart moves the port. See docs/mcp/api.md.
+func (m *Manager) writeEndpoint() {
+	if m.mcp == nil {
+		return
+	}
+	dir := filepath.Join(m.opts.Root, "api")
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return
+	}
+	data, err := json.Marshal(map[string]string{"url": m.mcp.BaseURL()})
+	if err != nil {
+		return
+	}
+	_ = os.WriteFile(filepath.Join(dir, "endpoint.json"), append(data, '\n'), 0o600)
 }
 
 func (m *Manager) MCPURL() string {
@@ -191,6 +217,7 @@ func (m *Manager) List() []mcp.Session {
 			Model:   snap.Model,
 			Live:    true,
 			Control: item.control,
+			Owner:   item.metaCopy().Owner,
 			Queued:  snap.Queued,
 			Turns:   snap.Turns,
 			Cost:    snap.Cost,
@@ -209,6 +236,7 @@ func (m *Manager) List() []mcp.Session {
 			Model:    meta.Model,
 			Archived: meta.Archived,
 			Control:  meta.Control,
+			Owner:    meta.Owner,
 			Turns:    meta.Turns,
 			Cost:     meta.Cost,
 		})

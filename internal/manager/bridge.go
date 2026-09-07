@@ -406,6 +406,28 @@ func (b *bridge) SetScheduleEnabled(name string, on bool, by string) (mcp.Schedu
 
 func (b *bridge) SchedulePath() mcp.SchedulePath { return b.m.SchedulePath() }
 
+func (b *bridge) CreateAPIAdmin() (string, error) { return b.m.CreateAPIAdmin() }
+
+func (b *bridge) RotateAPIAdmin() (string, error) { return b.m.RotateAPIAdmin() }
+
+func (b *bridge) RevokeAPIAdmin() error { return b.m.RevokeAPIAdmin() }
+
+func (b *bridge) CreateAPIClient(name string) (mcp.APIClient, string, error) {
+	return b.m.CreateAPIClient(name)
+}
+
+func (b *bridge) UpdateAPIClient(id string, name *string, disabled *bool) (mcp.APIClient, error) {
+	return b.m.UpdateAPIClient(id, name, disabled)
+}
+
+func (b *bridge) RotateAPIClient(id string) (string, error) { return b.m.RotateAPIClient(id) }
+
+func (b *bridge) RevokeAPIClient(id string) error { return b.m.RevokeAPIClient(id) }
+
+func (b *bridge) ListAPIClients() []mcp.APIClient { return b.m.ListAPIClients() }
+
+func (b *bridge) APIEndpoint() mcp.APIEndpoint { return b.m.APIEndpoint() }
+
 func (b *bridge) RunSchedule(name, by string) (string, error) {
 	session, err := b.m.RunSchedule(name)
 	if err != nil {
