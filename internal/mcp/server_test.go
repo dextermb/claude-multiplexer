@@ -129,6 +129,10 @@ func (f *fakeSessions) ConfigPath() mcp.ConfigPath {
 	}
 }
 
+func (f *fakeSessions) SchedulePath() mcp.SchedulePath {
+	return mcp.SchedulePath{Dir: "/home/dexter/.claude-multiplexer/schedules"}
+}
+
 func (f *fakeSessions) TemplatePath(name string) (mcp.TemplatePath, error) {
 	if name != "docs" {
 		return mcp.TemplatePath{}, errors.New("no such session")
@@ -1379,8 +1383,26 @@ func TestTemplatePathToolTakesAnotherSession(t *testing.T) {
 	}
 }
 
+func TestSchedulePathToolNamesTheDirectory(t *testing.T) {
+	sessions := newFakeSessions()
+	server := startServer(t, sessions)
+	token, err := server.Register("docs", false)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+	client := connect(t, server, token)
+
+	result := call(t, client, mcp.ToolSchedulePath, map[string]any{})
+	if result.IsError {
+		t.Fatalf("get_schedule_path failed: %s", resultText(result))
+	}
+	if text := resultText(result); !strings.Contains(text, "/home/dexter/.claude-multiplexer/schedules") {
+		t.Errorf("the answer is missing the schedule directory:\n%s", text)
+	}
+}
+
 func TestBothPathToolsAreOpenToEverySession(t *testing.T) {
-	for _, name := range []string{mcp.ToolConfigPath, mcp.ToolTemplatePath} {
+	for _, name := range []string{mcp.ToolConfigPath, mcp.ToolTemplatePath, mcp.ToolSchedulePath} {
 		if !contains(mcp.OpenTools, name) {
 			t.Errorf("%s must be open to every session", name)
 		}

@@ -459,6 +459,12 @@ func (m *Manager) ConfigPath() mcp.ConfigPath {
 	}
 }
 
+// SchedulePath names the directory the multiplexer writes schedule records to.
+// See docs/scheduler.md.
+func (m *Manager) SchedulePath() mcp.SchedulePath {
+	return mcp.SchedulePath{Dir: scheduleDir(m.opts.Root)}
+}
+
 // TemplatePath names the directories a session reads a preset prompt from. The
 // directory is the one the session started in, which is the one the interface
 // reads. See docs/templates.md.

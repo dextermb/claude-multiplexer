@@ -41,6 +41,7 @@ grant. See [grant.md](grant.md).
 | `delete_schedule` | `name` | Removes a schedule. A session it already started is left alone. | open |
 | `set_schedule_enabled` | `name`, `enabled` | Turns a schedule on or off. A paused schedule stays on disk. | open |
 | `run_schedule` | `name` | Runs a schedule now, whatever its cron says. Returns the session name. | open |
+| `get_schedule_path` | — | The directory the multiplexer writes schedule records to, one JSON file per schedule. | open |
 
 `create_session` takes a directory path and an optional name. The directory
 must exist. The manager makes the name unique, and it falls back to the last
@@ -120,6 +121,10 @@ empty for the calling session.
 That `dir` is the one the session started in, which is the one the interface
 reads, and not the one `set_working_dir` names. Both tools only read. See
 [config.md](../config.md) and [templates.md](../templates.md).
+
+`get_schedule_path` answers with `dir`, the directory the multiplexer writes
+schedule records to, one JSON file per schedule. It only reads. See
+[../scheduler.md](../scheduler.md).
 
 ### The block cap
 
