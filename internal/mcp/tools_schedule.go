@@ -127,4 +127,11 @@ func (s *Server) addScheduleTools(server *sdk.Server, caller string, control boo
 		}
 		return nil, runScheduleOut{OK: true, Session: session, Message: "the schedule " + name + " ran " + session}, nil
 	})
+
+	sdk.AddTool(server, &sdk.Tool{
+		Name:        ToolSchedulePath,
+		Description: "The directory the multiplexer writes schedule records to, one JSON file per schedule.",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, _ struct{}) (*sdk.CallToolResult, SchedulePath, error) {
+		return nil, s.sessions.SchedulePath(), nil
+	})
 }

@@ -45,8 +45,12 @@ type ScheduleSpec struct {
 	Control        bool
 }
 
+func scheduleDir(root string) string {
+	return filepath.Join(root, "schedules")
+}
+
 func schedulePath(root, name string) string {
-	return filepath.Join(root, "schedules", name+".json")
+	return filepath.Join(scheduleDir(root), name+".json")
 }
 
 func writeSchedule(path string, s Schedule) error {
@@ -72,7 +76,7 @@ func ReadSchedule(path string) (Schedule, error) {
 }
 
 func scanSchedules(root string) ([]Schedule, error) {
-	entries, err := os.ReadDir(filepath.Join(root, "schedules"))
+	entries, err := os.ReadDir(scheduleDir(root))
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil

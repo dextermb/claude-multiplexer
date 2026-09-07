@@ -404,6 +404,8 @@ func (b *bridge) SetScheduleEnabled(name string, on bool, by string) (mcp.Schedu
 	return scheduleView(sched), nil
 }
 
+func (b *bridge) SchedulePath() mcp.SchedulePath { return b.m.SchedulePath() }
+
 func (b *bridge) RunSchedule(name, by string) (string, error) {
 	session, err := b.m.RunSchedule(name)
 	if err != nil {

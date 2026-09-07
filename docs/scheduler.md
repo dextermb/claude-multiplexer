@@ -34,7 +34,8 @@ Each schedule is one JSON file in the state directory, next to the sessions:
 The state directory is the one `--root` sets, the same directory that holds the
 sessions. See [config.md](config.md). The manager scans `schedules/` at start,
 and holds the schedules in memory. Each change writes the one file, so two
-schedules never share a write.
+schedules never share a write. A session reads the full path of the `schedules/`
+directory with `get_schedule_path`.
 
 ## The record
 

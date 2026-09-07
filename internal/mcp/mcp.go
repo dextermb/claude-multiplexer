@@ -52,6 +52,7 @@ const (
 	ToolDeleteSchedule     = "delete_schedule"
 	ToolSetScheduleEnabled = "set_schedule_enabled"
 	ToolRunSchedule        = "run_schedule"
+	ToolSchedulePath       = "get_schedule_path"
 )
 
 // OpenTools go to every session. ControlTools go only to a session that holds
@@ -62,7 +63,8 @@ var (
 		ToolSetEditor, ToolUnsetEditor, ToolSetBlockCap, ToolUnsetBlockCap, ToolSetWorkingDir, ToolUnsetWorkingDir,
 		ToolListProject, ToolAddProjectDir, ToolRemoveProject, ToolSetProject, ToolClearProject,
 		ToolListLayouts, ToolSaveLayout, ToolDeleteLayout, ToolSetLayout, ToolUnsetLayout,
-		ToolCreateSchedule, ToolUpdateSchedule, ToolListSchedules, ToolDeleteSchedule, ToolSetScheduleEnabled, ToolRunSchedule}
+		ToolCreateSchedule, ToolUpdateSchedule, ToolListSchedules, ToolDeleteSchedule, ToolSetScheduleEnabled, ToolRunSchedule,
+		ToolSchedulePath}
 	ControlTools = []string{ToolSend, ToolStop, ToolArchive, ToolCreate, ToolStopJob}
 )
 
@@ -222,6 +224,12 @@ type LayoutList struct {
 	Layouts       []LayoutInfo `json:"layouts"`
 }
 
+// SchedulePath names the directory the multiplexer writes schedule records to.
+// See docs/scheduler.md.
+type SchedulePath struct {
+	Dir string `json:"dir"`
+}
+
 // TemplatePath names the directories one session reads a preset prompt from,
 // in the order they are read. See docs/mcp/tools.md.
 type TemplatePath struct {
@@ -270,6 +278,7 @@ type Sessions interface {
 	DeleteSchedule(name, by string) (bool, error)
 	SetScheduleEnabled(name string, on bool, by string) (Schedule, error)
 	RunSchedule(name, by string) (string, error)
+	SchedulePath() SchedulePath
 }
 
 // DefaultMessageLimit is how many messages get_messages returns when the caller
