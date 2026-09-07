@@ -347,6 +347,72 @@ func TestTheKeysOpenTheWorkingDirectory(t *testing.T) {
 	}
 }
 
+func projectModel(t *testing.T, editor string) (Model, string, string) {
+	t.Helper()
+	m, dir := openModel(t, editor)
+	one := filepath.Join(dir, "one")
+	two := filepath.Join(dir, "two")
+	for _, d := range []string{one, two} {
+		if err := os.Mkdir(d, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := m.mgr.SetProject(m.sel, []string{one, two}); err != nil {
+		t.Fatalf("SetProject: %v", err)
+	}
+	m.refresh()
+	return m, one, two
+}
+
+func TestTheFolderKeyOpensEveryProjectDirectory(t *testing.T) {
+	seen := recordLaunches(t)
+	m, one, two := projectModel(t, "code")
+
+	m, cmd := chord(t, m, "s", "f")
+	_ = run(t, m, cmd)
+
+	if len(*seen) != 2 {
+		t.Fatalf("s f launched %d programs, want one for each project directory", len(*seen))
+	}
+	if !strings.HasSuffix((*seen)[0].line, " "+one) || !strings.HasSuffix((*seen)[1].line, " "+two) {
+		t.Fatalf("the file manager opened %v, want %q then %q", *seen, one, two)
+	}
+}
+
+func TestTheEditorKeyOpensAWindowEditorForEveryProjectDirectory(t *testing.T) {
+	seen := recordLaunches(t)
+	m, one, two := projectModel(t, "code -n")
+
+	m, cmd := chord(t, m, "s", "E")
+	_ = run(t, m, cmd)
+
+	if len(*seen) != 2 {
+		t.Fatalf("s E launched %d window editors, want one for each project directory", len(*seen))
+	}
+	if (*seen)[0].line != "code -n "+one || (*seen)[1].line != "code -n "+two {
+		t.Fatalf("the editor opened %v, want a window for %q and %q", *seen, one, two)
+	}
+}
+
+func TestATerminalEditorTakesEveryProjectDirectoryAsAnArgument(t *testing.T) {
+	seen := recordLaunches(t)
+	m, one, two := projectModel(t, "nvim")
+
+	m, cmd := chord(t, m, "s", "E")
+	_ = run(t, m, cmd)
+
+	if len(*seen) != 1 {
+		t.Fatalf("a terminal editor launched %d processes, want one that holds the terminal", len(*seen))
+	}
+	got := (*seen)[0]
+	if !got.terminal || got.line != "nvim "+one+" "+two {
+		t.Fatalf("launched %+v, want nvim with both directories as arguments", got)
+	}
+	if got.dir != one {
+		t.Fatalf("cmd.Dir = %q, want the first directory %q", got.dir, one)
+	}
+}
+
 func TestTheKeysFallBackWhenTheWorkingDirectoryIsGone(t *testing.T) {
 	seen := recordLaunches(t)
 	m, dir := openModel(t, "code")

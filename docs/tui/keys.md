@@ -40,9 +40,9 @@ forms work everywhere, so a sequence still starts while you type a prompt.
 | `s x` | Stop the selected session, after a confirmation |
 | `s j` | Show the background jobs of the selected session |
 | `s k` | Move the focus to the task and job panel |
-| `s f` | Open the working directory in the file manager |
+| `s f` | Open the working directories in the file manager |
 | `s d` | Show the working-tree diff of the selected session |
-| `s E` | Open the working directory in the editor |
+| `s E` | Open the working directories in the editor |
 | `s m` | Change the model of a running session |
 | `s e` | Change the effort of a running session |
 | `s p` | Change the permission mode of a running session |
