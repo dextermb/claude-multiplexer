@@ -27,6 +27,7 @@ type Meta struct {
 	Layout          string    `json:"layout,omitempty"`
 	Control         bool      `json:"control,omitempty"`
 	Parent          string    `json:"parent,omitempty"`
+	Scheduled       string    `json:"scheduled,omitempty"`
 	Archived        bool      `json:"archived"`
 	ArchivedAt      time.Time `json:"archived_at,omitempty"`
 }

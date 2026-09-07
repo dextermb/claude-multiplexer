@@ -44,6 +44,7 @@ const (
 	foldOpenMark = "▾"
 	foldShutMark = "▸"
 	controlMark  = "⇄"
+	scheduleMark = "⏱"
 )
 
 // modalInner caps a dialog at width-2, because a wider box pushes the sidebar

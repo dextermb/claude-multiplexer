@@ -98,6 +98,13 @@ schedule has not run yet. Three rules protect the machine:
 A schedule does not expire. It runs until the human pauses or deletes it. This is
 the difference from an in-session cron, which lapses on its own.
 
+## The schedule flag on a session
+
+A session that a schedule spawns keeps the schedule name in `meta.scheduled`. The
+`Spawn` spec carries the name, and both spawn mode and reuse mode set it. The
+sidebar shows a `⏱` badge on the row of a scheduled session, so a scheduled run
+is clear next to a manual one. See [tui/sessions.md](./tui/sessions.md).
+
 ## The cron dialect
 
 A schedule takes a standard 5-field cron expression, in local time:

@@ -25,6 +25,7 @@ type row struct {
 	live        bool
 	archived    bool
 	control     bool
+	scheduled   string
 	state       session.State
 	label       string
 	queued      int
@@ -79,6 +80,7 @@ func rowFromMeta(meta manager.Meta) row {
 		layout:      meta.Layout,
 		archived:    meta.Archived,
 		control:     meta.Control,
+		scheduled:   meta.Scheduled,
 		parent:      meta.Parent,
 		label:       label,
 		turns:       meta.Turns,

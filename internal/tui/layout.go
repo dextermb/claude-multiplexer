@@ -269,6 +269,9 @@ func (m Model) sessionRow(item row) string {
 	if item.control && !headsGroup(item) {
 		badge = " " + controlMark
 	}
+	if item.scheduled != "" {
+		badge += " " + scheduleMark
+	}
 	if item.jobs > 0 {
 		badge += fmt.Sprintf(" ⚙%d", item.jobs)
 	}

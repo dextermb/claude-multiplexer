@@ -106,6 +106,7 @@ func (m *Manager) fireSchedule(s Schedule) (string, error) {
 			PermissionMode: s.PermissionMode,
 			Effort:         s.Effort,
 			Control:        s.Control,
+			Scheduled:      s.Name,
 		})
 		if err != nil {
 			return "", err
@@ -142,6 +143,7 @@ func (m *Manager) startReuse(s Schedule) error {
 		PermissionMode: s.PermissionMode,
 		Effort:         s.Effort,
 		Control:        s.Control,
+		Scheduled:      s.Name,
 	})
 	return err
 }

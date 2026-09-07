@@ -50,6 +50,7 @@ type Spec struct {
 	ResumeID       string
 	Control        bool
 	Parent         string
+	Scheduled      string
 }
 
 type Event struct {
