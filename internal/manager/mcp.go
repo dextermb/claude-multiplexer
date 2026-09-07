@@ -231,6 +231,20 @@ func (m *Manager) Parents() map[string]string {
 	return out
 }
 
+// Schedules reports the schedule that spawned each live session that a schedule
+// started. It maps a session name to the schedule name.
+func (m *Manager) Schedules() map[string]string {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	out := make(map[string]string, len(m.entries))
+	for name, item := range m.entries {
+		if sched := item.metaCopy().Scheduled; sched != "" {
+			out[name] = sched
+		}
+	}
+	return out
+}
+
 // WorkingDirs reports the working directory of each live session that set one.
 func (m *Manager) WorkingDirs() map[string]string {
 	m.mu.Lock()

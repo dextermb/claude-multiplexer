@@ -82,6 +82,7 @@ func (m *Model) refresh() {
 	rows := make([]row, 0, len(m.stored)+4)
 	grants := m.mgr.Grants()
 	parents := m.mgr.Parents()
+	schedules := m.mgr.Schedules()
 	workDirs := m.mgr.WorkingDirs()
 	projects := m.mgr.Projects()
 	layouts := m.mgr.SessionLayouts()
@@ -89,6 +90,7 @@ func (m *Model) refresh() {
 		item := rowFromSnapshot(snap)
 		item.control = grants[snap.Name]
 		item.parent = parents[snap.Name]
+		item.scheduled = schedules[snap.Name]
 		item.workDir = workDirs[snap.Name]
 		item.projectDirs = projects[snap.Name]
 		item.layout = layouts[snap.Name]

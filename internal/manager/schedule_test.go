@@ -1,6 +1,7 @@
 package manager
 
 import (
+	"context"
 	"errors"
 	"os"
 	"testing"
@@ -278,6 +279,30 @@ func TestUpdateScheduleUnknownName(t *testing.T) {
 	m := newTestManager(t)
 	if _, err := m.UpdateSchedule("gone", ScheduleUpdate{Prompt: strptr("x")}); !errors.Is(err, ErrUnknownSchedule) {
 		t.Fatalf("err = %v, want ErrUnknownSchedule", err)
+	}
+}
+
+func TestScheduledSpawnFlagsTheSession(t *testing.T) {
+	m := newTestManager(t)
+	s := createSchedule(t, m, ScheduleSpec{Name: "poll", Cron: "0 0 1 1 *"})
+
+	name, err := m.RunSchedule(s.Name)
+	if err != nil {
+		t.Fatalf("RunSchedule: %v", err)
+	}
+	if got := m.Schedules()[name]; got != s.Name {
+		t.Fatalf("Schedules()[%q] = %q, want %q", name, got, s.Name)
+	}
+}
+
+func TestManualSpawnIsNotScheduled(t *testing.T) {
+	m := newTestManager(t)
+	name, err := m.Spawn(context.Background(), Spec{Dir: t.TempDir()})
+	if err != nil {
+		t.Fatalf("Spawn: %v", err)
+	}
+	if got := m.Schedules()[name]; got != "" {
+		t.Fatalf("Schedules()[%q] = %q, want empty", name, got)
 	}
 }
 

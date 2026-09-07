@@ -89,8 +89,9 @@ stable, so a row does not jump as its state changes.
 ## Reading a row
 
 A row starts with a state glyph in the state colour, then the display name, then
-`⇄` when the session may drive its neighbours, then `⚙n` when `n` background jobs
-run, then `⇢n` when `n` prompts wait in the queue. The display name is the title
+`⇄` when the session may drive its neighbours, then `⏱` when a schedule spawned
+the session, then `⚙n` when `n` background jobs run, then `⇢n` when `n` prompts
+wait in the queue. The display name is the title
 when the session has one, and the name when it does not. Press `s n` to set the
 title. See [keys.md](./keys.md).
 The glyph tells the state at a glance:
