@@ -262,3 +262,179 @@ func TestAPIToolSetIsSessionOnly(t *testing.T) {
 		t.Errorf("the API client sees %d tools, want %d", len(got), len(mcp.APITools))
 	}
 }
+
+// apiDo sends one request with a bearer token and an optional JSON body, and
+// returns the status code and the body.
+func apiDo(t *testing.T, method, url, token, body string) (int, string) {
+	t.Helper()
+	var r io.Reader
+	if body != "" {
+		r = strings.NewReader(body)
+	}
+	req, _ := http.NewRequest(method, url, r)
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+	if body != "" {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("%s %s: %v", method, url, err)
+	}
+	defer resp.Body.Close()
+	data, _ := io.ReadAll(resp.Body)
+	return resp.StatusCode, string(data)
+}
+
+func TestTokenGrantJSON(t *testing.T) {
+	server, store := startAPIServer(t)
+	_, _ = store.CreateAdmin()
+	client, secret, _ := store.CreateClient("bruno")
+
+	body := `{"grant_type":"client_credentials","client_id":"` + client.ClientID + `","client_secret":"` + secret + `"}`
+	code, out := apiDo(t, http.MethodPost, server.BaseURL()+"/token", "", body)
+	if code != http.StatusOK {
+		t.Fatalf("json grant: want 200, got %d (%s)", code, out)
+	}
+	if !strings.Contains(out, `"access_token"`) {
+		t.Fatalf("json grant returned no token: %s", out)
+	}
+}
+
+func TestRESTMutations(t *testing.T) {
+	server, store := startAPIServer(t)
+	_, _ = store.CreateAdmin()
+	client, secret, _ := store.CreateClient("bruno")
+	token := grant(t, server.BaseURL(), client.ClientID, secret)
+	base := server.BaseURL()
+
+	cases := []struct {
+		name, method, path, body string
+	}{
+		{"create", http.MethodPost, "/api/sessions", `{"dir":"/tmp","name":"x"}`},
+		{"rename", http.MethodPatch, "/api/sessions/mine", `{"title":"New"}`},
+		{"message", http.MethodPost, "/api/sessions/mine/message", `{"text":"hi"}`},
+		{"stop", http.MethodPost, "/api/sessions/mine/stop", ""},
+		{"archive", http.MethodPost, "/api/sessions/mine/archive", ""},
+		{"jobs", http.MethodGet, "/api/sessions/mine/jobs", ""},
+		{"stopjob", http.MethodPost, "/api/sessions/mine/jobs/j1/stop", ""},
+	}
+	for _, c := range cases {
+		if code, out := apiDo(t, c.method, base+c.path, token, c.body); code != http.StatusOK {
+			t.Errorf("%s: want 200, got %d (%s)", c.name, code, out)
+		}
+	}
+
+	if code, _ := apiDo(t, http.MethodPost, base+"/api/sessions/other/message", token, `{"text":"hi"}`); code != http.StatusNotFound {
+		t.Errorf("message to unowned session: want 404, got %d", code)
+	}
+	if code, _ := apiDo(t, http.MethodPost, base+"/api/sessions", token, `{}`); code != http.StatusBadRequest {
+		t.Errorf("create without dir: want 400, got %d", code)
+	}
+}
+
+func TestAdminClientRoutes(t *testing.T) {
+	server, store := startAPIServer(t)
+	adminSecret, _ := store.CreateAdmin()
+	client, secret, _ := store.CreateClient("bruno")
+	base := server.BaseURL()
+	clientURL := base + "/admin/clients/" + client.ClientID
+
+	token := grant(t, base, client.ClientID, secret)
+	if code, _ := apiGet(t, base, "/api/sessions", token); code != http.StatusOK {
+		t.Fatalf("before rotate: want 200, got %d", code)
+	}
+
+	if code, _ := apiDo(t, http.MethodPost, clientURL+"/rotate", adminSecret, ""); code != http.StatusOK {
+		t.Fatalf("rotate: want 200, got %d", code)
+	}
+	if code, _ := apiGet(t, base, "/api/sessions", token); code != http.StatusUnauthorized {
+		t.Fatalf("token after rotate: want 401, got %d", code)
+	}
+
+	if code, _ := apiDo(t, http.MethodPatch, clientURL, adminSecret, `{"disabled":true}`); code != http.StatusOK {
+		t.Fatalf("disable: want 200, got %d", code)
+	}
+	if _, err := store.VerifyClient(client.ClientID, secret); err == nil {
+		t.Fatal("a disabled client still verifies")
+	}
+
+	if code, body := apiGet(t, base, "/admin/clients", adminSecret); code != http.StatusOK || !strings.Contains(body, "bruno") {
+		t.Fatalf("list clients: want 200 with bruno, got %d (%s)", code, body)
+	}
+
+	if code, _ := apiDo(t, http.MethodDelete, clientURL, adminSecret, ""); code != http.StatusOK {
+		t.Fatalf("delete: want 200, got %d", code)
+	}
+	if code, body := apiGet(t, base, "/admin/clients", adminSecret); code != http.StatusOK || strings.Contains(body, client.ClientID) {
+		t.Fatalf("the client is still listed after delete: %s", body)
+	}
+}
+
+func TestAPIToolCall(t *testing.T) {
+	server, store := startAPIServer(t)
+	_, _ = store.CreateAdmin()
+	client, secret, _ := store.CreateClient("bruno")
+	token := grant(t, server.BaseURL(), client.ClientID, secret)
+
+	session := connect(t, server, token)
+	if out := resultText(call(t, session, mcp.ToolList, map[string]any{})); !strings.Contains(out, "mine") {
+		t.Fatalf("list_sessions did not return the owned session: %s", out)
+	}
+	if out := resultText(call(t, session, mcp.ToolCreate, map[string]any{"path": "/tmp"})); !strings.Contains(out, "new") {
+		t.Fatalf("create_session did not return the new name: %s", out)
+	}
+	owned := map[string]any{"session": "mine"}
+	for _, c := range []struct {
+		tool string
+		args map[string]any
+	}{
+		{mcp.ToolMessages, owned},
+		{mcp.ToolListJobs, owned},
+		{mcp.ToolRename, map[string]any{"session": "mine", "title": "New"}},
+		{mcp.ToolSend, map[string]any{"session": "mine", "text": "hi"}},
+		{mcp.ToolStop, owned},
+		{mcp.ToolArchive, owned},
+		{mcp.ToolStopJob, map[string]any{"session": "mine", "job": "j1"}},
+	} {
+		if call(t, session, c.tool, c.args).IsError {
+			t.Errorf("%s returned an error result", c.tool)
+		}
+	}
+}
+
+func TestCredentialToolsViaControlSession(t *testing.T) {
+	server := startServer(t, newFakeSessions())
+	token, err := server.Register("boss", true)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+	session := connect(t, server, token)
+
+	if out := resultText(call(t, session, mcp.ToolCreateAPIAdmin, map[string]any{})); !strings.Contains(out, "admin-secret") {
+		t.Fatalf("create_api_admin returned no secret: %s", out)
+	}
+	if out := resultText(call(t, session, mcp.ToolCreateAPIClient, map[string]any{"name": "bruno"})); !strings.Contains(out, "client-secret") {
+		t.Fatalf("create_api_client returned no secret: %s", out)
+	}
+	if out := resultText(call(t, session, mcp.ToolAPIURL, map[string]any{})); !strings.Contains(out, "127.0.0.1") {
+		t.Fatalf("get_api_url returned no URL: %s", out)
+	}
+	for _, c := range []struct {
+		tool string
+		args map[string]any
+	}{
+		{mcp.ToolListAPIClients, map[string]any{}},
+		{mcp.ToolAPIEndpoint, map[string]any{}},
+		{mcp.ToolUpdateAPIClient, map[string]any{"client_id": "client-1", "disabled": true}},
+		{mcp.ToolRotateAPIClient, map[string]any{"client_id": "client-1"}},
+		{mcp.ToolRevokeAPIClient, map[string]any{"client_id": "client-1"}},
+		{mcp.ToolRotateAPIAdmin, map[string]any{}},
+		{mcp.ToolRevokeAPIAdmin, map[string]any{}},
+	} {
+		if call(t, session, c.tool, c.args).IsError {
+			t.Errorf("%s returned an error result", c.tool)
+		}
+	}
+}

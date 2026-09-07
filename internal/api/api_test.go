@@ -136,6 +136,40 @@ func TestStorePersists(t *testing.T) {
 	}
 }
 
+func TestListClientsSorted(t *testing.T) {
+	store, err := Open(t.TempDir())
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	for _, name := range []string{"zed", "amy", "bob"} {
+		if _, _, err := store.CreateClient(name); err != nil {
+			t.Fatalf("create %s: %v", name, err)
+		}
+	}
+	list := store.ListClients()
+	if len(list) != 3 || list[0].Name != "amy" || list[1].Name != "bob" || list[2].Name != "zed" {
+		t.Fatalf("clients are not sorted by name: %v", list)
+	}
+}
+
+func TestUpdateClientErrors(t *testing.T) {
+	store, err := Open(t.TempDir())
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	client, _, err := store.CreateClient("bruno")
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	blank := "  "
+	if _, err := store.UpdateClient(client.ClientID, &blank, nil); !errors.Is(err, ErrNoName) {
+		t.Fatalf("empty rename: want ErrNoName, got %v", err)
+	}
+	if _, err := store.UpdateClient("nope", nil, nil); !errors.Is(err, ErrUnknownClient) {
+		t.Fatalf("unknown client: want ErrUnknownClient, got %v", err)
+	}
+}
+
 func TestHashRoundTrip(t *testing.T) {
 	h, err := hashSecret("a-secret")
 	if err != nil {

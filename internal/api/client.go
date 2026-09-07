@@ -158,17 +158,6 @@ func (s *Store) VerifyClient(id, secret string) (Client, error) {
 	return record.view(), nil
 }
 
-// Client reads one client by id, so a caller can name it in the interface.
-func (s *Store) Client(id string) (Client, bool) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	record, ok := s.clients[id]
-	if !ok {
-		return Client{}, false
-	}
-	return record.view(), true
-}
-
 func (s *Store) writeClient(record *clientRecord) error {
 	if err := os.MkdirAll(clientsDir(s.dir), 0o700); err != nil {
 		return err
