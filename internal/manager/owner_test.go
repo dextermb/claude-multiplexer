@@ -1,11 +1,49 @@
 package manager
 
 import (
+	"context"
 	"errors"
 	"testing"
 
 	"github.com/dextermb/claude-multiplexer/internal/mcp"
 )
+
+func TestOwnerScopedForward(t *testing.T) {
+	m := newTestManager(t)
+	view := m.apiSessions("c1", "bruno")
+
+	name, err := view.Create(t.TempDir(), "owned", "bruno")
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+
+	if err := view.SetTitle(name, "Title"); err != nil {
+		t.Fatalf("SetTitle: %v", err)
+	}
+	if _, err := view.Jobs(name); err != nil {
+		t.Fatalf("Jobs: %v", err)
+	}
+	if _, err := view.SendFrom(name, "bruno", "hi"); err != nil {
+		t.Fatalf("SendFrom: %v", err)
+	}
+	if _, err := view.StopJob(name, "no-such-job", "bruno"); err == nil {
+		t.Fatal("StopJob on an unknown job did not error")
+	}
+
+	other := m.apiSessions("c2", "other")
+	if err := other.SetTitle(name, "x"); !errors.Is(err, mcp.ErrNotFound) {
+		t.Fatalf("SetTitle on an unowned session: want ErrNotFound, got %v", err)
+	}
+	if _, err := other.SendFrom(name, "other", "hi"); !errors.Is(err, mcp.ErrNotFound) {
+		t.Fatalf("SendFrom to an unowned session: want ErrNotFound, got %v", err)
+	}
+	if err := other.Archive(name, true, "other"); !errors.Is(err, mcp.ErrNotFound) {
+		t.Fatalf("Archive on an unowned session: want ErrNotFound, got %v", err)
+	}
+	if err := other.Stop(context.Background(), name, "other"); !errors.Is(err, mcp.ErrNotFound) {
+		t.Fatalf("Stop on an unowned session: want ErrNotFound, got %v", err)
+	}
+}
 
 func TestOwnerScopedList(t *testing.T) {
 	m := newTestManager(t)
