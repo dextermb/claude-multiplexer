@@ -311,6 +311,36 @@ func (f *fakeSessions) CreateSchedule(in mcp.ScheduleInput, by string) (mcp.Sche
 	return sched, nil
 }
 
+func (f *fakeSessions) UpdateSchedule(name string, up mcp.ScheduleEdit, by string) (mcp.Schedule, error) {
+	if f.failSchedule != nil {
+		return mcp.Schedule{}, f.failSchedule
+	}
+	sched, ok := f.schedules[name]
+	if !ok {
+		return mcp.Schedule{}, errors.New("unknown schedule: " + name)
+	}
+	if up.Cron != nil {
+		sched.Cron = *up.Cron
+	}
+	if up.Dir != nil {
+		sched.Dir = *up.Dir
+	}
+	if up.Prompt != nil {
+		sched.Prompt = *up.Prompt
+	}
+	if up.Session != nil {
+		sched.Session = *up.Session
+	}
+	if up.Model != nil {
+		sched.Model = *up.Model
+	}
+	if up.Control != nil {
+		f.lastControl = *up.Control
+	}
+	f.schedules[name] = sched
+	return sched, nil
+}
+
 func (f *fakeSessions) ListSchedules() []mcp.Schedule {
 	out := make([]mcp.Schedule, 0, len(f.schedules))
 	for _, sched := range f.schedules {

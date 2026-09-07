@@ -47,6 +47,7 @@ const (
 	ToolStopJob         = "stop_job"
 
 	ToolCreateSchedule     = "create_schedule"
+	ToolUpdateSchedule     = "update_schedule"
 	ToolListSchedules      = "list_schedules"
 	ToolDeleteSchedule     = "delete_schedule"
 	ToolSetScheduleEnabled = "set_schedule_enabled"
@@ -61,7 +62,7 @@ var (
 		ToolSetEditor, ToolUnsetEditor, ToolSetBlockCap, ToolUnsetBlockCap, ToolSetWorkingDir, ToolUnsetWorkingDir,
 		ToolListProject, ToolAddProjectDir, ToolRemoveProject, ToolSetProject, ToolClearProject,
 		ToolListLayouts, ToolSaveLayout, ToolDeleteLayout, ToolSetLayout, ToolUnsetLayout,
-		ToolCreateSchedule, ToolListSchedules, ToolDeleteSchedule, ToolSetScheduleEnabled, ToolRunSchedule}
+		ToolCreateSchedule, ToolUpdateSchedule, ToolListSchedules, ToolDeleteSchedule, ToolSetScheduleEnabled, ToolRunSchedule}
 	ControlTools = []string{ToolSend, ToolStop, ToolArchive, ToolCreate, ToolStopJob}
 )
 
@@ -174,6 +175,19 @@ type ScheduleInput struct {
 	Control        bool
 }
 
+// ScheduleEdit is the input to UpdateSchedule. A nil field stays as it is, so the
+// caller changes only the fields it sends.
+type ScheduleEdit struct {
+	Cron           *string
+	Dir            *string
+	Prompt         *string
+	Session        *string
+	Model          *string
+	PermissionMode *string
+	Effort         *string
+	Control        *bool
+}
+
 // ConfigPath names the settings files, in the order they are read. See
 // docs/mcp/tools.md.
 type ConfigPath struct {
@@ -251,6 +265,7 @@ type Sessions interface {
 	UnsetLayout(scope, by string) (string, bool, error)
 	StopJob(target, jobID, by string) (int, error)
 	CreateSchedule(in ScheduleInput, by string) (Schedule, error)
+	UpdateSchedule(name string, up ScheduleEdit, by string) (Schedule, error)
 	ListSchedules() []Schedule
 	DeleteSchedule(name, by string) (bool, error)
 	SetScheduleEnabled(name string, on bool, by string) (Schedule, error)

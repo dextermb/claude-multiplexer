@@ -356,6 +356,24 @@ func (b *bridge) CreateSchedule(in mcp.ScheduleInput, by string) (mcp.Schedule, 
 	return scheduleView(sched), nil
 }
 
+func (b *bridge) UpdateSchedule(name string, up mcp.ScheduleEdit, by string) (mcp.Schedule, error) {
+	sched, err := b.m.UpdateSchedule(name, ScheduleUpdate{
+		Cron:           up.Cron,
+		Dir:            up.Dir,
+		Prompt:         up.Prompt,
+		Session:        up.Session,
+		Model:          up.Model,
+		PermissionMode: up.PermissionMode,
+		Effort:         up.Effort,
+		Control:        up.Control,
+	})
+	if err != nil {
+		return mcp.Schedule{}, err
+	}
+	b.m.notify(by, by+" updated the schedule "+name, true)
+	return scheduleView(sched), nil
+}
+
 func (b *bridge) ListSchedules() []mcp.Schedule {
 	list := b.m.ListSchedules()
 	out := make([]mcp.Schedule, 0, len(list))
