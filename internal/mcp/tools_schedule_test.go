@@ -56,6 +56,72 @@ func TestCreateScheduleToolNeedsCronDirPrompt(t *testing.T) {
 	}
 }
 
+func TestUpdateScheduleToolChangesNamedFields(t *testing.T) {
+	sessions := newFakeSessions()
+	sessions.schedules["poll"] = mcp.Schedule{Name: "poll", Cron: "* * * * *", Prompt: "old", Session: "poll", Enabled: true}
+	client := controlClient(t, sessions)
+
+	result := call(t, client, mcp.ToolUpdateSchedule, map[string]any{
+		"name":   "poll",
+		"cron":   "*/5 * * * *",
+		"prompt": "new",
+	})
+	if result.IsError {
+		t.Fatalf("update_schedule failed: %s", resultText(result))
+	}
+	got := sessions.schedules["poll"]
+	if got.Cron != "*/5 * * * *" || got.Prompt != "new" {
+		t.Fatalf("fields not changed: %+v", got)
+	}
+	if got.Session != "poll" {
+		t.Fatalf("session changed but was not sent: %+v", got)
+	}
+}
+
+func TestUpdateScheduleToolClearsSessionWithEmptyString(t *testing.T) {
+	sessions := newFakeSessions()
+	sessions.schedules["poll"] = mcp.Schedule{Name: "poll", Session: "poll", Enabled: true}
+	client := controlClient(t, sessions)
+
+	result := call(t, client, mcp.ToolUpdateSchedule, map[string]any{
+		"name":    "poll",
+		"session": "",
+	})
+	if result.IsError {
+		t.Fatalf("update_schedule failed: %s", resultText(result))
+	}
+	if got := sessions.schedules["poll"]; got.Session != "" {
+		t.Fatalf("session was not cleared: %+v", got)
+	}
+}
+
+func TestUpdateScheduleToolNeedsName(t *testing.T) {
+	sessions := newFakeSessions()
+	client := controlClient(t, sessions)
+
+	result := call(t, client, mcp.ToolUpdateSchedule, map[string]any{"cron": "* * * * *"})
+	if !result.IsError {
+		t.Fatal("update_schedule with no name did not fail")
+	}
+}
+
+func TestUpdateScheduleToolDropsControlFromPlainSession(t *testing.T) {
+	sessions := newFakeSessions()
+	sessions.schedules["poll"] = mcp.Schedule{Name: "poll", Enabled: true}
+	client := plainClient(t, sessions)
+
+	result := call(t, client, mcp.ToolUpdateSchedule, map[string]any{
+		"name":    "poll",
+		"control": true,
+	})
+	if result.IsError {
+		t.Fatalf("update_schedule failed: %s", resultText(result))
+	}
+	if sessions.lastControl {
+		t.Fatal("a plain session set control: true on a schedule")
+	}
+}
+
 func TestListSchedulesToolReturnsTheSchedules(t *testing.T) {
 	sessions := newFakeSessions()
 	sessions.schedules["poll"] = mcp.Schedule{Name: "poll", Cron: "* * * * *", Enabled: true}

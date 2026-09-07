@@ -36,6 +36,7 @@ grant. See [grant.md](grant.md).
 | `create_session` | `path`, `name` | Starts a new session in a directory. Returns the name it takes. | control |
 | `stop_job` | `session`, `job` | Interrupts a session and asks it to kill one background job. An empty session means the caller. | control |
 | `create_schedule` | `cron`, `dir`, `prompt`, `name`, `session`, `control` | Creates a durable schedule that runs a prompt on a cron. Returns the schedule record. | open |
+| `update_schedule` | `name`, `cron`, `dir`, `prompt`, `session`, `model`, `permission_mode`, `effort`, `control` | Changes the fields it is sent, and leaves the rest. An empty string clears an optional field. Returns the schedule record. | open |
 | `list_schedules` | — | Every schedule: name, cron, directory, mode, and the last run. | open |
 | `delete_schedule` | `name` | Removes a schedule. A session it already started is left alone. | open |
 | `set_schedule_enabled` | `name`, `enabled` | Turns a schedule on or off. A paused schedule stays on disk. | open |

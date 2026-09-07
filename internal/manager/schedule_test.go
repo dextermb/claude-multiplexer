@@ -209,6 +209,78 @@ func TestRunScheduleFiresNow(t *testing.T) {
 	}
 }
 
+func strptr(s string) *string { return &s }
+
+func TestUpdateScheduleChangesNamedFieldsAndPersists(t *testing.T) {
+	m := newTestManager(t)
+	dir := t.TempDir()
+	s := createSchedule(t, m, ScheduleSpec{Name: "poll", Dir: dir, Prompt: "old", Session: "poll"})
+
+	got, err := m.UpdateSchedule(s.Name, ScheduleUpdate{
+		Cron:   strptr("*/5 * * * *"),
+		Prompt: strptr("new"),
+	})
+	if err != nil {
+		t.Fatalf("UpdateSchedule: %v", err)
+	}
+	if got.Cron != "*/5 * * * *" || got.Prompt != "new" {
+		t.Fatalf("fields not changed: %+v", got)
+	}
+	if got.Session != "poll" {
+		t.Fatalf("session changed but was not sent: %+v", got)
+	}
+	back, err := ReadSchedule(schedulePath(m.Root(), s.Name))
+	if err != nil {
+		t.Fatalf("ReadSchedule: %v", err)
+	}
+	if back.Cron != "*/5 * * * *" || back.Prompt != "new" {
+		t.Fatalf("disk not updated: %+v", back)
+	}
+}
+
+func TestUpdateScheduleClearsSessionWithEmptyString(t *testing.T) {
+	m := newTestManager(t)
+	s := createSchedule(t, m, ScheduleSpec{Name: "poll", Session: "poll"})
+	got, err := m.UpdateSchedule(s.Name, ScheduleUpdate{Session: strptr("")})
+	if err != nil {
+		t.Fatalf("UpdateSchedule: %v", err)
+	}
+	if got.Session != "" {
+		t.Fatalf("session not cleared: %+v", got)
+	}
+}
+
+func TestUpdateScheduleRejectsBadInput(t *testing.T) {
+	m := newTestManager(t)
+	dir := t.TempDir()
+	s := createSchedule(t, m, ScheduleSpec{Name: "poll", Dir: dir})
+	cases := []struct {
+		name string
+		up   ScheduleUpdate
+		want error
+	}{
+		{"empty cron", ScheduleUpdate{Cron: strptr("")}, ErrNoCron},
+		{"bad cron", ScheduleUpdate{Cron: strptr("not a cron")}, ErrBadCron},
+		{"empty dir", ScheduleUpdate{Dir: strptr("")}, ErrNoDirectory},
+		{"missing dir", ScheduleUpdate{Dir: strptr(dir + "/nope")}, ErrNotDirectory},
+		{"empty prompt", ScheduleUpdate{Prompt: strptr("  ")}, ErrNoPrompt},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if _, err := m.UpdateSchedule(s.Name, tc.up); !errors.Is(err, tc.want) {
+				t.Fatalf("err = %v, want %v", err, tc.want)
+			}
+		})
+	}
+}
+
+func TestUpdateScheduleUnknownName(t *testing.T) {
+	m := newTestManager(t)
+	if _, err := m.UpdateSchedule("gone", ScheduleUpdate{Prompt: strptr("x")}); !errors.Is(err, ErrUnknownSchedule) {
+		t.Fatalf("err = %v, want ErrUnknownSchedule", err)
+	}
+}
+
 func TestDeleteScheduleRemovesFileAndMemory(t *testing.T) {
 	m := newTestManager(t)
 	s := createSchedule(t, m, ScheduleSpec{Name: "poll"})

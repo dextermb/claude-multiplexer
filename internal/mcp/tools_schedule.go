@@ -42,6 +42,37 @@ func (s *Server) addScheduleTools(server *sdk.Server, caller string, control boo
 	})
 
 	sdk.AddTool(server, &sdk.Tool{
+		Name: ToolUpdateSchedule,
+		Description: "Change one or more fields of a schedule, and leave the rest. " +
+			"A field left out stays as it is; an empty string clears an optional field, such as 'session' to return to a fresh session each run. " +
+			"The name identifies the schedule and does not change.",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, in updateScheduleIn) (*sdk.CallToolResult, scheduleOut, error) {
+		name := strings.TrimSpace(in.Name)
+		if name == "" {
+			return nil, scheduleOut{}, ErrNoSchedule
+		}
+		wantControl := in.Control
+		if wantControl != nil && *wantControl && !control {
+			off := false
+			wantControl = &off
+		}
+		sched, err := s.sessions.UpdateSchedule(name, ScheduleEdit{
+			Cron:           in.Cron,
+			Dir:            in.Dir,
+			Prompt:         in.Prompt,
+			Session:        in.Session,
+			Model:          in.Model,
+			PermissionMode: in.PermissionMode,
+			Effort:         in.Effort,
+			Control:        wantControl,
+		}, caller)
+		if err != nil {
+			return nil, scheduleOut{}, err
+		}
+		return nil, scheduleOut{OK: true, Schedule: sched, Message: "updated the schedule " + name}, nil
+	})
+
+	sdk.AddTool(server, &sdk.Tool{
 		Name:        ToolListSchedules,
 		Description: "List every schedule, with its cron, its directory, whether it runs a fresh session or reuses one, and when it last ran.",
 	}, func(_ context.Context, _ *sdk.CallToolRequest, _ struct{}) (*sdk.CallToolResult, listSchedulesOut, error) {

@@ -249,6 +249,18 @@ type createScheduleIn struct {
 	Control        bool   `json:"control,omitempty" jsonschema:"true gives the session the control grant, so its own tools can drive other sessions; only a caller that holds the control grant may set it, and the multiplexer drops it otherwise"`
 }
 
+type updateScheduleIn struct {
+	Name           string  `json:"name" jsonschema:"the name of the schedule to change"`
+	Cron           *string `json:"cron,omitempty" jsonschema:"a new 5-field cron in local time; a field left out stays as it is"`
+	Dir            *string `json:"dir,omitempty" jsonschema:"a new directory the run works in; a field left out stays as it is"`
+	Prompt         *string `json:"prompt,omitempty" jsonschema:"a new prompt the schedule sends on each run; a field left out stays as it is"`
+	Session        *string `json:"session,omitempty" jsonschema:"a session name to reuse one session; an empty string returns to a fresh session each run; a field left out stays as it is"`
+	Model          *string `json:"model,omitempty" jsonschema:"a new model; an empty string returns to the default model; a field left out stays as it is"`
+	PermissionMode *string `json:"permission_mode,omitempty" jsonschema:"a new permission mode; an empty string returns to the default; a field left out stays as it is"`
+	Effort         *string `json:"effort,omitempty" jsonschema:"a new effort level; an empty string returns to the default; a field left out stays as it is"`
+	Control        *bool   `json:"control,omitempty" jsonschema:"true gives the session the control grant; only a caller that holds the control grant may set it; a field left out stays as it is"`
+}
+
 type scheduleOut struct {
 	OK       bool     `json:"ok"`
 	Schedule Schedule `json:"schedule"`

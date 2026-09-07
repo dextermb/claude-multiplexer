@@ -164,6 +164,89 @@ func (m *Manager) CreateSchedule(spec ScheduleSpec) (Schedule, error) {
 	return snapshot, nil
 }
 
+// ScheduleUpdate is the input to UpdateSchedule. A nil field stays as it is; a
+// non-nil field takes its new value, so an empty string clears an optional field.
+type ScheduleUpdate struct {
+	Cron           *string
+	Dir            *string
+	Prompt         *string
+	Session        *string
+	Model          *string
+	PermissionMode *string
+	Effort         *string
+	Control        *bool
+}
+
+// UpdateSchedule changes the fields a ScheduleUpdate names, and leaves the rest.
+// It validates a new cron, a new directory, and a new prompt the same way
+// CreateSchedule does. See docs/scheduler.md.
+func (m *Manager) UpdateSchedule(name string, up ScheduleUpdate) (Schedule, error) {
+	if up.Cron != nil {
+		if strings.TrimSpace(*up.Cron) == "" {
+			return Schedule{}, ErrNoCron
+		}
+		if _, err := cron.ParseStandard(*up.Cron); err != nil {
+			return Schedule{}, fmt.Errorf("%w: %v", ErrBadCron, err)
+		}
+	}
+	var dir string
+	if up.Dir != nil {
+		if *up.Dir == "" {
+			return Schedule{}, ErrNoDirectory
+		}
+		abs, err := filepath.Abs(*up.Dir)
+		if err != nil {
+			return Schedule{}, err
+		}
+		info, err := os.Stat(abs)
+		if err != nil || !info.IsDir() {
+			return Schedule{}, fmt.Errorf("%w: %s", ErrNotDirectory, *up.Dir)
+		}
+		dir = abs
+	}
+	if up.Prompt != nil && strings.TrimSpace(*up.Prompt) == "" {
+		return Schedule{}, ErrNoPrompt
+	}
+
+	m.schedMu.Lock()
+	s, ok := m.schedules[name]
+	if !ok {
+		m.schedMu.Unlock()
+		return Schedule{}, fmt.Errorf("%w: %s", ErrUnknownSchedule, name)
+	}
+	if up.Cron != nil {
+		s.Cron = *up.Cron
+	}
+	if up.Dir != nil {
+		s.Dir = dir
+	}
+	if up.Prompt != nil {
+		s.Prompt = *up.Prompt
+	}
+	if up.Session != nil {
+		s.Session = strings.TrimSpace(*up.Session)
+	}
+	if up.Model != nil {
+		s.Model = *up.Model
+	}
+	if up.PermissionMode != nil {
+		s.PermissionMode = *up.PermissionMode
+	}
+	if up.Effort != nil {
+		s.Effort = *up.Effort
+	}
+	if up.Control != nil {
+		s.Control = *up.Control
+	}
+	snapshot := *s
+	m.schedMu.Unlock()
+
+	if err := writeSchedule(schedulePath(m.opts.Root, name), snapshot); err != nil {
+		return Schedule{}, err
+	}
+	return snapshot, nil
+}
+
 // uniqueScheduleName gives a schedule a name no other schedule holds. Call it
 // with the schedule mutex held.
 func (m *Manager) uniqueScheduleName(want, dir string) string {

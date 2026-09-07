@@ -117,6 +117,12 @@ file.
   prompt. The manager validates all three, writes the file, and returns the name.
   Only a control caller may set the `control` field, and the manager drops it from
   a plain caller, so a plain session cannot reach the control grant this way.
+- **Update.** `update_schedule` changes the fields it is sent, and leaves the rest.
+  A field left out stays as it is, and an empty string clears an optional field,
+  such as `session` to return to a fresh session each run. The name identifies the
+  schedule and does not change. The manager validates a new cron, a new directory,
+  and a new prompt the same way `create_schedule` does, and it drops the `control`
+  field from a plain caller.
 - **Run.** The clock runs the schedule, in spawn mode or reuse mode. `run_schedule`
   runs a schedule at once, whatever its cron says, to test it.
 - **Pause and resume.** `set_schedule_enabled` flips `enabled`. A paused schedule
