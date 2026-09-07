@@ -2,6 +2,7 @@ package manager
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -245,6 +246,26 @@ func (b *bridge) UnsetEditor(field, by string) (string, bool, error) {
 		b.m.notify(by, by+" cleared "+clearedNotice(field), false)
 	}
 	return path, changed, nil
+}
+
+func (b *bridge) SetConfig(path string, value json.RawMessage, by string) (string, error) {
+	file, err := b.m.SetConfig(path, value)
+	if err != nil {
+		return "", err
+	}
+	b.m.notify(by, by+" set "+path+" in the settings", false)
+	return file, nil
+}
+
+func (b *bridge) UnsetConfig(path, by string) (string, bool, error) {
+	file, changed, err := b.m.UnsetConfig(path)
+	if err != nil {
+		return "", false, err
+	}
+	if changed {
+		b.m.notify(by, by+" cleared "+path+" from the settings", false)
+	}
+	return file, changed, nil
 }
 
 func (b *bridge) SetBlockCap(bucket string, rows *int, by string) (string, error) {

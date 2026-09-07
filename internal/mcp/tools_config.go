@@ -2,6 +2,7 @@ package mcp
 
 import (
 	"context"
+	"encoding/json"
 	"strconv"
 	"strings"
 
@@ -34,6 +35,46 @@ func (s *Server) addConfigTools(server *sdk.Server, caller string) {
 			return nil, TemplatePath{}, err
 		}
 		return nil, out, nil
+	})
+
+	sdk.AddTool(server, &sdk.Tool{
+		Name: ToolSetConfig,
+		Description: "Set one value in the settings file of the multiplexer by a dot path, such as 'editor', 'blockCap', 'blockCaps.tool', or 'layouts.wide.sidebarSize'. " +
+			"Give 'value' as the JSON value to write. It writes the settings file, and makes that file when there is none. " +
+			"It rejects a key or a type the settings do not allow.",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, in setConfigIn) (*sdk.CallToolResult, setConfigOut, error) {
+		path := strings.TrimSpace(in.Path)
+		if path == "" {
+			return nil, setConfigOut{}, ErrNoConfigPath
+		}
+		value, err := json.Marshal(in.Value)
+		if err != nil {
+			return nil, setConfigOut{}, err
+		}
+		file, err := s.sessions.SetConfig(path, value, caller)
+		if err != nil {
+			return nil, setConfigOut{}, err
+		}
+		return nil, setConfigOut{OK: true, Path: file, Message: path + " is set in " + file}, nil
+	})
+
+	sdk.AddTool(server, &sdk.Tool{
+		Name:        ToolUnsetConfig,
+		Description: "Remove one value from the settings file of the multiplexer by a dot path, such as 'blockCap' or 'layouts.wide', so that key takes its default again.",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, in unsetConfigIn) (*sdk.CallToolResult, unsetConfigOut, error) {
+		path := strings.TrimSpace(in.Path)
+		if path == "" {
+			return nil, unsetConfigOut{}, ErrNoConfigPath
+		}
+		file, changed, err := s.sessions.UnsetConfig(path, caller)
+		if err != nil {
+			return nil, unsetConfigOut{}, err
+		}
+		message := path + " was not set in " + file
+		if changed {
+			message = path + " is no longer set in " + file
+		}
+		return nil, unsetConfigOut{OK: true, Path: file, Changed: changed, Message: message}, nil
 	})
 
 	sdk.AddTool(server, &sdk.Tool{

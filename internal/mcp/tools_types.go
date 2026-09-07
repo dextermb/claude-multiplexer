@@ -1,5 +1,27 @@
 package mcp
 
+type setConfigIn struct {
+	Path  string `json:"path" jsonschema:"the settings key to set, as a dot path, such as 'editor', 'blockCap', 'blockCaps.tool', or 'layouts.wide.sidebarSize'"`
+	Value any    `json:"value" jsonschema:"the JSON value to write, such as \"nvim\", 40, true, or null"`
+}
+
+type unsetConfigIn struct {
+	Path string `json:"path" jsonschema:"the settings key to remove, as a dot path, such as 'blockCap' or 'layouts.wide'"`
+}
+
+type setConfigOut struct {
+	OK      bool   `json:"ok"`
+	Path    string `json:"path"`
+	Message string `json:"message"`
+}
+
+type unsetConfigOut struct {
+	OK      bool   `json:"ok"`
+	Path    string `json:"path"`
+	Changed bool   `json:"changed"`
+	Message string `json:"message"`
+}
+
 type renameIn struct {
 	Title string `json:"title" jsonschema:"the new display title for this session; an empty string clears it"`
 }

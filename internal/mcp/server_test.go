@@ -2,6 +2,7 @@ package mcp_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"strings"
@@ -23,6 +24,8 @@ type fakeSessions struct {
 	messages      map[string][]mcp.Message
 	jobs          map[string][]mcp.Job
 	stoppedJobs   []string
+	configSet     map[string]json.RawMessage
+	configUnset   []string
 	editor        string
 	terminal      *bool
 	editorPath    string
@@ -87,6 +90,19 @@ func (f *fakeSessions) UnsetLayout(scope, by string) (string, bool, error) {
 	_, had := f.sessionLayout[by]
 	delete(f.sessionLayout, by)
 	return "", had, nil
+}
+
+func (f *fakeSessions) SetConfig(path string, value json.RawMessage, by string) (string, error) {
+	if f.configSet == nil {
+		f.configSet = make(map[string]json.RawMessage)
+	}
+	f.configSet[path] = value
+	return "/tmp/config.json", nil
+}
+
+func (f *fakeSessions) UnsetConfig(path, by string) (string, bool, error) {
+	f.configUnset = append(f.configUnset, path)
+	return "/tmp/config.json", true, nil
 }
 
 func (f *fakeSessions) SetEditor(editor string, terminal *bool, by string) (string, error) {
@@ -599,6 +615,59 @@ func contains(items []string, want string) bool {
 		}
 	}
 	return false
+}
+
+func TestSetConfigToolPassesTheRawValue(t *testing.T) {
+	sessions := newFakeSessions()
+	server := startServer(t, sessions)
+	token, err := server.Register("docs", false)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+
+	client := connect(t, server, token)
+	result := call(t, client, mcp.ToolSetConfig, map[string]any{"path": "blockCaps.tool", "value": 3})
+	if result.IsError {
+		t.Fatalf("set_config failed: %s", resultText(result))
+	}
+	got, ok := sessions.configSet["blockCaps.tool"]
+	if !ok {
+		t.Fatal("set_config did not record the path")
+	}
+	if string(got) != "3" {
+		t.Fatalf("value = %s, want 3", got)
+	}
+}
+
+func TestSetConfigToolNeedsAPath(t *testing.T) {
+	sessions := newFakeSessions()
+	server := startServer(t, sessions)
+	token, err := server.Register("docs", false)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+
+	client := connect(t, server, token)
+	if result := call(t, client, mcp.ToolSetConfig, map[string]any{"path": "  ", "value": 1}); !result.IsError {
+		t.Fatal("set_config took an empty path, want an error")
+	}
+}
+
+func TestUnsetConfigTool(t *testing.T) {
+	sessions := newFakeSessions()
+	server := startServer(t, sessions)
+	token, err := server.Register("docs", false)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+
+	client := connect(t, server, token)
+	if result := call(t, client, mcp.ToolUnsetConfig, map[string]any{"path": "blockCap"}); result.IsError {
+		t.Fatalf("unset_config failed: %s", resultText(result))
+	}
+	if len(sessions.configUnset) != 1 || sessions.configUnset[0] != "blockCap" {
+		t.Fatalf("configUnset = %v, want [blockCap]", sessions.configUnset)
+	}
 }
 
 func TestSetEditorToolWritesBothFields(t *testing.T) {

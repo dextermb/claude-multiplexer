@@ -1,6 +1,7 @@
 package manager
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -385,6 +386,52 @@ func (m *Manager) UnsetEditor(field string) (string, bool, error) {
 		return "", false, err
 	}
 	return path, true, nil
+}
+
+// SetConfig sets one settings key by a dot-notation path, so a session can write
+// any settings-file value. It validates the change against the schema before it
+// writes. See docs/config.md.
+func (m *Manager) SetConfig(path string, value json.RawMessage) (string, error) {
+	file := config.Target(m.opts.ConfigPaths...)
+	if file == "" {
+		return "", errors.New("manager: no settings file to write")
+	}
+	current, err := config.Load(file)
+	if err != nil {
+		return "", err
+	}
+	next, err := config.SetPath(current, path, value)
+	if err != nil {
+		return "", err
+	}
+	if err := config.Write(file, next); err != nil {
+		return "", err
+	}
+	return file, nil
+}
+
+// UnsetConfig removes one settings key by a dot-notation path. It reports whether
+// the key was there to remove. See docs/config.md.
+func (m *Manager) UnsetConfig(path string) (string, bool, error) {
+	file := config.Target(m.opts.ConfigPaths...)
+	if file == "" {
+		return "", false, errors.New("manager: no settings file to write")
+	}
+	current, err := config.Load(file)
+	if err != nil {
+		return "", false, err
+	}
+	next, changed, err := config.UnsetPath(current, path)
+	if err != nil {
+		return "", false, err
+	}
+	if !changed {
+		return file, false, nil
+	}
+	if err := config.Write(file, next); err != nil {
+		return "", false, err
+	}
+	return file, true, nil
 }
 
 // ConfigPath names the settings files, in the order they are read. See

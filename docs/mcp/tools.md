@@ -12,6 +12,8 @@ grant. See [grant.md](grant.md).
 | `list_jobs` | `session` | The background jobs of a session: id, description, task type, and status. An empty session means the caller. | open |
 | `get_config_path` | — | The settings files, in the order they are read, the one that is read now, and the one a write goes to. | open |
 | `get_template_path` | `session` | The directories a session reads a preset prompt from, in the order they are read. | open |
+| `set_config` | `path`, `value` | Sets one settings key by a dot path, such as `blockCaps.tool`. It rejects a key or a type the settings do not allow. | open |
+| `unset_config` | `path` | Removes one settings key by a dot path, so that key takes its default again. | open |
 | `set_editor` | `editor`, `terminal` | Sets the editor the human opens a directory with, in the settings file. | open |
 | `unset_editor` | `field` | Takes the editor, the terminal flag, or both out of the settings file. | open |
 | `set_block_cap` | `rows` | Sets the rows one block draws in the session pane before the pane caps it. `0` caps nothing. | open |
