@@ -73,15 +73,19 @@ func selectedText(lines []string, a, b pos) string {
 	}
 
 	if a.line == b.line {
-		return slice(lines[a.line], a.col, b.col)
+		return trimRight(slice(lines[a.line], a.col, b.col))
 	}
 	out := make([]string, 0, b.line-a.line+1)
-	out = append(out, slice(lines[a.line], a.col, -1))
+	out = append(out, trimRight(slice(lines[a.line], a.col, -1)))
 	for i := a.line + 1; i < b.line; i++ {
-		out = append(out, lines[i])
+		out = append(out, trimRight(lines[i]))
 	}
-	out = append(out, slice(lines[b.line], 0, b.col))
+	out = append(out, trimRight(slice(lines[b.line], 0, b.col)))
 	return strings.Join(out, "\n")
+}
+
+func trimRight(line string) string {
+	return strings.TrimRight(line, " \t")
 }
 
 func plainLines(content string) []string {
