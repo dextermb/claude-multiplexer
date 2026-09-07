@@ -377,6 +377,48 @@ func TestManagerWritesMeta(t *testing.T) {
 	}
 }
 
+func TestResumeKeepsTheTitle(t *testing.T) {
+	m := newTestManager(t)
+	ctx := context.Background()
+
+	name, err := m.Spawn(ctx, Spec{Name: "docs", Dir: t.TempDir()})
+	if err != nil {
+		t.Fatalf("Spawn: %v", err)
+	}
+	runOneTurn(t, m, name, "hello")
+	waitForMeta(t, m, name)
+	retire(t, m, name)
+
+	if err := m.SetTitle(name, "bottom-diff"); err != nil {
+		t.Fatalf("SetTitle: %v", err)
+	}
+	path := filepath.Join(m.Root(), "sessions", name, "meta.json")
+	meta, err := ReadMeta(path)
+	if err != nil {
+		t.Fatalf("ReadMeta: %v", err)
+	}
+	if meta.Title != "bottom-diff" || meta.ClaudeSessionID == "" {
+		t.Fatalf("stored meta = %+v, want title and session id", meta)
+	}
+
+	if _, err := m.Resume(ctx, meta); err != nil {
+		t.Fatalf("Resume: %v", err)
+	}
+	snap, err := m.Snapshot(name)
+	if err != nil {
+		t.Fatalf("Snapshot: %v", err)
+	}
+	if snap.Title != "bottom-diff" {
+		t.Fatalf("resumed title = %q, want %q", snap.Title, "bottom-diff")
+	}
+
+	runOneTurn(t, m, name, "again")
+	waitFor(t, 5*time.Second, func() bool {
+		got, err := ReadMeta(path)
+		return err == nil && got.Title == "bottom-diff"
+	})
+}
+
 func TestManagerReportsAnUnknownSession(t *testing.T) {
 	m := newTestManager(t)
 	if err := m.Send("nope", "hello"); err == nil {
