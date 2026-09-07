@@ -155,22 +155,41 @@ func ResolveBlockCaps(cfg Config) map[string]int {
 // The built-in layout dimensions, used when no layout sets one. See
 // docs/config.md and docs/tui.md.
 const (
-	DefaultSidebarWidth = 26
-	DefaultTaskWidth    = 32
-	DefaultDiffWidth    = 32
-	DefaultPromptMin    = 1
-	DefaultPromptMax    = 4
+	DefaultSidebarSize = 26
+	DefaultTaskSize    = 32
+	DefaultDiffSize    = 32
+	DefaultDiffRows    = 12
+	DefaultPromptMin   = 1
+	DefaultPromptMax   = 4
 )
 
+// The diff panel positions. Left and right are vertical sides, so the diff size
+// is columns. Top and bottom are horizontal sides, so the diff size is rows. See
+// docs/tui/diff.md.
+const (
+	DiffLeft            = "left"
+	DiffRight           = "right"
+	DiffTop             = "top"
+	DiffBottom          = "bottom"
+	DefaultDiffPosition = DiffRight
+)
+
+// DiffHorizontal reports whether a diff position is a horizontal side, so its
+// size is rows.
+func DiffHorizontal(pos string) bool {
+	return pos == DiffTop || pos == DiffBottom
+}
+
 // Layout holds the interface dimensions a named layout sets. A nil field takes
-// the built-in default, so a layout may set only some of them. See
-// docs/config.md.
+// the built-in default, so a layout may set only some of them. A size is columns
+// or rows, by the panel it sets and its position. See docs/config.md.
 type Layout struct {
-	PromptMin    *int `json:"promptMin,omitempty"`
-	PromptMax    *int `json:"promptMax,omitempty"`
-	SidebarWidth *int `json:"sidebarWidth,omitempty"`
-	TaskWidth    *int `json:"taskWidth,omitempty"`
-	DiffWidth    *int `json:"diffWidth,omitempty"`
+	PromptMin    *int    `json:"promptMin,omitempty"`
+	PromptMax    *int    `json:"promptMax,omitempty"`
+	SidebarSize  *int    `json:"sidebarSize,omitempty"`
+	TaskSize     *int    `json:"taskSize,omitempty"`
+	DiffSize     *int    `json:"diffSize,omitempty"`
+	DiffPosition *string `json:"diffPosition,omitempty"`
 }
 
 // ResolvedLayout holds the dimensions after resolution, each one a concrete
@@ -178,9 +197,10 @@ type Layout struct {
 type ResolvedLayout struct {
 	PromptMin    int
 	PromptMax    int
-	SidebarWidth int
-	TaskWidth    int
-	DiffWidth    int
+	SidebarSize  int
+	TaskSize     int
+	DiffSize     int
+	DiffPosition string
 }
 
 // DefaultLayout gives the built-in dimensions.
@@ -188,17 +208,21 @@ func DefaultLayout() ResolvedLayout {
 	return ResolvedLayout{
 		PromptMin:    DefaultPromptMin,
 		PromptMax:    DefaultPromptMax,
-		SidebarWidth: DefaultSidebarWidth,
-		TaskWidth:    DefaultTaskWidth,
-		DiffWidth:    DefaultDiffWidth,
+		SidebarSize:  DefaultSidebarSize,
+		TaskSize:     DefaultTaskSize,
+		DiffSize:     DefaultDiffSize,
+		DiffPosition: DefaultDiffPosition,
 	}
 }
 
 // ResolveLayout overlays the global layout, then the session layout, onto the
 // built-in defaults. A name that no layout holds falls through to the next
-// level, so a deleted layout never breaks a session. See docs/config.md.
+// level, so a deleted layout never breaks a session. An unset diff size takes
+// the default for its final position: columns when vertical, rows when
+// horizontal. See docs/config.md.
 func ResolveLayout(layouts map[string]Layout, global, session string) ResolvedLayout {
 	out := DefaultLayout()
+	sizeSet := false
 	overlay := func(name string) {
 		layout, ok := layouts[name]
 		if name == "" || !ok {
@@ -210,23 +234,39 @@ func ResolveLayout(layouts map[string]Layout, global, session string) ResolvedLa
 		if layout.PromptMax != nil {
 			out.PromptMax = *layout.PromptMax
 		}
-		if layout.SidebarWidth != nil {
-			out.SidebarWidth = *layout.SidebarWidth
+		if layout.SidebarSize != nil {
+			out.SidebarSize = *layout.SidebarSize
 		}
-		if layout.TaskWidth != nil {
-			out.TaskWidth = *layout.TaskWidth
+		if layout.TaskSize != nil {
+			out.TaskSize = *layout.TaskSize
 		}
-		if layout.DiffWidth != nil {
-			out.DiffWidth = *layout.DiffWidth
+		if layout.DiffSize != nil {
+			out.DiffSize = *layout.DiffSize
+			sizeSet = true
+		}
+		if layout.DiffPosition != nil {
+			out.DiffPosition = *layout.DiffPosition
 		}
 	}
 	overlay(global)
 	overlay(session)
+	if !sizeSet {
+		out.DiffSize = defaultDiffSize(out.DiffPosition)
+	}
 	return out.sane()
 }
 
+// defaultDiffSize gives the built-in diff size for a position: rows on a
+// horizontal side, columns on a vertical side.
+func defaultDiffSize(pos string) int {
+	if DiffHorizontal(pos) {
+		return DefaultDiffRows
+	}
+	return DefaultDiffSize
+}
+
 // sane keeps every dimension inside a readable range that does not depend on the
-// terminal size. The interface clamps each width again to the terminal it draws
+// terminal size. The interface clamps each size again to the terminal it draws
 // in. See docs/tui.md.
 func (r ResolvedLayout) sane() ResolvedLayout {
 	if r.PromptMin < 1 {
@@ -235,16 +275,30 @@ func (r ResolvedLayout) sane() ResolvedLayout {
 	if r.PromptMax < r.PromptMin {
 		r.PromptMax = r.PromptMin
 	}
-	if r.SidebarWidth < DefaultSidebarWidth-16 {
-		r.SidebarWidth = DefaultSidebarWidth - 16
+	if r.SidebarSize < DefaultSidebarSize-16 {
+		r.SidebarSize = DefaultSidebarSize - 16
 	}
-	if r.TaskWidth < 16 {
-		r.TaskWidth = 16
+	if r.TaskSize < 16 {
+		r.TaskSize = 16
 	}
-	if r.DiffWidth < 16 {
-		r.DiffWidth = 16
+	switch r.DiffPosition {
+	case DiffLeft, DiffRight, DiffTop, DiffBottom:
+	default:
+		r.DiffPosition = DiffRight
+	}
+	if floor := diffSizeFloor(r.DiffPosition); r.DiffSize < floor {
+		r.DiffSize = floor
 	}
 	return r
+}
+
+// diffSizeFloor is the least readable diff size: a few rows on a horizontal
+// side, more columns on a vertical side.
+func diffSizeFloor(pos string) int {
+	if DiffHorizontal(pos) {
+		return 4
+	}
+	return 16
 }
 
 // Paths lists the settings files to look for, in order.

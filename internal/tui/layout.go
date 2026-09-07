@@ -21,6 +21,9 @@ func (m Model) bodyHeight() int {
 
 func (m Model) outputHeight() int {
 	height := m.bodyHeight() - barHeight
+	if m.showSidePanel() && m.sidePanelHorizontal() {
+		height -= m.sidePanelHeight()
+	}
 	if height < 1 {
 		return 1
 	}
@@ -73,9 +76,9 @@ func (m *Model) applyLayout() {
 // narrow enough that the output pane keeps its minimum. A Model with no layout
 // takes the built-in default.
 func (m Model) sidebarCols() int {
-	w := m.layout.SidebarWidth
+	w := m.layout.SidebarSize
 	if w < 1 {
-		w = config.DefaultSidebarWidth
+		w = config.DefaultSidebarSize
 	}
 	if lim := m.width - 10; lim > 0 && w > lim {
 		w = lim
@@ -97,10 +100,10 @@ func (m Model) sidebarInnerCols() int {
 // taskCols is the width of the task and background job panel, from the layout. A
 // Model with no layout takes the built-in default.
 func (m Model) taskCols() int {
-	if m.layout.TaskWidth < 1 {
-		return config.DefaultTaskWidth
+	if m.layout.TaskSize < 1 {
+		return config.DefaultTaskSize
 	}
-	return m.layout.TaskWidth
+	return m.layout.TaskSize
 }
 
 func (m Model) taskInnerCols() int {
@@ -116,14 +119,21 @@ func (m Model) baseOutputWidth() int {
 }
 
 func (m Model) outputWidth() int {
-	if m.showSidePanel() {
+	if m.showSidePanel() && !m.sidePanelHorizontal() {
 		return m.baseOutputWidth() - m.sidePanelWidth()
 	}
 	return m.baseOutputWidth()
 }
 
-// sidePanelWidth is the width of the panel beside the output: the resizable diff
-// panel when it is open, else the fixed jobs and tasks panel.
+// sidePanelHorizontal reports whether the side panel is the diff panel drawn on
+// a horizontal side, so it takes rows below or above the output, not columns
+// beside it. The task panel is always a vertical side.
+func (m Model) sidePanelHorizontal() bool {
+	return m.diffPanel && config.DiffHorizontal(m.layout.DiffPosition)
+}
+
+// sidePanelWidth is the width of a vertical side panel: the resizable diff panel
+// when it is open on the left or right, else the fixed jobs and tasks panel.
 func (m Model) sidePanelWidth() int {
 	if m.diffPanel {
 		return m.diffPanelWidth()
@@ -131,11 +141,19 @@ func (m Model) sidePanelWidth() int {
 	return m.taskCols()
 }
 
-// showSidePanel says whether the side panel has room beside the output. It reads
-// baseOutputWidth, not outputWidth, because outputWidth depends on it. See
-// docs/tui/tasks.md.
+// sidePanelHeight is the rows of the diff panel when it is on a horizontal side.
+func (m Model) sidePanelHeight() int {
+	return m.diffPanelHeight()
+}
+
+// showSidePanel says whether the side panel has room by the output. It reads
+// baseOutputWidth and bodyHeight, not outputWidth and outputHeight, because
+// those depend on it. See docs/tui/tasks.md and docs/tui/diff.md.
 func (m Model) showSidePanel() bool {
 	if m.diffPanel {
+		if m.sidePanelHorizontal() {
+			return m.bodyHeight()-barHeight-m.sidePanelHeight() >= minOutputHeightWithPanel
+		}
 		return m.baseOutputWidth()-m.sidePanelWidth() >= minOutputWithPanel
 	}
 	if len(m.todos[m.sel]) == 0 && len(m.selectedJobs()) == 0 {
@@ -164,11 +182,21 @@ func (m Model) paneView() string {
 	if dialog, ok := m.sessionDialogView(); ok {
 		return lipgloss.JoinVertical(lipgloss.Left, m.barView(), dialog)
 	}
-	pane := lipgloss.JoinVertical(lipgloss.Left, m.barView(), m.outputView())
-	if m.showSidePanel() {
-		pane = lipgloss.JoinHorizontal(lipgloss.Top, pane, m.sidePanelView())
+	if !m.showSidePanel() {
+		return lipgloss.JoinVertical(lipgloss.Left, m.barView(), m.outputView())
 	}
-	return pane
+	panel := m.sidePanelView()
+	if m.sidePanelHorizontal() {
+		if m.layout.DiffPosition == config.DiffTop {
+			return lipgloss.JoinVertical(lipgloss.Left, m.barView(), panel, m.outputView())
+		}
+		return lipgloss.JoinVertical(lipgloss.Left, m.barView(), m.outputView(), panel)
+	}
+	pane := lipgloss.JoinVertical(lipgloss.Left, m.barView(), m.outputView())
+	if m.diffPanel && m.layout.DiffPosition == config.DiffLeft {
+		return lipgloss.JoinHorizontal(lipgloss.Top, panel, pane)
+	}
+	return lipgloss.JoinHorizontal(lipgloss.Top, pane, panel)
 }
 
 func (m Model) sessionDialogView() (string, bool) {

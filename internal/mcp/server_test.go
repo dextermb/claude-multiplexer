@@ -823,6 +823,60 @@ func TestEverySessionGetsTheWorkingDirTools(t *testing.T) {
 	}
 }
 
+func TestSaveLayoutToolCarriesTheDiffPositionAndSize(t *testing.T) {
+	sessions := newFakeSessions()
+	server := startServer(t, sessions)
+	token, err := server.Register("docs", false)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+	client := connect(t, server, token)
+
+	result := call(t, client, mcp.ToolSaveLayout, map[string]any{
+		"name": "stack", "diffPosition": "bottom", "diffSize": 16,
+	})
+	if result.IsError {
+		t.Fatalf("save_layout failed: %s", resultText(result))
+	}
+	dims, ok := sessions.layouts["stack"]
+	if !ok {
+		t.Fatal("the layout was not saved")
+	}
+	if dims.DiffPosition == nil || *dims.DiffPosition != "bottom" {
+		t.Fatalf("diff position = %v, want bottom", dims.DiffPosition)
+	}
+	if dims.DiffSize == nil || *dims.DiffSize != 16 {
+		t.Fatalf("diff size = %v, want 16", dims.DiffSize)
+	}
+
+	list := call(t, client, mcp.ToolListLayouts, map[string]any{})
+	if list.IsError {
+		t.Fatalf("list_layouts failed: %s", resultText(list))
+	}
+	if !strings.Contains(resultText(list), "bottom") {
+		t.Fatalf("list_layouts must report the position:\n%s", resultText(list))
+	}
+}
+
+func TestSaveLayoutToolRefusesABadDiffPosition(t *testing.T) {
+	sessions := newFakeSessions()
+	server := startServer(t, sessions)
+	token, err := server.Register("docs", false)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+	client := connect(t, server, token)
+
+	if result := call(t, client, mcp.ToolSaveLayout, map[string]any{
+		"name": "bad", "diffPosition": "sideways",
+	}); !result.IsError {
+		t.Fatal("an unknown diff position must be an error")
+	}
+	if _, ok := sessions.layouts["bad"]; ok {
+		t.Fatal("a rejected layout must not be saved")
+	}
+}
+
 func TestSetBlockCapToolWritesTheCap(t *testing.T) {
 	sessions := newFakeSessions()
 	server := startServer(t, sessions)

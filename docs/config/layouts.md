@@ -10,8 +10,9 @@ switcher, see [../tui/layouts.md](../tui/layouts.md) and [../manager.md](../mana
 {
   "activeLayout": "wide",
   "layouts": {
-    "wide":    { "sidebarWidth": 34, "diffWidth": 60, "promptMax": 6 },
-    "compact": { "sidebarWidth": 20, "taskWidth": 24, "promptMax": 2 }
+    "wide":    { "sidebarSize": 34, "diffSize": 60, "promptMax": 6 },
+    "compact": { "sidebarSize": 20, "taskSize": 24, "promptMax": 2 },
+    "stack":   { "diffPosition": "bottom", "diffSize": 16 }
   }
 }
 ```
@@ -20,9 +21,10 @@ switcher, see [../tui/layouts.md](../tui/layouts.md) and [../manager.md](../mana
 |---|---|---|
 | `promptMin` | The least rows the prompt bar draws | 1 |
 | `promptMax` | The most rows the prompt bar grows to | 4 |
-| `sidebarWidth` | The columns of the session list sidebar | 26 |
-| `taskWidth` | The columns of the task and background job panel | 32 |
-| `diffWidth` | The columns of the diff panel | 32 |
+| `sidebarSize` | The columns of the session list sidebar | 26 |
+| `taskSize` | The columns of the task and background job panel | 32 |
+| `diffPosition` | The side the diff panel draws on: `left`, `right`, `top`, or `bottom` | `right` |
+| `diffSize` | The size of the diff panel: columns on left or right, rows on top or bottom | 32 columns, 12 rows |
 
 A layout sets only the fields it holds, and the rest take the built-in default.
 The multiplexer resolves the dimensions in three steps: the session layout, then

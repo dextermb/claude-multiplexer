@@ -12,7 +12,8 @@ import (
 
 func TestColsFollowTheResolvedLayout(t *testing.T) {
 	m := Model{width: 200, layout: config.ResolvedLayout{
-		SidebarWidth: 40, TaskWidth: 24, DiffWidth: 50, PromptMin: 1, PromptMax: 4,
+		SidebarSize: 40, TaskSize: 24, DiffSize: 50, PromptMin: 1, PromptMax: 4,
+		DiffPosition: config.DiffRight,
 	}}
 	if got := m.sidebarCols(); got != 40 {
 		t.Errorf("sidebarCols = %d, want 40", got)
@@ -27,11 +28,11 @@ func TestColsFollowTheResolvedLayout(t *testing.T) {
 
 func TestColsFallBackToDefaultsWithoutALayout(t *testing.T) {
 	m := Model{width: 200}
-	if got := m.sidebarCols(); got != config.DefaultSidebarWidth {
-		t.Errorf("sidebarCols = %d, want default %d", got, config.DefaultSidebarWidth)
+	if got := m.sidebarCols(); got != config.DefaultSidebarSize {
+		t.Errorf("sidebarCols = %d, want default %d", got, config.DefaultSidebarSize)
 	}
-	if got := m.taskCols(); got != config.DefaultTaskWidth {
-		t.Errorf("taskCols = %d, want default %d", got, config.DefaultTaskWidth)
+	if got := m.taskCols(); got != config.DefaultTaskSize {
+		t.Errorf("taskCols = %d, want default %d", got, config.DefaultTaskSize)
 	}
 }
 
@@ -59,7 +60,7 @@ func TestLayoutSwitchWithNoSessionUsesAllScope(t *testing.T) {
 
 func TestReloadLayoutsReadsTheFileFromDisk(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config.json")
-	body := `{"activeLayout":"wide","layouts":{"wide":{"sidebarWidth":40}}}`
+	body := `{"activeLayout":"wide","layouts":{"wide":{"sidebarSize":40}}}`
 	if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
 		t.Fatal(err)
 	}

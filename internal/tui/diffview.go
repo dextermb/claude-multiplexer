@@ -10,7 +10,7 @@ import (
 
 func (m Model) diffPanelView() string {
 	lines := m.diffPanelLines()
-	height := m.bodyHeight()
+	height := m.diffPanelHeight()
 	scroll := clampScroll(m.diffScroll, len(lines), height)
 	end := scroll + height
 	if end > len(lines) {
@@ -28,6 +28,9 @@ func (m Model) diffPanelLines() []string {
 	if !d.repo {
 		return []string{diffMetaStyle.Render("not a git repository")}
 	}
+	if m.diffHorizontal() {
+		return m.diffGridLines(d.files)
+	}
 	out := []string{taskHeaderStyle.Render("Changes · " + strconv.Itoa(len(d.files))), ""}
 	if len(d.files) == 0 {
 		return append(out, diffMetaStyle.Render("no changes"))
@@ -41,15 +44,64 @@ func (m Model) diffPanelLines() []string {
 	return out
 }
 
+// diffGridLines draws the files of a horizontal panel in a grid, then draws each
+// open file's diff in one region below the whole grid. See docs/tui/diff.md.
+func (m Model) diffGridLines(files []git.FileChange) []string {
+	out := []string{taskHeaderStyle.Render("Changes · " + strconv.Itoa(len(files)))}
+	if len(files) == 0 {
+		return append(out, "", diffMetaStyle.Render("no changes"))
+	}
+	cols := m.diffGridCols(len(files))
+	cellW := m.diffInner() / cols
+	rows := (len(files) + cols - 1) / cols
+	for r := 0; r < rows; r++ {
+		cells := make([]string, 0, cols)
+		for c := 0; c < cols; c++ {
+			i := r*cols + c
+			if i >= len(files) {
+				cells = append(cells, strings.Repeat(" ", cellW))
+				continue
+			}
+			cells = append(cells, m.diffFileCell(i, files[i], cellW))
+		}
+		out = append(out, lipgloss.JoinHorizontal(lipgloss.Top, cells...))
+	}
+	for _, file := range files {
+		if !m.diffOpen[m.sel][file.Path] {
+			continue
+		}
+		out = append(out, "", taskHeaderStyle.Render(truncate(file.Path, m.diffInner())))
+		out = append(out, m.diffFileBody(file.Path)...)
+	}
+	return out
+}
+
+// diffGridCols is the column count of the horizontal file grid: as many cells of
+// at least diffCellMin columns as the panel width holds, capped at the file
+// count.
+func (m Model) diffGridCols(n int) int {
+	cols := m.diffInner() / diffCellMin
+	if cols < 1 {
+		cols = 1
+	}
+	if cols > n {
+		cols = n
+	}
+	return cols
+}
+
 func (m Model) diffFileRow(index int, file git.FileChange) string {
-	inner := m.diffInner()
+	return m.diffFileCell(index, file, m.diffInner())
+}
+
+func (m Model) diffFileCell(index int, file git.FileChange, width int) string {
 	glyph := foldShutMark
 	if m.diffOpen[m.sel][file.Path] {
 		glyph = foldOpenMark
 	}
 	head := glyph + " " + file.Status + " "
 	countsText := "+" + strconv.Itoa(file.Insertions) + " −" + strconv.Itoa(file.Deletions)
-	room := inner - lipgloss.Width(head) - lipgloss.Width(countsText) - 1
+	room := width - lipgloss.Width(head) - lipgloss.Width(countsText) - 1
 	if room < 4 {
 		room = 4
 	}
@@ -57,17 +109,17 @@ func (m Model) diffFileRow(index int, file git.FileChange) string {
 
 	if index == m.diffSel {
 		text := head + name
-		gap := inner - lipgloss.Width(text) - lipgloss.Width(countsText)
+		gap := width - lipgloss.Width(text) - lipgloss.Width(countsText)
 		if gap < 1 {
 			gap = 1
 		}
-		return selectedRowStyle.Width(inner).Render(text + strings.Repeat(" ", gap) + countsText)
+		return selectedRowStyle.Width(width).Render(text + strings.Repeat(" ", gap) + countsText)
 	}
 
 	counts := diffAddStyle.Render("+"+strconv.Itoa(file.Insertions)) + " " +
 		diffDelStyle.Render("−"+strconv.Itoa(file.Deletions))
 	left := diffMetaStyle.Render(head) + rowStyle.Render(name)
-	gap := inner - lipgloss.Width(left) - lipgloss.Width(counts)
+	gap := width - lipgloss.Width(left) - lipgloss.Width(counts)
 	if gap < 1 {
 		gap = 1
 	}

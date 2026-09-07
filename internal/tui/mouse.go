@@ -23,7 +23,7 @@ func (m Model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 			}
 			return m.move(1)
 		}
-		if m.diffPanel && msg.X >= m.width-m.diffPanelWidth() {
+		if m.inDiffPanel(msg.X, msg.Y) {
 			if msg.Button == tea.MouseButtonWheelUp {
 				m.diffScroll -= 3
 			} else {

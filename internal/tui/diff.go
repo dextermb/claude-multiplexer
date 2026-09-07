@@ -151,9 +151,25 @@ func (m Model) diffKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "tab":
 		return m.toggleFocus()
 	case "k":
+		if m.diffHorizontal() {
+			return m.diffGridMove(-m.gridCols())
+		}
 		return m.diffCursorUp()
 	case "j":
+		if m.diffHorizontal() {
+			return m.diffGridMove(m.gridCols())
+		}
 		return m.diffCursorDown()
+	case "h":
+		if m.diffHorizontal() {
+			return m.diffGridMove(-1)
+		}
+		return m, nil
+	case "l":
+		if m.diffHorizontal() {
+			return m.diffGridMove(1)
+		}
+		return m, nil
 	case "up":
 		m.diffScroll--
 		m.clampDiffScroll()
@@ -225,11 +241,21 @@ func (m Model) diffJumpUp() (tea.Model, tea.Cmd) {
 }
 
 // diffEmptyRows lists, in order, the panel-line indices that show an empty line
-// of an open diff. It walks the panel the same way as diffPanelLines.
+// of an open diff. On a horizontal side it scans the rendered lines, because the
+// open diffs sit below the grid, not inline.
 func (m Model) diffEmptyRows() []int {
 	d, ok := m.diffs[m.sel]
 	if !ok || !d.repo {
 		return nil
+	}
+	if m.diffHorizontal() {
+		var rows []int
+		for i, line := range m.diffPanelLines() {
+			if m.diffRowEmpty(line) {
+				rows = append(rows, i)
+			}
+		}
+		return rows
 	}
 	var rows []int
 	line := 2
@@ -320,21 +346,22 @@ func (m Model) selectedBodyLen() int {
 }
 
 // widenDiff, narrowDiff, toggleHalfDiff, and toggleDiffNumbers are the d +, d -,
-// d /, and d n actions. The width persists on the model, so a hide and a later
-// show keep it.
-func (m Model) widenDiff() (tea.Model, tea.Cmd) { return m.resizeDiff(diffWidthStep) }
+// d /, and d n actions. The size persists on the model, so a hide and a later
+// show keep it. The keys grow the width on a vertical side and the height on a
+// horizontal side. See docs/tui/diff.md.
+func (m Model) widenDiff() (tea.Model, tea.Cmd) { return m.resizeDiff(diffSizeStep) }
 
-func (m Model) narrowDiff() (tea.Model, tea.Cmd) { return m.resizeDiff(-diffWidthStep) }
+func (m Model) narrowDiff() (tea.Model, tea.Cmd) { return m.resizeDiff(-diffSizeStep) }
 
 func (m Model) resizeDiff(delta int) (tea.Model, tea.Cmd) {
-	m.diffWidth = m.clampDiffWidth(m.diffPanelWidth() + delta)
+	m.diffSize = m.clampDiffExtent(m.diffPanelExtent() + delta)
 	m.diffHalf = false
 	m.rebuildOutput()
 	return m, nil
 }
 
 // toggleHalfDiff is the d / action. It shows the panel at half the screen, or
-// returns it to the set width.
+// returns it to the set size.
 func (m Model) toggleHalfDiff() (tea.Model, tea.Cmd) {
 	m.diffHalf = !m.diffHalf
 	m.rebuildOutput()
@@ -401,13 +428,36 @@ func (m *Model) clampDiffSel() {
 }
 
 func (m *Model) clampDiffScroll() {
-	m.diffScroll = clampScroll(m.diffScroll, len(m.diffPanelLines()), m.bodyHeight())
+	m.diffScroll = clampScroll(m.diffScroll, len(m.diffPanelLines()), m.diffPanelHeight())
+}
+
+// gridCols is the column count of the horizontal file grid, from the panel
+// width. See docs/tui/diff.md.
+func (m Model) gridCols() int {
+	files := m.diffs[m.sel].files
+	if len(files) == 0 {
+		return 1
+	}
+	return m.diffGridCols(len(files))
+}
+
+// diffGridMove is the h, l, j, and k motion in the horizontal grid. It moves the
+// selection by delta files, and keeps it on screen.
+func (m Model) diffGridMove(delta int) (tea.Model, tea.Cmd) {
+	n := len(m.diffs[m.sel].files)
+	next := m.diffSel + delta
+	if n == 0 || next < 0 || next >= n {
+		return m, nil
+	}
+	m.diffSel = next
+	m.ensureDiffSelVisible()
+	return m, nil
 }
 
 // ensureDiffSelVisible scrolls the panel so the selected file row is on screen.
 func (m *Model) ensureDiffSelVisible() {
 	line := m.diffSelLine()
-	height := m.bodyHeight()
+	height := m.diffPanelHeight()
 	if line < m.diffScroll {
 		m.diffScroll = line
 	}
@@ -418,7 +468,12 @@ func (m *Model) ensureDiffSelVisible() {
 }
 
 // diffSelLine is the line index of the selected file row within the panel lines.
+// On a horizontal side, a file sits in the grid, so its line is the header plus
+// its grid row.
 func (m Model) diffSelLine() int {
+	if m.diffHorizontal() {
+		return 1 + m.diffSel/m.gridCols()
+	}
 	return m.diffFileLine(m.diffSel)
 }
 
@@ -438,7 +493,7 @@ func (m Model) diffFileLine(target int) int {
 }
 
 func (m Model) diffPage() int {
-	page := m.bodyHeight() - 2
+	page := m.diffPanelHeight() - 2
 	if page < 1 {
 		page = 1
 	}
@@ -461,36 +516,85 @@ func barDiffCount(stat git.Stat) string {
 }
 
 const (
-	diffWidthStep = 6
-	diffWidthMin  = 20
+	diffSizeStep  = 6
+	diffColsMin   = 20
+	diffRowsMin   = 4
+	diffCellMin   = 24
 	diffNumGutter = 5
 )
 
-// diffPanelWidth is the width of the diff panel: half the screen in the half
-// mode, else the width the human set live, or the layout width when none is set.
-func (m Model) diffPanelWidth() int {
-	if m.diffHalf {
-		return m.clampDiffWidth(m.width / 2)
-	}
-	if m.diffWidth <= 0 {
-		w := m.layout.DiffWidth
-		if w < 1 {
-			w = config.DefaultDiffWidth
-		}
-		return m.clampDiffWidth(w)
-	}
-	return m.clampDiffWidth(m.diffWidth)
+// diffHorizontal reports whether the diff panel is on a horizontal side, so its
+// size is rows and its files draw in a grid. See docs/tui/diff.md.
+func (m Model) diffHorizontal() bool {
+	return config.DiffHorizontal(m.layout.DiffPosition)
 }
 
-// clampDiffWidth keeps the panel wide enough to read, but not so wide that the
-// output falls below its minimum.
-func (m Model) clampDiffWidth(width int) int {
-	most := m.baseOutputWidth() - minOutputWithPanel
-	if most < diffWidthMin {
-		most = diffWidthMin
+// diffPanelExtent is the diff panel size along its axis: columns on left or
+// right, rows on top or bottom. It reads the half mode, else the size the human
+// set live, else the layout size. See docs/tui/diff.md.
+func (m Model) diffPanelExtent() int {
+	if m.diffHorizontal() {
+		if m.diffHalf {
+			return m.clampDiffRows((m.bodyHeight() - barHeight) / 2)
+		}
+		if m.diffSize > 0 {
+			return m.clampDiffRows(m.diffSize)
+		}
+		return m.clampDiffRows(m.layoutDiffSize())
 	}
-	if width < diffWidthMin {
-		width = diffWidthMin
+	if m.diffHalf {
+		return m.clampDiffCols(m.width / 2)
+	}
+	if m.diffSize > 0 {
+		return m.clampDiffCols(m.diffSize)
+	}
+	return m.clampDiffCols(m.layoutDiffSize())
+}
+
+func (m Model) layoutDiffSize() int {
+	if m.layout.DiffSize > 0 {
+		return m.layout.DiffSize
+	}
+	if m.diffHorizontal() {
+		return config.DefaultDiffRows
+	}
+	return config.DefaultDiffSize
+}
+
+// diffPanelWidth is the rendered width of the diff panel: the extent on a
+// vertical side, else the full output width on a horizontal side.
+func (m Model) diffPanelWidth() int {
+	if m.diffHorizontal() {
+		return m.baseOutputWidth()
+	}
+	return m.diffPanelExtent()
+}
+
+// diffPanelHeight is the rendered height of the diff panel: the body height on a
+// vertical side, else the extent on a horizontal side.
+func (m Model) diffPanelHeight() int {
+	if m.diffHorizontal() {
+		return m.diffPanelExtent()
+	}
+	return m.bodyHeight()
+}
+
+func (m Model) clampDiffExtent(size int) int {
+	if m.diffHorizontal() {
+		return m.clampDiffRows(size)
+	}
+	return m.clampDiffCols(size)
+}
+
+// clampDiffCols keeps the panel wide enough to read, but not so wide that the
+// output falls below its minimum.
+func (m Model) clampDiffCols(width int) int {
+	most := m.baseOutputWidth() - minOutputWithPanel
+	if most < diffColsMin {
+		most = diffColsMin
+	}
+	if width < diffColsMin {
+		width = diffColsMin
 	}
 	if width > most {
 		width = most
@@ -498,8 +602,47 @@ func (m Model) clampDiffWidth(width int) int {
 	return width
 }
 
+// clampDiffRows keeps the panel tall enough to read, but not so tall that the
+// output falls below its minimum.
+func (m Model) clampDiffRows(rows int) int {
+	most := m.bodyHeight() - barHeight - minOutputHeightWithPanel
+	if most < diffRowsMin {
+		most = diffRowsMin
+	}
+	if rows < diffRowsMin {
+		rows = diffRowsMin
+	}
+	if rows > most {
+		rows = most
+	}
+	return rows
+}
+
 func (m Model) diffInner() int {
 	return m.diffPanelWidth() - 2
+}
+
+// inDiffPanel reports whether a mouse position falls in the open diff panel, by
+// its position. The bounds are approximate, so a wheel scroll reaches the panel.
+func (m Model) inDiffPanel(x, y int) bool {
+	if !m.diffPanel {
+		return false
+	}
+	left := m.leftWidth()
+	if m.diffHorizontal() {
+		if x < left {
+			return false
+		}
+		h := m.diffPanelHeight()
+		if m.layout.DiffPosition == config.DiffTop {
+			return y >= barHeight && y < barHeight+h
+		}
+		return y >= m.bodyHeight()-h && y < m.bodyHeight()
+	}
+	if m.layout.DiffPosition == config.DiffLeft {
+		return x >= left && x < left+m.diffPanelWidth()+2
+	}
+	return x >= m.width-m.diffPanelWidth()
 }
 
 func clampScroll(scroll, total, height int) int {

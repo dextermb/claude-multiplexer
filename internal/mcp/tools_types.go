@@ -108,12 +108,13 @@ type listLayoutsIn struct {
 }
 
 type saveLayoutIn struct {
-	Name         string `json:"name" jsonschema:"the name of the layout to create or replace"`
-	PromptMin    *int   `json:"promptMin,omitempty" jsonschema:"the least rows the prompt bar draws; leave it out to keep the current value"`
-	PromptMax    *int   `json:"promptMax,omitempty" jsonschema:"the most rows the prompt bar grows to; leave it out to keep the current value"`
-	SidebarWidth *int   `json:"sidebarWidth,omitempty" jsonschema:"the columns of the session list sidebar; leave it out to keep the current value"`
-	TaskWidth    *int   `json:"taskWidth,omitempty" jsonschema:"the columns of the task and background job panel; leave it out to keep the current value"`
-	DiffWidth    *int   `json:"diffWidth,omitempty" jsonschema:"the columns of the diff panel; leave it out to keep the current value"`
+	Name         string  `json:"name" jsonschema:"the name of the layout to create or replace"`
+	PromptMin    *int    `json:"promptMin,omitempty" jsonschema:"the least rows the prompt bar draws; leave it out to keep the current value"`
+	PromptMax    *int    `json:"promptMax,omitempty" jsonschema:"the most rows the prompt bar grows to; leave it out to keep the current value"`
+	SidebarSize  *int    `json:"sidebarSize,omitempty" jsonschema:"the columns of the session list sidebar; leave it out to keep the current value"`
+	TaskSize     *int    `json:"taskSize,omitempty" jsonschema:"the columns of the task and background job panel; leave it out to keep the current value"`
+	DiffSize     *int    `json:"diffSize,omitempty" jsonschema:"the size of the diff panel: columns on left or right, rows on top or bottom; leave it out to keep the current value"`
+	DiffPosition *string `json:"diffPosition,omitempty" jsonschema:"the side the diff panel draws on: left, right, top, or bottom; leave it out to keep the current value"`
 }
 
 type saveLayoutOut struct {

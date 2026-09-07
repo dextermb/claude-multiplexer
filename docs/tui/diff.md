@@ -3,8 +3,9 @@
 The interface reads the git changes of a session and shows them in two places:
 
 - A **count** in the session bar, for example `+120 −30`.
-- A **diff panel** on the right of the pane, that lists the changed files and
-  expands each one to its diff.
+- A **diff panel** on a side of the pane, that lists the changed files and
+  expands each one to its diff. A layout sets the side: left, right (the
+  default), top, or bottom. See [layouts.md](layouts.md).
 
 Both read the working tree of the session working directory against
 `origin/HEAD`, the default branch of the remote. So the diff is the whole branch,
@@ -54,19 +55,53 @@ hunk header. The panel drops the git file
 header, because a narrow panel has no room for it. A long line wraps to the panel
 width.
 
+## The position and the grid
+
+A layout puts the diff panel on any of four sides. Left and right are vertical
+sides, so the panel is a narrow column beside the output. Top and bottom are
+horizontal sides, so the panel is a wide band above or below the output.
+
+On a vertical side the files draw in one column, and an open file's diff shows
+inline, right after its row. On a horizontal side the panel is short and wide,
+so the files draw in a grid of two or more columns. An open file's diff then
+draws in one region below the whole grid, at the full width. Two open files
+stack in that region, in file order.
+
+```
+top or bottom (a grid, then the open diffs below all files)
+
+ Changes · 5
+ ▸ M app.go      +12 −3    ▸ A git.go   +40 −0
+ ▾ M layout.go   +8 −1     ▸ D old.txt   +0 −8
+ ▸ M diff.go     +5 −2
+
+ layout.go
+ @@ -1,4 +1,8 @@
+ +package tui
+```
+
+The size a layout sets is columns on a vertical side, and rows on a horizontal
+side. See [layouts.md](layouts.md).
+
 `d n` shows or hides the line numbers. The number is the new-file line, in a
 grey gutter on the left. A deleted line has no new-file number, so its gutter is
 blank.
 
-## Scrolling and the width
+## Scrolling and the size
 
-The panel scrolls, through the list and the open diffs. `j` and `k` move a cursor
-down and up. On a collapsed file, `j` and `k` move to the next and the previous
-file. On an open file, `j` and `k` step through the diff one line at a time. At
-the bottom of an open diff, `j` moves to the next file, so you can expand it. `k`
-into an open file above starts at the bottom of its diff, then steps up to the
-top. The arrow keys scroll the panel one line, `pgup` and `pgdown` move a page,
-and the mouse wheel moves a few lines. See [keys.md](keys.md).
+On a vertical side the panel scrolls through the list and the open diffs. `j` and
+`k` move a cursor down and up. On a collapsed file, `j` and `k` move to the next
+and the previous file. On an open file, `j` and `k` step through the diff one
+line at a time. At the bottom of an open diff, `j` moves to the next file, so you
+can expand it. `k` into an open file above starts at the bottom of its diff, then
+steps up to the top.
+
+On a horizontal side the selection moves in the grid. `h` and `l` move one file
+left and right. `j` and `k` move one grid row down and up. The open diffs sit
+below the grid, so the arrow keys and the page keys reach them by scrolling.
+
+The arrow keys scroll the panel one line, `pgup` and `pgdown` move a page, and
+the mouse wheel moves a few lines. See [keys.md](keys.md).
 
 `g` and `G` go to the top and the bottom. Their scope depends on the panel. If a
 file is open, `g` and `G` scroll the panel to the top and the bottom of the diff.
@@ -81,12 +116,14 @@ The panel marks the current line, the top line of the view, so you see where a
 jump lands. When the line numbers are off, the current line is bold. When they
 are on, the line number is bold.
 
-`d +` widens the panel, and `d -` narrows it. The width has a minimum, and a
-maximum that keeps the output at least 40 columns. The panel remembers its width,
-so a hide and a later show keep it.
+`d +` grows the panel, and `d -` shrinks it. The keys change the width on a
+vertical side, and the height on a horizontal side. The size has a minimum, and a
+maximum that keeps the output above its own minimum. The panel remembers its
+size, so a hide and a later show keep it.
 
 `d /` shows the panel at half the screen, and `d /` again returns it to the set
-width. `d +` or `d -` leaves the half mode and adjusts the set width.
+size. `d +` or `d -` leaves the half mode and adjusts the set size. On a
+horizontal side, the half mode is half the screen height.
 
 The panel is not modal. While the panel is open, `Tab` adds it to the focus
 cycle: sidebar, prompt, output, then the diff panel. So you tab to the prompt to
@@ -162,5 +199,7 @@ running git.
 
 The diff panel uses the same place as the jobs and tasks panel. When the diff
 panel is open, it takes the slot, so the jobs and tasks panel does not show. The
-diff panel starts at the same width as the jobs and tasks panel, but `d +` and
-`d -` change it. The panel hides on a narrow terminal. See [tasks.md](tasks.md).
+jobs and tasks panel is always on the right. The diff panel takes the side and
+the size a layout sets, and `d +` and `d -` change the size. The panel hides
+when the terminal is too small for the output and the panel. See
+[tasks.md](tasks.md) and [layouts.md](layouts.md).

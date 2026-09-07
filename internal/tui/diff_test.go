@@ -455,8 +455,8 @@ func TestResizingTheDiffPanelPersists(t *testing.T) {
 
 	next, _ = m.widenDiff()
 	m = next.(Model)
-	if m.diffPanelWidth() != start+diffWidthStep {
-		t.Fatalf("d + gave width %d, want %d", m.diffPanelWidth(), start+diffWidthStep)
+	if m.diffPanelWidth() != start+diffSizeStep {
+		t.Fatalf("d + gave width %d, want %d", m.diffPanelWidth(), start+diffSizeStep)
 	}
 	if m.outputWidth() >= wideOutput {
 		t.Fatal("a wider panel must shrink the output")
@@ -473,8 +473,8 @@ func TestResizingTheDiffPanelPersists(t *testing.T) {
 
 	next, _ = m.narrowDiff()
 	m = next.(Model)
-	if m.diffPanelWidth() != widened-diffWidthStep {
-		t.Fatalf("d - gave width %d, want %d", m.diffPanelWidth(), widened-diffWidthStep)
+	if m.diffPanelWidth() != widened-diffSizeStep {
+		t.Fatalf("d - gave width %d, want %d", m.diffPanelWidth(), widened-diffSizeStep)
 	}
 }
 
@@ -490,7 +490,7 @@ func TestHalfWidthTogglesAndReturns(t *testing.T) {
 
 	next, _ = m.toggleHalfDiff()
 	m = next.(Model)
-	if m.diffPanelWidth() != m.clampDiffWidth(160/2) {
+	if m.diffPanelWidth() != m.clampDiffCols(160/2) {
 		t.Fatalf("d / gave width %d, want about half the screen", m.diffPanelWidth())
 	}
 

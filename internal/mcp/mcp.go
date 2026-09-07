@@ -62,6 +62,8 @@ var (
 	ErrNoLayout = errors.New("mcp: this tool needs a layout name")
 	ErrBadScope = errors.New("mcp: the scope must be session or all")
 	ErrBadDim   = errors.New("mcp: a layout dimension must be one or more")
+
+	ErrBadPosition = errors.New("mcp: the diff position must be left, right, top, or bottom")
 )
 
 // The scopes a layout tool takes. ScopeSession sets the calling session; ScopeAll
@@ -133,11 +135,12 @@ type ConfigPath struct {
 // LayoutDims are the interface dimensions a layout sets. A nil field takes the
 // built-in default, so a layout may set only some of them. See docs/mcp/tools.md.
 type LayoutDims struct {
-	PromptMin    *int `json:"promptMin,omitempty"`
-	PromptMax    *int `json:"promptMax,omitempty"`
-	SidebarWidth *int `json:"sidebarWidth,omitempty"`
-	TaskWidth    *int `json:"taskWidth,omitempty"`
-	DiffWidth    *int `json:"diffWidth,omitempty"`
+	PromptMin    *int    `json:"promptMin,omitempty"`
+	PromptMax    *int    `json:"promptMax,omitempty"`
+	SidebarSize  *int    `json:"sidebarSize,omitempty"`
+	TaskSize     *int    `json:"taskSize,omitempty"`
+	DiffSize     *int    `json:"diffSize,omitempty"`
+	DiffPosition *string `json:"diffPosition,omitempty"`
 }
 
 // LayoutInfo is one row of list_layouts.

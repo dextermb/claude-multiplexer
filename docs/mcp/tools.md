@@ -145,15 +145,16 @@ keeps it. See [manager.md](../manager.md).
 ### The layouts
 
 A layout is a named set of interface dimensions: the prompt bar height, the
-session list width, the task panel width, and the diff panel width. The
-multiplexer resolves one layout for the selected session. See
+session list width, the task panel width, the diff panel position, and the diff
+panel size. The multiplexer resolves one layout for the selected session. See
 [../tui/layouts.md](../tui/layouts.md).
 
 `save_layout` creates or replaces a layout. It captures the current dimensions
 of the calling session, so a call with only a `name` saves what the session
 shows now. A dimension given to the tool (`promptMin`, `promptMax`,
-`sidebarWidth`, `taskWidth`, or `diffWidth`) overrides the captured one, so the
-same tool edits one field of a layout. It writes the settings file.
+`sidebarSize`, `taskSize`, `diffSize`, or `diffPosition`) overrides the captured
+one, so the same tool edits one field of a layout. The `diffPosition` is `left`,
+`right`, `top`, or `bottom`. It writes the settings file.
 
 `set_layout` activates a layout. The `scope` is `session` for the calling
 session, or `all` for every session. A session layout overrides the global one.
