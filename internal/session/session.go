@@ -36,6 +36,7 @@ type Config struct {
 	Model           string
 	PermissionMode  string
 	Effort          string
+	Title           string
 	AllowedTools    []string
 	DisallowedTools []string
 	ResumeID        string
@@ -227,6 +228,7 @@ func New(cfg Config) (*Session, error) {
 		model:          cfg.Model,
 		permissionMode: cfg.PermissionMode,
 		effort:         cfg.Effort,
+		title:          cfg.Title,
 	}, nil
 }
 

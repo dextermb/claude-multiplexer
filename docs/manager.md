@@ -89,6 +89,10 @@ and it does not need to be unique. The interface shows the title when it is set,
 and the name when it is not. The name stays fixed, so a rename moves no files and
 rekeys nothing.
 
+The title is stored in `Meta`, and the live row reads it from the session. So a
+resume seeds the title into the child through `session.Config`, and the title
+survives an archive and a recovery.
+
 A working directory is separate from the directory a session starts in. The
 child never leaves the directory it started in, but the agent inside it may
 move into a worktree. It says so with a tool, and the record keeps the answer

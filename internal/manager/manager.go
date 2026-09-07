@@ -41,6 +41,7 @@ type Spec struct {
 	Model          string
 	PermissionMode string
 	Effort         string
+	Title          string
 	AllowedTools   []string
 	ResumeID       string
 	Control        bool

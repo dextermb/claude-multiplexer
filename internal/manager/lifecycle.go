@@ -39,6 +39,7 @@ func (m *Manager) Spawn(ctx context.Context, spec Spec) (string, error) {
 		Model:          spec.Model,
 		PermissionMode: spec.PermissionMode,
 		Effort:         spec.Effort,
+		Title:          spec.Title,
 		AllowedTools:   spec.AllowedTools,
 		ResumeID:       spec.ResumeID,
 		ClaudePath:     m.opts.ClaudePath,
@@ -126,6 +127,7 @@ func (m *Manager) Resume(ctx context.Context, meta Meta) (string, error) {
 		Effort:         meta.Effort,
 		Control:        meta.Control,
 		Parent:         meta.Parent,
+		Title:          meta.Title,
 		ResumeID:       meta.ClaudeSessionID,
 	})
 }
