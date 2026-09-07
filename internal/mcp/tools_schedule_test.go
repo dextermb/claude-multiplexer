@@ -1,9 +1,7 @@
 package mcp_test
 
 import (
-	"context"
 	"testing"
-	"time"
 
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 
@@ -100,20 +98,68 @@ func TestDeleteScheduleToolRemovesTheSchedule(t *testing.T) {
 	}
 }
 
-func TestScheduleToolsNeedControl(t *testing.T) {
-	server := startServer(t, newFakeSessions())
+func plainClient(t *testing.T, sessions mcp.Sessions) *sdk.ClientSession {
+	t.Helper()
+	server := startServer(t, sessions)
 	token, err := server.Register("plain", false)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
-	client := connect(t, server, token)
+	return connect(t, server, token)
+}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	if _, err := client.CallTool(ctx, &sdk.CallToolParams{
-		Name:      mcp.ToolCreateSchedule,
-		Arguments: map[string]any{"cron": "* * * * *", "dir": "/tmp", "prompt": "x"},
-	}); err == nil {
-		t.Fatal("a session without control called create_schedule")
+func TestCreateScheduleToolOpenToPlainSession(t *testing.T) {
+	sessions := newFakeSessions()
+	client := plainClient(t, sessions)
+
+	result := call(t, client, mcp.ToolCreateSchedule, map[string]any{
+		"cron":   "*/5 * * * *",
+		"dir":    "/tmp",
+		"prompt": "poll the site",
+		"name":   "poll",
+	})
+	if result.IsError {
+		t.Fatalf("create_schedule failed: %s", resultText(result))
+	}
+	if _, ok := sessions.schedules["poll"]; !ok {
+		t.Fatalf("schedule was not created: %+v", sessions.schedules)
+	}
+}
+
+func TestCreateScheduleToolDropsControlFromPlainSession(t *testing.T) {
+	sessions := newFakeSessions()
+	client := plainClient(t, sessions)
+
+	result := call(t, client, mcp.ToolCreateSchedule, map[string]any{
+		"cron":    "*/5 * * * *",
+		"dir":     "/tmp",
+		"prompt":  "poll the site",
+		"name":    "poll",
+		"control": true,
+	})
+	if result.IsError {
+		t.Fatalf("create_schedule failed: %s", resultText(result))
+	}
+	if sessions.lastControl {
+		t.Fatal("a plain session set control: true on a schedule")
+	}
+}
+
+func TestCreateScheduleToolKeepsControlFromControlSession(t *testing.T) {
+	sessions := newFakeSessions()
+	client := controlClient(t, sessions)
+
+	result := call(t, client, mcp.ToolCreateSchedule, map[string]any{
+		"cron":    "*/5 * * * *",
+		"dir":     "/tmp",
+		"prompt":  "poll the site",
+		"name":    "poll",
+		"control": true,
+	})
+	if result.IsError {
+		t.Fatalf("create_schedule failed: %s", resultText(result))
+	}
+	if !sessions.lastControl {
+		t.Fatal("a control session lost control: true on a schedule")
 	}
 }
