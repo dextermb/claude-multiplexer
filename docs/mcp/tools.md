@@ -35,6 +35,11 @@ grant. See [grant.md](grant.md).
 | `archive_session` | `session`, `restore` | Takes a stopped session out of the list, or with `restore` brings it back. | control |
 | `create_session` | `path`, `name` | Starts a new session in a directory. Returns the name it takes. | control |
 | `stop_job` | `session`, `job` | Interrupts a session and asks it to kill one background job. An empty session means the caller. | control |
+| `create_schedule` | `cron`, `dir`, `prompt`, `name`, `session` | Creates a durable schedule that runs a prompt on a cron. Returns the schedule record. | control |
+| `list_schedules` | — | Every schedule: name, cron, directory, mode, and the last run. | control |
+| `delete_schedule` | `name` | Removes a schedule. A session it already started is left alone. | control |
+| `set_schedule_enabled` | `name`, `enabled` | Turns a schedule on or off. A paused schedule stays on disk. | control |
+| `run_schedule` | `name` | Runs a schedule now, whatever its cron says. Returns the session name. | control |
 
 `create_session` takes a directory path and an optional name. The directory
 must exist. The manager makes the name unique, and it falls back to the last
@@ -63,6 +68,10 @@ shell. The interrupt ends the turn at once, so the instruction runs on the next
 turn. The tool marks the pane with `← stop job <id> from <caller>`, the same way
 `send_message` marks a prompt. It finds the job by its id first, so it never
 interrupts a turn for a job that does not exist or already stopped.
+
+The five schedule tools create and drive durable, recurring tasks. The manager
+runs each schedule on its own clock, so a schedule survives a restart. See
+[scheduler.md](../scheduler.md) for the record, the two run modes, and the clock.
 
 `set_editor` writes the settings file of the multiplexer, and makes that file
 when there is none. `editor` is the command line, such as `code -n`.

@@ -40,6 +40,9 @@ type fakeSessions struct {
 	failWorkDir   error
 	failStop      error
 	failStopJob   error
+	schedules     map[string]mcp.Schedule
+	scheduleRuns  []string
+	failSchedule  error
 }
 
 func newFakeSessions() *fakeSessions {
@@ -50,6 +53,7 @@ func newFakeSessions() *fakeSessions {
 		jobs:          make(map[string][]mcp.Job),
 		layouts:       make(map[string]mcp.LayoutDims),
 		sessionLayout: make(map[string]string),
+		schedules:     make(map[string]mcp.Schedule),
 	}
 }
 
@@ -290,6 +294,55 @@ func (f *fakeSessions) StopJob(target, jobID, by string) (int, error) {
 	}
 	f.stoppedJobs = append(f.stoppedJobs, by+"->"+target+":"+jobID)
 	return len(f.stoppedJobs), nil
+}
+
+func (f *fakeSessions) CreateSchedule(in mcp.ScheduleInput, by string) (mcp.Schedule, error) {
+	if f.failSchedule != nil {
+		return mcp.Schedule{}, f.failSchedule
+	}
+	name := in.Name
+	if name == "" {
+		name = "schedule"
+	}
+	sched := mcp.Schedule{Name: name, Cron: in.Cron, Dir: in.Dir, Prompt: in.Prompt, Session: in.Session, Model: in.Model, Enabled: true}
+	f.schedules[name] = sched
+	return sched, nil
+}
+
+func (f *fakeSessions) ListSchedules() []mcp.Schedule {
+	out := make([]mcp.Schedule, 0, len(f.schedules))
+	for _, sched := range f.schedules {
+		out = append(out, sched)
+	}
+	return out
+}
+
+func (f *fakeSessions) DeleteSchedule(name, by string) (bool, error) {
+	if f.failSchedule != nil {
+		return false, f.failSchedule
+	}
+	_, ok := f.schedules[name]
+	delete(f.schedules, name)
+	return ok, nil
+}
+
+func (f *fakeSessions) SetScheduleEnabled(name string, on bool, by string) (mcp.Schedule, error) {
+	if f.failSchedule != nil {
+		return mcp.Schedule{}, f.failSchedule
+	}
+	sched := f.schedules[name]
+	sched.Name = name
+	sched.Enabled = on
+	f.schedules[name] = sched
+	return sched, nil
+}
+
+func (f *fakeSessions) RunSchedule(name, by string) (string, error) {
+	if f.failSchedule != nil {
+		return "", f.failSchedule
+	}
+	f.scheduleRuns = append(f.scheduleRuns, by+"->"+name)
+	return name + "-run", nil
 }
 
 func startServer(t *testing.T, sessions mcp.Sessions) *mcp.Server {

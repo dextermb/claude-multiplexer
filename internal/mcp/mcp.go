@@ -45,6 +45,12 @@ const (
 	ToolArchive         = "archive_session"
 	ToolCreate          = "create_session"
 	ToolStopJob         = "stop_job"
+
+	ToolCreateSchedule     = "create_schedule"
+	ToolListSchedules      = "list_schedules"
+	ToolDeleteSchedule     = "delete_schedule"
+	ToolSetScheduleEnabled = "set_schedule_enabled"
+	ToolRunSchedule        = "run_schedule"
 )
 
 // OpenTools go to every session. ControlTools go only to a session that holds
@@ -55,7 +61,8 @@ var (
 		ToolSetEditor, ToolUnsetEditor, ToolSetBlockCap, ToolUnsetBlockCap, ToolSetWorkingDir, ToolUnsetWorkingDir,
 		ToolListProject, ToolAddProjectDir, ToolRemoveProject, ToolSetProject, ToolClearProject,
 		ToolListLayouts, ToolSaveLayout, ToolDeleteLayout, ToolSetLayout, ToolUnsetLayout}
-	ControlTools = []string{ToolSend, ToolStop, ToolArchive, ToolCreate, ToolStopJob}
+	ControlTools = []string{ToolSend, ToolStop, ToolArchive, ToolCreate, ToolStopJob,
+		ToolCreateSchedule, ToolListSchedules, ToolDeleteSchedule, ToolSetScheduleEnabled, ToolRunSchedule}
 )
 
 var (
@@ -64,6 +71,9 @@ var (
 	ErrNoTarget     = errors.New("mcp: this tool needs a session name")
 	ErrNoPath       = errors.New("mcp: this tool needs a directory path")
 	ErrNoJob        = errors.New("mcp: this tool needs a job id")
+	ErrNoCron       = errors.New("mcp: this tool needs a cron expression")
+	ErrNoPrompt     = errors.New("mcp: this tool needs a prompt")
+	ErrNoSchedule   = errors.New("mcp: this tool needs a schedule name")
 	ErrNoConfigPath = errors.New("mcp: this tool needs a settings path")
 	ErrNoEditor     = errors.New("mcp: this tool needs an editor, a terminal flag, or both")
 	ErrNoDir        = errors.New("mcp: this tool needs a directory path")
@@ -133,6 +143,35 @@ type Job struct {
 	TaskType    string `json:"task_type,omitempty"`
 	Status      string `json:"status"`
 	Running     bool   `json:"running"`
+}
+
+// Schedule is one row of list_schedules, and the record the schedule tools
+// return. It repeats what the manager holds, so this package needs nothing from
+// the manager package. See docs/scheduler.md.
+type Schedule struct {
+	Name        string `json:"name"`
+	Cron        string `json:"cron"`
+	Dir         string `json:"dir"`
+	Prompt      string `json:"prompt"`
+	Session     string `json:"session,omitempty"`
+	Model       string `json:"model,omitempty"`
+	Enabled     bool   `json:"enabled"`
+	LastRun     string `json:"last_run,omitempty"`
+	LastSession string `json:"last_session,omitempty"`
+}
+
+// ScheduleInput is the input to CreateSchedule, so the manager package fills the
+// rest of the record.
+type ScheduleInput struct {
+	Name           string
+	Cron           string
+	Dir            string
+	Prompt         string
+	Session        string
+	Model          string
+	PermissionMode string
+	Effort         string
+	Control        bool
 }
 
 // ConfigPath names the settings files, in the order they are read. See
@@ -211,6 +250,11 @@ type Sessions interface {
 	SetLayout(name, scope, by string) (string, error)
 	UnsetLayout(scope, by string) (string, bool, error)
 	StopJob(target, jobID, by string) (int, error)
+	CreateSchedule(in ScheduleInput, by string) (Schedule, error)
+	ListSchedules() []Schedule
+	DeleteSchedule(name, by string) (bool, error)
+	SetScheduleEnabled(name string, on bool, by string) (Schedule, error)
+	RunSchedule(name, by string) (string, error)
 }
 
 // DefaultMessageLimit is how many messages get_messages returns when the caller

@@ -17,12 +17,16 @@ import (
 const DefaultMaxLines = 5000
 
 var (
-	ErrUnknownSession = errors.New("manager: unknown session")
-	ErrNoDirectory    = errors.New("manager: a session needs a directory")
-	ErrNotDirectory   = errors.New("manager: the path is not a directory")
-	ErrStillLive      = errors.New("manager: the session is still live")
-	ErrUnknownJob     = errors.New("manager: unknown background job")
-	ErrJobNotRunning  = errors.New("manager: the background job is not running")
+	ErrUnknownSession  = errors.New("manager: unknown session")
+	ErrNoDirectory     = errors.New("manager: a session needs a directory")
+	ErrNotDirectory    = errors.New("manager: the path is not a directory")
+	ErrStillLive       = errors.New("manager: the session is still live")
+	ErrUnknownJob      = errors.New("manager: unknown background job")
+	ErrJobNotRunning   = errors.New("manager: the background job is not running")
+	ErrNoCron          = errors.New("manager: a schedule needs a cron expression")
+	ErrBadCron         = errors.New("manager: the cron expression is not valid")
+	ErrNoPrompt        = errors.New("manager: a schedule needs a prompt")
+	ErrUnknownSchedule = errors.New("manager: unknown schedule")
 )
 
 type Options struct {
@@ -73,6 +77,11 @@ type Manager struct {
 	entries map[string]*entry
 	order   []string
 	pumps   sync.WaitGroup
+
+	schedMu   sync.Mutex
+	schedules map[string]*Schedule
+	schedStop chan struct{}
+	schedWG   sync.WaitGroup
 }
 
 func New(opts Options) (*Manager, error) {
@@ -92,11 +101,14 @@ func New(opts Options) (*Manager, error) {
 	if opts.DefaultPermissionMode == "" {
 		opts.DefaultPermissionMode = session.DefaultPermissionMode
 	}
-	return &Manager{
-		opts:    opts,
-		bus:     NewBus(),
-		entries: make(map[string]*entry),
-	}, nil
+	m := &Manager{
+		opts:      opts,
+		bus:       NewBus(),
+		entries:   make(map[string]*entry),
+		schedules: make(map[string]*Schedule),
+	}
+	m.loadSchedules()
+	return m, nil
 }
 
 func (m *Manager) Subscribe(buffer int) *Subscription { return m.bus.Subscribe(buffer) }

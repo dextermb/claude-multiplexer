@@ -165,6 +165,8 @@ func tuiCommand(argv []string) int {
 		return 1
 	}
 
+	mgr.StartScheduler()
+
 	initialDir := *dir
 	if initialDir != "" {
 		abs, err := filepath.Abs(initialDir)
