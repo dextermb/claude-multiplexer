@@ -17,7 +17,7 @@ func (m Model) diffPanelView() string {
 		end = len(lines)
 	}
 	block := strings.Join(lines[scroll:end], "\n")
-	return taskPanelStyle.Width(m.diffPanelWidth() - 1).Height(height).Render(block)
+	return sidePanelStyle(m.focus == focusDiff).Width(m.diffPanelWidth() - 1).Height(height).Render(block)
 }
 
 func (m Model) diffPanelLines() []string {

@@ -149,6 +149,9 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.focus == focusDiff {
 		return m.diffKey(msg)
 	}
+	if m.focus == focusTask {
+		return m.taskKey(msg)
+	}
 
 	switch msg.String() {
 	case "ctrl+p":
@@ -318,6 +321,48 @@ func (m Model) outputKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.output.GotoBottom()
 	}
 	return m, nil
+}
+
+// taskKey scrolls the task and job panel while it holds the focus. See
+// docs/tui/tasks.md.
+func (m Model) taskKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	half := m.bodyHeight() / 2
+	if half < 1 {
+		half = 1
+	}
+	switch msg.String() {
+	case "esc":
+		m.focus = focusOutput
+		return m, nil
+	case "tab":
+		return m.toggleFocus()
+	case "up", "k":
+		m.taskScroll--
+	case "down", "j":
+		m.taskScroll++
+	case "u", "ctrl+u":
+		m.taskScroll -= half
+	case "d", "ctrl+d":
+		m.taskScroll += half
+	case "pgup":
+		m.taskScroll -= m.taskPage()
+	case "pgdown":
+		m.taskScroll += m.taskPage()
+	case "g", "home":
+		m.taskScroll = 0
+	case "G", "end":
+		m.taskScroll = len(m.taskPanelLines())
+	}
+	m.clampTaskScroll()
+	return m, nil
+}
+
+func (m Model) taskPage() int {
+	page := m.bodyHeight() - 2
+	if page < 1 {
+		page = 1
+	}
+	return page
 }
 
 func (m Model) sidebarKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
