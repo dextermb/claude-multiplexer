@@ -174,7 +174,7 @@ func (s *Server) addConfigTools(server *sdk.Server, caller string) {
 	sdk.AddTool(server, &sdk.Tool{
 		Name: ToolAddProjectDir,
 		Description: "Add one directory to this session's project, so the diff panel shows its changes in a section of its own. " +
-			"Call it for each code base a single change spans. The directory must exist.",
+			"Call it for each code base a single change spans. Add the root of a code base, not a subdirectory of it. The directory must exist.",
 	}, func(_ context.Context, _ *sdk.CallToolRequest, in projectDirIn) (*sdk.CallToolResult, projectOut, error) {
 		path := strings.TrimSpace(in.Path)
 		if path == "" {
