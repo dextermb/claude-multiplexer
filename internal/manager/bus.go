@@ -64,6 +64,12 @@ func (b *Bus) Subscribers() int {
 	return len(b.subs)
 }
 
+// notify publishes a change that no session event follows, so the interface
+// learns of it without a timer. See docs/mcp/notices.md.
+func (m *Manager) notify(name, notice string, reload bool) {
+	m.bus.Publish(Event{Session: name, Notice: notice, Reload: reload})
+}
+
 func (s *Subscription) Close() {
 	s.bus.mu.Lock()
 	defer s.bus.mu.Unlock()
