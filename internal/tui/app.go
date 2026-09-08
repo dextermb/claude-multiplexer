@@ -136,6 +136,7 @@ type Model struct {
 	spinFrame    int
 	animating    bool
 	md           *markdown.Renderer
+	mdMuted      *markdown.Renderer
 	showRaw      bool
 	templates    []template.Template
 	help         *help
@@ -234,6 +235,7 @@ func New(opts Options) Model {
 		blockStart:      make(map[int]int),
 		hiddenRows:      make(map[int]int),
 		md:              markdown.New(),
+		mdMuted:         markdown.NewMuted(),
 		opts:            opts,
 		sessionDefaults: resolveSessionDefaults(opts, config.Config{}),
 		mgr:             opts.Manager,

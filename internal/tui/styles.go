@@ -24,14 +24,15 @@ func spinnerFrame(n int) string {
 // These name the built-in layout dimensions, so a Model with no layout draws the
 // same as before. A layout overrides them; see docs/tui.md and docs/config.md.
 const (
-	sidebarWidth   = config.DefaultSidebarSize
-	promptHintRows = 1
-	promptRowsMin  = config.DefaultPromptMin
-	promptRowsMax  = config.DefaultPromptMax
-	statusHeight   = 1
-	titleHeight    = 0
-	barHeight      = 1
-	gutterWidth    = 1
+	sidebarWidth     = config.DefaultSidebarSize
+	promptHintRows   = 1
+	promptBorderRows = 1
+	promptRowsMin    = config.DefaultPromptMin
+	promptRowsMax    = config.DefaultPromptMax
+	statusHeight     = 1
+	titleHeight      = 0
+	barHeight        = 1
+	gutterWidth      = 1
 
 	taskPanelWidth           = config.DefaultTaskSize
 	minOutputWithPanel       = 40
@@ -73,6 +74,10 @@ var (
 	sidebarStyle = lipgloss.NewStyle().
 			Border(lipgloss.NormalBorder(), false, true, false, false).
 			BorderForeground(lipgloss.Color("240"))
+
+	promptPanelStyle = lipgloss.NewStyle().
+				Border(lipgloss.NormalBorder(), true, false, false, false).
+				BorderForeground(lipgloss.Color("240"))
 
 	selectedRowStyle = lipgloss.NewStyle().
 				Bold(true).
@@ -207,6 +212,8 @@ func classStyle(class render.Class) lipgloss.Style {
 		return lipgloss.NewStyle().Foreground(lipgloss.Color("203"))
 	case render.ClassBash:
 		return lipgloss.NewStyle().Foreground(lipgloss.Color("114"))
+	case render.ClassSkill:
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
 	}
 	return lipgloss.NewStyle().Foreground(lipgloss.Color("252"))
 }

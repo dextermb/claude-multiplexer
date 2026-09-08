@@ -23,7 +23,7 @@ recedes:
 | `ClassThinking` | Thinking, when the verbose flag is on | Muted, italic |
 | `ClassStderr` | A line from the child stderr | Amber |
 | `ClassError` | A failure, or a line that is not JSON | Red |
-| `ClassSkill` | The content of a skill, loaded into the transcript | Rendered as markdown, capped to one row |
+| `ClassSkill` | The content of a skill, loaded into the transcript | Muted markdown, capped to one row |
 
 What the assistant says is rendered as markdown, so a heading, a list, and a
 code fence all read as themselves. Press `o m` for the raw text. See

@@ -13,6 +13,7 @@ import (
 const maxCache = 512
 
 type Renderer struct {
+	style ansi.StyleConfig
 	mu    sync.Mutex
 	width int
 	term  *glamour.TermRenderer
@@ -20,7 +21,13 @@ type Renderer struct {
 }
 
 func New() *Renderer {
-	return &Renderer{cache: make(map[string]string)}
+	return &Renderer{style: paneStyle(), cache: make(map[string]string)}
+}
+
+// NewMuted renders markdown in one muted grey, for content that recedes, such
+// as a loaded skill. See docs/markdown.md.
+func NewMuted() *Renderer {
+	return &Renderer{style: mutedStyle(), cache: make(map[string]string)}
 }
 
 func (r *Renderer) Render(text string, width int) string {
@@ -32,7 +39,7 @@ func (r *Renderer) Render(text string, width int) string {
 
 	if width != r.width || r.term == nil {
 		term, err := glamour.NewTermRenderer(
-			glamour.WithStyles(paneStyle()),
+			glamour.WithStyles(r.style),
 			glamour.WithWordWrap(width),
 			glamour.WithPreservedNewLines(),
 		)
@@ -95,6 +102,27 @@ func paneStyle() ansi.StyleConfig {
 	style.H4 = heading
 	style.H5 = heading
 	style.H6 = heading
+	return style
+}
+
+// mutedStyle draws every element in one grey, so a skill dump recedes. The
+// document sets the grey, the child elements drop their own colours so they
+// inherit it, and the code block drops its highlighter. See docs/markdown.md.
+func mutedStyle() ansi.StyleConfig {
+	grey := "240"
+	style := paneStyle()
+	style.Document.Color = &grey
+	style.Text.Color = &grey
+	for _, colour := range []**string{
+		&style.Paragraph.Color, &style.BlockQuote.Color, &style.Emph.Color,
+		&style.Strong.Color, &style.Item.Color, &style.Enumeration.Color,
+		&style.Link.Color, &style.LinkText.Color, &style.Image.Color,
+		&style.ImageText.Color, &style.Code.Color, &style.Code.BackgroundColor,
+	} {
+		*colour = nil
+	}
+	style.CodeBlock.Chroma = nil
+	style.CodeBlock.Color = &grey
 	return style
 }
 

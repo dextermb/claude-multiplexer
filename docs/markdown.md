@@ -13,12 +13,22 @@ described in [tui.md](./tui.md). A prompt gets inline emphasis only.
 | Line | Treated as markdown |
 |---|---|
 | What the assistant says | Yes, full markdown |
+| The content of a loaded skill | Yes, in one muted grey |
 | Your prompt | Inline emphasis only |
 | A tool call, and its result | No |
 | The init line, the turn result, and errors | No |
 
 A tool result is a log, a diff, or a file. Markdown would fold its blank lines
 and eat its asterisks, so it goes to the screen exactly as it arrived.
+
+## A loaded skill renders in one muted grey
+
+Claude Code loads a skill by writing its whole content into the transcript, so
+the content is noise, not the answer. `markdown.NewMuted` renders it in one grey
+(the colour of the meta lines), so it recedes while it keeps its structure. The
+document sets the grey, the child elements drop their own colours so they
+inherit it, and the code block drops its highlighter. See
+[tui/output.md](./tui/output.md).
 
 ## A prompt gets inline emphasis only
 

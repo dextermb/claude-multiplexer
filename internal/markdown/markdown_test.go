@@ -1,6 +1,7 @@
 package markdown
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 
@@ -109,6 +110,25 @@ func TestEveryHeadingLevelRendersTheSame(t *testing.T) {
 		t.Errorf("heading = %q", got)
 	}
 }
+
+func TestMutedRendersEverythingInOneGrey(t *testing.T) {
+	r := NewMuted()
+	sample := "# Heading\n\nSome **bold** and a `code` span, and [a link](http://x).\n\n- item one\n\n```go\nfunc main() {}\n```\n"
+	out := r.Render(sample, 60)
+	for _, code := range ansiForeground.FindAllStringSubmatch(out, -1) {
+		if code[1] != "240" {
+			t.Errorf("a foreground colour other than grey survived: %q in\n%q", code[1], out)
+		}
+	}
+	if strings.Contains(out, "38;2;") {
+		t.Errorf("a truecolour code survived, so the code block kept its highlighter:\n%q", out)
+	}
+	if got := plain(out); !strings.Contains(got, "Heading") || !strings.Contains(got, "func main") {
+		t.Errorf("the words were lost: %q", got)
+	}
+}
+
+var ansiForeground = regexp.MustCompile(`38;5;(\d+)`)
 
 func TestRenderDoesNotEndWithBlankLines(t *testing.T) {
 	r := New()
