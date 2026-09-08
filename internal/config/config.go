@@ -22,6 +22,11 @@ const DefaultBlockCap = 20
 // or one option description before it caps them. See docs/tui/input.md.
 const DefaultQuestionCap = 2
 
+// DefaultSkillCap is the rows a skill dump draws before the pane caps it. A
+// skill loads its whole content into the transcript, so it caps at one row by
+// default. See docs/tui/output.md.
+const DefaultSkillCap = 1
+
 // The buckets a block cap keys by. A block takes the bucket of its first line.
 // The question buckets cap the question modal, not the pane. See
 // docs/tui/output.md and docs/tui/input.md.
@@ -32,6 +37,7 @@ const (
 	BucketMeta                = "meta"
 	BucketBash                = "bash"
 	BucketError               = "error"
+	BucketSkill               = "skill"
 	BucketQuestionOption      = "question_option"
 	BucketQuestionDescription = "question_description"
 )
@@ -39,12 +45,13 @@ const (
 // Buckets lists the block-cap buckets, in the order the docs name them.
 var Buckets = []string{
 	BucketPrompt, BucketMessage, BucketTool, BucketMeta, BucketBash, BucketError,
-	BucketQuestionOption, BucketQuestionDescription,
+	BucketSkill, BucketQuestionOption, BucketQuestionDescription,
 }
 
 // bucketDefaults holds the buckets that take a cap of their own when the
 // settings name none, in place of the global BlockCap default.
 var bucketDefaults = map[string]int{
+	BucketSkill:               DefaultSkillCap,
 	BucketQuestionOption:      DefaultQuestionCap,
 	BucketQuestionDescription: DefaultQuestionCap,
 }

@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/dextermb/claude-multiplexer/internal/protocol"
+	"github.com/dextermb/claude-multiplexer/internal/render"
 	"github.com/dextermb/claude-multiplexer/internal/session"
 )
 
@@ -17,6 +18,8 @@ type entry struct {
 	base    totals
 	token   string
 	control bool
+
+	skill render.SkillTracker
 
 	metaMu sync.Mutex
 

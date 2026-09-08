@@ -425,6 +425,25 @@ func TestValidBucketNamesEveryBucket(t *testing.T) {
 	}
 }
 
+func TestSkillBucketDefaultsToOne(t *testing.T) {
+	if got := BlockCapFor(Config{}, BucketSkill); got != DefaultSkillCap {
+		t.Fatalf("BlockCapFor(skill) = %d, want %d", got, DefaultSkillCap)
+	}
+	forty := 40
+	if got := BlockCapFor(Config{BlockCap: &forty}, BucketSkill); got != DefaultSkillCap {
+		t.Fatalf("the global cap must not reach the skill bucket, got %d", got)
+	}
+	null := Config{BlockCaps: map[string]*int{BucketSkill: nil}}
+	if got := BlockCapFor(null, BucketSkill); got != -1 {
+		t.Fatalf("a null skill cap never caps, got %d", got)
+	}
+	five := 5
+	cfg := Config{BlockCaps: map[string]*int{BucketSkill: &five}}
+	if got := BlockCapFor(cfg, BucketSkill); got != 5 {
+		t.Fatalf("an entry must win, got %d", got)
+	}
+}
+
 func TestQuestionBucketsDefaultToTwo(t *testing.T) {
 	for _, bucket := range []string{BucketQuestionOption, BucketQuestionDescription} {
 		if got := BlockCapFor(Config{}, bucket); got != DefaultQuestionCap {

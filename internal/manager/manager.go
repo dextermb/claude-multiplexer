@@ -137,7 +137,7 @@ func (m *Manager) pump(item *entry) {
 	exitWorktree := map[string]bool{}
 	for ev := range item.sess.Events() {
 		m.trackWorktree(ev, enterWorktree, exitWorktree)
-		lines := m.opts.Renderer.Lines(ev)
+		lines := item.skill.Track(ev.Protocol, m.opts.Renderer.Lines(ev))
 		item.lines.append(lines)
 		partial := trackPartial(item, ev)
 		todos := trackTodos(item, ev)
