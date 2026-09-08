@@ -9,7 +9,7 @@ import (
 )
 
 func (m Model) promptHeight() int {
-	return promptHintRows + m.prompt.Height()
+	return promptBorderRows + promptHintRows + m.prompt.Height()
 }
 
 func (m *Model) syncPromptHeight() {
