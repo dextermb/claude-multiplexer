@@ -116,7 +116,7 @@ func TestMutedRendersEverythingInOneGrey(t *testing.T) {
 	sample := "# Heading\n\nSome **bold** and a `code` span, and [a link](http://x).\n\n- item one\n\n```go\nfunc main() {}\n```\n"
 	out := r.Render(sample, 60)
 	for _, code := range ansiForeground.FindAllStringSubmatch(out, -1) {
-		if code[1] != "240" {
+		if code[1] != "245" {
 			t.Errorf("a foreground colour other than grey survived: %q in\n%q", code[1], out)
 		}
 	}
