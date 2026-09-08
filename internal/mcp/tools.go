@@ -13,12 +13,14 @@ func (s *Server) build(caller string, control bool) *sdk.Server {
 	)
 
 	s.addReadTools(server, caller)
+	s.addAPIDocsTool(server)
 	s.addConfigTools(server, caller)
 	s.addLayoutTools(server, caller)
 	s.addScheduleTools(server, caller, control)
 
 	if control {
 		s.addControlTools(server, caller)
+		s.addCredentialTools(server, caller)
 	}
 
 	return server

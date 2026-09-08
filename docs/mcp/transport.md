@@ -1,7 +1,9 @@
 # The transport
 
-One HTTP server serves every session, on a free port on `127.0.0.1`. It starts
-before the first session, and it stops with the manager.
+One HTTP server serves every session, on a loopback port. It binds the first
+free port in a range on `127.0.0.1`. It starts before the first session, and it
+stops with the manager. The same server serves the external API, for a program
+outside the multiplexer. See [api.md](api.md).
 
 Each session gets its own random token and its own tool set. At spawn the
 manager writes the configuration file under the state directory:

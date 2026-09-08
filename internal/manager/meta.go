@@ -28,6 +28,7 @@ type Meta struct {
 	Control         bool      `json:"control,omitempty"`
 	Parent          string    `json:"parent,omitempty"`
 	Scheduled       string    `json:"scheduled,omitempty"`
+	Owner           string    `json:"owner,omitempty"`
 	Archived        bool      `json:"archived"`
 	ArchivedAt      time.Time `json:"archived_at,omitempty"`
 }

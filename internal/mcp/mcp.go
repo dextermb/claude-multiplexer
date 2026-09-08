@@ -53,6 +53,18 @@ const (
 	ToolSetScheduleEnabled = "set_schedule_enabled"
 	ToolRunSchedule        = "run_schedule"
 	ToolSchedulePath       = "get_schedule_path"
+
+	ToolAPIURL          = "get_api_url"
+	ToolCreateAPIAdmin  = "create_api_admin"
+	ToolRotateAPIAdmin  = "rotate_api_admin"
+	ToolRevokeAPIAdmin  = "revoke_api_admin"
+	ToolCreateAPIClient = "create_api_client"
+	ToolUpdateAPIClient = "update_api_client"
+	ToolRotateAPIClient = "rotate_api_client"
+	ToolRevokeAPIClient = "revoke_api_client"
+	ToolListAPIClients  = "list_api_clients"
+	ToolAPIEndpoint     = "get_api_endpoint"
+	ToolAPIDocs         = "get_api_docs"
 )
 
 // OpenTools go to every session. ControlTools go only to a session that holds
@@ -64,16 +76,26 @@ var (
 		ToolListProject, ToolAddProjectDir, ToolRemoveProject, ToolSetProject, ToolClearProject,
 		ToolListLayouts, ToolSaveLayout, ToolDeleteLayout, ToolSetLayout, ToolUnsetLayout,
 		ToolCreateSchedule, ToolUpdateSchedule, ToolListSchedules, ToolDeleteSchedule, ToolSetScheduleEnabled, ToolRunSchedule,
-		ToolSchedulePath}
-	ControlTools = []string{ToolSend, ToolStop, ToolArchive, ToolCreate, ToolStopJob}
+		ToolSchedulePath, ToolAPIURL, ToolAPIDocs}
+	ControlTools = []string{ToolSend, ToolStop, ToolArchive, ToolCreate, ToolStopJob,
+		ToolCreateAPIAdmin, ToolRotateAPIAdmin, ToolRevokeAPIAdmin,
+		ToolCreateAPIClient, ToolUpdateAPIClient, ToolRotateAPIClient, ToolRevokeAPIClient,
+		ToolListAPIClients, ToolAPIEndpoint}
+	// APITools go to an external client that reaches the session API. The set is
+	// session-only, so no config, layout, or schedule tool is ever exposed. See
+	// docs/mcp/api.md.
+	APITools = []string{ToolRename, ToolList, ToolMessages, ToolListJobs,
+		ToolSend, ToolStop, ToolArchive, ToolCreate, ToolStopJob}
 )
 
 var (
 	ErrSelfSend     = errors.New("mcp: a session cannot send a prompt to itself")
 	ErrSelfStop     = errors.New("mcp: a session cannot stop itself")
+	ErrNotFound     = errors.New("mcp: no such session")
 	ErrNoTarget     = errors.New("mcp: this tool needs a session name")
 	ErrNoPath       = errors.New("mcp: this tool needs a directory path")
 	ErrNoJob        = errors.New("mcp: this tool needs a job id")
+	ErrNoClient     = errors.New("mcp: this tool needs a client id")
 	ErrNoCron       = errors.New("mcp: this tool needs a cron expression")
 	ErrNoPrompt     = errors.New("mcp: this tool needs a prompt")
 	ErrNoSchedule   = errors.New("mcp: this tool needs a schedule name")
@@ -126,6 +148,7 @@ type Session struct {
 	Live     bool    `json:"live"`
 	Archived bool    `json:"archived,omitempty"`
 	Control  bool    `json:"control,omitempty"`
+	Owner    string  `json:"owner,omitempty"`
 	Queued   int     `json:"queued,omitempty"`
 	Turns    int     `json:"turns"`
 	Cost     float64 `json:"cost_usd"`
@@ -279,6 +302,48 @@ type Sessions interface {
 	SetScheduleEnabled(name string, on bool, by string) (Schedule, error)
 	RunSchedule(name, by string) (string, error)
 	SchedulePath() SchedulePath
+	CreateAPIAdmin() (string, error)
+	RotateAPIAdmin() (string, error)
+	RevokeAPIAdmin() error
+	CreateAPIClient(name string) (APIClient, string, error)
+	UpdateAPIClient(id string, name *string, disabled *bool) (APIClient, error)
+	RotateAPIClient(id string) (string, error)
+	RevokeAPIClient(id string) error
+	ListAPIClients() []APIClient
+	APIEndpoint() APIEndpoint
+}
+
+// APISessions is the session-only slice of the manager an external API client
+// reaches. Each client sees an owner-scoped view, so a method works only on the
+// sessions the client owns. See docs/mcp/api.md.
+type APISessions interface {
+	SetTitle(name, title string) error
+	SendFrom(target, from, text string) (int, error)
+	Stop(ctx context.Context, name, by string) error
+	Archive(name string, archived bool, by string) error
+	Create(dir, name, by string) (string, error)
+	List() []Session
+	Messages(name string, limit int) ([]Message, error)
+	Jobs(name string) ([]Job, error)
+	StopJob(target, jobID, by string) (int, error)
+}
+
+// APIClient is one row of list_api_clients, and the record the client tools
+// return. It never holds the secret. See docs/mcp/api.md.
+type APIClient struct {
+	ClientID  string `json:"client_id"`
+	Name      string `json:"name"`
+	Disabled  bool   `json:"disabled,omitempty"`
+	CreatedAt string `json:"created_at,omitempty"`
+	RotatedAt string `json:"rotated_at,omitempty"`
+}
+
+// APIEndpoint names the base URL of the API, and the port range it binds inside.
+// See docs/mcp/api.md.
+type APIEndpoint struct {
+	URL       string `json:"url"`
+	PortStart int    `json:"port_start"`
+	PortEnd   int    `json:"port_end"`
 }
 
 // DefaultMessageLimit is how many messages get_messages returns when the caller

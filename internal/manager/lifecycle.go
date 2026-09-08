@@ -73,6 +73,7 @@ func (m *Manager) Spawn(ctx context.Context, spec Spec) (string, error) {
 			Effort:         spec.Effort,
 			Control:        spec.Control,
 			Scheduled:      spec.Scheduled,
+			Owner:          spec.Owner,
 			CreatedAt:      time.Now(),
 		},
 	}
@@ -139,6 +140,29 @@ func (m *Manager) Send(name, text string) error {
 		return err
 	}
 	return item.sess.Send(text)
+}
+
+// SendFrom queues a prompt that came from another session, and marks the pane
+// with the name of the sender, so the human sees who asked.
+func (m *Manager) SendFrom(target, from, text string) (int, error) {
+	item, err := m.entry(target)
+	if err != nil {
+		return 0, err
+	}
+	lines := []render.Line{{Class: render.ClassMeta, Text: "← prompt from " + from}}
+	item.lines.append(lines)
+	if err := item.sess.Send(text); err != nil {
+		return 0, err
+	}
+	snap := item.sess.Snapshot()
+	m.bus.Publish(Event{
+		Session:  target,
+		Kind:     session.KindState,
+		Lines:    lines,
+		Partial:  item.partialText(),
+		Snapshot: snap,
+	})
+	return snap.Queued, nil
 }
 
 func (m *Manager) Interrupt(name string, discardQueued bool) error {
