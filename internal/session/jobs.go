@@ -28,6 +28,22 @@ func (s JobStatus) String() string {
 
 func (s JobStatus) Running() bool { return s == JobRunning }
 
+// ParseJobStatus is the inverse of String, so a job status that crossed the peer
+// stream as a word reads back to a JobStatus. An unknown word reads as
+// JobRunning.
+func ParseJobStatus(word string) JobStatus {
+	switch word {
+	case "done":
+		return JobDone
+	case "failed":
+		return JobFailed
+	case "killed":
+		return JobKilled
+	default:
+		return JobRunning
+	}
+}
+
 // StatusWord maps a Claude Code task status to the job status word shown to the
 // user, so the pane, the badge, and the modal use one vocabulary.
 func StatusWord(status string) string {

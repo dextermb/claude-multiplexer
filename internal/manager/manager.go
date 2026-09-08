@@ -62,6 +62,7 @@ type Spec struct {
 	Parent         string
 	Scheduled      string
 	Owner          string
+	Hosted         bool
 }
 
 type Event struct {
@@ -90,10 +91,12 @@ type Manager struct {
 
 	usageStop func()
 
-	mu      sync.Mutex
-	entries map[string]*entry
-	order   []string
-	pumps   sync.WaitGroup
+	mu          sync.Mutex
+	entries     map[string]*entry
+	order       []string
+	remotes     map[string]*remoteEntry
+	remoteOrder []string
+	pumps       sync.WaitGroup
 
 	schedMu   sync.Mutex
 	schedules map[string]*Schedule
@@ -128,6 +131,7 @@ func New(opts Options) (*Manager, error) {
 		opts:      opts,
 		bus:       NewBus(),
 		entries:   make(map[string]*entry),
+		remotes:   make(map[string]*remoteEntry),
 		schedules: make(map[string]*Schedule),
 	}
 	m.loadSchedules()
@@ -260,7 +264,8 @@ func (m *Manager) uniqueName(want, dir string, keep bool) string {
 	name := base
 	for i := 2; ; i++ {
 		_, live := m.entries[name]
-		if !live && (keep || !m.remembered(name)) {
+		_, remote := m.remotes[name]
+		if !live && !remote && (keep || !m.remembered(name)) {
 			return name
 		}
 		name = fmt.Sprintf("%s-%d", base, i)

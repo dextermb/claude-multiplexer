@@ -171,6 +171,11 @@ type Session struct {
 	Queued   int     `json:"queued,omitempty"`
 	Turns    int     `json:"turns"`
 	Cost     float64 `json:"cost_usd"`
+	// Host names the peer a streamed session runs on, and is empty for a session
+	// this host runs. Hosted marks a session this host runs on behalf of a peer.
+	// The sidebar sorts a session into a section from these two. See docs/peers.md.
+	Host   string `json:"host,omitempty"`
+	Hosted bool   `json:"hosted,omitempty"`
 }
 
 // Message is one entry of get_messages. The transcript carries no timestamp for
@@ -390,6 +395,7 @@ type APISessions interface {
 	SetTitle(name, title string) error
 	SendFrom(target, from, text string) (int, error)
 	Stop(ctx context.Context, name, by string) error
+	Interrupt(ctx context.Context, name, by string) error
 	Archive(name string, archived bool, by string) error
 	Create(in CreateInput, by string) (string, error)
 	List() []Session
@@ -411,6 +417,10 @@ type CreateInput struct {
 	Model          string
 	PermissionMode string
 	Effort         string
+	// Hosted marks a session the peer listener creates on behalf of a peer, so
+	// the host sorts it under the hosted section. The loopback API never sets it.
+	// See docs/peers.md.
+	Hosted bool
 }
 
 // APIClient is one row of list_api_clients, and the record the client tools

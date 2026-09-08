@@ -1,17 +1,20 @@
 # Plan: peers — usage sharing and remote sessions
 
-Status: **in progress**. Phases 1 and 2 are built and green in the `peer-usage`
-worktree. Phase 1 is the usage poll, the peer listener, the `/api/usage` route,
-and the `get_usage` / `peer_usage` / peer-config tools. Phase 2 is the
-remote-session transport: the `internal/wire` event, the owner-scoped session
-REST and the SSE stream on the peer listener, and the `peer.Client` methods
-(`CreateSession`, `Stream`, `Send`, `Stop`). Still ahead: Phase 3 (remote
-sessions in the manager — the `remotes` map, the pump that republishes a peer's
-stream to the local bus, reconnect), Phase 4 (the TUI — the host field and the
-sidebar sections), and Phase 1b (the reserve gate, which waits on the
-hosted-session concept from Phase 3). The one integration seam left open is
-`Options.UsageFetch`: the exact usage endpoint and credential, to settle against
-a real account. See docs/peers.md.
+Status: **in progress**. Phases 1, 2, and 3 are built and green in the
+`peer-usage` worktree. Phase 1 is the usage poll, the peer listener, the
+`/api/usage` route, and the `get_usage` / `peer_usage` / peer-config tools.
+Phase 2 is the remote-session transport: the `internal/wire` event, the
+owner-scoped session REST and the SSE stream on the peer listener, and the
+`peer.Client` methods (`CreateSession`, `Stream`, `Send`, `Stop`). Phase 3 is
+remote sessions in the manager: the `remotes` map, `AttachRemote`, the pump that
+republishes a peer's stream to the local bus, reconnect and re-attach on start,
+the routing of `Send`/`Stop`/`Interrupt`/`Lines`/`Snapshot`/`Messages`/`List`
+through the remotes map, and the `Host`/`Hosted` section data on `mcp.Session`.
+The durable Phase 3 content now lives in docs/peers.md. Still ahead: Phase 4 (the
+TUI — the host field and the sidebar sections) and Phase 1b (the reserve gate,
+which the hosted-session concept from Phase 3 now unblocks). The one integration
+seam left open is `Options.UsageFetch`: the exact usage endpoint and credential,
+to settle against a real account. See docs/peers.md.
 
 # Goal
 

@@ -103,6 +103,17 @@ func (o *ownedSessions) Stop(ctx context.Context, name, by string) error {
 	return nil
 }
 
+func (o *ownedSessions) Interrupt(ctx context.Context, name, by string) error {
+	if err := o.guard(name); err != nil {
+		return err
+	}
+	if err := o.m.Interrupt(name, false); err != nil {
+		return err
+	}
+	o.m.notify(name, by+" interrupted "+name, false)
+	return nil
+}
+
 func (o *ownedSessions) Archive(name string, archived bool, by string) error {
 	if err := o.guard(name); err != nil {
 		return err
@@ -141,6 +152,7 @@ func (o *ownedSessions) Create(in mcp.CreateInput, by string) (string, error) {
 		PermissionMode: in.PermissionMode,
 		Effort:         in.Effort,
 		Owner:          o.owner,
+		Hosted:         in.Hosted,
 	})
 	if err != nil {
 		return "", err

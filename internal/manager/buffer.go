@@ -28,6 +28,17 @@ func (b *lineBuffer) append(lines []render.Line) {
 	}
 }
 
+// reset replaces the whole buffer, so a streamed session's first event of a
+// connection sets the buffer instead of appending a second copy of it.
+func (b *lineBuffer) reset(lines []render.Line) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.lines = append([]render.Line(nil), lines...)
+	if len(b.lines) > b.max {
+		b.lines = append([]render.Line(nil), b.lines[len(b.lines)-b.max:]...)
+	}
+}
+
 func (b *lineBuffer) all() []render.Line {
 	b.mu.Lock()
 	defer b.mu.Unlock()

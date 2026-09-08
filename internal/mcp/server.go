@@ -122,6 +122,16 @@ func (s *Server) BaseURL() string {
 	return "http://" + s.Addr()
 }
 
+// PeerBaseURL is the address of the peer listener, or empty when it is off. A
+// peer reads it to reach the token grant, the usage read, and the session REST.
+// See docs/peers.md.
+func (s *Server) PeerBaseURL() string {
+	if s.peerLn == nil {
+		return ""
+	}
+	return "http://" + s.peerLn.Addr().String()
+}
+
 func (s *Server) Close(ctx context.Context) error {
 	if s.peerHTTP != nil {
 		_ = s.peerHTTP.Shutdown(ctx)
@@ -159,7 +169,7 @@ func (s *Server) StartPeer(addr string) error {
 func (s *Server) mountPeer(mux *http.ServeMux) {
 	mux.HandleFunc("/token", s.handleToken)
 	mux.HandleFunc("/api/usage", s.handleUsage)
-	mux.HandleFunc("/api/", s.handleAPI)
+	mux.HandleFunc("/api/", s.handlePeerAPI)
 }
 
 // Register gives a session its own token and its own tool set. A session

@@ -64,6 +64,26 @@ func TestSendAndStopPostToThePeer(t *testing.T) {
 	}
 }
 
+func TestMessagesReadsThePeerTranscript(t *testing.T) {
+	c := peerServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/sessions/remote-1/messages" || r.URL.Query().Get("limit") != "2" {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]any{"messages": []map[string]string{
+			{"role": "user", "text": "hi"},
+			{"role": "assistant", "text": "hello"},
+		}})
+	})
+	msgs, err := c.Messages(context.Background(), "remote-1", 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(msgs) != 2 || msgs[0].Role != "user" || msgs[1].Text != "hello" {
+		t.Errorf("messages = %+v", msgs)
+	}
+}
+
 func TestStreamDecodesSSEEvents(t *testing.T) {
 	c := peerServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/event-stream")

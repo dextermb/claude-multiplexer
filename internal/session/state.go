@@ -32,3 +32,22 @@ func (s State) String() string {
 func (s State) Live() bool {
 	return s == StateStarting || s == StateIdle || s == StateBusy || s == StateWaiting
 }
+
+// ParseState is the inverse of String, so a state that crossed the peer stream
+// as a word reads back to a State. An unknown word reads as StateStarting.
+func ParseState(word string) State {
+	switch word {
+	case "idle":
+		return StateIdle
+	case "busy":
+		return StateBusy
+	case "waiting":
+		return StateWaiting
+	case "exited":
+		return StateExited
+	case "failed":
+		return StateFailed
+	default:
+		return StateStarting
+	}
+}

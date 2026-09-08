@@ -2,18 +2,28 @@ package manager
 
 import "github.com/dextermb/claude-multiplexer/internal/mcp"
 
-// List describes every session the manager knows, live rows first.
+// List describes every session the manager knows: the local live rows, the
+// streamed rows (a session that runs on a peer), then the stored rows. A
+// streamed row carries its peer as Host; a row this host runs for a peer is
+// Hosted. See docs/peers.md.
 func (m *Manager) List() []mcp.Session {
 	m.mu.Lock()
 	items := make([]*entry, 0, len(m.order))
 	for _, name := range m.order {
 		items = append(items, m.entries[name])
 	}
+	remotes := make([]*remoteEntry, 0, len(m.remoteOrder))
+	for _, name := range m.remoteOrder {
+		if re, ok := m.remotes[name]; ok {
+			remotes = append(remotes, re)
+		}
+	}
 	m.mu.Unlock()
 
-	out := make([]mcp.Session, 0, len(items))
+	out := make([]mcp.Session, 0, len(items)+len(remotes))
 	for _, item := range items {
 		snap := item.sess.Snapshot()
+		meta := item.metaCopy()
 		out = append(out, mcp.Session{
 			Name:    snap.Name,
 			Title:   snap.Title,
@@ -22,10 +32,26 @@ func (m *Manager) List() []mcp.Session {
 			Model:   snap.Model,
 			Live:    true,
 			Control: item.control,
-			Owner:   item.metaCopy().Owner,
+			Owner:   meta.Owner,
 			Queued:  snap.Queued,
 			Turns:   snap.Turns,
 			Cost:    snap.Cost,
+			Hosted:  meta.Hosted,
+		})
+	}
+	for _, re := range remotes {
+		snap := re.snapshot()
+		out = append(out, mcp.Session{
+			Name:   re.localName,
+			Title:  snap.Title,
+			Dir:    snap.Dir,
+			State:  snap.State.String(),
+			Model:  snap.Model,
+			Live:   true,
+			Host:   re.peer,
+			Queued: snap.Queued,
+			Turns:  snap.Turns,
+			Cost:   snap.Cost,
 		})
 	}
 	for _, meta := range m.Stored() {
@@ -44,6 +70,7 @@ func (m *Manager) List() []mcp.Session {
 			Owner:    meta.Owner,
 			Turns:    meta.Turns,
 			Cost:     meta.Cost,
+			Hosted:   meta.Hosted,
 		})
 	}
 	return out

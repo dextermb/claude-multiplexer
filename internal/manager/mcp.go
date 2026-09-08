@@ -38,6 +38,7 @@ func (m *Manager) StartMCP() error {
 			return err
 		}
 	}
+	m.reattachRemotes()
 	return nil
 }
 

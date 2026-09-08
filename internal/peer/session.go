@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 
+	"github.com/dextermb/claude-multiplexer/internal/mcp"
 	"github.com/dextermb/claude-multiplexer/internal/wire"
 )
 
@@ -48,6 +50,32 @@ func (c *Client) Send(ctx context.Context, name, text string) error {
 func (c *Client) Stop(ctx context.Context, name string) error {
 	_, err := c.post(ctx, "/api/sessions/"+name+"/stop", map[string]string{})
 	return err
+}
+
+// Interrupt interrupts the running turn of a session on the peer.
+func (c *Client) Interrupt(ctx context.Context, name string) error {
+	_, err := c.post(ctx, "/api/sessions/"+name+"/interrupt", map[string]string{})
+	return err
+}
+
+// Messages reads the recent conversation of a session on the peer, so the host
+// that views a streamed session reads its transcript from the peer that runs it.
+func (c *Client) Messages(ctx context.Context, name string, limit int) ([]mcp.Message, error) {
+	path := "/api/sessions/" + name + "/messages"
+	if limit > 0 {
+		path += "?limit=" + strconv.Itoa(limit)
+	}
+	body, err := c.get(ctx, path)
+	if err != nil {
+		return nil, err
+	}
+	var out struct {
+		Messages []mcp.Message `json:"messages"`
+	}
+	if err := json.Unmarshal(body, &out); err != nil {
+		return nil, err
+	}
+	return out.Messages, nil
 }
 
 // Stream opens the session's event stream on the peer and decodes each SSE event

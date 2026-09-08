@@ -59,6 +59,13 @@ func (fakeAPI) Stop(_ context.Context, name, _ string) error {
 	return nil
 }
 
+func (fakeAPI) Interrupt(_ context.Context, name, _ string) error {
+	if name != "mine" {
+		return fmt.Errorf("%w: %s", mcp.ErrNotFound, name)
+	}
+	return nil
+}
+
 func (fakeAPI) Archive(name string, _ bool, _ string) error {
 	if name != "mine" {
 		return fmt.Errorf("%w: %s", mcp.ErrNotFound, name)

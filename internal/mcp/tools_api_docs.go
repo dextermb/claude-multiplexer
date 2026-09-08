@@ -160,6 +160,13 @@ func apiDocs(baseURL string) apiDocsOut {
 			},
 			{
 				Method:      "POST",
+				Path:        "/api/sessions/{name}/interrupt",
+				Auth:        "an access token",
+				Headers:     "Authorization: Bearer <access token>",
+				Description: "Interrupt the running turn of a session.",
+			},
+			{
+				Method:      "POST",
 				Path:        "/api/sessions/{name}/archive",
 				Auth:        "an access token",
 				Headers:     "Authorization: Bearer <access token>",

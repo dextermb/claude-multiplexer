@@ -74,6 +74,7 @@ func (m *Manager) Spawn(ctx context.Context, spec Spec) (string, error) {
 			Control:        spec.Control,
 			Scheduled:      spec.Scheduled,
 			Owner:          spec.Owner,
+			Hosted:         spec.Hosted,
 			CreatedAt:      time.Now(),
 		},
 	}
@@ -135,6 +136,9 @@ func (m *Manager) Resume(ctx context.Context, meta Meta) (string, error) {
 }
 
 func (m *Manager) Send(name, text string) error {
+	if re := m.remote(name); re != nil {
+		return re.client.Send(context.Background(), re.remoteName, text)
+	}
 	item, err := m.entry(name)
 	if err != nil {
 		return err
@@ -166,6 +170,9 @@ func (m *Manager) SendFrom(target, from, text string) (int, error) {
 }
 
 func (m *Manager) Interrupt(name string, discardQueued bool) error {
+	if re := m.remote(name); re != nil {
+		return re.client.Interrupt(context.Background(), re.remoteName)
+	}
 	item, err := m.entry(name)
 	if err != nil {
 		return err
@@ -401,6 +408,9 @@ func (m *Manager) ResumeWithEffort(ctx context.Context, name, effort string) (st
 }
 
 func (m *Manager) Stop(ctx context.Context, name string) error {
+	if re := m.remote(name); re != nil {
+		return re.client.Stop(ctx, re.remoteName)
+	}
 	item, err := m.entry(name)
 	if err != nil {
 		return err
@@ -438,6 +448,9 @@ func (m *Manager) Shutdown(ctx context.Context) {
 	items := make([]*entry, 0, len(m.order))
 	for _, name := range m.order {
 		items = append(items, m.entries[name])
+	}
+	for _, re := range m.remotes {
+		re.cancel()
 	}
 	m.mu.Unlock()
 

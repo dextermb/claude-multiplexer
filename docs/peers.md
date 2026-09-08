@@ -1,15 +1,15 @@
 # Peers
 
 The multiplexer shares its Claude usage with other multiplexer hosts on the same
-network, and reads theirs. It also serves a session's event stream to a peer, so
-a host can start a session on a peer and drive it. This page covers the usage
-poll, the peer listener, the API routes, and the tools.
+network, and reads theirs. It also starts a session on a peer and streams it into
+the local output pane, like a local session. This page covers the usage poll, the
+peer listener, the API routes, the remote-session flow, and the tools.
 
-The transport a remote session rides on is built: the peer listener serves the
-owner-scoped session REST and an event stream, and the `peer.Client` drives
-them. What is still ahead is the local end — a remote session that appears in the
-sidebar and the output pane of the host that started it (the manager `remotes`
-map and the TUI sections).
+A remote session runs on a peer and streams into the host that started it. The
+manager holds it in a `remotes` map, and a pump republishes the peer's stream to
+the local bus under a local name, so the pane treats it as local. What is still
+ahead is the TUI: the new-session `host` field and the sidebar sections that name
+where a session runs.
 
 # The usage source
 
@@ -50,8 +50,8 @@ network interface, and serves only the owner-scoped surface a peer reaches:
 - `POST /token` — the client-credentials grant, the same one an external client
   uses.
 - `GET /api/usage` — this host's usage, guarded by an access token.
-- The `/api/sessions` REST — list, create, message, stop, archive — scoped to
-  the client's own sessions.
+- The `/api/sessions` REST — list, create, message, interrupt, stop, archive —
+  scoped to the client's own sessions.
 - `GET /api/sessions/{name}/stream` — the session's event stream as server-sent
   events: the replay of the current lines first, then the live events.
 
@@ -59,6 +59,10 @@ The `/admin` surface never reaches the network. A peer reaches only the sessions
 it owns, because every session it creates is owned by its client. The peer
 listener starts only when the config names a listen address. See `internal/mcp`
 (`StartPeer`).
+
+A session a peer creates through this listener is marked hosted, so the host that
+runs it sorts it under the hosted section. The loopback API never marks a create
+hosted. See `internal/mcp` (`handlePeerAPI`).
 
 ## The stream
 
@@ -68,6 +72,38 @@ the output pane reads. The host that views the session decodes each event and
 republishes it to its own bus under a local name, so the pane treats a remote
 session as local. `render.Line` is width-independent, so the viewing host draws
 the lines at its own width.
+
+# Remote sessions in the manager
+
+`AttachRemote` starts a session on a peer, then streams it into this host under a
+local name. It returns the local name. The manager holds the session in a
+`remotes` map, and a pump reads the peer's stream and republishes each event to
+the local bus. The first event of each connection carries the whole line buffer,
+so the pump replaces the local buffer; a later event appends. See
+`internal/manager` (`remote.go`).
+
+A streamed session routes its input and reads back through the peer: `Send`,
+`Stop`, and `Interrupt` post to the peer; `Lines`, `Snapshot`, `Messages`, and
+`Todos` read the local cache the pump fills (except `Messages`, which reads the
+peer's transcript). `List` carries the streamed session with its peer as `Host`.
+
+The pump reconnects when the stream drops, so a peer that restarts does not end
+the session on this host. When the session closes on the peer, the pump detaches
+the session and stops. The manager records each streamed session (the peer and
+the remote name) in `remotes.json`, and re-attaches it on start, under the same
+local name, so a restart of this host does not lose the session — the peer keeps
+running it. A link whose peer is gone from the config is dropped.
+
+## Sections
+
+A session sorts into one of three sidebar sections from two fields on
+`mcp.Session`:
+
+- **streamed** — the session runs on a peer and streams in. `Host` names the
+  peer; `Hosted` is false.
+- **hosted** — this host runs the session on behalf of a peer, which created it
+  through the peer listener. `Hosted` is true.
+- **local** — everything else. Both fields are empty or false.
 
 # Auth
 
@@ -102,8 +138,8 @@ peer listener off.
 - `listen` — the address the peer listener binds. Empty keeps it off.
 - `reserve.window` — the window a usage reserve guards: `5h` or `7d`.
 - `reserve.min_percent` — the percent-remaining floor. The reserve is stored and
-  read, but its enforcement (pause hosted sessions, refuse a new peer session)
-  arrives with the remote-session capability. Omit `reserve` for no floor.
+  read, but its enforcement (pause hosted sessions, refuse a new peer session) is
+  still ahead. Omit `reserve` for no floor.
 - `hosts[].name` — the label for the peer.
 - `hosts[].url` — the base URL of the peer's peer listener.
 - `hosts[].client_id` / `client_secret` — the credentials the peer provisioned

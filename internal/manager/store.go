@@ -89,6 +89,9 @@ func (m *Manager) Replay(name string) []render.Line {
 // list in memory; a stored session gets it rebuilt from the transcript. See
 // docs/tui/tasks.md.
 func (m *Manager) Todos(name string) []protocol.Todo {
+	if re := m.remote(name); re != nil {
+		return re.todoList()
+	}
 	if item, err := m.entry(name); err == nil {
 		return item.todoList()
 	}
@@ -178,6 +181,9 @@ func (m *Manager) Snapshots() []session.Snapshot {
 }
 
 func (m *Manager) Snapshot(name string) (session.Snapshot, error) {
+	if re := m.remote(name); re != nil {
+		return re.snapshot(), nil
+	}
 	item, err := m.entry(name)
 	if err != nil {
 		return session.Snapshot{}, err
@@ -186,6 +192,9 @@ func (m *Manager) Snapshot(name string) (session.Snapshot, error) {
 }
 
 func (m *Manager) Lines(name string) []render.Line {
+	if re := m.remote(name); re != nil {
+		return re.lines.all()
+	}
 	item, err := m.entry(name)
 	if err != nil {
 		return nil
