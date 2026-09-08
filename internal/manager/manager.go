@@ -119,7 +119,10 @@ func (m *Manager) Root() string { return m.opts.Root }
 
 func (m *Manager) pump(item *entry) {
 	defer m.pumps.Done()
+	enterWorktree := map[string]string{}
+	exitWorktree := map[string]bool{}
 	for ev := range item.sess.Events() {
+		m.trackWorktree(ev, enterWorktree, exitWorktree)
 		lines := m.opts.Renderer.Lines(ev)
 		item.lines.append(lines)
 		partial := trackPartial(item, ev)
@@ -151,6 +154,52 @@ func (m *Manager) pump(item *entry) {
 		Snapshot: final,
 		Closed:   true,
 	})
+}
+
+// trackWorktree sets the working directory of a session from the EnterWorktree
+// tool it runs, and clears it on ExitWorktree. The path comes from the
+// tool_result, and falls back to the tool input. The two maps hold the pending
+// tool ids, and belong to one pump goroutine. See docs/mcp/tools.md.
+func (m *Manager) trackWorktree(ev session.Event, enter map[string]string, exit map[string]bool) {
+	if ev.Kind != session.KindProtocol || ev.Protocol.Message == nil {
+		return
+	}
+	for _, block := range ev.Protocol.Message.Content {
+		switch block.Type {
+		case "tool_use":
+			if block.ID == "" {
+				continue
+			}
+			if path, ok := block.EnterWorktree(); ok {
+				enter[block.ID] = path
+			} else if block.ExitWorktree() {
+				exit[block.ID] = true
+			}
+		case "tool_result":
+			id := block.ToolUseID
+			input, isEnter := enter[id]
+			_, isExit := exit[id]
+			if !isEnter && !isExit {
+				continue
+			}
+			delete(enter, id)
+			delete(exit, id)
+			if block.IsError {
+				continue
+			}
+			if isEnter {
+				path := protocol.WorktreePath(block.Content.Text())
+				if path == "" {
+					path = input
+				}
+				if path != "" {
+					_, _ = m.SetWorkingDir(ev.Session, path)
+				}
+			} else {
+				_, _ = m.UnsetWorkingDir(ev.Session)
+			}
+		}
+	}
 }
 
 func trackPartial(item *entry, ev session.Event) string {

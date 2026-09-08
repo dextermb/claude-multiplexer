@@ -95,10 +95,11 @@ survives an archive and a recovery.
 
 A working directory is separate from the directory a session starts in. The
 child never leaves the directory it started in, but the agent inside it may
-move into a worktree. It says so with a tool, and the record keeps the answer
-in `working_dir`, so the interface opens the right place and a resumed session
-keeps it. The directory a session started in never changes. See
-[mcp/tools.md](./mcp/tools.md).
+move into a worktree. The pump reads the worktree tools the agent runs, and sets
+`working_dir` from `EnterWorktree` and clears it on `ExitWorktree`. The agent can
+also name a directory with a tool. The record keeps the answer in `working_dir`,
+so the interface opens the right place and a resumed session keeps it. The
+directory a session started in never changes. See [mcp/tools.md](./mcp/tools.md).
 
 A project is a set of directories one session works in at once, kept in
 `working_dirs`. It lets one change span several code bases, and the diff panel
