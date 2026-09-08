@@ -17,7 +17,7 @@ import (
 const jobRefresh = 500 * time.Millisecond
 
 // jobsModal lists the background jobs of one session, running first, in start
-// order, and opens the output of the one you choose. See docs/tui/sessions.md.
+// order, and opens the output of the one you choose. See docs/tui/sessions/jobs.md.
 type jobsModal struct {
 	name    string
 	jobs    []session.Job

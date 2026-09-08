@@ -1,7 +1,14 @@
 # The session list
 
-The sidebar, what a row means, and the two bars that carry the numbers.
-For the keys that drive it, see [keys.md](./keys.md).
+The sidebar, and what a row means. For the keys that drive it, see
+[keys.md](./keys.md).
+
+## The pages
+
+| Page | Read it for |
+|---|---|
+| [sessions/jobs.md](sessions/jobs.md) | Background jobs: the four places one shows, and the jobs dialog |
+| [sessions/bars.md](sessions/bars.md) | The session bar and the status bar, and what each drops when narrow |
 
 ## The sections
 
@@ -158,122 +165,3 @@ nothing on disk is deleted. Press `l a` to show archived rows again, and `s a`
 on one of them to bring it back.
 
 A running session cannot be archived. Stop it first.
-
-## Background jobs
-
-Claude Code can run a shell command in the background. The multiplexer shows
-each background job in four places. See [../sessions.md](../sessions.md) for the
-job model, and [../protocol/jobs.md](../protocol/jobs.md) for the wire events.
-
-- The output pane marks each job in order. A start line reads `⚙ started ·
-  <description>`. A stop line reads `⚙ done · <id>`, or `failed`, or `killed`.
-- The sidebar row shows `⚙n` for `n` running jobs, next to the queue badge. The
-  badge clears when the last job stops.
-- The session bar shows a `⚙n` segment while jobs run, next to the queue segment.
-- The side panel lists every job above the task list. See [tasks.md](tasks.md).
-
-Press `s j` to open the jobs dialog for the selected session. The dialog draws in
-the pane, so the sidebar stays on the screen. It has two levels. See
-[keys.md](./keys.md) and [../tui.md](../tui.md).
-
-### The list
-
-The first level lists every job, the running ones first, then the finished ones,
-in start order. Each row shows a status glyph, the status word, and the job
-description. A `▸` marks the row under the cursor. Press `enter` to open that
-job, and `esc` to close the dialog.
-
-### One job and its output
-
-The second level shows one job. A head names the status, the command, the task
-type, the start and end times, the summary, and the output file. The output
-follows, under a rule.
-
-The dialog is live. It takes the jobs of the session on every event, so a
-running job grows while you read it, and the cursor holds its own job when a job
-stops and moves down the list. The open job re-reads its output file twice a
-second, and the view follows the new lines only when you already sit at the
-bottom. That tick runs only while a job is open.
-
-The body says why when there is no output:
-
-| The body says | Because |
-|---|---|
-| `Waiting for the output file.` | The job started, and the launch result has not named its file yet. |
-| `No output yet.` | The file is absent or empty, so the job has printed nothing. |
-| `The output could not be read: …` | The path is not a job output file, or the read failed. |
-
-Press `esc` to step back to the list, and `esc` again to close the dialog. See
-[../sessions.md](../sessions.md) for where the path comes from, and for the
-guards on the read.
-
-## The two bars
-
-The **session bar** sits above the output, and it describes the selected session
-only. The left side names it: the display name (the title or the name),
-`control` when the session holds that grant, the model in use, and the
-permission mode. The right side gives the numbers: the state, the running-job
-count, the queue length, the tokens, the cost, and the context fill.
-
-The model and the permission mode come from the `init` event, so the bar names
-what the child confirms, and not what the flags asked for. The two can differ.
-
-The tokens (`11.6k in 0.6k out`) add up every turn, so they show the total work
-billed. The context fill (`ctx 12.2k/200k (6%)`) is different: it shows how full
-the window is now.
-
-The context fill comes from the last `assistant` message, not the `result`. One
-`assistant` message reports the usage of one request. Its `input`, `cache_read`,
-and `cache_creation` counts are the three parts of that one prompt, so their sum
-is the size of the context now. The `result` usage is a session total, and its
-cache-read count repeats the whole context every turn, so a sum of `result`
-usage grows far past the window and is wrong for this number.
-
-Each session is a separate child process, so each context fill is its own. When
-the model window is not known, the bar shows the raw count only (`ctx 12.2k`).
-The context fill shows for a live session only, because a stored session has no
-running context.
-
-The **status bar** at the bottom describes the whole program. The left side
-gives the state: how many sessions run, how many are busy, and the total cost.
-A transient message (for example `copied 3 lines`, or `docs archived landing`
-when a session did it through a tool) also appears on the left, for its moment.
-The right side gives the keys, and the keys stay in one place.
-
-The bar is a footer, so its palette is muted. The default text is grey, and
-colour marks only the cost, which keeps the green of the session bar so the same
-number reads the same in both places. The busy count is hidden when no session
-is busy, so a zero never shows.
-
-When the window is too narrow for both sides, the keys go first. Then the left
-side sheds from its end (the message, then the cost, then the busy count), and
-the session count always stays.
-
-So a number that belongs to one session appears at the top, and a number that
-belongs to every session appears at the bottom.
-
-### What the session bar drops first
-
-The bar always fits on one line. When the window is too narrow, the two sides
-shed detail in turn, and the least useful item goes first:
-
-```
- alpha · fake-model · auto        idle · ctx 12.2k/200k (6%) · 11.6k in 0.6k out · $0.2500
- alpha · fake-model · auto        idle · ctx 12.2k/200k (6%) · 11.6k in 0.6k out
- alpha · fake-model               idle · ctx 12.2k/200k (6%)
- alpha · fake-model               idle
- alpha                            idle
- alpha
-```
-
-The right side sheds from the end: the cost first, then the tokens, then the
-queue length, then the running-job count, then the context fill, and last of all
-the state, so that only the name remains. The left side sheds the effort, then the permission mode, then
-the model, and `control` last of all, because a session that can stop your work
-is worth the space. The name always stays, and only when the name alone cannot
-fit is it cut short.
-
-The context fill sits next to the state, so it stays until the bar is almost
-empty. Seeing it is the point of the feature, so it outlives the cost and the
-tokens. The per-session cost drops early. The total cost of every session lives
-in the status bar, and it stays.

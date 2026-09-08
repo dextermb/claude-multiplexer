@@ -55,7 +55,7 @@ func (s *Session) controlID(kind string) string {
 	return fmt.Sprintf("%s-%d", kind, n)
 }
 
-// SetModel switches the model of the running child; see docs/protocol.md.
+// SetModel switches the model of the running child; see docs/protocol/control.md.
 func (s *Session) SetModel(model string) error {
 	if s.cmd == nil {
 		return ErrNotStarted
@@ -73,7 +73,7 @@ func (s *Session) SetModel(model string) error {
 }
 
 // SetPermissionMode switches the permission mode of the running child; see
-// docs/protocol.md.
+// docs/protocol/control.md.
 func (s *Session) SetPermissionMode(mode string) error {
 	if s.cmd == nil {
 		return ErrNotStarted

@@ -135,7 +135,7 @@ func (m *Model) refresh() {
 }
 
 // syncJobsModal gives the open jobs dialog the jobs of its session, so a
-// running job grows while you read it. See docs/tui/sessions.md.
+// running job grows while you read it. See docs/tui/sessions/jobs.md.
 func (m *Model) syncJobsModal() {
 	if m.jobsModal == nil {
 		return

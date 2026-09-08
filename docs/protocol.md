@@ -8,6 +8,8 @@ mode. The two processes exchange one JSON object for each line. The package
 
 | Page | Read it for |
 |---|---|
+| [protocol/control.md](protocol/control.md) | The control requests: interrupt, set model, set permission mode, and why effort resumes |
+| [protocol/questions.md](protocol/questions.md) | The AskUserQuestion tool: how the child self-answers, and how the session waits for a human |
 | [protocol/jobs.md](protocol/jobs.md) | A background job: its three events, and the file its output goes to |
 
 ## Why a child process, and not something else
@@ -167,78 +169,16 @@ carries empty `thinking`, `id`, and `name` fields. Claude Code forwards them to
 the API, and the API answers `400 messages.0.content.1.text.thinking: Extra
 inputs are not permitted`.
 
-## The interrupt control request
-
-The writer stops a running turn with a control request:
-
-```json
-{"type":"control_request","request_id":"int-1","request":{"subtype":"interrupt"}}
-```
-
-Claude Code answers with a `control_response`, then ends the turn with a
-`result` event whose subtype is `error_during_execution`, and stays alive for
-the next prompt. This was proven against Claude Code 2.1.176. The multiplexer
-ignores the `control_response`, because the `result` event is the signal it
-already acts on. See [sessions.md](./sessions.md).
-
-## The model and the mode change while the session runs
-
-Two more control requests change a running child. Each is proven against Claude
-Code 2.1.176:
-
-```json
-{"type":"control_request","request_id":"model-1","request":{"subtype":"set_model","model":"sonnet"}}
-{"type":"control_request","request_id":"mode-1","request":{"subtype":"set_permission_mode","mode":"plan"}}
-```
-
-`set_model` takes a full name or an alias (`opus`, `sonnet`, `haiku`).
-`set_permission_mode` takes one of the six modes and answers with the new mode.
-
-The writer sends each request with a counter in the id (`model-1`, `mode-2`).
-The multiplexer ignores the `control_response` and trusts the change, the same
-as it trusts the interrupt. So the session bar shows the new value at once. A
-later version that rejects a request would leave the bar wrong until the next
-`init` or `result` event, which is the same risk the interrupt already takes.
-
-## Effort does not change live
-
-There is no live effort switch. `set_effort` is not a request — Claude Code
-answers `Unsupported control request subtype`. So the multiplexer changes effort
-by a resume: it stops the child and starts it again with the new `--effort`
-level, and keeps the conversation through the session id. A resume needs a
-session id, so it fails on a session that has not run a turn yet. See
-[sessions.md](./sessions.md).
+The writer also changes a running child with control requests — interrupt, set
+model, set permission mode — and resumes for a new effort level. See
+[protocol/control.md](protocol/control.md).
 
 ## The AskUserQuestion tool
 
 The model asks the human a multiple-choice question with the `AskUserQuestion`
-tool. In headless mode the child does not wait for the human. It emits the
-`tool_use` block, and at once it answers the block itself:
-
-```json
-{"type":"assistant","message":{"content":[{"type":"tool_use","id":"toolu_…","name":"AskUserQuestion","input":{"questions":[…]}}]}}
-{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"toolu_…","is_error":true,"content":"Answer questions?"}]}}
-```
-
-The model then recovers with a line of text, or with real work, and ends the
-turn with a normal `result`. This was proven against Claude Code 2.1.176. So the
-supervisor gets no window to send its own `tool_result`, and no flag makes the
-child wait.
-
-**The session interrupts the turn and waits.** When `apply` sees the
-`AskUserQuestion` tool_use, the session fires an `interrupt` at once. The
-interrupt cuts the turn before the model recovers and acts on a guess. The
-interrupt result ends the turn in the `waiting` state, not `idle`, so the
-sidebar shows which session needs an answer. The human answer then runs as the
-next prompt, and it moves the session to `busy`. See
-[sessions.md](./sessions.md) for the state, and [tui/input.md](./tui/input.md)
-for the pane.
-
-`Event.AskUserQuestion` reads the questions and the block id from the `tool_use`
-block. Each question holds a `question`, a `header`, a list of `options` (each
-with a `label` and a `description`), and a `multiSelect` flag. Because the child
-already closed the tool call, the multiplexer gives the human answer back as the
-next prompt, not as a `tool_result`.
+tool. In headless mode the child self-answers the tool call, so the session
+interrupts the turn and waits for the human. See
+[protocol/questions.md](protocol/questions.md).
 
 ## Background jobs
 

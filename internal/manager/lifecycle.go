@@ -382,7 +382,7 @@ func (m *Manager) SetTitle(name, title string) error {
 }
 
 // ResumeWithEffort stops a running session and resumes it with a new effort
-// level, because Claude Code has no live effort switch; see docs/protocol.md.
+// level, because Claude Code has no live effort switch; see docs/protocol/control.md.
 func (m *Manager) ResumeWithEffort(ctx context.Context, name, effort string) (string, error) {
 	item, err := m.entry(name)
 	if err != nil {

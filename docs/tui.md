@@ -74,7 +74,7 @@ never pushes the sidebar out of line.
 
 | Page | Read it for |
 |---|---|
-| [tui/sessions.md](tui/sessions.md) | The sidebar: live rows, stored rows, archived rows, and the two bars |
+| [tui/sessions.md](tui/sessions.md) | The sidebar: the sections, the groups, live and stored rows, and its pages for jobs and the bars |
 | [tui/keys.md](tui/keys.md) | The key sequences, every single key, the searchable key list, scrolling, the mouse, and quitting |
 | [tui/input.md](tui/input.md) | The prompt box, dropping a file, and the new session form |
 | [tui/output.md](tui/output.md) | The colour of each line, streaming text, and the layout rule |
