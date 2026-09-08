@@ -225,7 +225,7 @@ func (m Model) wrap(lines []render.Line) string {
 			wrapped = append(wrapped, "")
 			continue
 		}
-		if line.Class == render.ClassText && !m.showRaw {
+		if (line.Class == render.ClassText || line.Class == render.ClassSkill) && !m.showRaw {
 			wrapped = append(wrapped, m.md.Render(line.Text, width))
 			continue
 		}

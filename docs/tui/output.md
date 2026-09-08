@@ -23,7 +23,7 @@ recedes:
 | `ClassThinking` | Thinking, when the verbose flag is on | Muted, italic |
 | `ClassStderr` | A line from the child stderr | Amber |
 | `ClassError` | A failure, or a line that is not JSON | Red |
-| `ClassSkill` | The content of a skill, loaded into the transcript | Muted, darkest |
+| `ClassSkill` | The content of a skill, loaded into the transcript | Rendered as markdown, capped to one row |
 
 What the assistant says is rendered as markdown, so a heading, a list, and a
 code fence all read as themselves. Press `o m` for the raw text. See
@@ -71,6 +71,10 @@ The dump carries no marker of its own, so the renderer knows it only by the
 `Skill` tool call before it. The `render.SkillTracker` arms on that call, holds
 across the tool result, and marks the next user text message `ClassSkill`. A
 one-line printer draws the row count in place of the whole dump.
+
+The pane renders the dump as markdown, the same as a message. Every heading
+renders as bold text, so a `#` heading in a skill does not draw large. See
+[../markdown.md](../markdown.md).
 
 ```
 → Bash ./scripts/build.sh
