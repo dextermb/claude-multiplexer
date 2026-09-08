@@ -13,6 +13,7 @@ import (
 
 	"github.com/dextermb/claude-multiplexer/internal/api"
 	"github.com/dextermb/claude-multiplexer/internal/mcp"
+	"github.com/dextermb/claude-multiplexer/internal/wire"
 )
 
 // fakeAPI is a canned owner-scoped view. It owns one session, "mine", and it
@@ -65,7 +66,17 @@ func (fakeAPI) Archive(name string, _ bool, _ string) error {
 	return nil
 }
 
-func (fakeAPI) Create(_, _, _ string) (string, error) { return "new", nil }
+func (fakeAPI) Create(mcp.CreateInput, string) (string, error) { return "new", nil }
+
+func (fakeAPI) Stream(ctx context.Context, name string) (<-chan wire.Event, error) {
+	if name != "mine" {
+		return nil, fmt.Errorf("%w: %s", mcp.ErrNotFound, name)
+	}
+	ch := make(chan wire.Event, 1)
+	ch <- wire.Event{Session: name, Snapshot: wire.Snapshot{Name: name, State: "idle"}}
+	close(ch)
+	return ch, nil
+}
 
 func (fakeAPI) StopJob(target, _, _ string) (int, error) {
 	if target != "mine" {

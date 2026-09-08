@@ -40,6 +40,9 @@ type Server struct {
 
 	ln   net.Listener
 	http *http.Server
+
+	peerLn   net.Listener
+	peerHTTP *http.Server
 }
 
 func NewServer(sessions Sessions) *Server {
@@ -120,10 +123,43 @@ func (s *Server) BaseURL() string {
 }
 
 func (s *Server) Close(ctx context.Context) error {
+	if s.peerHTTP != nil {
+		_ = s.peerHTTP.Shutdown(ctx)
+	}
 	if s.http == nil {
 		return nil
 	}
 	return s.http.Shutdown(ctx)
+}
+
+// StartPeer binds the peer listener on addr, and serves the surface a peer on
+// the network reaches: the token grant and the usage read. It is separate from
+// the loopback API, so the admin and session-control surfaces never reach the
+// network. An empty addr, or an API that is not enabled, does nothing. See
+// docs/peers.md.
+func (s *Server) StartPeer(addr string) error {
+	if strings.TrimSpace(addr) == "" || s.store == nil {
+		return nil
+	}
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		return fmt.Errorf("mcp: peer listener on %s: %w", addr, err)
+	}
+	s.peerLn = ln
+	mux := http.NewServeMux()
+	s.mountPeer(mux)
+	s.peerHTTP = &http.Server{Handler: mux}
+	go func() { _ = s.peerHTTP.Serve(ln) }()
+	return nil
+}
+
+// mountPeer adds the peer surface to a mux: the token grant, the usage read, and
+// the owner-scoped session REST and stream. The admin surface is never here, so
+// it does not reach the network. See docs/peers.md.
+func (s *Server) mountPeer(mux *http.ServeMux) {
+	mux.HandleFunc("/token", s.handleToken)
+	mux.HandleFunc("/api/usage", s.handleUsage)
+	mux.HandleFunc("/api/", s.handleAPI)
 }
 
 // Register gives a session its own token and its own tool set. A session

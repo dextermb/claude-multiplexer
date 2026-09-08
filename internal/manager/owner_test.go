@@ -12,7 +12,7 @@ func TestOwnerScopedForward(t *testing.T) {
 	m := newTestManager(t)
 	view := m.apiSessions("c1", "bruno")
 
-	name, err := view.Create(t.TempDir(), "owned", "bruno")
+	name, err := view.Create(mcp.CreateInput{Dir: t.TempDir(), Name: "owned"}, "bruno")
 	if err != nil {
 		t.Fatalf("create: %v", err)
 	}
@@ -86,7 +86,7 @@ func TestCreateTagsOwner(t *testing.T) {
 	m := newTestManager(t)
 	view := m.apiSessions("c1", "bruno")
 
-	name, err := view.Create(t.TempDir(), "owned", "bruno")
+	name, err := view.Create(mcp.CreateInput{Dir: t.TempDir(), Name: "owned"}, "bruno")
 	if err != nil {
 		t.Fatalf("create: %v", err)
 	}

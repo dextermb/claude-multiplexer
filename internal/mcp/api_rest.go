@@ -34,6 +34,8 @@ func (s *Server) handleAPI(w http.ResponseWriter, r *http.Request) {
 		s.restJobs(w, sess, parts[1])
 	case len(parts) == 3 && parts[2] == "message" && r.Method == http.MethodPost:
 		s.restMessage(w, r, sess, parts[1], grant.clientName)
+	case len(parts) == 3 && parts[2] == "stream" && r.Method == http.MethodGet:
+		s.restStream(w, r, sess, parts[1])
 	case len(parts) == 3 && parts[2] == "stop" && r.Method == http.MethodPost:
 		s.restStop(w, r, sess, parts[1], grant.clientName)
 	case len(parts) == 3 && parts[2] == "archive" && r.Method == http.MethodPost:
@@ -47,15 +49,24 @@ func (s *Server) handleAPI(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) restCreate(w http.ResponseWriter, r *http.Request, sess APISessions, by string) {
 	var body struct {
-		Dir  string `json:"dir"`
-		Name string `json:"name"`
+		Dir            string `json:"dir"`
+		Name           string `json:"name"`
+		Model          string `json:"model"`
+		PermissionMode string `json:"permission_mode"`
+		Effort         string `json:"effort"`
 	}
 	_ = json.NewDecoder(r.Body).Decode(&body)
 	if strings.TrimSpace(body.Dir) == "" {
 		writeError(w, http.StatusBadRequest, "dir required")
 		return
 	}
-	name, err := sess.Create(body.Dir, strings.TrimSpace(body.Name), by)
+	name, err := sess.Create(CreateInput{
+		Dir:            body.Dir,
+		Name:           strings.TrimSpace(body.Name),
+		Model:          strings.TrimSpace(body.Model),
+		PermissionMode: strings.TrimSpace(body.PermissionMode),
+		Effort:         strings.TrimSpace(body.Effort),
+	}, by)
 	if err != nil {
 		writeAPIError(w, err)
 		return

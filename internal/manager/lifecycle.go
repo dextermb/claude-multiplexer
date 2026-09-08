@@ -424,6 +424,10 @@ func (m *Manager) Remove(name string) error {
 }
 
 func (m *Manager) Shutdown(ctx context.Context) {
+	if m.usageStop != nil {
+		m.usageStop()
+		m.usageStop = nil
+	}
 	if m.schedStop != nil {
 		close(m.schedStop)
 		m.schedWG.Wait()

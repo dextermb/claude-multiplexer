@@ -114,6 +114,53 @@ type Config struct {
 	DefaultPermissionMode string `json:"defaultPermissionMode,omitempty"`
 	DefaultEffort         string `json:"defaultEffort,omitempty"`
 	DefaultControl        *bool  `json:"defaultControl,omitempty"`
+	// Peers holds the cross-host settings: the peer listener address, the usage
+	// reserve, and the peer hosts this host reaches. Nil keeps peering off. See
+	// docs/peers.md.
+	Peers *Peers `json:"peers,omitempty"`
+}
+
+// Peers holds the cross-host settings. An empty Listen keeps the peer listener
+// off. See docs/peers.md.
+type Peers struct {
+	// Listen is the address the peer listener binds, e.g. "0.0.0.0:51900". Empty
+	// keeps it off.
+	Listen string `json:"listen,omitempty"`
+	// Reserve is the usage floor that pauses hosted sessions and refuses a new
+	// peer session. Nil keeps hosting on with no floor.
+	Reserve *Reserve `json:"reserve,omitempty"`
+	// Hosts are the peers this host reaches, keyed by no map so the order is
+	// stable in the file.
+	Hosts []PeerHost `json:"hosts,omitempty"`
+}
+
+// Reserve is the usage floor. Window names the window it guards ("5h" or "7d")
+// and MinPercent is the percent-remaining floor the gate trips below. See
+// docs/peers.md.
+type Reserve struct {
+	Window     string `json:"window"`
+	MinPercent int    `json:"min_percent"`
+}
+
+// PeerHost is one peer this host reaches: a label, the base URL of the peer's
+// peer listener, and the credentials the peer provisioned for this host. See
+// docs/peers.md.
+type PeerHost struct {
+	Name         string `json:"name"`
+	URL          string `json:"url"`
+	ClientID     string `json:"client_id"`
+	ClientSecret string `json:"client_secret"`
+}
+
+// The reserve windows. See docs/peers.md.
+const (
+	Window5h = "5h"
+	Window7d = "7d"
+)
+
+// ValidWindow reports whether a reserve window is one this program knows.
+func ValidWindow(window string) bool {
+	return window == Window5h || window == Window7d
 }
 
 // BlockCapOrDefault reads the cap out of the settings, and gives the default

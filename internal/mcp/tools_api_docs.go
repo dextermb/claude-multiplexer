@@ -101,6 +101,13 @@ func apiDocs(baseURL string) apiDocsOut {
 			},
 			{
 				Method:      "GET",
+				Path:        "/api/usage",
+				Auth:        "an access token",
+				Headers:     "Authorization: Bearer <access token>",
+				Description: "Read this host's Claude usage, the stat Claude Code shows in /usage. A peer reads it to share usage.",
+			},
+			{
+				Method:      "GET",
 				Path:        "/api/sessions",
 				Auth:        "an access token",
 				Headers:     "Authorization: Bearer <access token>",

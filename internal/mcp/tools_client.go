@@ -125,7 +125,7 @@ func buildAPI(clientName string, sess APISessions) *sdk.Server {
 		if path == "" {
 			return nil, createOut{}, ErrNoPath
 		}
-		created, err := sess.Create(path, strings.TrimSpace(in.Name), clientName)
+		created, err := sess.Create(CreateInput{Dir: path, Name: strings.TrimSpace(in.Name)}, clientName)
 		if err != nil {
 			return nil, createOut{}, err
 		}

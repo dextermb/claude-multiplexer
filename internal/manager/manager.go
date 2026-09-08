@@ -13,6 +13,7 @@ import (
 	"github.com/dextermb/claude-multiplexer/internal/protocol"
 	"github.com/dextermb/claude-multiplexer/internal/render"
 	"github.com/dextermb/claude-multiplexer/internal/session"
+	"github.com/dextermb/claude-multiplexer/internal/usage"
 )
 
 const DefaultMaxLines = 5000
@@ -41,6 +42,11 @@ type Options struct {
 	DefaultPermissionMode string
 	APIPortStart          int
 	APIPortEnd            int
+	// UsageFetch reads the Claude usage-limit headers for the poll. It is the one
+	// integration seam left open: the exact endpoint and credential are settled
+	// against a real account. A nil fetch keeps the poll off, so usage reads as
+	// unknown. See docs/peers.md.
+	UsageFetch usage.Fetch
 }
 
 type Spec struct {
@@ -76,10 +82,13 @@ type Event struct {
 }
 
 type Manager struct {
-	opts     Options
-	bus      *Bus
-	mcp      *mcp.Server
-	apiStore *api.Store
+	opts      Options
+	bus       *Bus
+	mcp       *mcp.Server
+	apiStore  *api.Store
+	usagePoll *usage.Poller
+
+	usageStop func()
 
 	mu      sync.Mutex
 	entries map[string]*entry
