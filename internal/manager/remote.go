@@ -3,6 +3,7 @@ package manager
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -16,6 +17,9 @@ import (
 // remoteRetry is the pause before the pump re-opens a stream that dropped, so a
 // peer that restarts does not draw a tight reconnect loop.
 const remoteRetry = 2 * time.Second
+
+// errUnknownPeer is the failure when a name does not match a configured peer.
+var errUnknownPeer = errors.New("manager: unknown peer")
 
 // remoteEntry is a streamed session: it runs on a peer, and the pump
 // republishes the peer's stream to the local bus under localName, so the pane
@@ -53,6 +57,29 @@ func (r *remoteEntry) set(snap session.Snapshot, todos []protocol.Todo) {
 	if todos != nil {
 		r.todos = todos
 	}
+}
+
+// PeerNames lists the configured peer hosts by name, in file order, for the
+// new-session form. It reads no secret. See docs/peers.md.
+func (m *Manager) PeerNames() []string {
+	hosts := m.peerHosts()
+	names := make([]string, 0, len(hosts))
+	for _, host := range hosts {
+		names = append(names, host.Name)
+	}
+	return names
+}
+
+// AttachRemoteByName starts a session on the named peer, so the TUI attaches a
+// remote session without handling a credential. It fails when no peer has the
+// name. See docs/peers.md.
+func (m *Manager) AttachRemoteByName(name string, spec peer.CreateSpec) (string, error) {
+	for _, host := range m.peerHosts() {
+		if host.Name == name {
+			return m.AttachRemote(host, spec)
+		}
+	}
+	return "", fmt.Errorf("%w: %s", errUnknownPeer, name)
 }
 
 // AttachRemote starts a session on a peer, then streams it into this host under
@@ -175,6 +202,50 @@ func (m *Manager) remote(name string) *remoteEntry {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return m.remotes[name]
+}
+
+// RemoteSnapshots gives the snapshot of every streamed session, in order, so the
+// interface draws a streamed session like a local one. See docs/peers.md.
+func (m *Manager) RemoteSnapshots() []session.Snapshot {
+	m.mu.Lock()
+	res := make([]*remoteEntry, 0, len(m.remoteOrder))
+	for _, name := range m.remoteOrder {
+		if re, ok := m.remotes[name]; ok {
+			res = append(res, re)
+		}
+	}
+	m.mu.Unlock()
+	out := make([]session.Snapshot, 0, len(res))
+	for _, re := range res {
+		out = append(out, re.snapshot())
+	}
+	return out
+}
+
+// Hosts reports the peer each streamed session runs on, keyed by the local name,
+// so the sidebar sorts a streamed session under its peer. See docs/peers.md.
+func (m *Manager) Hosts() map[string]string {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	out := make(map[string]string, len(m.remotes))
+	for name, re := range m.remotes {
+		out[name] = re.peer
+	}
+	return out
+}
+
+// Hosted reports which live sessions this host runs on behalf of a peer, so the
+// sidebar sorts them under the hosted section. See docs/peers.md.
+func (m *Manager) Hosted() map[string]bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	out := make(map[string]bool, len(m.entries))
+	for name, item := range m.entries {
+		if item.metaCopy().Hosted {
+			out[name] = true
+		}
+	}
+	return out
 }
 
 // fromWireSnapshot converts a streamed snapshot back to a session snapshot,

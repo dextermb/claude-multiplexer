@@ -7,9 +7,10 @@ peer listener, the API routes, the remote-session flow, and the tools.
 
 A remote session runs on a peer and streams into the host that started it. The
 manager holds it in a `remotes` map, and a pump republishes the peer's stream to
-the local bus under a local name, so the pane treats it as local. What is still
-ahead is the TUI: the new-session `host` field and the sidebar sections that name
-where a session runs.
+the local bus under a local name, so the pane treats it as local. The TUI names
+where a session runs: the new-session `host` field starts a session on a peer,
+and the sidebar splits into bands (see docs/tui/sessions.md). What is still ahead
+is the reserve gate — the reserve is stored and read, but not yet enforced.
 
 # The usage source
 

@@ -10,11 +10,14 @@ remote sessions in the manager: the `remotes` map, `AttachRemote`, the pump that
 republishes a peer's stream to the local bus, reconnect and re-attach on start,
 the routing of `Send`/`Stop`/`Interrupt`/`Lines`/`Snapshot`/`Messages`/`List`
 through the remotes map, and the `Host`/`Hosted` section data on `mcp.Session`.
-The durable Phase 3 content now lives in docs/peers.md. Still ahead: Phase 4 (the
-TUI — the host field and the sidebar sections) and Phase 1b (the reserve gate,
-which the hosted-session concept from Phase 3 now unblocks). The one integration
-seam left open is `Options.UsageFetch`: the exact usage endpoint and credential,
-to settle against a real account. See docs/peers.md.
+The durable Phase 3 content now lives in docs/peers.md. Phase 4 is the TUI: the
+new-session `host` field (local or a peer) and the sidebar section bands (local
+sessions, and a remote-sessions parent over hosted and streamed), which show only
+with peering on; its durable content lives in docs/tui/sessions.md and
+docs/peers.md. Still ahead: Phase 1b (the reserve gate, which the hosted-session
+concept from Phase 3 unblocks). The one integration seam left open is
+`Options.UsageFetch`: the exact usage endpoint and credential, to settle against
+a real account. See docs/peers.md.
 
 # Goal
 

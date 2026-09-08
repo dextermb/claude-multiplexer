@@ -3,6 +3,29 @@
 The sidebar, what a row means, and the two bars that carry the numbers.
 For the keys that drive it, see [keys.md](./keys.md).
 
+## The sections
+
+With peering on, the sidebar splits into bands above the groups, so a row names
+where its session runs. A band starts with a divider that names it. See
+[../peers.md](../peers.md).
+
+Three bands, in order:
+
+1. **local sessions** — the sessions this host runs for itself.
+2. **remote sessions** — a parent divider over two bands:
+   - **hosted** — the sessions this host runs for a peer, which started them
+     through the peer listener.
+   - **streamed** — the sessions that run on a peer and stream into this host.
+
+A row sorts to a band from two fields: a streamed session carries the peer as
+its host, and a hosted session carries the hosted mark. Everything else is
+local. The groups work inside each band, the same as without peering.
+
+Without peering, and with no hosted or streamed session, the sidebar shows no
+band dividers — it is the group list below. The new-session form gains a `host`
+field only with peering on: choose `local` or a peer, and the session starts
+there.
+
 ## The groups
 
 The list groups the sessions. Each group starts with a header, and its rows

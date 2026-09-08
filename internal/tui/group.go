@@ -20,6 +20,7 @@ const (
 type group struct {
 	key      string
 	label    string
+	section  sectionKind
 	creator  bool
 	folded   bool
 	rank     int
@@ -30,11 +31,18 @@ type group struct {
 }
 
 type listLine struct {
-	group int
-	row   int
+	group   int
+	row     int
+	divider string
 }
 
+// header is true for any line that is not a selectable row: a group header or a
+// section divider.
 func (l listLine) header() bool { return l.row < 0 }
+
+// isDivider is true for a section divider line, which carries a label and no
+// group.
+func (l listLine) isDivider() bool { return l.row < 0 && l.divider != "" }
 
 // repoRoot is the group key: the repository above dir, or dir when there is none.
 func repoRoot(dir string) string {
@@ -205,8 +213,9 @@ func labelGroups(rows []row) map[string]string {
 	return labels
 }
 
-// groupRows keys every row on its group, orders the groups so that a live one
-// comes first, and keeps the order of the rows inside each group.
+// groupRows keys every row on its section and group, orders the groups so that a
+// live one comes first inside each section (and a local section before a remote
+// one), and keeps the order of the rows inside each group.
 func groupRows(rows []row, folded map[string]bool) ([]row, []group) {
 	if len(rows) == 0 {
 		return rows, nil
@@ -214,27 +223,32 @@ func groupRows(rows []row, folded map[string]bool) ([]row, []group) {
 	var groups []group
 	index := make(map[string]int, len(rows))
 	lead := make(map[string]int, len(rows))
+	identity := func(item row) string {
+		return string(rune('0'+int(item.section))) + item.group
+	}
 	for _, item := range rows {
-		at, ok := index[item.group]
+		id := identity(item)
+		at, ok := index[id]
 		if !ok {
 			at = len(groups)
-			index[item.group] = at
+			index[id] = at
 			groups = append(groups, group{
 				key:     item.group,
+				section: item.section,
 				creator: strings.HasPrefix(item.group, byPrefix),
 				rank:    rowRank(item),
 				folded:  folded[item.group],
 			})
-			lead[item.group] = urgency(item) + 1
+			lead[id] = urgency(item) + 1
 		}
 		groups[at].count++
 		if rank := rowRank(item); rank < groups[at].rank {
 			groups[at].rank = rank
 		}
-		if mark := urgency(item); mark < lead[item.group] {
-			lead[item.group] = mark
+		if mark := urgency(item); mark < lead[id] {
+			lead[id] = mark
 		}
-		if urgency(item) == lead[item.group] {
+		if urgency(item) == lead[id] {
 			groups[at].live = item.live
 			groups[at].archived = item.archived
 			groups[at].state = item.state
@@ -244,16 +258,22 @@ func groupRows(rows []row, folded map[string]bool) ([]row, []group) {
 	for i := range groups {
 		groups[i].label = labels[groups[i].key]
 	}
-	sort.SliceStable(groups, func(i, j int) bool { return groups[i].rank < groups[j].rank })
+	sort.SliceStable(groups, func(i, j int) bool {
+		if groups[i].section != groups[j].section {
+			return groups[i].section < groups[j].section
+		}
+		return groups[i].rank < groups[j].rank
+	})
 
-	order := make(map[string]int, len(groups))
-	for i, item := range groups {
-		order[item.key] = i
+	groupAt := make(map[string]int, len(groups))
+	for i, g := range groups {
+		groupAt[string(rune('0'+int(g.section)))+g.key] = i
 	}
 	sorted := make([]row, len(rows))
 	copy(sorted, rows)
 	sort.SliceStable(sorted, func(i, j int) bool {
-		left, right := order[sorted[i].group], order[sorted[j].group]
+		left := groupAt[identity(sorted[i])]
+		right := groupAt[identity(sorted[j])]
 		if left != right {
 			return left < right
 		}
@@ -262,18 +282,49 @@ func groupRows(rows []row, folded map[string]bool) ([]row, []group) {
 	return sorted, groups
 }
 
+// sectionLabels names the top band of the sidebar. A remote band (hosted or
+// streamed) also carries the "remote sessions" parent, drawn once above the
+// first remote band. See docs/peers.md.
+func sectionLabel(kind sectionKind) string {
+	switch kind {
+	case sectionHosted:
+		return "hosted"
+	case sectionStreamed:
+		return "streamed"
+	default:
+		return "local sessions"
+	}
+}
+
+// remoteBand reports whether a section sits under the "remote sessions" parent.
+func remoteBand(kind sectionKind) bool {
+	return kind == sectionHosted || kind == sectionStreamed
+}
+
 // listLines is the sidebar as it is drawn: a header for every group, and the
-// rows of every group that is not folded.
-func listLines(rows []row, groups []group) []listLine {
+// rows of every group that is not folded. When sectioned is true, a divider
+// names each section, with the "remote sessions" parent above the first remote
+// one. See docs/peers.md.
+func listLines(rows []row, groups []group, sectioned bool) []listLine {
 	order := make(map[string]int, len(groups))
 	for i, item := range groups {
-		order[item.key] = i
+		order[string(rune('0'+int(item.section)))+item.key] = i
 	}
-	lines := make([]listLine, 0, len(rows)+len(groups))
+	lines := make([]listLine, 0, len(rows)+len(groups)+4)
 	current := -1
+	shownSection := sectionKind(-1)
+	shownRemoteParent := false
 	for i, item := range rows {
-		at := order[item.group]
+		at := order[string(rune('0'+int(item.section)))+item.group]
 		if at != current {
+			if sectioned && item.section != shownSection {
+				if remoteBand(item.section) && !shownRemoteParent {
+					lines = append(lines, listLine{group: -1, row: -1, divider: "remote sessions"})
+					shownRemoteParent = true
+				}
+				lines = append(lines, listLine{group: -1, row: -1, divider: sectionLabel(item.section)})
+				shownSection = item.section
+			}
 			lines = append(lines, listLine{group: at, row: -1})
 			current = at
 		}

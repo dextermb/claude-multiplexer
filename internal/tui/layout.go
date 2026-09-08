@@ -250,6 +250,10 @@ func (m Model) sidebarView() string {
 	visible := m.visibleLines()
 	for i := m.listOffset; i < len(m.lines) && len(rows) < visible; i++ {
 		line := m.lines[i]
+		if line.isDivider() {
+			rows = append(rows, m.sectionDivider(line.divider))
+			continue
+		}
 		if line.header() {
 			rows = append(rows, m.groupHeader(m.groups[line.group]))
 			continue
@@ -294,6 +298,23 @@ func (m Model) sessionRow(item row) string {
 		nameStyle = rowMutedStyle
 	}
 	return " " + item.style().Render(glyph) + nameStyle.Width(width-2).Render(rest)
+}
+
+// sectionDivider draws a section band header: a label between horizontal rules.
+// The "remote sessions" parent takes a brighter style than its sub-bands. See
+// docs/peers.md.
+func (m Model) sectionDivider(label string) string {
+	width := m.sidebarInnerCols()
+	labelStyle := sectionLabelStyle
+	if label == "remote sessions" {
+		labelStyle = sectionParentStyle
+	}
+	text := " " + label + " "
+	dashes := width - lipgloss.Width(text) - 1
+	if dashes < 0 {
+		dashes = 0
+	}
+	return sectionRuleStyle.Render("─") + labelStyle.Render(text) + sectionRuleStyle.Render(strings.Repeat("─", dashes))
 }
 
 // groupHeader names one directory. A folded header also carries the glyph of the

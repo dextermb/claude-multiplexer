@@ -10,6 +10,17 @@ import (
 	"github.com/dextermb/claude-multiplexer/internal/session"
 )
 
+// A section is the top band a row sits in when peering is on: the sessions this
+// host runs, the ones it runs for a peer, and the ones that run on a peer. See
+// docs/peers.md.
+type sectionKind int
+
+const (
+	sectionLocal sectionKind = iota
+	sectionHosted
+	sectionStreamed
+)
+
 type row struct {
 	name        string
 	title       string
@@ -18,6 +29,9 @@ type row struct {
 	projectDirs []string
 	layout      string
 	group       string
+	section     sectionKind
+	host        string
+	hosted      bool
 	parent      string
 	model       string
 	mode        string
@@ -80,6 +94,7 @@ func rowFromMeta(meta manager.Meta) row {
 		layout:      meta.Layout,
 		archived:    meta.Archived,
 		control:     meta.Control,
+		hosted:      meta.Hosted,
 		scheduled:   meta.Scheduled,
 		parent:      meta.Parent,
 		label:       label,
