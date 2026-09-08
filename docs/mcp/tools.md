@@ -35,9 +35,9 @@ grant. See [grant.md](grant.md).
 | `archive_session` | `session`, `restore` | Takes a stopped session out of the list, or with `restore` brings it back. | control |
 | `create_session` | `path`, `name` | Starts a new session in a directory. Returns the name it takes. | control |
 | `stop_job` | `session`, `job` | Interrupts a session and asks it to kill one background job. An empty session means the caller. | control |
-| `create_schedule` | `cron`, `dir`, `prompt`, `name`, `session`, `control` | Creates a durable schedule that runs a prompt on a cron. Returns the schedule record. | open |
+| `create_schedule` | `cron`, `dir`, `prompt`, `name`, `session`, `model`, `permission_mode`, `effort`, `control` | Creates a durable schedule that runs a prompt on a cron. Returns the schedule record. | open |
 | `update_schedule` | `name`, `cron`, `dir`, `prompt`, `session`, `model`, `permission_mode`, `effort`, `control` | Changes the fields it is sent, and leaves the rest. An empty string clears an optional field. Returns the schedule record. | open |
-| `list_schedules` | — | Every schedule: name, cron, directory, mode, and the last run. | open |
+| `list_schedules` | — | Every schedule: name, cron, directory, mode, model, permission mode, effort, the control grant, and the last run. | open |
 | `delete_schedule` | `name` | Removes a schedule. A session it already started is left alone. | open |
 | `set_schedule_enabled` | `name`, `enabled` | Turns a schedule on or off. A paused schedule stays on disk. | open |
 | `run_schedule` | `name` | Runs a schedule now, whatever its cron says. Returns the session name. | open |

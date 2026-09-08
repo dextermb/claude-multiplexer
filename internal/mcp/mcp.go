@@ -175,15 +175,18 @@ type Job struct {
 // return. It repeats what the manager holds, so this package needs nothing from
 // the manager package. See docs/scheduler.md.
 type Schedule struct {
-	Name        string `json:"name"`
-	Cron        string `json:"cron"`
-	Dir         string `json:"dir"`
-	Prompt      string `json:"prompt"`
-	Session     string `json:"session,omitempty"`
-	Model       string `json:"model,omitempty"`
-	Enabled     bool   `json:"enabled"`
-	LastRun     string `json:"last_run,omitempty"`
-	LastSession string `json:"last_session,omitempty"`
+	Name           string `json:"name"`
+	Cron           string `json:"cron"`
+	Dir            string `json:"dir"`
+	Prompt         string `json:"prompt"`
+	Session        string `json:"session,omitempty"`
+	Model          string `json:"model,omitempty"`
+	PermissionMode string `json:"permission_mode,omitempty"`
+	Effort         string `json:"effort,omitempty"`
+	Control        bool   `json:"control,omitempty"`
+	Enabled        bool   `json:"enabled"`
+	LastRun        string `json:"last_run,omitempty"`
+	LastSession    string `json:"last_session,omitempty"`
 }
 
 // ScheduleInput is the input to CreateSchedule, so the manager package fills the
