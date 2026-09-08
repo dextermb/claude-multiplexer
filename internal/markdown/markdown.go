@@ -12,6 +12,10 @@ import (
 
 const maxCache = 512
 
+// MutedGrey is the one grey NewMuted draws every element in, so a skill dump
+// recedes and matches its launching line. See docs/markdown.md.
+const MutedGrey = "245"
+
 type Renderer struct {
 	style ansi.StyleConfig
 	mu    sync.Mutex
@@ -109,7 +113,7 @@ func paneStyle() ansi.StyleConfig {
 // document sets the grey, the child elements drop their own colours so they
 // inherit it, and the code block drops its highlighter. See docs/markdown.md.
 func mutedStyle() ansi.StyleConfig {
-	grey := "245"
+	grey := MutedGrey
 	style := paneStyle()
 	style.Document.Color = &grey
 	style.Text.Color = &grey
