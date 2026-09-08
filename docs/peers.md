@@ -9,8 +9,8 @@ A remote session runs on a peer and streams into the host that started it. The
 manager holds it in a `remotes` map, and a pump republishes the peer's stream to
 the local bus under a local name, so the pane treats it as local. The TUI names
 where a session runs: the new-session `host` field starts a session on a peer,
-and the sidebar splits into bands (see docs/tui/sessions.md). What is still ahead
-is the reserve gate — the reserve is stored and read, but not yet enforced.
+and the sidebar splits into bands (see docs/tui/sessions.md). A usage reserve
+protects a share of this host's Claude usage for its own work (below).
 
 # The usage source
 
@@ -106,6 +106,33 @@ A session sorts into one of three sidebar sections from two fields on
   through the peer listener. `Hosted` is true.
 - **local** — everything else. Both fields are empty or false.
 
+# The reserve
+
+The reserve protects a share of a host's Claude usage for its own work. The host
+sets a floor (`reserve.min_percent`) on a window (`reserve.window`, `5h` or
+`7d`). A gate compares the polled percent remaining in that window against the
+floor, and re-evaluates on every poll, so a change to the reserve takes effect on
+the next poll. See `internal/manager` (`reserve.go`).
+
+The gate trips when the percent remaining drops below the floor. While it is
+tripped:
+
+- The peer listener refuses a new session from a peer. `POST /api/sessions`
+  answers `403` with a reason. No new hosted session starts.
+- Every hosted session pauses after its current turn. The session finishes the
+  turn it runs, then holds the queue: a queued prompt waits, and the session
+  stays live. See `internal/session` (`SetPaused`).
+
+The gate acts only on hosted sessions. A local session and a streamed session are
+never paused by this host's reserve — a streamed session obeys the reserve of the
+host that runs it.
+
+The gate clears on its own. The window is rolling, so the percent climbs back as
+it rolls. The next poll reads the higher percent, the gate clears, the hosted
+sessions resume, and the peer listener accepts a new session again. An unknown
+percent (a missing header) never trips the gate, and no reserve keeps hosting on
+with no floor.
+
 # Auth
 
 A peer authenticates with the client-credentials grant. Each host provisions an
@@ -138,9 +165,8 @@ peer listener off.
 
 - `listen` — the address the peer listener binds. Empty keeps it off.
 - `reserve.window` — the window a usage reserve guards: `5h` or `7d`.
-- `reserve.min_percent` — the percent-remaining floor. The reserve is stored and
-  read, but its enforcement (pause hosted sessions, refuse a new peer session) is
-  still ahead. Omit `reserve` for no floor.
+- `reserve.min_percent` — the percent-remaining floor the gate trips below (the
+  reserve). Omit `reserve` for no floor.
 - `hosts[].name` — the label for the peer.
 - `hosts[].url` — the base URL of the peer's peer listener.
 - `hosts[].client_id` / `client_secret` — the credentials the peer provisioned

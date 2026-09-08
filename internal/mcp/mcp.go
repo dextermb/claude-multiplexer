@@ -347,6 +347,9 @@ type Sessions interface {
 	RemovePeer(name string) (string, bool, error)
 	SetReserve(window string, minPercent int) (string, error)
 	UnsetReserve() (string, bool, error)
+	// HostingPaused reports whether the reserve gate is tripped, so the peer
+	// listener refuses a new hosted session. See docs/peers.md.
+	HostingPaused() bool
 }
 
 // PeersView is the output of list_peers: the listen address, the reserve, and

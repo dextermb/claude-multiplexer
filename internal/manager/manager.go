@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 
 	"github.com/dextermb/claude-multiplexer/internal/api"
 	"github.com/dextermb/claude-multiplexer/internal/config"
@@ -89,7 +90,8 @@ type Manager struct {
 	apiStore  *api.Store
 	usagePoll *usage.Poller
 
-	usageStop func()
+	usageStop     func()
+	hostingPaused atomic.Bool
 
 	mu          sync.Mutex
 	entries     map[string]*entry

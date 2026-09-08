@@ -1,23 +1,34 @@
 # Plan: peers — usage sharing and remote sessions
 
-Status: **in progress**. Phases 1, 2, and 3 are built and green in the
-`peer-usage` worktree. Phase 1 is the usage poll, the peer listener, the
-`/api/usage` route, and the `get_usage` / `peer_usage` / peer-config tools.
-Phase 2 is the remote-session transport: the `internal/wire` event, the
-owner-scoped session REST and the SSE stream on the peer listener, and the
-`peer.Client` methods (`CreateSession`, `Stream`, `Send`, `Stop`). Phase 3 is
-remote sessions in the manager: the `remotes` map, `AttachRemote`, the pump that
-republishes a peer's stream to the local bus, reconnect and re-attach on start,
-the routing of `Send`/`Stop`/`Interrupt`/`Lines`/`Snapshot`/`Messages`/`List`
-through the remotes map, and the `Host`/`Hosted` section data on `mcp.Session`.
-The durable Phase 3 content now lives in docs/peers.md. Phase 4 is the TUI: the
-new-session `host` field (local or a peer) and the sidebar section bands (local
-sessions, and a remote-sessions parent over hosted and streamed), which show only
-with peering on; its durable content lives in docs/tui/sessions.md and
-docs/peers.md. Still ahead: Phase 1b (the reserve gate, which the hosted-session
-concept from Phase 3 unblocks). The one integration seam left open is
-`Options.UsageFetch`: the exact usage endpoint and credential, to settle against
-a real account. See docs/peers.md.
+Status: **built, two integration seams open**. Every phase (1, 1b, 2, 3, 4) is
+built and green in the `peer-usage` worktree, and the durable content lives in
+docs/peers.md, docs/tui/sessions.md, and docs/mcp/api.md. What each phase built:
+
+- Phase 1 — the usage poll, the peer listener, the `/api/usage` route, and the
+  `get_usage` / `peer_usage` / peer-config tools.
+- Phase 2 — the remote-session transport: the `internal/wire` event, the
+  owner-scoped session REST and the SSE stream on the peer listener, and the
+  `peer.Client` methods.
+- Phase 3 — remote sessions in the manager: the `remotes` map, `AttachRemote`,
+  the pump that republishes a peer's stream to the local bus, reconnect and
+  re-attach on start, the routing through the remotes map, and the `Host`/
+  `Hosted` section data on `mcp.Session`.
+- Phase 4 — the TUI: the new-session `host` field and the sidebar section bands
+  (local, and a remote-sessions parent over hosted and streamed).
+- Phase 1b — the reserve gate: `session.SetPaused`, the manager gate that reads
+  the reserve against the poll and pauses or resumes every hosted session, and
+  the `403` on the peer listener's create while the gate is tripped.
+
+Two integration seams stay open, both below:
+
+- `Options.UsageFetch` — the exact usage endpoint and the credential the poll
+  uses. Until it is wired, the poll is off, usage reads as unknown, and the gate
+  never trips. This is the seam that makes the whole chain live.
+- The spend-capped reserve shape — the header set for a spend-capped account, and
+  a `reserve` in dollars against a cap. Confirm from a real poll.
+
+Once the poll is wired against a real account, this plan is done: move nothing
+new (the durable content is already in docs), and delete it.
 
 # Goal
 

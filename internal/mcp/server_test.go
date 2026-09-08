@@ -47,6 +47,7 @@ type fakeSessions struct {
 	usage         usage.Usage
 	peers         []mcp.PeerReport
 	peerView      mcp.PeersView
+	hostingPaused bool
 	lastControl   bool
 }
 
@@ -458,6 +459,8 @@ func (f *fakeSessions) UnsetReserve() (string, bool, error) {
 	f.peerView.Reserve = nil
 	return "config.json", had, nil
 }
+
+func (f *fakeSessions) HostingPaused() bool { return f.hostingPaused }
 
 func startServer(t *testing.T, sessions mcp.Sessions) *mcp.Server {
 	t.Helper()

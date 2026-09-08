@@ -19,6 +19,7 @@ type Poller struct {
 	fetch    Fetch
 	interval time.Duration
 	now      func() time.Time
+	onUpdate func(Usage)
 
 	mu   sync.Mutex
 	last Usage
@@ -31,6 +32,10 @@ func NewPoller(fetch Fetch, interval time.Duration) *Poller {
 	}
 	return &Poller{fetch: fetch, interval: interval, now: time.Now}
 }
+
+// OnUpdate registers a callback the poller runs after each refresh, so the
+// reserve gate re-evaluates on every poll. See docs/peers.md.
+func (p *Poller) OnUpdate(fn func(Usage)) { p.onUpdate = fn }
 
 // Usage returns the last cached read. It is safe to call from any goroutine.
 func (p *Poller) Usage() Usage {
@@ -45,17 +50,28 @@ func (p *Poller) Usage() Usage {
 func (p *Poller) Refresh(ctx context.Context) Usage {
 	header, err := p.fetch(ctx)
 	p.mu.Lock()
-	defer p.mu.Unlock()
 	if err != nil {
 		p.last.OK = false
 		p.last.Error = err.Error()
 		p.last.FetchedAt = p.now()
-		return p.last
+		result := p.last
+		p.mu.Unlock()
+		p.notify(result)
+		return result
 	}
 	next := Parse(header)
 	next.FetchedAt = p.now()
 	p.last = next
+	p.mu.Unlock()
+	p.notify(next)
 	return next
+}
+
+// notify runs the update callback outside the lock, so it can read the cache.
+func (p *Poller) notify(u Usage) {
+	if p.onUpdate != nil {
+		p.onUpdate(u)
+	}
 }
 
 // Run refreshes at once, and then on the interval, until the context is done.

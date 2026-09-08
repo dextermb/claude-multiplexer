@@ -31,6 +31,22 @@ func (s *Session) DiscardQueued() {
 	s.q.clear()
 }
 
+// SetPaused holds or releases the queue of a session. While paused, the write
+// loop finishes the running turn and then does not take the next queued prompt.
+// A resume wakes the loop, so a prompt that waited runs at once. The reserve
+// gate drives this on a hosted session. See docs/peers.md.
+func (s *Session) SetPaused(paused bool) {
+	if s.paused.Swap(paused) == paused {
+		return
+	}
+	if !paused {
+		s.q.wake()
+	}
+}
+
+// Paused reports whether the queue is held.
+func (s *Session) Paused() bool { return s.paused.Load() }
+
 func (s *Session) controlID(kind string) string {
 	s.mu.Lock()
 	s.controlSeq++

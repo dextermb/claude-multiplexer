@@ -24,6 +24,7 @@ func (m *Manager) startUsage() {
 		return
 	}
 	m.usagePoll = usage.NewPoller(m.opts.UsageFetch, 0)
+	m.usagePoll.OnUpdate(m.evaluateReserve)
 	ctx, cancel := context.WithCancel(context.Background())
 	m.usageStop = cancel
 	go m.usagePoll.Run(ctx)

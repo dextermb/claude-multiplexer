@@ -84,6 +84,10 @@ func (s *Server) restCreate(w http.ResponseWriter, r *http.Request, sess APISess
 		writeError(w, http.StatusBadRequest, "dir required")
 		return
 	}
+	if hosted(r) && s.sessions.HostingPaused() {
+		writeError(w, http.StatusForbidden, "the host keeps a usage reserve, and is not accepting a new session")
+		return
+	}
 	name, err := sess.Create(CreateInput{
 		Dir:            body.Dir,
 		Name:           strings.TrimSpace(body.Name),

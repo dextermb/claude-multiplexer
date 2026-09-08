@@ -258,6 +258,40 @@ func TestSessionQueuesPromptsWhileBusy(t *testing.T) {
 	}
 }
 
+func TestSessionHoldsTheQueueWhilePaused(t *testing.T) {
+	s := newTestSession(t, Config{Name: "pause"})
+	c := collect(s)
+	if err := s.Start(context.Background()); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	if err := s.Send("one"); err != nil {
+		t.Fatalf("Send one: %v", err)
+	}
+	waitForTurns(t, s, 1, 10*time.Second)
+
+	// While paused, a queued prompt waits and no new turn runs.
+	s.SetPaused(true)
+	if err := s.Send("two"); err != nil {
+		t.Fatalf("Send two: %v", err)
+	}
+	time.Sleep(200 * time.Millisecond)
+	if snap := s.Snapshot(); snap.Turns != 1 || snap.Queued != 1 {
+		t.Fatalf("while paused turns=%d queued=%d, want 1 and 1", snap.Turns, snap.Queued)
+	}
+
+	// A resume runs the prompt that waited.
+	s.SetPaused(false)
+	waitForTurns(t, s, 2, 10*time.Second)
+	if snap := s.Snapshot(); snap.Queued != 0 {
+		t.Errorf("after resume queue length = %d, want 0", snap.Queued)
+	}
+
+	stop, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	_ = s.Stop(stop)
+	c.wait(t)
+}
+
 func TestSessionRecordsTranscript(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "sessions", "tr", "transcript.jsonl")
 	s := newTestSession(t, Config{Name: "tr", TranscriptPath: path})

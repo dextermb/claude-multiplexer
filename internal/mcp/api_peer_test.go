@@ -93,3 +93,48 @@ func TestPeerListenerCreatesHosted(t *testing.T) {
 		t.Errorf("a create through the loopback API is hosted")
 	}
 }
+
+// TestReserveGateRefusesHostedCreate checks that a create through the peer
+// listener is refused with 403 while the gate is tripped, and a create through
+// the loopback API is not.
+func TestReserveGateRefusesHostedCreate(t *testing.T) {
+	store, err := api.Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.CreateAdmin(); err != nil {
+		t.Fatal(err)
+	}
+	client, secret, err := store.CreateClient("bruno")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sessions := newFakeSessions()
+	sessions.hostingPaused = true
+	server := mcp.NewServer(sessions)
+	server.EnableAPI(store, func(_, _ string) mcp.APISessions { return fakeAPI{} })
+	if err := server.Start(0, 0); err != nil {
+		t.Fatal(err)
+	}
+	if err := server.StartPeer("127.0.0.1:0"); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		_ = server.Close(ctx)
+	})
+
+	// The peer listener refuses a new session while the gate is tripped.
+	token := grant(t, server.PeerBaseURL(), client.ClientID, secret)
+	if code, _ := apiDo(t, http.MethodPost, server.PeerBaseURL()+"/api/sessions", token, `{"dir":"/tmp"}`); code != http.StatusForbidden {
+		t.Fatalf("peer create while tripped = %d, want 403", code)
+	}
+
+	// The loopback API is not gated by the reserve.
+	loopToken := grant(t, server.BaseURL(), client.ClientID, secret)
+	if code, _ := apiDo(t, http.MethodPost, server.BaseURL()+"/api/sessions", loopToken, `{"dir":"/tmp"}`); code != http.StatusOK {
+		t.Fatalf("loopback create while tripped = %d, want 200", code)
+	}
+}
