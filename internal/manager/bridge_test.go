@@ -107,6 +107,36 @@ func TestBridgeSchedule(t *testing.T) {
 	}
 }
 
+func TestBridgeScheduleViewCarriesSessionFields(t *testing.T) {
+	m := newBridgeManager(t)
+	b := &bridge{m: m}
+
+	sched, err := b.CreateSchedule(mcp.ScheduleInput{
+		Cron:           "* * * * *",
+		Dir:            m.opts.Root,
+		Prompt:         "hi",
+		Name:           "job",
+		Model:          "opus",
+		PermissionMode: "plan",
+		Effort:         "high",
+		Control:        true,
+	}, "boss")
+	if err != nil {
+		t.Fatalf("CreateSchedule: %v", err)
+	}
+	if sched.Model != "opus" || sched.PermissionMode != "plan" || sched.Effort != "high" || !sched.Control {
+		t.Fatalf("view = %+v, want model opus, mode plan, effort high, control true", sched)
+	}
+
+	list := b.ListSchedules()
+	if len(list) != 1 {
+		t.Fatalf("ListSchedules: want 1, got %d", len(list))
+	}
+	if got := list[0]; got.Model != "opus" || got.PermissionMode != "plan" || got.Effort != "high" || !got.Control {
+		t.Fatalf("listed = %+v, want the session fields to survive", got)
+	}
+}
+
 func TestBridgeAPI(t *testing.T) {
 	m := newBridgeManager(t)
 	if err := m.StartMCP(); err != nil {

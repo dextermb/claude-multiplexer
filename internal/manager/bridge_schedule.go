@@ -86,14 +86,17 @@ func (b *bridge) RunSchedule(name, by string) (string, error) {
 
 func scheduleView(s Schedule) mcp.Schedule {
 	view := mcp.Schedule{
-		Name:        s.Name,
-		Cron:        s.Cron,
-		Dir:         s.Dir,
-		Prompt:      s.Prompt,
-		Session:     s.Session,
-		Model:       s.Model,
-		Enabled:     s.Enabled,
-		LastSession: s.LastSession,
+		Name:           s.Name,
+		Cron:           s.Cron,
+		Dir:            s.Dir,
+		Prompt:         s.Prompt,
+		Session:        s.Session,
+		Model:          s.Model,
+		PermissionMode: s.PermissionMode,
+		Effort:         s.Effort,
+		Control:        s.Control,
+		Enabled:        s.Enabled,
+		LastSession:    s.LastSession,
 	}
 	if !s.LastRun.IsZero() {
 		view.LastRun = s.LastRun.Format(time.RFC3339)
