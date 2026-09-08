@@ -109,7 +109,7 @@ func paneStyle() ansi.StyleConfig {
 // document sets the grey, the child elements drop their own colours so they
 // inherit it, and the code block drops its highlighter. See docs/markdown.md.
 func mutedStyle() ansi.StyleConfig {
-	grey := "240"
+	grey := "245"
 	style := paneStyle()
 	style.Document.Color = &grey
 	style.Text.Color = &grey

@@ -213,7 +213,7 @@ func classStyle(class render.Class) lipgloss.Style {
 	case render.ClassBash:
 		return lipgloss.NewStyle().Foreground(lipgloss.Color("114"))
 	case render.ClassSkill:
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("245"))
 	}
 	return lipgloss.NewStyle().Foreground(lipgloss.Color("252"))
 }
