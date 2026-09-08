@@ -27,12 +27,12 @@ func newline(t *testing.T, m Model) Model {
 
 func TestThePromptBoxStartsAtOneRow(t *testing.T) {
 	m := promptModel(t)
-	if got := m.promptHeight(); got != 2 {
-		t.Fatalf("prompt block is %d rows, want 2", got)
+	if got := m.promptHeight(); got != 3 {
+		t.Fatalf("prompt block is %d rows, want 3", got)
 	}
 	m, _ = step(t, m, key("hello"))
-	if got := m.promptHeight(); got != 2 {
-		t.Fatalf("one line gave %d rows, want 2", got)
+	if got := m.promptHeight(); got != 3 {
+		t.Fatalf("one line gave %d rows, want 3", got)
 	}
 }
 
@@ -43,8 +43,8 @@ func TestThePromptBoxGrowsWithNewLinesAndStopsAtFour(t *testing.T) {
 	m, _ = step(t, m, key("one"))
 	m = newline(t, m)
 	m, _ = step(t, m, key("two"))
-	if got := m.promptHeight(); got != 3 {
-		t.Fatalf("two lines gave %d rows, want 3", got)
+	if got := m.promptHeight(); got != 4 {
+		t.Fatalf("two lines gave %d rows, want 4", got)
 	}
 	if got := m.bodyHeight(); got != body-1 {
 		t.Fatalf("body is %d rows, want %d", got, body-1)
@@ -52,8 +52,8 @@ func TestThePromptBoxGrowsWithNewLinesAndStopsAtFour(t *testing.T) {
 
 	m = newline(t, m)
 	m, _ = step(t, m, key("three"))
-	if got := m.promptHeight(); got != 4 {
-		t.Fatalf("three lines gave %d rows, want 4", got)
+	if got := m.promptHeight(); got != 5 {
+		t.Fatalf("three lines gave %d rows, want 5", got)
 	}
 	if got := m.bodyHeight(); got != body-2 {
 		t.Fatalf("body is %d rows, want %d", got, body-2)
@@ -61,14 +61,14 @@ func TestThePromptBoxGrowsWithNewLinesAndStopsAtFour(t *testing.T) {
 
 	m = newline(t, m)
 	m, _ = step(t, m, key("four"))
-	if got := m.promptHeight(); got != 5 {
-		t.Fatalf("four lines gave %d rows, want 5", got)
+	if got := m.promptHeight(); got != 6 {
+		t.Fatalf("four lines gave %d rows, want 6", got)
 	}
 
 	m = newline(t, m)
 	m, _ = step(t, m, key("five"))
-	if got := m.promptHeight(); got != 5 {
-		t.Fatalf("five lines gave %d rows, want 5, the cap", got)
+	if got := m.promptHeight(); got != 6 {
+		t.Fatalf("five lines gave %d rows, want 6, the cap", got)
 	}
 }
 
@@ -89,8 +89,8 @@ func TestTheOutputPaneGivesBackTheRowsThePromptTakes(t *testing.T) {
 func TestALongLineWrapsAndGrowsThePromptBox(t *testing.T) {
 	m := promptModel(t)
 	m, _ = step(t, m, key(strings.Repeat("word ", 80)))
-	if got := m.promptHeight(); got != 5 {
-		t.Fatalf("a wrapped line gave %d rows, want 5", got)
+	if got := m.promptHeight(); got != 6 {
+		t.Fatalf("a wrapped line gave %d rows, want 6", got)
 	}
 }
 
@@ -99,13 +99,13 @@ func TestThePromptBoxShrinksAgain(t *testing.T) {
 	m = newline(t, m)
 	m = newline(t, m)
 	m = newline(t, m)
-	if got := m.promptHeight(); got != 5 {
-		t.Fatalf("four lines gave %d rows, want 5", got)
+	if got := m.promptHeight(); got != 6 {
+		t.Fatalf("four lines gave %d rows, want 6", got)
 	}
 	m.prompt.SetValue("")
 	m, _ = step(t, m, key("a"))
-	if got := m.promptHeight(); got != 2 {
-		t.Fatalf("an emptied prompt gave %d rows, want 2", got)
+	if got := m.promptHeight(); got != 3 {
+		t.Fatalf("an emptied prompt gave %d rows, want 3", got)
 	}
 }
 

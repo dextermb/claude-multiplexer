@@ -173,7 +173,7 @@ func (m Model) View() string {
 	if dialog, ok := m.bodyDialogView(); ok {
 		body = dialog
 	}
-	prompt := withEdge(m.promptView(), m.focus == focusPrompt)
+	prompt := withEdge(promptPanelStyle.Width(m.width-gutterWidth).Render(m.promptView()), m.focus == focusPrompt)
 	return lipgloss.JoinVertical(lipgloss.Left, body, prompt, m.statusView())
 }
 
