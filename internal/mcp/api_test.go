@@ -438,3 +438,19 @@ func TestCredentialToolsViaControlSession(t *testing.T) {
 		}
 	}
 }
+
+func TestAPIDocsToolDescribesTheRESTSurface(t *testing.T) {
+	server := startServer(t, newFakeSessions())
+	token, err := server.Register("docs", false)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+	session := connect(t, server, token)
+
+	out := resultText(call(t, session, mcp.ToolAPIDocs, map[string]any{}))
+	for _, want := range []string{"127.0.0.1", "/token", "/admin/clients", "/api/sessions", "grant_type", "Authorization"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("get_api_docs output is missing %q: %s", want, out)
+		}
+	}
+}

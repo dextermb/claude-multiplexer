@@ -64,6 +64,7 @@ const (
 	ToolRevokeAPIClient = "revoke_api_client"
 	ToolListAPIClients  = "list_api_clients"
 	ToolAPIEndpoint     = "get_api_endpoint"
+	ToolAPIDocs         = "get_api_docs"
 )
 
 // OpenTools go to every session. ControlTools go only to a session that holds
@@ -75,7 +76,7 @@ var (
 		ToolListProject, ToolAddProjectDir, ToolRemoveProject, ToolSetProject, ToolClearProject,
 		ToolListLayouts, ToolSaveLayout, ToolDeleteLayout, ToolSetLayout, ToolUnsetLayout,
 		ToolCreateSchedule, ToolUpdateSchedule, ToolListSchedules, ToolDeleteSchedule, ToolSetScheduleEnabled, ToolRunSchedule,
-		ToolSchedulePath, ToolAPIURL}
+		ToolSchedulePath, ToolAPIURL, ToolAPIDocs}
 	ControlTools = []string{ToolSend, ToolStop, ToolArchive, ToolCreate, ToolStopJob,
 		ToolCreateAPIAdmin, ToolRotateAPIAdmin, ToolRevokeAPIAdmin,
 		ToolCreateAPIClient, ToolUpdateAPIClient, ToolRotateAPIClient, ToolRevokeAPIClient,
