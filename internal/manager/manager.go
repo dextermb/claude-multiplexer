@@ -120,7 +120,7 @@ func (m *Manager) Root() string { return m.opts.Root }
 func (m *Manager) pump(item *entry) {
 	defer m.pumps.Done()
 	for ev := range item.sess.Events() {
-		lines := m.opts.Renderer.Lines(ev)
+		lines := item.skill.Track(ev.Protocol, m.opts.Renderer.Lines(ev))
 		item.lines.append(lines)
 		partial := trackPartial(item, ev)
 		todos := trackTodos(item, ev)

@@ -63,6 +63,7 @@ func (m *Manager) Replay(name string) []render.Line {
 	defer file.Close()
 
 	reader := protocol.NewReader(file)
+	var skill render.SkillTracker
 	var lines []render.Line
 	for {
 		ev, err := reader.Next()
@@ -72,10 +73,11 @@ func (m *Manager) Replay(name string) []render.Line {
 		if err != nil {
 			break
 		}
-		lines = append(lines, m.opts.Renderer.Lines(session.Event{
+		rendered := m.opts.Renderer.Lines(session.Event{
 			Kind:     session.KindProtocol,
 			Protocol: ev,
-		})...)
+		})
+		lines = append(lines, skill.Track(ev, rendered)...)
 	}
 	if len(lines) > m.opts.MaxLines {
 		lines = lines[len(lines)-m.opts.MaxLines:]

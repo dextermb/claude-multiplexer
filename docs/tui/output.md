@@ -23,6 +23,7 @@ recedes:
 | `ClassThinking` | Thinking, when the verbose flag is on | Muted, italic |
 | `ClassStderr` | A line from the child stderr | Amber |
 | `ClassError` | A failure, or a line that is not JSON | Red |
+| `ClassSkill` | The content of a skill, loaded into the transcript | Muted, darkest |
 
 What the assistant says is rendered as markdown, so a heading, a list, and a
 code fence all read as themselves. Press `o m` for the raw text. See
@@ -54,9 +55,22 @@ the `set_block_cap` tool each change it. A cap of `0` caps nothing.
 
 The cap keys by the block bucket, so each type of block caps on its own. A block
 takes the bucket of its first line: `prompt`, `message`, `tool`, `meta`, `bash`,
-or `error`. A bucket cap of `0` draws only the marker, so you open the block to
-read it, and a bucket set to `null` never caps. So you keep every message in
-full, and collapse the token line to a marker. See [../config.md](../config.md).
+`error`, or `skill`. A bucket cap of `0` draws only the marker, so you open the
+block to read it, and a bucket set to `null` never caps. So you keep every
+message in full, and collapse the token line to a marker. See
+[../config.md](../config.md).
+
+## The skill dump
+
+Claude Code loads a skill by writing the whole skill content back into the
+stream as a user message. A large skill then fills the pane, so the `skill`
+bucket caps that dump at one row by default, and the marker opens the rest in
+place. See [../config/blocks.md](../config/blocks.md).
+
+The dump carries no marker of its own, so the renderer knows it only by the
+`Skill` tool call before it. The `render.SkillTracker` arms on that call, holds
+across the tool result, and marks the next user text message `ClassSkill`. A
+one-line printer draws the row count in place of the whole dump.
 
 ```
 → Bash ./scripts/build.sh

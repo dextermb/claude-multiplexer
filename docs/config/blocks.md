@@ -33,13 +33,17 @@ of its first line:
 | `meta` | The session line, the token line, and the result line. |
 | `bash` | The output of a `!` command. |
 | `error` | An error, and a line from stderr. |
+| `skill` | The content of a skill, loaded into the transcript. |
 
 Each bucket takes one of three states:
 
 - a number `N` draws `N` rows, then the marker. `0` draws only the marker, so
   you open the block to read any of it.
 - `null` never caps the bucket, so the block draws in full.
-- no entry takes the `blockCap` default.
+- no entry takes the `blockCap` default. The `skill` bucket is the one
+  exception: an absent entry takes a default of `1` row, not the `blockCap`
+  default. A skill loads its whole content into the transcript, so it collapses
+  to one row and a marker that opens the rest.
 
 For example, this file collapses the token and result lines to a marker, and
 never caps a message:

@@ -26,6 +26,7 @@ const (
 	ClassStderr
 	ClassError
 	ClassBash
+	ClassSkill
 )
 
 // BucketFor names the block-cap bucket a class falls in. See docs/tui/output.md.
@@ -41,6 +42,8 @@ func BucketFor(c Class) string {
 		return config.BucketBash
 	case ClassStderr, ClassError:
 		return config.BucketError
+	case ClassSkill:
+		return config.BucketSkill
 	default:
 		return config.BucketMeta
 	}

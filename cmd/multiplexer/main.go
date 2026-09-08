@@ -333,6 +333,7 @@ func stream(ctx context.Context, s *session.Session, r render.Renderer) int {
 	out := bufio.NewWriter(os.Stdout)
 	defer out.Flush()
 
+	var skill render.SkillTracker
 	code := 0
 	for {
 		select {
@@ -345,7 +346,7 @@ func stream(ctx context.Context, s *session.Session, r render.Renderer) int {
 				}
 				return code
 			}
-			for _, line := range render.Print(r.Lines(ev)) {
+			for _, line := range render.Print(skill.Track(ev.Protocol, r.Lines(ev))) {
 				fmt.Fprintln(out, line)
 			}
 			out.Flush()
