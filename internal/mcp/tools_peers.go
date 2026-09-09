@@ -13,17 +13,22 @@ type enablePeeringIn struct {
 }
 
 type addPeerIn struct {
-	Name         string `json:"name" jsonschema:"the label for the peer"`
-	URL          string `json:"url" jsonschema:"the base URL of the peer's peer listener, e.g. http://192.168.1.20:51900"`
-	ClientID     string `json:"client_id" jsonschema:"the client id the peer provisioned for this host"`
-	ClientSecret string `json:"client_secret" jsonschema:"the client secret the peer provisioned for this host"`
+	Name           string `json:"name" jsonschema:"the label for the peer"`
+	URL            string `json:"url,omitempty" jsonschema:"the base URL of the peer's peer listener, e.g. http://192.168.1.20:51900; omit for a peer used only to hoist"`
+	ClientID       string `json:"client_id,omitempty" jsonschema:"the client id the peer provisioned for this host"`
+	ClientSecret   string `json:"client_secret,omitempty" jsonschema:"the client secret the peer provisioned for this host"`
+	CredentialType string `json:"credential_type,omitempty" jsonschema:"the lent credential type: token for a Claude access token, or key for an Anthropic API key"`
+	Credential     string `json:"credential,omitempty" jsonschema:"the lent Claude credential value the peer shared; it turns a hoisted session on for this peer"`
 }
 
 type updatePeerIn struct {
-	Name         string `json:"name" jsonschema:"the name of the peer to update"`
-	URL          string `json:"url,omitempty" jsonschema:"the new base URL, or omit to keep it"`
-	ClientID     string `json:"client_id,omitempty" jsonschema:"the new client id, or omit to keep it"`
-	ClientSecret string `json:"client_secret,omitempty" jsonschema:"the new client secret, or omit to keep it"`
+	Name            string `json:"name" jsonschema:"the name of the peer to update"`
+	URL             string `json:"url,omitempty" jsonschema:"the new base URL, or omit to keep it"`
+	ClientID        string `json:"client_id,omitempty" jsonschema:"the new client id, or omit to keep it"`
+	ClientSecret    string `json:"client_secret,omitempty" jsonschema:"the new client secret, or omit to keep it"`
+	CredentialType  string `json:"credential_type,omitempty" jsonschema:"the lent credential type: token or key; give with credential"`
+	Credential      string `json:"credential,omitempty" jsonschema:"the new lent Claude credential value, or omit to keep it"`
+	ClearCredential bool   `json:"clear_credential,omitempty" jsonschema:"true removes the lent credential, so this peer no longer hoists"`
 }
 
 type removePeerIn struct {
@@ -81,12 +86,18 @@ func (s *Server) addPeerTools(server *sdk.Server, _ string) {
 
 	sdk.AddTool(server, &sdk.Tool{
 		Name:        ToolAddPeer,
-		Description: "Add a peer host this host reaches, with the credentials the peer provisioned. It takes effect on the next restart.",
+		Description: "Add a peer host this host reaches, with the credentials the peer provisioned, and an optional lent Claude credential to hoist. It takes effect on the next restart.",
 	}, func(_ context.Context, _ *sdk.CallToolRequest, in addPeerIn) (*sdk.CallToolResult, peerOut, error) {
-		if strings.TrimSpace(in.Name) == "" || strings.TrimSpace(in.URL) == "" {
+		if strings.TrimSpace(in.Name) == "" {
 			return nil, peerOut{}, ErrNoPeer
 		}
-		path, err := s.sessions.AddPeer(PeerHostInput{Name: in.Name, URL: in.URL, ClientID: in.ClientID, ClientSecret: in.ClientSecret})
+		if strings.TrimSpace(in.URL) == "" && strings.TrimSpace(in.Credential) == "" {
+			return nil, peerOut{}, ErrNoPeer
+		}
+		path, err := s.sessions.AddPeer(PeerHostInput{
+			Name: in.Name, URL: in.URL, ClientID: in.ClientID, ClientSecret: in.ClientSecret,
+			CredentialType: in.CredentialType, Credential: in.Credential,
+		})
 		if err != nil {
 			return nil, peerOut{}, err
 		}
@@ -100,7 +111,10 @@ func (s *Server) addPeerTools(server *sdk.Server, _ string) {
 		if strings.TrimSpace(in.Name) == "" {
 			return nil, peerOut{}, ErrNoPeer
 		}
-		path, err := s.sessions.UpdatePeer(PeerHostUpdate{Name: in.Name, URL: in.URL, ClientID: in.ClientID, ClientSecret: in.ClientSecret})
+		path, err := s.sessions.UpdatePeer(PeerHostUpdate{
+			Name: in.Name, URL: in.URL, ClientID: in.ClientID, ClientSecret: in.ClientSecret,
+			CredentialType: in.CredentialType, Credential: in.Credential, ClearCredential: in.ClearCredential,
+		})
 		if err != nil {
 			return nil, peerOut{}, err
 		}

@@ -23,6 +23,20 @@ func ClaudePaths() []string {
 	return []string{filepath.Join(dir, ClaudeFileName)}
 }
 
+// ClaudeDir gives the Claude Code config directory: $CLAUDE_CONFIG_DIR, or
+// ~/.claude. A hoisted session seeds a per-lender directory from it. It returns
+// "" when the home directory is unknown. See docs/peers/hoisted.md.
+func ClaudeDir() string {
+	if dir := os.Getenv("CLAUDE_CONFIG_DIR"); dir != "" {
+		return dir
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return ""
+	}
+	return filepath.Join(home, ".claude")
+}
+
 // claudeSettings is the part of the Claude Code settings this program reads.
 type claudeSettings struct {
 	Env map[string]string `json:"env"`

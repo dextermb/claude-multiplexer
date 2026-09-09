@@ -12,11 +12,16 @@ where a session runs: the new-session `host` field starts a session on a peer,
 and the sidebar splits into bands (see docs/tui/sessions.md). A usage reserve
 protects a share of this host's Claude usage for its own work (below).
 
+A peer may instead lend its Claude credential. The borrower then runs the session
+on its own machine as the peer — a hoisted session. See
+[peers/hoisted.md](peers/hoisted.md).
+
 ## The pages
 
 | Page | Read it for |
 |---|---|
 | [peers/connect.md](peers/connect.md) | Connect two hosts: the roles, the diagrams, and the step-by-step |
+| [peers/hoisted.md](peers/hoisted.md) | Run a peer's session locally with the peer's credential: the opt-in, the tools, and the run |
 
 # The usage source
 
@@ -226,14 +231,19 @@ Manage the config (control tools, next to the API-client tools, because a peer
 entry holds a credential and turning peering on changes the network exposure):
 
 - `list_peers` — whether peering is on and its port, the reserve, and each peer
-  host (the name, the url, and the client id). No secret is shown.
+  host (the name, the url, the client id, and whether it holds a lent
+  credential). No secret is shown.
 - `enable_peering` / `disable_peering` — turn the peer listener on (with an
   optional port) or off.
-- `add_peer` / `remove_peer` — add a peer host (name, url, client id, secret),
-  or remove one by name.
+- `add_peer` / `remove_peer` — add a peer host (name, url, client id, secret, and
+  an optional lent credential to hoist), or remove one by name.
 - `update_peer` — change a peer host found by name, for example when its client
   secret is regenerated or its url changes. Give only the fields to change.
 - `set_reserve` / `unset_reserve` — set the window and the floor, or clear it.
+
+To lend a Claude credential, so a peer runs its session locally as this host, use
+`create_api_key` and `revoke_api_key`, and give the peer entry a credential. See
+[peers/hoisted.md](peers/hoisted.md).
 
 A change to peering or a peer host takes effect on the next restart, the same as
 a hand edit of the file. Each tool writes the config and returns the

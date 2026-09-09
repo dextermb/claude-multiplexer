@@ -65,6 +65,9 @@ type Spec struct {
 	Owner          string
 	Hosted         bool
 	TempDir        bool
+	// Lender names the peer whose Claude credential a hoisted session runs with.
+	// It is empty for every other session. See docs/peers/hoisted.md.
+	Lender string
 }
 
 type Event struct {

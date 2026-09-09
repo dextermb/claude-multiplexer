@@ -15,6 +15,7 @@ import (
 
 const (
 	fieldHost = iota
+	fieldHoist
 	fieldDir
 	fieldName
 	fieldModel
@@ -25,17 +26,25 @@ const (
 	fieldCount
 )
 
-var fieldLabels = [fieldCount]string{"Host", "Directory", "Name", "Model", "Permission mode", "Effort", "Control", "First prompt"}
+var fieldLabels = [fieldCount]string{"Host", "Peer mode", "Directory", "Name", "Model", "Permission mode", "Effort", "Control", "First prompt"}
 
 // localHost is the host option for a session this host runs itself.
 const localHost = "local"
 
-// The option lists of the four select fields. An empty string sends nothing, so
+// hoistMode runs a peer's session locally with the peer's credential; streamMode
+// runs it on the peer and streams it in. See docs/peers/hoisted.md.
+const (
+	hoistMode  = "hoist"
+	streamMode = "stream"
+)
+
+// The option lists of the select fields. An empty string sends nothing, so
 // Claude Code takes the project or global default. See docs/config/new-session.md.
 var (
 	modelOptions   = append([]string{""}, modelChoices...)
 	effortOptions  = append([]string{""}, session.EffortLevels...)
 	controlOptions = []string{"no", "yes"}
+	hoistOptions   = []string{hoistMode, streamMode}
 )
 
 type formResult int
@@ -89,11 +98,12 @@ type form struct {
 	picked     int
 	stem       string
 	hostShown  bool
+	hoistable  map[string]bool
 	defaultDir string
 }
 
-func newForm(dir string, defaults newSessionDefaults, peers []string) *form {
-	f := &form{hostShown: len(peers) > 0, defaultDir: dir}
+func newForm(dir string, defaults newSessionDefaults, peers, hoistable []string) *form {
+	f := &form{hostShown: len(peers) > 0, hoistable: toSet(hoistable), defaultDir: dir}
 	var placeholders [fieldCount]string
 	placeholders[fieldDir] = dir
 	placeholders[fieldName] = "taken from the directory"
@@ -107,6 +117,7 @@ func newForm(dir string, defaults newSessionDefaults, peers []string) *form {
 	}
 	f.inputs[fieldDir].SetValue(dir)
 	f.selects[fieldHost] = newSelect(append([]string{localHost}, peers...), localHost)
+	f.selects[fieldHoist] = newSelect(hoistOptions, hoistMode)
 	f.selects[fieldModel] = newSelect(modelOptions, defaults.model)
 	f.selects[fieldMode] = newSelect(modeChoices, defaults.mode)
 	f.selects[fieldEffort] = newSelect(effortOptions, defaults.effort)
@@ -118,19 +129,55 @@ func newForm(dir string, defaults newSessionDefaults, peers []string) *form {
 	return f
 }
 
+func toSet(names []string) map[string]bool {
+	set := make(map[string]bool, len(names))
+	for _, name := range names {
+		set[name] = true
+	}
+	return set
+}
+
 // visible reports whether a field is shown. The host field hides when no peer is
-// configured, so the form is unchanged without peering. See docs/peers.md.
+// configured, so the form is unchanged without peering. The peer-mode field
+// shows only for a peer that holds a lent credential. See docs/peers.md and
+// docs/peers/hoisted.md.
 func (f *form) visible(i int) bool {
-	return i != fieldHost || f.hostShown
+	switch i {
+	case fieldHost:
+		return f.hostShown
+	case fieldHoist:
+		return f.canHoist()
+	default:
+		return true
+	}
 }
 
 // host is the chosen host: "local" for a session this host runs, or a peer name.
 func (f *form) host() string { return f.selects[fieldHost].value() }
 
-// syncDir follows the host: a peer directory is on the peer, so the local
-// default does not apply and the field clears; local restores the default.
+// canHoist reports whether the chosen host is a peer that lent a credential, so
+// the form may run its session locally. See docs/peers/hoisted.md.
+func (f *form) canHoist() bool {
+	return f.host() != localHost && f.hoistable[f.host()]
+}
+
+// hoisting reports whether the form will run a hoisted session: a peer that can
+// hoist, with the peer-mode field on hoist. See docs/peers/hoisted.md.
+func (f *form) hoisting() bool {
+	return f.canHoist() && f.selects[fieldHoist].value() == hoistMode
+}
+
+// localDir reports whether the directory is on this machine: a local session, or
+// a hoisted one. A streamed session runs on the peer, so its directory is not.
+func (f *form) localDir() bool {
+	return f.host() == localHost || f.hoisting()
+}
+
+// syncDir follows the host and the peer mode: a local or hoisted session runs
+// here, so the field takes the local default; a streamed session runs on the
+// peer, so the field clears. See docs/peers/hoisted.md.
 func (f *form) syncDir() {
-	if f.host() == localHost {
+	if f.localDir() {
 		f.inputs[fieldDir].SetValue(f.defaultDir)
 	} else {
 		f.inputs[fieldDir].SetValue("")
@@ -151,8 +198,9 @@ func (f *form) isSelect(i int) bool { return f.selects[i] != nil }
 func (f *form) suggest() {
 	f.picked = -1
 	f.stem = ""
-	// A peer directory is on the peer, so local path completion does not apply.
-	if f.focus != fieldDir || f.host() != localHost {
+	// A streamed session's directory is on the peer, so local path completion
+	// does not apply. A hoisted session runs here, so it does.
+	if f.focus != fieldDir || !f.localDir() {
 		f.matches = nil
 		return
 	}
@@ -178,7 +226,7 @@ func (f *form) cycle(delta int) bool {
 }
 
 func (f *form) completeDir() bool {
-	if f.host() != localHost {
+	if !f.localDir() {
 		return false
 	}
 	value := f.inputs[fieldDir].Value()
@@ -235,7 +283,7 @@ func (f *form) Update(msg tea.Msg) (formResult, tea.Cmd) {
 			case "right", "l":
 				f.selects[f.focus].cycle(1)
 			}
-			if f.focus == fieldHost && f.host() != before {
+			if (f.focus == fieldHost && f.host() != before) || f.focus == fieldHoist {
 				f.syncDir()
 			}
 			return formOpen, nil
@@ -305,9 +353,9 @@ func directoryOf(path string) string {
 
 func (f *form) validate() bool {
 	dir := strings.TrimSpace(f.inputs[fieldDir].Value())
-	if f.host() != localHost {
-		// The directory is on the peer, so it is not resolved or checked against
-		// the local filesystem. A blank directory means a temporary one there.
+	if !f.localDir() {
+		// A streamed session's directory is on the peer, so it is not resolved or
+		// checked here. A blank directory means a temporary one there.
 		f.err = ""
 		return true
 	}
@@ -335,7 +383,7 @@ func (f *form) validate() bool {
 }
 
 func (f *form) spec() manager.Spec {
-	return manager.Spec{
+	spec := manager.Spec{
 		Dir:            strings.TrimSpace(f.inputs[fieldDir].Value()),
 		Name:           strings.TrimSpace(f.inputs[fieldName].Value()),
 		Model:          f.selects[fieldModel].value(),
@@ -343,6 +391,10 @@ func (f *form) spec() manager.Spec {
 		Effort:         f.selects[fieldEffort].value(),
 		Control:        f.selects[fieldControl].value() == "yes",
 	}
+	if f.hoisting() {
+		spec.Lender = f.host()
+	}
+	return spec
 }
 
 func (f *form) firstPrompt() string {
@@ -366,7 +418,7 @@ func (f *form) View(width int) string {
 		}
 		b.WriteString("\n")
 		if i == fieldDir && f.focus == fieldDir {
-			if f.host() != localHost {
+			if !f.localDir() {
 				b.WriteString(strings.Repeat(" ", 16) + hintStyle.Render("blank for a temporary directory on "+f.host()) + "\n")
 			} else if hint := pathHint(f.matches, f.picked, inner-18); hint != "" {
 				b.WriteString(strings.Repeat(" ", 16) + hintStyle.Render(hint) + "\n")

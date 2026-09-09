@@ -9,7 +9,7 @@ import (
 )
 
 func TestTheFormSelectsOpenOnTheirDefaults(t *testing.T) {
-	f := newForm("/tmp", newSessionDefaults{model: "sonnet", mode: "plan", effort: "high", control: true}, nil)
+	f := newForm("/tmp", newSessionDefaults{model: "sonnet", mode: "plan", effort: "high", control: true}, nil, nil)
 	cases := []struct {
 		field int
 		want  string
@@ -27,7 +27,7 @@ func TestTheFormSelectsOpenOnTheirDefaults(t *testing.T) {
 }
 
 func TestHostFieldHidesWithoutPeers(t *testing.T) {
-	f := newForm("/tmp", newSessionDefaults{mode: "auto"}, nil)
+	f := newForm("/tmp", newSessionDefaults{mode: "auto"}, nil, nil)
 	if f.visible(fieldHost) {
 		t.Error("the host field shows with no peers configured")
 	}
@@ -37,7 +37,7 @@ func TestHostFieldHidesWithoutPeers(t *testing.T) {
 }
 
 func TestHostFieldListsThePeers(t *testing.T) {
-	f := newForm("/tmp", newSessionDefaults{mode: "auto"}, []string{"workstation", "laptop"})
+	f := newForm("/tmp", newSessionDefaults{mode: "auto"}, []string{"workstation", "laptop"}, nil)
 	if !f.visible(fieldHost) {
 		t.Fatal("the host field hides with peers configured")
 	}
@@ -48,7 +48,7 @@ func TestHostFieldListsThePeers(t *testing.T) {
 }
 
 func TestPeerDirNeedsNoLocalPath(t *testing.T) {
-	f := newForm("/tmp", newSessionDefaults{mode: "auto"}, []string{"workstation"})
+	f := newForm("/tmp", newSessionDefaults{mode: "auto"}, []string{"workstation"}, nil)
 	f.selects[fieldHost].cycle(1) // choose the peer
 
 	// A blank directory is valid for a peer: it means a temporary one there.
@@ -64,7 +64,7 @@ func TestPeerDirNeedsNoLocalPath(t *testing.T) {
 }
 
 func TestSwitchingToAPeerClearsTheDirectory(t *testing.T) {
-	f := newForm("/tmp", newSessionDefaults{mode: "auto"}, []string{"workstation"})
+	f := newForm("/tmp", newSessionDefaults{mode: "auto"}, []string{"workstation"}, nil)
 	f.focus = fieldHost
 	f.Update(tea.KeyMsg{Type: tea.KeyRight}) // choose the peer
 	if got := f.inputs[fieldDir].Value(); got != "" {
@@ -76,8 +76,48 @@ func TestSwitchingToAPeerClearsTheDirectory(t *testing.T) {
 	}
 }
 
+func TestHoistablePeerShowsModeAndKeepsDir(t *testing.T) {
+	f := newForm("/tmp", newSessionDefaults{mode: "auto"}, []string{"studio", "plain"}, []string{"studio"})
+
+	f.focus = fieldHost
+	f.Update(tea.KeyMsg{Type: tea.KeyRight}) // local -> studio (hoistable)
+	if f.host() != "studio" {
+		t.Fatalf("host = %q, want studio", f.host())
+	}
+	if !f.visible(fieldHoist) {
+		t.Error("a hoistable peer must show the peer-mode field")
+	}
+	if !f.hoisting() {
+		t.Error("the peer-mode field must default to hoist")
+	}
+	if got := f.inputs[fieldDir].Value(); got != "/tmp" {
+		t.Errorf("hoist must keep the local directory, got %q", got)
+	}
+	if spec := f.spec(); spec.Lender != "studio" {
+		t.Errorf("a hoisted spec must name the lender, got %q", spec.Lender)
+	}
+
+	f.focus = fieldHoist
+	f.Update(tea.KeyMsg{Type: tea.KeyRight}) // hoist -> stream
+	if f.hoisting() {
+		t.Error("stream mode must not hoist")
+	}
+	if got := f.inputs[fieldDir].Value(); got != "" {
+		t.Errorf("stream must clear the directory, got %q", got)
+	}
+	if spec := f.spec(); spec.Lender != "" {
+		t.Errorf("a streamed spec must not name a lender, got %q", spec.Lender)
+	}
+
+	f.focus = fieldHost
+	f.Update(tea.KeyMsg{Type: tea.KeyRight}) // studio -> plain (no credential)
+	if f.visible(fieldHoist) {
+		t.Error("a peer with no credential must not show the peer-mode field")
+	}
+}
+
 func TestLocalDirIsStillRequired(t *testing.T) {
-	f := newForm("", newSessionDefaults{mode: "auto"}, nil)
+	f := newForm("", newSessionDefaults{mode: "auto"}, nil, nil)
 	f.inputs[fieldDir].SetValue("")
 	if f.validate() {
 		t.Error("a local session was allowed with no directory")
@@ -85,14 +125,14 @@ func TestLocalDirIsStillRequired(t *testing.T) {
 }
 
 func TestADefaultThatIsNotAnOptionFallsBackToTheFirst(t *testing.T) {
-	f := newForm("/tmp", newSessionDefaults{model: "gpt", mode: "auto"}, nil)
+	f := newForm("/tmp", newSessionDefaults{model: "gpt", mode: "auto"}, nil, nil)
 	if got := f.selects[fieldModel].value(); got != "" {
 		t.Errorf("an unknown model opens on %q, want the first (default) option", got)
 	}
 }
 
 func TestADefaultModelSendsNothing(t *testing.T) {
-	f := newForm("/tmp", newSessionDefaults{model: "", mode: "auto", effort: ""}, nil)
+	f := newForm("/tmp", newSessionDefaults{model: "", mode: "auto", effort: ""}, nil, nil)
 	if f.selects[fieldModel].label() != "default" {
 		t.Fatalf("model label = %q, want default", f.selects[fieldModel].label())
 	}
@@ -106,7 +146,7 @@ func TestADefaultModelSendsNothing(t *testing.T) {
 }
 
 func TestTheFormSpecReadsTheSelects(t *testing.T) {
-	f := newForm("/tmp", newSessionDefaults{model: "opus", mode: "acceptEdits", effort: "max", control: true}, nil)
+	f := newForm("/tmp", newSessionDefaults{model: "opus", mode: "acceptEdits", effort: "max", control: true}, nil, nil)
 	spec := f.spec()
 	if spec.Model != "opus" || spec.PermissionMode != "acceptEdits" || spec.Effort != "max" || !spec.Control {
 		t.Errorf("spec = %+v, want the selected options", spec)
@@ -114,7 +154,7 @@ func TestTheFormSpecReadsTheSelects(t *testing.T) {
 }
 
 func TestLeftAndRightCycleAFocusedSelect(t *testing.T) {
-	f := newForm("/tmp", newSessionDefaults{mode: "auto"}, nil)
+	f := newForm("/tmp", newSessionDefaults{mode: "auto"}, nil, nil)
 	f.focus = fieldModel
 	first := f.selects[fieldModel].value()
 	f.Update(tea.KeyMsg{Type: tea.KeyLeft})
@@ -132,7 +172,7 @@ func TestLeftAndRightCycleAFocusedSelect(t *testing.T) {
 }
 
 func TestTypingDoesNotChangeASelect(t *testing.T) {
-	f := newForm("/tmp", newSessionDefaults{mode: "auto"}, nil)
+	f := newForm("/tmp", newSessionDefaults{mode: "auto"}, nil, nil)
 	f.focus = fieldEffort
 	before := f.selects[fieldEffort].value()
 	f.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("x")})

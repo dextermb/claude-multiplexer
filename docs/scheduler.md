@@ -103,7 +103,7 @@ the difference from an in-session cron, which lapses on its own.
 
 A session that a schedule spawns keeps the schedule name in `meta.scheduled`. The
 `Spawn` spec carries the name, and both spawn mode and reuse mode set it. The
-sidebar shows a `⏱` badge on the row of a scheduled session, so a scheduled run
+sidebar shows an `S` flag on the row of a scheduled session, so a scheduled run
 is clear next to a manual one. See [tui/sessions.md](./tui/sessions.md).
 
 ## The cron dialect

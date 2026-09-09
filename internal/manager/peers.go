@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/url"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/dextermb/claude-multiplexer/internal/config"
@@ -178,8 +179,12 @@ func (m *Manager) DisablePeering() (string, bool, error) {
 
 // AddPeer adds a peer host, or replaces one with the same name.
 func (m *Manager) AddPeer(in mcp.PeerHostInput) (string, error) {
+	cred, err := credentialFrom(in.CredentialType, in.Credential)
+	if err != nil {
+		return "", err
+	}
 	return m.mutatePeers(func(p *config.Peers) error {
-		host := config.PeerHost{Name: in.Name, URL: in.URL, ClientID: in.ClientID, ClientSecret: in.ClientSecret}
+		host := config.PeerHost{Name: in.Name, URL: in.URL, ClientID: in.ClientID, ClientSecret: in.ClientSecret, Credential: cred}
 		for i := range p.Hosts {
 			if p.Hosts[i].Name == in.Name {
 				p.Hosts[i] = host
@@ -193,8 +198,13 @@ func (m *Manager) AddPeer(in mcp.PeerHostInput) (string, error) {
 
 // UpdatePeer changes a peer host found by name. Each field changes only when
 // non-empty, so a regenerated secret or a new url updates without re-supplying
-// the rest. It fails when no peer has the name.
+// the rest. ClearCredential removes the lent credential. It fails when no peer
+// has the name.
 func (m *Manager) UpdatePeer(in mcp.PeerHostUpdate) (string, error) {
+	cred, err := credentialFrom(in.CredentialType, in.Credential)
+	if err != nil {
+		return "", err
+	}
 	return m.mutatePeers(func(p *config.Peers) error {
 		for i := range p.Hosts {
 			if p.Hosts[i].Name != in.Name {
@@ -209,10 +219,31 @@ func (m *Manager) UpdatePeer(in mcp.PeerHostUpdate) (string, error) {
 			if in.ClientSecret != "" {
 				p.Hosts[i].ClientSecret = in.ClientSecret
 			}
+			if in.ClearCredential {
+				p.Hosts[i].Credential = nil
+			} else if cred != nil {
+				p.Hosts[i].Credential = cred
+			}
 			return nil
 		}
 		return fmt.Errorf("%w: %s", errUnknownPeer, in.Name)
 	})
+}
+
+// credentialFrom builds a lent credential from a type and a value. An empty
+// value gives no credential. A value with no valid type is an error, because a
+// lent credential must say whether it is a token or a key. See
+// docs/peers/hoisted.md.
+func credentialFrom(ctype, value string) (*config.PeerCredential, error) {
+	ctype = strings.TrimSpace(ctype)
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return nil, nil
+	}
+	if !config.ValidCredentialType(ctype) {
+		return nil, errBadCredentialType
+	}
+	return &config.PeerCredential{Type: ctype, Value: value}, nil
 }
 
 // RemovePeer removes a peer host by name, and reports whether it was there.
@@ -316,7 +347,21 @@ func peersView(p *config.Peers) mcp.PeersView {
 		view.Reserve = &mcp.ReserveView{Window: p.Reserve.Window, MinPercent: p.Reserve.MinPercent}
 	}
 	for _, h := range p.Hosts {
-		view.Hosts = append(view.Hosts, mcp.PeerHostView{Name: h.Name, URL: h.URL, ClientID: h.ClientID})
+		hv := mcp.PeerHostView{Name: h.Name, URL: h.URL, ClientID: h.ClientID}
+		if h.Credential != nil {
+			hv.Credential = &mcp.PeerCredentialView{Type: h.Credential.Type, Last4: credLast4(h.Credential.Value)}
+		}
+		view.Hosts = append(view.Hosts, hv)
 	}
 	return view
+}
+
+// credLast4 gives the last four characters of a credential value, so a view
+// shows which credential a peer holds without the value.
+func credLast4(value string) string {
+	r := []rune(value)
+	if len(r) <= 4 {
+		return string(r)
+	}
+	return string(r[len(r)-4:])
 }

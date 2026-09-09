@@ -489,6 +489,45 @@ func TestPeerURLToolIsEmptyWhenPeeringIsOff(t *testing.T) {
 	}
 }
 
+func TestAPIKeyToolsViaControlSession(t *testing.T) {
+	server := startServer(t, newFakeSessions())
+	token, err := server.Register("boss", true)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+	session := connect(t, server, token)
+
+	out := resultText(call(t, session, mcp.ToolCreateAPIKey, map[string]any{"client": "laptop", "type": "token", "value": "sk-ant-oat01-tail9999"}))
+	if !strings.Contains(out, "sk-ant-oat01-tail9999") {
+		t.Errorf("create_api_key must echo the value once: %s", out)
+	}
+	if !strings.Contains(out, "9999") {
+		t.Errorf("create_api_key must report last4: %s", out)
+	}
+	if call(t, session, mcp.ToolRevokeAPIKey, map[string]any{"client": "laptop"}).IsError {
+		t.Error("revoke_api_key returned an error result")
+	}
+	if !call(t, session, mcp.ToolCreateAPIKey, map[string]any{"client": "laptop", "type": "token"}).IsError {
+		t.Error("create_api_key with no value must return an error result")
+	}
+}
+
+func TestAddPeerCredentialOnly(t *testing.T) {
+	server := startServer(t, newFakeSessions())
+	token, err := server.Register("boss", true)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+	session := connect(t, server, token)
+
+	if call(t, session, mcp.ToolAddPeer, map[string]any{"name": "studio", "credential_type": "token", "credential": "sk-ant-oat01-zzzz"}).IsError {
+		t.Error("add_peer with only a credential and no url must succeed")
+	}
+	if !call(t, session, mcp.ToolAddPeer, map[string]any{"name": "nope"}).IsError {
+		t.Error("add_peer with neither a url nor a credential must error")
+	}
+}
+
 func TestAPIDocsToolDescribesTheRESTSurface(t *testing.T) {
 	server := startServer(t, newFakeSessions())
 	token, err := server.Register("docs", false)

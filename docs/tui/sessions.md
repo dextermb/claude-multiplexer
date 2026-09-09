@@ -62,7 +62,7 @@ repository. So one group holds the work of one agent, whatever repository each
 member runs in.
 
 The control session is the first row of its own group, whatever its state. Its
-header carries the `⇄` mark before the display name of that session, and the
+header carries the `C` mark before the display name of that session, and the
 row itself drops the mark, because the header already gives it.
 
 A control session that created nothing keeps its directory group. The grant
@@ -133,11 +133,23 @@ stable, so a row does not jump as its state changes.
 ## Reading a row
 
 A row starts with a state glyph in the state colour, then the display name, then
-`⇄` when the session may drive its neighbours, then `⏱` when a schedule spawned
-the session, then `⚙n` when `n` background jobs run, then `⇢n` when `n` prompts
-wait in the queue. The display name is the title
+the muted session flags, then `⚙n` when `n` background jobs run, then `⇢n` when
+`n` prompts wait in the queue. The display name is the title
 when the session has one, and the name when it does not. Press `s n` to set the
 title. See [keys.md](./keys.md).
+
+The flags are single muted letters that concatenate, so a hoisted control session
+reads `HC`:
+
+| Flag | Meaning |
+|---|---|
+| `H` | Hoisted — it runs here with a peer's credential. See [../peers/hoisted.md](../peers/hoisted.md). |
+| `S` | Scheduled — a schedule spawned it. See [../scheduler.md](../scheduler.md). |
+| `C` | Control — it may drive its neighbours. See [../mcp/grant.md](../mcp/grant.md). |
+
+A control session that heads its own group takes no `C`, because the group header
+already marks it.
+
 The glyph tells the state at a glance:
 
 | Glyph | State | Colour |
@@ -153,7 +165,7 @@ The glyph tells the state at a glance:
 A `waiting` row asked a question and holds for the answer. See
 [input.md](./input.md).
 
-A row marked `⇄` can prompt, stop, and archive the other sessions. Give a
+A row marked `C` can prompt, stop, and archive the other sessions. Give a
 session that mark only when you mean it. See [mcp/grant.md](../mcp/grant.md).
 
 The busy glyph is the dot spinner (`⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏`). It turns while any

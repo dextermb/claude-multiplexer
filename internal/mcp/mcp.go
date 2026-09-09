@@ -66,6 +66,8 @@ const (
 	ToolRotateAPIClient = "rotate_api_client"
 	ToolRevokeAPIClient = "revoke_api_client"
 	ToolListAPIClients  = "list_api_clients"
+	ToolCreateAPIKey    = "create_api_key"
+	ToolRevokeAPIKey    = "revoke_api_key"
 	ToolAPIEndpoint     = "get_api_endpoint"
 	ToolAPIDocs         = "get_api_docs"
 
@@ -96,7 +98,7 @@ var (
 	ControlTools = []string{ToolSend, ToolStop, ToolArchive, ToolCreate, ToolStopJob,
 		ToolCreateAPIAdmin, ToolRotateAPIAdmin, ToolRevokeAPIAdmin,
 		ToolCreateAPIClient, ToolUpdateAPIClient, ToolRotateAPIClient, ToolRevokeAPIClient,
-		ToolListAPIClients, ToolAPIEndpoint,
+		ToolListAPIClients, ToolCreateAPIKey, ToolRevokeAPIKey, ToolAPIEndpoint,
 		ToolListPeers, ToolEnablePeering, ToolDisablePeering, ToolAddPeer, ToolUpdatePeer, ToolRemovePeer,
 		ToolSetReserve, ToolUnsetReserve}
 	// APITools go to an external client that reaches the session API. The set is
@@ -114,6 +116,7 @@ var (
 	ErrNoPath       = errors.New("mcp: this tool needs a directory path")
 	ErrNoJob        = errors.New("mcp: this tool needs a job id")
 	ErrNoClient     = errors.New("mcp: this tool needs a client id")
+	ErrNoCredential = errors.New("mcp: this tool needs a credential value")
 	ErrNoCron       = errors.New("mcp: this tool needs a cron expression")
 	ErrNoPrompt     = errors.New("mcp: this tool needs a prompt")
 	ErrNoSchedule   = errors.New("mcp: this tool needs a schedule name")
@@ -177,6 +180,10 @@ type Session struct {
 	// The sidebar sorts a session into a section from these two. See docs/peers.md.
 	Host   string `json:"host,omitempty"`
 	Hosted bool   `json:"hosted,omitempty"`
+	// Lender names the peer whose Claude credential a hoisted session runs with.
+	// A hoisted session runs locally, so Host is empty and Hosted is false. See
+	// docs/peers/hoisted.md.
+	Lender string `json:"lender,omitempty"`
 }
 
 // Message is one entry of get_messages. The transcript carries no timestamp for
@@ -338,6 +345,8 @@ type Sessions interface {
 	RotateAPIClient(id string) (string, error)
 	RevokeAPIClient(id string) error
 	ListAPIClients() []APIClient
+	CreateAPIKey(client, credentialType, value string) (APIClient, error)
+	RevokeAPIKey(client string) (bool, error)
 	APIEndpoint() APIEndpoint
 	Usage() usage.Usage
 	PeerUsage(ctx context.Context) []PeerReport
@@ -370,29 +379,47 @@ type ReserveView struct {
 	MinPercent int    `json:"min_percent"`
 }
 
-// PeerHostView is one peer host in a PeersView, without its secret.
+// PeerHostView is one peer host in a PeersView, without its secret. Credential
+// marks a peer that holds a lent Claude credential, with no value. See
+// docs/peers/hoisted.md.
 type PeerHostView struct {
-	Name     string `json:"name"`
-	URL      string `json:"url"`
-	ClientID string `json:"client_id"`
+	Name       string              `json:"name"`
+	URL        string              `json:"url,omitempty"`
+	ClientID   string              `json:"client_id,omitempty"`
+	Credential *PeerCredentialView `json:"credential,omitempty"`
 }
 
-// PeerHostInput is the input to AddPeer: a peer host with its secret.
+// PeerCredentialView is the lent credential in a PeerHostView: its type and the
+// last four characters, never the value. See docs/peers/hoisted.md.
+type PeerCredentialView struct {
+	Type  string `json:"type"`
+	Last4 string `json:"last4"`
+}
+
+// PeerHostInput is the input to AddPeer: a peer host with its secret, and an
+// optional lent Claude credential that turns hoisting on. See docs/peers.md and
+// docs/peers/hoisted.md.
 type PeerHostInput struct {
-	Name         string
-	URL          string
-	ClientID     string
-	ClientSecret string
+	Name           string
+	URL            string
+	ClientID       string
+	ClientSecret   string
+	CredentialType string
+	Credential     string
 }
 
 // PeerHostUpdate is the input to UpdatePeer. Name finds the peer; each other
 // field changes it only when non-empty, so a regenerated secret or a new url
-// updates without re-supplying the rest. See docs/peers.md.
+// updates without re-supplying the rest. ClearCredential removes the lent
+// credential. See docs/peers.md and docs/peers/hoisted.md.
 type PeerHostUpdate struct {
-	Name         string
-	URL          string
-	ClientID     string
-	ClientSecret string
+	Name            string
+	URL             string
+	ClientID        string
+	ClientSecret    string
+	CredentialType  string
+	Credential      string
+	ClearCredential bool
 }
 
 // PeerReport is one peer's usage, or the error that stopped the read. See
@@ -445,13 +472,24 @@ type CreateInput struct {
 }
 
 // APIClient is one row of list_api_clients, and the record the client tools
-// return. It never holds the secret. See docs/mcp/api.md.
+// return. It never holds the secret. LentKey marks a client that holds a lent
+// Claude credential, with no value. See docs/mcp/api.md and docs/peers/hoisted.md.
 type APIClient struct {
-	ClientID  string `json:"client_id"`
-	Name      string `json:"name"`
-	Disabled  bool   `json:"disabled,omitempty"`
-	CreatedAt string `json:"created_at,omitempty"`
-	RotatedAt string `json:"rotated_at,omitempty"`
+	ClientID  string      `json:"client_id"`
+	Name      string      `json:"name"`
+	Disabled  bool        `json:"disabled,omitempty"`
+	CreatedAt string      `json:"created_at,omitempty"`
+	RotatedAt string      `json:"rotated_at,omitempty"`
+	LentKey   *APILentKey `json:"lent_key,omitempty"`
+}
+
+// APILentKey is the metadata of a lent Claude credential in an APIClient. It
+// holds the type and the last four characters, never the value. See
+// docs/peers/hoisted.md.
+type APILentKey struct {
+	Type     string `json:"type"`
+	Last4    string `json:"last4"`
+	IssuedAt string `json:"issued_at,omitempty"`
 }
 
 // APIEndpoint names the base URL of the API, and the port range it binds inside.

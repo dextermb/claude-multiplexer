@@ -17,7 +17,7 @@ from its `tools/list` answer, so the model does not know they exist, and it
 cannot call one by name.
 
 **A session with control can stop the work you are reading.** The interface
-marks such a row with `⇄` in the sidebar, and the session bar names `control`
+marks such a row with a `C` flag in the sidebar, and the session bar names `control`
 next to the model. See [tui/sessions.md](../tui/sessions.md).
 
 ## What a tool refuses
