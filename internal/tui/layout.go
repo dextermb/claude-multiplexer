@@ -294,7 +294,7 @@ func (m Model) sessionRow(item row) string {
 			selectedRowStyle.Width(width-2).Render(rest)
 	}
 	nameStyle := rowStyle
-	if item.archived {
+	if item.archived || item.hosted {
 		nameStyle = rowMutedStyle
 	}
 	return " " + item.style().Render(glyph) + nameStyle.Width(width-2).Render(rest)

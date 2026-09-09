@@ -282,29 +282,17 @@ func groupRows(rows []row, folded map[string]bool) ([]row, []group) {
 	return sorted, groups
 }
 
-// sectionLabels names the top band of the sidebar. A remote band (hosted or
-// streamed) also carries the "remote sessions" parent, drawn once above the
-// first remote band. See docs/peers.md.
-func sectionLabel(kind sectionKind) string {
-	switch kind {
-	case sectionHosted:
-		return "hosted"
-	case sectionStreamed:
-		return "streamed"
-	default:
-		return "local sessions"
-	}
-}
-
-// remoteBand reports whether a section sits under the "remote sessions" parent.
+// remoteBand reports whether a section sits under the "remote sessions" band. A
+// hosted session shows muted, so the two remote bands share one divider. See
+// docs/peers.md.
 func remoteBand(kind sectionKind) bool {
 	return kind == sectionHosted || kind == sectionStreamed
 }
 
 // listLines is the sidebar as it is drawn: a header for every group, and the
 // rows of every group that is not folded. When sectioned is true, a divider
-// names each section, with the "remote sessions" parent above the first remote
-// one. See docs/peers.md.
+// names the local band and the remote band, the remote one drawn once above the
+// first remote group. See docs/peers.md.
 func listLines(rows []row, groups []group, sectioned bool) []listLine {
 	order := make(map[string]int, len(groups))
 	for i, item := range groups {
@@ -312,18 +300,20 @@ func listLines(rows []row, groups []group, sectioned bool) []listLine {
 	}
 	lines := make([]listLine, 0, len(rows)+len(groups)+4)
 	current := -1
-	shownSection := sectionKind(-1)
-	shownRemoteParent := false
+	shownLocal := false
+	shownRemote := false
 	for i, item := range rows {
 		at := order[string(rune('0'+int(item.section)))+item.group]
 		if at != current {
-			if sectioned && item.section != shownSection {
-				if remoteBand(item.section) && !shownRemoteParent {
+			if sectioned {
+				if remoteBand(item.section) && !shownRemote {
 					lines = append(lines, listLine{group: -1, row: -1, divider: "remote sessions"})
-					shownRemoteParent = true
+					shownRemote = true
 				}
-				lines = append(lines, listLine{group: -1, row: -1, divider: sectionLabel(item.section)})
-				shownSection = item.section
+				if !remoteBand(item.section) && !shownLocal {
+					lines = append(lines, listLine{group: -1, row: -1, divider: "local sessions"})
+					shownLocal = true
+				}
 			}
 			lines = append(lines, listLine{group: at, row: -1})
 			current = at

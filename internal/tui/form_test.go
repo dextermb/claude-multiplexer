@@ -63,6 +63,19 @@ func TestPeerDirNeedsNoLocalPath(t *testing.T) {
 	}
 }
 
+func TestSwitchingToAPeerClearsTheDirectory(t *testing.T) {
+	f := newForm("/tmp", newSessionDefaults{mode: "auto"}, []string{"workstation"})
+	f.focus = fieldHost
+	f.Update(tea.KeyMsg{Type: tea.KeyRight}) // choose the peer
+	if got := f.inputs[fieldDir].Value(); got != "" {
+		t.Errorf("directory = %q after switching to a peer, want empty", got)
+	}
+	f.Update(tea.KeyMsg{Type: tea.KeyLeft}) // back to local
+	if got := f.inputs[fieldDir].Value(); got != "/tmp" {
+		t.Errorf("directory = %q after switching back to local, want the default", got)
+	}
+}
+
 func TestLocalDirIsStillRequired(t *testing.T) {
 	f := newForm("", newSessionDefaults{mode: "auto"}, nil)
 	f.inputs[fieldDir].SetValue("")

@@ -38,8 +38,9 @@ func TestSectionsSortLocalHostedStreamed(t *testing.T) {
 		}
 	}
 
-	// The dividers name the bands in order, with the remote parent above hosted.
-	want := []string{"local sessions", "remote sessions", "hosted", "streamed"}
+	// The dividers name the local band and the remote band, with no sub-band
+	// label: a hosted session shows muted instead. See docs/tui/sessions.md.
+	want := []string{"local sessions", "remote sessions"}
 	got := dividers(lines)
 	if len(got) != len(want) {
 		t.Fatalf("dividers = %v, want %v", got, want)
@@ -65,7 +66,7 @@ func TestRemoteParentShowsOnceWithoutHosted(t *testing.T) {
 		{name: "streamed-1", dir: "/peer/work", live: true, host: "workstation"},
 	}
 	_, lines := sectionize(rows, true)
-	want := []string{"local sessions", "remote sessions", "streamed"}
+	want := []string{"local sessions", "remote sessions"}
 	got := dividers(lines)
 	if len(got) != len(want) {
 		t.Fatalf("dividers = %v, want %v", got, want)

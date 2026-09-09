@@ -16,13 +16,14 @@ With peering on, the sidebar splits into bands above the groups, so a row names
 where its session runs. A band starts with a divider that names it. See
 [../peers.md](../peers.md).
 
-Three bands, in order:
+Two bands, in order:
 
 1. **local sessions** — the sessions this host runs for itself.
-2. **remote sessions** — a parent divider over two bands:
-   - **hosted** — the sessions this host runs for a peer, which started them
-     through the peer listener.
-   - **streamed** — the sessions that run on a peer and stream into this host.
+2. **remote sessions** — the sessions that involve a peer:
+   - a session that runs on a peer and streams into this host, and
+   - a session this host runs for a peer, which started it through the peer
+     listener. A hosted session shows muted, the same as an archived one, so a
+     row names its kind without a divider of its own.
 
 A row sorts to a band from two fields: a streamed session carries the peer as
 its host, and a hosted session carries the hosted mark. Everything else is
@@ -31,7 +32,8 @@ local. The groups work inside each band, the same as without peering.
 Without peering, and with no hosted or streamed session, the sidebar shows no
 band dividers — it is the group list below. The new-session form gains a `host`
 field only with peering on: choose `local` or a peer, and the session starts
-there.
+there. The directory field follows the host: it clears for a peer, because the
+directory is on the peer, and it returns to the local default for `local`.
 
 ## The groups
 

@@ -81,18 +81,19 @@ func (s *selectField) value() string { return s.options[s.cursor] }
 func (s *selectField) label() string { return s.labels[s.cursor] }
 
 type form struct {
-	inputs    [fieldCount]textinput.Model
-	selects   [fieldCount]*selectField
-	focus     int
-	err       string
-	matches   []string
-	picked    int
-	stem      string
-	hostShown bool
+	inputs     [fieldCount]textinput.Model
+	selects    [fieldCount]*selectField
+	focus      int
+	err        string
+	matches    []string
+	picked     int
+	stem       string
+	hostShown  bool
+	defaultDir string
 }
 
 func newForm(dir string, defaults newSessionDefaults, peers []string) *form {
-	f := &form{hostShown: len(peers) > 0}
+	f := &form{hostShown: len(peers) > 0, defaultDir: dir}
 	var placeholders [fieldCount]string
 	placeholders[fieldDir] = dir
 	placeholders[fieldName] = "taken from the directory"
@@ -125,6 +126,18 @@ func (f *form) visible(i int) bool {
 
 // host is the chosen host: "local" for a session this host runs, or a peer name.
 func (f *form) host() string { return f.selects[fieldHost].value() }
+
+// syncDir follows the host: a peer directory is on the peer, so the local
+// default does not apply and the field clears; local restores the default.
+func (f *form) syncDir() {
+	if f.host() == localHost {
+		f.inputs[fieldDir].SetValue(f.defaultDir)
+	} else {
+		f.inputs[fieldDir].SetValue("")
+	}
+	f.inputs[fieldDir].CursorEnd()
+	f.suggest()
+}
 
 func boolWord(value bool) string {
 	if value {
@@ -215,11 +228,15 @@ func (f *form) Update(msg tea.Msg) (formResult, tea.Cmd) {
 			return formOpen, nil
 		}
 		if f.isSelect(f.focus) {
+			before := f.host()
 			switch key.String() {
 			case "left", "h":
 				f.selects[f.focus].cycle(-1)
 			case "right", "l":
 				f.selects[f.focus].cycle(1)
+			}
+			if f.focus == fieldHost && f.host() != before {
+				f.syncDir()
 			}
 			return formOpen, nil
 		}
