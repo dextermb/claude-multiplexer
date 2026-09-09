@@ -407,6 +407,33 @@ func (m *Manager) ResumeWithEffort(ctx context.Context, name, effort string) (st
 	})
 }
 
+// ResumeWithControl stops a running session and resumes it with control turned
+// on or off, because the multiplexer equips its tools when a session starts;
+// see docs/protocol/control.md.
+func (m *Manager) ResumeWithControl(ctx context.Context, name string, control bool) (string, error) {
+	item, err := m.entry(name)
+	if err != nil {
+		return "", err
+	}
+	snap := item.sess.Snapshot()
+	if snap.ClaudeSessionID == "" {
+		return "", fmt.Errorf("manager: session %q has not started a turn yet", name)
+	}
+	stopCtx, cancel := context.WithTimeout(ctx, session.DefaultStopGrace)
+	_ = item.sess.Stop(stopCtx)
+	cancel()
+	return m.Resume(ctx, Meta{
+		Name:            snap.Name,
+		Dir:             snap.Dir,
+		Model:           snap.Model,
+		PermissionMode:  snap.PermissionMode,
+		Effort:          snap.Effort,
+		Control:         control,
+		Parent:          item.metaCopy().Parent,
+		ClaudeSessionID: snap.ClaudeSessionID,
+	})
+}
+
 func (m *Manager) Stop(ctx context.Context, name string) error {
 	if re := m.remote(name); re != nil {
 		return re.client.Stop(ctx, re.remoteName)

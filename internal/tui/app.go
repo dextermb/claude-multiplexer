@@ -310,6 +310,13 @@ func resumeEffortCmd(mgr *manager.Manager, name, effort string) tea.Cmd {
 	}
 }
 
+func resumeControlCmd(mgr *manager.Manager, name string, control bool) tea.Cmd {
+	return func() tea.Msg {
+		next, err := mgr.ResumeWithControl(context.Background(), name, control)
+		return spawnedMsg{name: next, err: err}
+	}
+}
+
 func archiveCmd(mgr *manager.Manager, name string, archived bool) tea.Cmd {
 	return func() tea.Msg {
 		if err := mgr.Archive(name, archived); err != nil {

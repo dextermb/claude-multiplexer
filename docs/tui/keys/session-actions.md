@@ -40,6 +40,18 @@ stops the child and starts it again, and keeps the conversation. See
 [../../protocol.md](../../protocol.md). Effort is also a field in the new session
 form, next to the model and the mode.
 
+## Turning control on or off
+
+`s C` turns control on for a session that does not have it, and off for a session
+that does. A control session gets the multiplexer's tools, so it drives its
+neighbours. The list marks a control session with a badge. See
+[../../mcp/grant.md](../../mcp/grant.md).
+
+The multiplexer equips these tools when a session starts, so there is no live
+switch. `s C` resumes the session with the new setting: it stops the child and
+starts it again, and keeps the conversation, the same way `s e` changes the
+effort. Control is also a field in the new session form.
+
 ## While a session is busy
 
 A prompt you send while a session is busy waits in the queue, and the pane shows

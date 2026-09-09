@@ -702,6 +702,48 @@ func TestResumeWithEffortNeedsASessionThatHasRun(t *testing.T) {
 	}
 }
 
+func TestResumeWithControlKeepsTheNameAndFlipsTheGrant(t *testing.T) {
+	m := newTestManager(t)
+	name, err := m.Spawn(context.Background(), Spec{Name: "boss", Dir: t.TempDir()})
+	if err != nil {
+		t.Fatalf("Spawn: %v", err)
+	}
+	if m.Grants()[name] {
+		t.Fatal("a session without control must not hold a grant")
+	}
+	runOneTurn(t, m, name, "first")
+	waitForMeta(t, m, name)
+
+	resumed, err := m.ResumeWithControl(context.Background(), name, true)
+	if err != nil {
+		t.Fatalf("ResumeWithControl: %v", err)
+	}
+	if resumed != "boss" {
+		t.Fatalf("resumed as %q, want the same name", resumed)
+	}
+	if !m.Grants()[resumed] {
+		t.Fatal("the resumed session must hold a grant")
+	}
+	runOneTurn(t, m, resumed, "second")
+	waitFor(t, 10*time.Second, func() bool {
+		meta, err := ReadMeta(filepath.Join(m.Root(), "sessions", "boss", "meta.json"))
+		return err == nil && meta.Control && meta.Turns == 2
+	})
+	retire(t, m, resumed)
+}
+
+func TestResumeWithControlNeedsASessionThatHasRun(t *testing.T) {
+	m := newTestManager(t)
+	name, err := m.Spawn(context.Background(), Spec{Dir: t.TempDir()})
+	if err != nil {
+		t.Fatalf("Spawn: %v", err)
+	}
+	defer retire(t, m, name)
+	if _, err := m.ResumeWithControl(context.Background(), name, true); err == nil {
+		t.Fatal("a session with no turn must not resume for control")
+	}
+}
+
 func TestANewSessionNeverTakesAStoredName(t *testing.T) {
 	m := newTestManager(t)
 	dir := t.TempDir()

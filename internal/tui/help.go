@@ -37,6 +37,7 @@ var bindings = []binding{
 	{"The session (s)", "s", "s m", "Change the model", "m model"},
 	{"The session (s)", "s", "s e", "Change the effort (the thinking budget)", "e effort"},
 	{"The session (s)", "s", "s p", "Change the permission mode", "p mode"},
+	{"The session (s)", "s", "s C", "Turn control on or off for the session", "C control"},
 
 	{"The list (l)", "l", "l f", "Fold or unfold the group of the selected session", "f fold"},
 	{"The list (l)", "l", "l F", "Fold every group but this one", "F others"},
