@@ -72,6 +72,7 @@ const (
 	ToolGetUsage  = "get_usage"
 	ToolPeerUsage = "peer_usage"
 
+	ToolPeerURL        = "get_peer_url"
 	ToolListPeers      = "list_peers"
 	ToolEnablePeering  = "enable_peering"
 	ToolDisablePeering = "disable_peering"
@@ -91,7 +92,7 @@ var (
 		ToolListProject, ToolAddProjectDir, ToolRemoveProject, ToolSetProject, ToolClearProject,
 		ToolListLayouts, ToolSaveLayout, ToolDeleteLayout, ToolSetLayout, ToolUnsetLayout,
 		ToolCreateSchedule, ToolUpdateSchedule, ToolListSchedules, ToolDeleteSchedule, ToolSetScheduleEnabled, ToolRunSchedule,
-		ToolSchedulePath, ToolAPIURL, ToolAPIDocs, ToolGetUsage, ToolPeerUsage}
+		ToolSchedulePath, ToolAPIURL, ToolAPIDocs, ToolGetUsage, ToolPeerUsage, ToolPeerURL}
 	ControlTools = []string{ToolSend, ToolStop, ToolArchive, ToolCreate, ToolStopJob,
 		ToolCreateAPIAdmin, ToolRotateAPIAdmin, ToolRevokeAPIAdmin,
 		ToolCreateAPIClient, ToolUpdateAPIClient, ToolRotateAPIClient, ToolRevokeAPIClient,
@@ -341,6 +342,7 @@ type Sessions interface {
 	Usage() usage.Usage
 	PeerUsage(ctx context.Context) []PeerReport
 	Peers() PeersView
+	PeerEndpoint() PeerEndpoint
 	EnablePeering(port int) (string, error)
 	DisablePeering() (string, bool, error)
 	AddPeer(in PeerHostInput) (string, error)
@@ -458,6 +460,17 @@ type APIEndpoint struct {
 	URL       string `json:"url"`
 	PortStart int    `json:"port_start"`
 	PortEnd   int    `json:"port_end"`
+}
+
+// PeerEndpoint names the address a peer on the network dials to reach this host:
+// the base URL, and the host and port inside it. The host is a routable LAN
+// address, not the `0.0.0.0` the listener binds. It is empty when peering is
+// off. See docs/peers.md.
+type PeerEndpoint struct {
+	URL     string `json:"url"`
+	Host    string `json:"host"`
+	Port    int    `json:"port"`
+	Enabled bool   `json:"enabled"`
 }
 
 // DefaultMessageLimit is how many messages get_messages returns when the caller

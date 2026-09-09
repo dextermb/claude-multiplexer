@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
+	"net/url"
+	"strconv"
 	"sync"
 
 	"github.com/dextermb/claude-multiplexer/internal/config"
@@ -82,6 +85,68 @@ func (m *Manager) Peers() mcp.PeersView {
 		return mcp.PeersView{Hosts: []mcp.PeerHostView{}}
 	}
 	return peersView(cfg.Peers)
+}
+
+// PeerEndpoint names the address a peer on the network dials to reach this
+// host. It reads the bound peer listener, then swaps the unspecified bind host
+// (0.0.0.0) for a routable LAN address, so the URL is one a peer can use. It is
+// empty when the peer listener is off. See docs/peers.md.
+func (m *Manager) PeerEndpoint() mcp.PeerEndpoint {
+	base := ""
+	if m.mcp != nil {
+		base = m.mcp.PeerBaseURL()
+	}
+	if base == "" {
+		return mcp.PeerEndpoint{}
+	}
+	u, err := url.Parse(base)
+	if err != nil {
+		return mcp.PeerEndpoint{}
+	}
+	host := u.Hostname()
+	if ip := net.ParseIP(host); ip != nil && ip.IsUnspecified() {
+		if lan := localIPv4(); lan != "" {
+			host = lan
+		}
+	}
+	port, _ := strconv.Atoi(u.Port())
+	return mcp.PeerEndpoint{
+		URL:     "http://" + net.JoinHostPort(host, u.Port()),
+		Host:    host,
+		Port:    port,
+		Enabled: true,
+	}
+}
+
+// localIPv4 is the first routable IPv4 address of an interface that is up. It
+// skips loopback and link-local, so the address is one a peer on the same
+// network reaches. It is empty when no such interface exists.
+func localIPv4() string {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return ""
+	}
+	for _, iface := range ifaces {
+		if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {
+			continue
+		}
+		addrs, err := iface.Addrs()
+		if err != nil {
+			continue
+		}
+		for _, addr := range addrs {
+			ipnet, ok := addr.(*net.IPNet)
+			if !ok {
+				continue
+			}
+			ip := ipnet.IP.To4()
+			if ip == nil || ip.IsLoopback() || ip.IsLinkLocalUnicast() {
+				continue
+			}
+			return ip.String()
+		}
+	}
+	return ""
 }
 
 // EnablePeering turns the peer listener on. It binds 0.0.0.0 on the next

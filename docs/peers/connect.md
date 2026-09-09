@@ -46,7 +46,8 @@ The client reaches the host over the peer listener:
   `client_secret` at once, because the secret shows one time.
 - To keep a share of your own usage, run `set_reserve`.
 - Restart cmux. The peer listener binds `0.0.0.0:51900`.
-- Give the client your address, for example `http://192.168.1.20:51900`.
+- Run `get_peer_url` for your address, for example `http://192.168.1.20:51900`.
+  Give this url to the client.
 
 ## On the client (starts the sessions)
 

@@ -71,4 +71,12 @@ func (s *Server) addReadTools(server *sdk.Server, caller string) {
 	}, func(_ context.Context, _ *sdk.CallToolRequest, _ struct{}) (*sdk.CallToolResult, apiURLOut, error) {
 		return nil, apiURLOut{URL: s.sessions.APIEndpoint().URL}, nil
 	})
+
+	sdk.AddTool(server, &sdk.Tool{
+		Name:        ToolPeerURL,
+		Description: "The URL a peer on the network dials to reach this host, with the host and port inside it. The host is a routable LAN address, not the 0.0.0.0 the listener binds. It is empty when peering is off; a control session turns it on with " + ToolEnablePeering + ".",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, _ struct{}) (*sdk.CallToolResult, peerURLOut, error) {
+		e := s.sessions.PeerEndpoint()
+		return nil, peerURLOut{URL: e.URL, Host: e.Host, Port: e.Port, Enabled: e.Enabled}, nil
+	})
 }

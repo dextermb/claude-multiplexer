@@ -209,6 +209,13 @@ type apiURLOut struct {
 	URL string `json:"url"`
 }
 
+type peerURLOut struct {
+	URL     string `json:"url"`
+	Host    string `json:"host"`
+	Port    int    `json:"port"`
+	Enabled bool   `json:"enabled"`
+}
+
 type sendOut struct {
 	OK      bool   `json:"ok"`
 	Queued  int    `json:"queued"`

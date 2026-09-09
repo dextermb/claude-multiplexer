@@ -35,6 +35,8 @@ func (b *bridge) PeerUsage(ctx context.Context) []mcp.PeerReport { return b.m.Pe
 
 func (b *bridge) Peers() mcp.PeersView { return b.m.Peers() }
 
+func (b *bridge) PeerEndpoint() mcp.PeerEndpoint { return b.m.PeerEndpoint() }
+
 func (b *bridge) EnablePeering(port int) (string, error) { return b.m.EnablePeering(port) }
 
 func (b *bridge) DisablePeering() (string, bool, error) { return b.m.DisablePeering() }
