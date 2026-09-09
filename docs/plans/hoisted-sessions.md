@@ -17,11 +17,13 @@ see [../tui/sessions.md](../tui/sessions.md)).
 
 ## Still ahead
 
-1. **Confirm the seed layout against a real Claude Code version.** The seed
-   copies the borrower's `commands`, `skills`, and `rules`, and symlinks
-   `claude.json`, into the per-lender `CLAUDE_CONFIG_DIR`. The exact location of
-   `claude.json` and of the seeded sub-directories, relative to
-   `CLAUDE_CONFIG_DIR`, depends on the installed Claude Code version. The seed is
-   defensive (a missing source is skipped), so a hoisted session starts either
-   way, but the seed is not verified against a running tool. Confirm the paths,
-   then fix `seedHoistDir` in `internal/manager/hoist.go` if they differ.
+1. **Confirm the seed skip-list against a real Claude Code version.** The seed
+   reads the borrower's Claude directory and symlinks every entry into the
+   per-lender `CLAUDE_CONFIG_DIR`, except a fixed set of session-state entries
+   (`hoistSkip` in `internal/manager/hoist.go`): `projects`, `todos`,
+   `history.jsonl`, `.credentials.json`, and the caches. The symlink approach
+   mirrors whatever the borrower has, so a new kind of setup entry needs no code
+   change. The remaining risk is a new state entry a later Claude Code version
+   adds: it would be symlinked, and the lender's writes to it would reach the
+   borrower's directory. Confirm the state entries against a running tool, and add
+   any new ones to `hoistSkip`.

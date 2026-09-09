@@ -3,7 +3,6 @@ package manager
 import (
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -72,11 +71,30 @@ func safeName(name string) string {
 	return b.String()
 }
 
+// hoistSkip names the entries in the borrower's Claude directory that a hoisted
+// session must not share, because they are session state, not setup: the
+// projects, the todos, the history, and the borrower's own stored login. A
+// symlink of these would write the lender's state into the borrower's directory,
+// or fall back to the borrower's login. See docs/peers/hoisted.md.
+var hoistSkip = map[string]bool{
+	"projects":          true,
+	"todos":             true,
+	"history.jsonl":     true,
+	".credentials.json": true,
+	"statsig":           true,
+	"shell-snapshots":   true,
+	"logs":              true,
+	"ide":               true,
+}
+
 // seedHoistDir makes the per-lender config directory and seeds it from the
-// borrower's Claude Code setup: it copies the commands, skills, and rules, and
-// symlinks claude.json, so the borrower's own setup applies and the lender's
-// projects persist per lender. A missing source is skipped, so a hoisted session
-// still starts. See docs/peers/hoisted.md.
+// borrower's Claude Code directory. It reads the directory, and symlinks every
+// entry (the settings, the commands, the skills, the rules, and the rest) into
+// the same name, so the borrower's own setup applies and stays live. It skips the
+// session-state entries (hoistSkip), so the lender's state stays in this
+// directory and does not reach the borrower's. It also symlinks claude.json. A
+// missing source is skipped, so a hoisted session still starts. See
+// docs/peers/hoisted.md.
 func seedHoistDir(dir, src string) error {
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return err
@@ -84,10 +102,14 @@ func seedHoistDir(dir, src string) error {
 	if src == "" {
 		return nil
 	}
-	for _, name := range []string{"commands", "skills", "rules"} {
-		_ = copyTree(filepath.Join(src, name), filepath.Join(dir, name))
+	if entries, err := os.ReadDir(src); err == nil {
+		for _, entry := range entries {
+			if hoistSkip[entry.Name()] {
+				continue
+			}
+			_ = linkFile(filepath.Join(src, entry.Name()), filepath.Join(dir, entry.Name()))
+		}
 	}
-	_ = copyFile(filepath.Join(src, "CLAUDE.md"), filepath.Join(dir, "CLAUDE.md"))
 	if from := borrowerClaudeJSON(src); from != "" {
 		_ = linkFile(from, filepath.Join(dir, ".claude.json"))
 	}
@@ -121,45 +143,4 @@ func linkFile(from, dst string) error {
 	}
 	_ = os.Remove(dst)
 	return os.Symlink(abs, dst)
-}
-
-// copyTree copies a directory tree from src to dst. It is a no-op when src is
-// not there.
-func copyTree(src, dst string) error {
-	info, err := os.Stat(src)
-	if err != nil {
-		return err
-	}
-	if !info.IsDir() {
-		return copyFile(src, dst)
-	}
-	if err := os.MkdirAll(dst, 0o700); err != nil {
-		return err
-	}
-	entries, err := os.ReadDir(src)
-	if err != nil {
-		return err
-	}
-	for _, entry := range entries {
-		if err := copyTree(filepath.Join(src, entry.Name()), filepath.Join(dst, entry.Name())); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// copyFile copies one file from src to dst. It is a no-op when src is not there.
-func copyFile(src, dst string) error {
-	in, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer in.Close()
-	out, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-	_, err = io.Copy(out, in)
-	return err
 }

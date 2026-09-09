@@ -65,7 +65,14 @@ func TestHoistBuildsEnvAndSeeds(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(src, "commands", "hello.md"), []byte("hi"), 0o600); err != nil {
 		t.Fatal(err)
 	}
+	if err := os.WriteFile(filepath.Join(src, "settings.json"), []byte("{}"), 0o600); err != nil {
+		t.Fatal(err)
+	}
 	if err := os.WriteFile(filepath.Join(src, ".claude.json"), []byte("{}"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	// Session state must not be shared back into the borrower's directory.
+	if err := os.MkdirAll(filepath.Join(src, "projects"), 0o700); err != nil {
 		t.Fatal(err)
 	}
 	t.Setenv("CLAUDE_CONFIG_DIR", src)
@@ -91,11 +98,22 @@ func TestHoistBuildsEnvAndSeeds(t *testing.T) {
 	if !slices.Equal(cfg.EnvScrub, config.AuthEnvVars) {
 		t.Errorf("env scrub = %v, want %v", cfg.EnvScrub, config.AuthEnvVars)
 	}
+	// The setup entries are symlinked, and readable through the link.
+	if info, err := os.Lstat(filepath.Join(dir, "commands")); err != nil || info.Mode()&os.ModeSymlink == 0 {
+		t.Errorf("commands must be symlinked into the config dir, got %v %v", info, err)
+	}
 	if _, err := os.Stat(filepath.Join(dir, "commands", "hello.md")); err != nil {
-		t.Error("the borrower's commands must be seeded into the config dir")
+		t.Error("the borrower's commands must be reachable through the symlink")
+	}
+	if _, err := os.Lstat(filepath.Join(dir, "settings.json")); err != nil {
+		t.Error("settings.json must be symlinked into the config dir")
 	}
 	if _, err := os.Lstat(filepath.Join(dir, ".claude.json")); err != nil {
 		t.Error("claude.json must be linked into the config dir")
+	}
+	// Session state stays out of the borrower's directory.
+	if _, err := os.Lstat(filepath.Join(dir, "projects")); !os.IsNotExist(err) {
+		t.Error("projects is session state and must not be symlinked")
 	}
 }
 

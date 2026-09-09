@@ -120,17 +120,24 @@ credential is the only one. See `internal/session` (`env.go`).
 ### The seed
 
 The per-lender `CLAUDE_CONFIG_DIR` is seeded from the borrower's own Claude Code
-setup, so the borrower's customisation applies to the run:
+directory (`$CLAUDE_CONFIG_DIR`, or `~/.claude`), so the borrower's setup applies
+to the run. The seed reads the borrower's directory and symlinks every entry —
+the settings, the commands, the skills, the rules, and the rest — into the same
+name. So the borrower's setup stays live: an edit on the borrower reaches the
+hoisted session at once, and a new kind of entry needs no code change.
 
-- The borrower's `commands`, `skills`, and `rules` are copied in.
-- `claude.json` is symlinked into the directory, so the lender's projects and
-  history persist per lender across runs.
+The seed skips the session-state entries: the projects, the todos, the history,
+the borrower's own stored login, and the caches. A symlink of these would write
+the lender's state into the borrower's directory, or fall back to the borrower's
+login. So the lender's state stays in the per-lender directory, and the injected
+credential is the only login. The seed also symlinks `claude.json`.
 
 A missing source is skipped, so a hoisted session still starts. See
 `internal/manager` (`hoist.go`).
 
-Note: the exact location of `claude.json` and of the seeded sub-directories,
-relative to `CLAUDE_CONFIG_DIR`, depends on the installed Claude Code version.
+Note: the borrower's `settings.json` may hold an `env` block. A Claude credential
+set there reaches the hoisted session through the symlink, so keep a lent
+credential out of the borrower's settings.
 
 ## The new-session select
 
