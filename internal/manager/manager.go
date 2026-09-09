@@ -64,6 +64,7 @@ type Spec struct {
 	Scheduled      string
 	Owner          string
 	Hosted         bool
+	TempDir        bool
 }
 
 type Event struct {
@@ -174,9 +175,13 @@ func (m *Manager) pump(item *entry) {
 	m.releaseTools(item.token)
 	final := item.sess.Snapshot()
 	item.setSnapshot(final)
-	name := item.metaCopy().Name
+	meta := item.metaCopy()
+	name := meta.Name
 	if final.Turns == 0 {
 		_ = os.RemoveAll(sessionDir(m.opts.Root, name))
+		if meta.TempDir && meta.Dir != "" {
+			_ = os.RemoveAll(meta.Dir)
+		}
 	}
 	m.bus.Publish(Event{
 		Session:  name,

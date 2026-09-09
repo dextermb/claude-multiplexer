@@ -14,13 +14,15 @@ import (
 	"github.com/dextermb/claude-multiplexer/internal/wire"
 )
 
-// CreateSpec is the input to start a session on a peer.
+// CreateSpec is the input to start a session on a peer. An empty Dir with
+// TempDir asks the peer to make a fresh temporary directory. See docs/peers.md.
 type CreateSpec struct {
 	Dir            string `json:"dir"`
 	Name           string `json:"name,omitempty"`
 	Model          string `json:"model,omitempty"`
 	PermissionMode string `json:"permission_mode,omitempty"`
 	Effort         string `json:"effort,omitempty"`
+	TempDir        bool   `json:"temp_dir,omitempty"`
 }
 
 // CreateSession starts a session on the peer and returns the name it takes. The

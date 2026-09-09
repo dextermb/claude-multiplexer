@@ -92,6 +92,11 @@ the local bus. The first event of each connection carries the whole line buffer,
 so the pump replaces the local buffer; a later event appends. See
 `internal/manager` (`remote.go`).
 
+The create carries a directory on the peer, or `temp_dir` for a fresh one the
+host makes (`os.MkdirTemp`), so a client starts a session without knowing the
+host's paths. The host removes a temporary directory when the session did no
+work, or when the session is removed; a session that did work keeps it.
+
 A streamed session routes its input and reads back through the peer: `Send`,
 `Stop`, and `Interrupt` post to the peer; `Lines`, `Snapshot`, `Messages`, and
 `Todos` read the local cache the pump fills (except `Messages`, which reads the

@@ -137,13 +137,23 @@ func (o *ownedSessions) StopJob(target, jobID, by string) (int, error) {
 }
 
 func (o *ownedSessions) Create(in mcp.CreateInput, by string) (string, error) {
-	abs, err := filepath.Abs(in.Dir)
-	if err != nil {
-		return "", err
-	}
-	info, err := os.Stat(abs)
-	if err != nil || !info.IsDir() {
-		return "", fmt.Errorf("%w: %s", ErrNotDirectory, in.Dir)
+	var abs string
+	if in.TempDir {
+		tmp, err := os.MkdirTemp("", "cmux-session-*")
+		if err != nil {
+			return "", err
+		}
+		abs = tmp
+	} else {
+		full, err := filepath.Abs(in.Dir)
+		if err != nil {
+			return "", err
+		}
+		info, err := os.Stat(full)
+		if err != nil || !info.IsDir() {
+			return "", fmt.Errorf("%w: %s", ErrNotDirectory, in.Dir)
+		}
+		abs = full
 	}
 	created, err := o.m.Spawn(context.Background(), Spec{
 		Dir:            abs,
@@ -153,6 +163,7 @@ func (o *ownedSessions) Create(in mcp.CreateInput, by string) (string, error) {
 		Effort:         in.Effort,
 		Owner:          o.owner,
 		Hosted:         in.Hosted,
+		TempDir:        in.TempDir,
 	})
 	if err != nil {
 		return "", err

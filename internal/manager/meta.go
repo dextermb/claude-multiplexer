@@ -30,6 +30,7 @@ type Meta struct {
 	Scheduled       string    `json:"scheduled,omitempty"`
 	Owner           string    `json:"owner,omitempty"`
 	Hosted          bool      `json:"hosted,omitempty"`
+	TempDir         bool      `json:"temp_dir,omitempty"`
 	Archived        bool      `json:"archived"`
 	ArchivedAt      time.Time `json:"archived_at,omitempty"`
 }

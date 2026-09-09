@@ -138,7 +138,8 @@ func (f *form) isSelect(i int) bool { return f.selects[i] != nil }
 func (f *form) suggest() {
 	f.picked = -1
 	f.stem = ""
-	if f.focus != fieldDir {
+	// A peer directory is on the peer, so local path completion does not apply.
+	if f.focus != fieldDir || f.host() != localHost {
 		f.matches = nil
 		return
 	}
@@ -164,6 +165,9 @@ func (f *form) cycle(delta int) bool {
 }
 
 func (f *form) completeDir() bool {
+	if f.host() != localHost {
+		return false
+	}
 	value := f.inputs[fieldDir].Value()
 	completed, matches := completePath(value)
 	f.matches = matches
@@ -284,6 +288,12 @@ func directoryOf(path string) string {
 
 func (f *form) validate() bool {
 	dir := strings.TrimSpace(f.inputs[fieldDir].Value())
+	if f.host() != localHost {
+		// The directory is on the peer, so it is not resolved or checked against
+		// the local filesystem. A blank directory means a temporary one there.
+		f.err = ""
+		return true
+	}
 	if dir == "" {
 		f.err = "give a directory"
 		return false
@@ -339,7 +349,9 @@ func (f *form) View(width int) string {
 		}
 		b.WriteString("\n")
 		if i == fieldDir && f.focus == fieldDir {
-			if hint := pathHint(f.matches, f.picked, inner-18); hint != "" {
+			if f.host() != localHost {
+				b.WriteString(strings.Repeat(" ", 16) + hintStyle.Render("blank for a temporary directory on "+f.host()) + "\n")
+			} else if hint := pathHint(f.matches, f.picked, inner-18); hint != "" {
 				b.WriteString(strings.Repeat(" ", 16) + hintStyle.Render(hint) + "\n")
 			}
 		}

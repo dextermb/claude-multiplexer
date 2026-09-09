@@ -424,6 +424,10 @@ type CreateInput struct {
 	// the host sorts it under the hosted section. The loopback API never sets it.
 	// See docs/peers.md.
 	Hosted bool
+	// TempDir asks the host to run the session in a fresh temporary directory it
+	// makes, so a peer starts a session without naming a path on the host. See
+	// docs/peers.md.
+	TempDir bool
 }
 
 // APIClient is one row of list_api_clients, and the record the client tools

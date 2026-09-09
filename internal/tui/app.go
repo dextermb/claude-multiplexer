@@ -332,6 +332,7 @@ func attachCmd(mgr *manager.Manager, host string, spec manager.Spec) tea.Cmd {
 	return func() tea.Msg {
 		name, err := mgr.AttachRemoteByName(host, peer.CreateSpec{
 			Dir:            spec.Dir,
+			TempDir:        strings.TrimSpace(spec.Dir) == "",
 			Name:           spec.Name,
 			Model:          spec.Model,
 			PermissionMode: spec.PermissionMode,

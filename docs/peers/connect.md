@@ -55,7 +55,8 @@ The client reaches the host over the peer listener:
 - Restart cmux.
 - Run `peer_usage` to confirm the host is reachable.
 - Press `n` for a new session. Set the `Host` field to the peer.
-- Choose a directory that exists on the host, then submit.
+- Choose a directory that exists on the host, or leave `Directory` blank for a
+  temporary directory the host makes. Then submit.
 - Read the session under `remote sessions` -> `streamed`. On the host it shows
   under `hosted`. See [../tui/sessions.md](../tui/sessions.md).
 
@@ -63,6 +64,10 @@ The client reaches the host over the peer listener:
 
 - This guide connects one direction. For both directions, each host does both
   parts.
+- A blank `Directory` for a peer makes a fresh temporary directory on the host,
+  so you start a session without knowing the host's paths. The host removes it
+  when the session did no work, or when the session is removed. A session that
+  did work keeps its directory, like any other.
 - A host that is off, or unreachable, shows an error and never blocks the
   client.
 - To disconnect, run `disable_peering` on the host, or `remove_peer` on the

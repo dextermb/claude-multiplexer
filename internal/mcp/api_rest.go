@@ -78,10 +78,11 @@ func (s *Server) restCreate(w http.ResponseWriter, r *http.Request, sess APISess
 		Model          string `json:"model"`
 		PermissionMode string `json:"permission_mode"`
 		Effort         string `json:"effort"`
+		TempDir        bool   `json:"temp_dir"`
 	}
 	_ = json.NewDecoder(r.Body).Decode(&body)
-	if strings.TrimSpace(body.Dir) == "" {
-		writeError(w, http.StatusBadRequest, "dir required")
+	if strings.TrimSpace(body.Dir) == "" && !body.TempDir {
+		writeError(w, http.StatusBadRequest, "dir or temp_dir required")
 		return
 	}
 	if hosted(r) && s.sessions.HostingPaused() {
@@ -95,6 +96,7 @@ func (s *Server) restCreate(w http.ResponseWriter, r *http.Request, sess APISess
 		PermissionMode: strings.TrimSpace(body.PermissionMode),
 		Effort:         strings.TrimSpace(body.Effort),
 		Hosted:         hosted(r),
+		TempDir:        body.TempDir,
 	}, by)
 	if err != nil {
 		writeAPIError(w, err)

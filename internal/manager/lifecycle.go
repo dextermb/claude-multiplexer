@@ -75,6 +75,7 @@ func (m *Manager) Spawn(ctx context.Context, spec Spec) (string, error) {
 			Scheduled:      spec.Scheduled,
 			Owner:          spec.Owner,
 			Hosted:         spec.Hosted,
+			TempDir:        spec.TempDir,
 			CreatedAt:      time.Now(),
 		},
 	}
@@ -119,7 +120,7 @@ func (m *Manager) Resume(ctx context.Context, meta Meta) (string, error) {
 	if meta.ClaudeSessionID == "" {
 		return "", fmt.Errorf("manager: session %q has no Claude session id", meta.Name)
 	}
-	if err := m.Remove(meta.Name); err != nil && !errors.Is(err, ErrUnknownSession) {
+	if _, err := m.evict(meta.Name); err != nil && !errors.Is(err, ErrUnknownSession) {
 		return "", err
 	}
 	return m.Spawn(ctx, Spec{
@@ -418,19 +419,36 @@ func (m *Manager) Stop(ctx context.Context, name string) error {
 	return item.sess.Stop(ctx)
 }
 
+// Remove drops a session for good, and deletes its temporary working directory
+// when it ran in one. Resume uses evict instead, so it keeps the directory for
+// the re-spawn. See docs/peers.md.
 func (m *Manager) Remove(name string) error {
-	item, err := m.entry(name)
+	item, err := m.evict(name)
 	if err != nil {
 		return err
 	}
+	meta := item.metaCopy()
+	if meta.TempDir && meta.Dir != "" {
+		_ = os.RemoveAll(meta.Dir)
+	}
+	return nil
+}
+
+// evict drops a session from the live set, and returns its entry. It leaves the
+// working directory alone, so a resume that evicts then re-spawns keeps it.
+func (m *Manager) evict(name string) (*entry, error) {
+	item, err := m.entry(name)
+	if err != nil {
+		return nil, err
+	}
 	if item.sess.State().Live() {
-		return fmt.Errorf("%w: %s", ErrStillLive, name)
+		return nil, fmt.Errorf("%w: %s", ErrStillLive, name)
 	}
 	m.mu.Lock()
 	delete(m.entries, name)
 	m.order = removeName(m.order, name)
 	m.mu.Unlock()
-	return nil
+	return item, nil
 }
 
 func (m *Manager) Shutdown(ctx context.Context) {

@@ -47,6 +47,30 @@ func TestHostFieldListsThePeers(t *testing.T) {
 	}
 }
 
+func TestPeerDirNeedsNoLocalPath(t *testing.T) {
+	f := newForm("/tmp", newSessionDefaults{mode: "auto"}, []string{"workstation"})
+	f.selects[fieldHost].cycle(1) // choose the peer
+
+	// A blank directory is valid for a peer: it means a temporary one there.
+	f.inputs[fieldDir].SetValue("")
+	if !f.validate() {
+		t.Errorf("a blank peer directory was rejected: %q", f.err)
+	}
+	// A path that need not exist locally is valid for a peer.
+	f.inputs[fieldDir].SetValue("/only/on/the/peer")
+	if !f.validate() {
+		t.Errorf("a peer path was rejected against the local filesystem: %q", f.err)
+	}
+}
+
+func TestLocalDirIsStillRequired(t *testing.T) {
+	f := newForm("", newSessionDefaults{mode: "auto"}, nil)
+	f.inputs[fieldDir].SetValue("")
+	if f.validate() {
+		t.Error("a local session was allowed with no directory")
+	}
+}
+
 func TestADefaultThatIsNotAnOptionFallsBackToTheFirst(t *testing.T) {
 	f := newForm("/tmp", newSessionDefaults{model: "gpt", mode: "auto"}, nil)
 	if got := f.selects[fieldModel].value(); got != "" {

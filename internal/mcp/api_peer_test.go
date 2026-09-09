@@ -32,6 +32,12 @@ func (r *recordingAPI) createdHosted() bool {
 	return r.last.Hosted
 }
 
+func (r *recordingAPI) createdTempDir() bool {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.last.TempDir
+}
+
 func (r *recordingAPI) List() []mcp.Session                             { return nil }
 func (r *recordingAPI) Messages(string, int) ([]mcp.Message, error)     { return nil, nil }
 func (r *recordingAPI) Jobs(string) ([]mcp.Job, error)                  { return nil, nil }
@@ -91,6 +97,45 @@ func TestPeerListenerCreatesHosted(t *testing.T) {
 	}
 	if rec.createdHosted() {
 		t.Errorf("a create through the loopback API is hosted")
+	}
+}
+
+// TestPeerCreateAcceptsTempDir checks that a create with temp_dir and no dir is
+// accepted and carries the flag to the host.
+func TestPeerCreateAcceptsTempDir(t *testing.T) {
+	store, err := api.Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.CreateAdmin(); err != nil {
+		t.Fatal(err)
+	}
+	client, secret, err := store.CreateClient("bruno")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rec := &recordingAPI{}
+	server := mcp.NewServer(newFakeSessions())
+	server.EnableAPI(store, func(_, _ string) mcp.APISessions { return rec })
+	if err := server.Start(0, 0); err != nil {
+		t.Fatal(err)
+	}
+	if err := server.StartPeer("127.0.0.1:0"); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		_ = server.Close(ctx)
+	})
+
+	token := grant(t, server.PeerBaseURL(), client.ClientID, secret)
+	if code, _ := apiDo(t, http.MethodPost, server.PeerBaseURL()+"/api/sessions", token, `{"temp_dir":true}`); code != http.StatusOK {
+		t.Fatalf("temp_dir create with no dir = %d, want 200", code)
+	}
+	if !rec.createdTempDir() {
+		t.Errorf("the host did not receive temp_dir")
 	}
 }
 
