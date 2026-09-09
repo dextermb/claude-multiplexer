@@ -81,6 +81,28 @@ func (m Model) resumeSelected() (tea.Model, tea.Cmd) {
 	return m, resumeCmd(m.mgr, meta)
 }
 
+// toggleControl is the s C action. Control is equipped when a session starts,
+// so it stops the running session and resumes it with control turned on or off,
+// the same way s e changes the effort. See docs/tui/keys/session-actions.md.
+func (m Model) toggleControl() (tea.Model, tea.Cmd) {
+	item, ok := m.selectedRow()
+	if !ok {
+		return m, nil
+	}
+	if !item.running() {
+		m.errText = "start the session before you change it"
+		return m, nil
+	}
+	m.errText = ""
+	want := !item.control
+	word := "control off"
+	if want {
+		word = "control on"
+	}
+	m.status = "resuming " + item.name + " with " + word
+	return m, resumeControlCmd(m.mgr, item.name, want)
+}
+
 func (m Model) archiveSelected() (tea.Model, tea.Cmd) {
 	item, ok := m.selectedRow()
 	if !ok {

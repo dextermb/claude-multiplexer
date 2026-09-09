@@ -46,6 +46,7 @@ forms work everywhere, so a sequence still starts while you type a prompt.
 | `s m` | Change the model of a running session |
 | `s e` | Change the effort of a running session |
 | `s p` | Change the permission mode of a running session |
+| `s C` | Turn control on or off for a running session |
 
 See [keys/session-actions.md](keys/session-actions.md) for what these do.
 
