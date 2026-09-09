@@ -14,6 +14,7 @@ func (s *Server) build(caller string, control bool) *sdk.Server {
 
 	s.addReadTools(server, caller)
 	s.addAPIDocsTool(server)
+	s.addUsageTools(server)
 	s.addConfigTools(server, caller)
 	s.addLayoutTools(server, caller)
 	s.addScheduleTools(server, caller, control)
@@ -21,6 +22,7 @@ func (s *Server) build(caller string, control bool) *sdk.Server {
 	if control {
 		s.addControlTools(server, caller)
 		s.addCredentialTools(server, caller)
+		s.addPeerTools(server, caller)
 	}
 
 	return server

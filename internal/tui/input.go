@@ -121,8 +121,12 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		case formSubmitted:
 			spec := m.form.spec()
+			host := m.form.host()
 			m.pending = m.form.firstPrompt()
 			m.form = nil
+			if host != localHost {
+				return m, attachCmd(m.mgr, host, spec)
+			}
 			return m, spawnCmd(m.mgr, spec)
 		}
 		return m, cmd

@@ -9,7 +9,7 @@ import (
 )
 
 func TestTheFormSelectsOpenOnTheirDefaults(t *testing.T) {
-	f := newForm("/tmp", newSessionDefaults{model: "sonnet", mode: "plan", effort: "high", control: true})
+	f := newForm("/tmp", newSessionDefaults{model: "sonnet", mode: "plan", effort: "high", control: true}, nil)
 	cases := []struct {
 		field int
 		want  string
@@ -26,15 +26,73 @@ func TestTheFormSelectsOpenOnTheirDefaults(t *testing.T) {
 	}
 }
 
+func TestHostFieldHidesWithoutPeers(t *testing.T) {
+	f := newForm("/tmp", newSessionDefaults{mode: "auto"}, nil)
+	if f.visible(fieldHost) {
+		t.Error("the host field shows with no peers configured")
+	}
+	if f.host() != localHost {
+		t.Errorf("host = %q, want local", f.host())
+	}
+}
+
+func TestHostFieldListsThePeers(t *testing.T) {
+	f := newForm("/tmp", newSessionDefaults{mode: "auto"}, []string{"workstation", "laptop"})
+	if !f.visible(fieldHost) {
+		t.Fatal("the host field hides with peers configured")
+	}
+	f.selects[fieldHost].cycle(1)
+	if f.host() != "workstation" {
+		t.Errorf("after one step host = %q, want workstation", f.host())
+	}
+}
+
+func TestPeerDirNeedsNoLocalPath(t *testing.T) {
+	f := newForm("/tmp", newSessionDefaults{mode: "auto"}, []string{"workstation"})
+	f.selects[fieldHost].cycle(1) // choose the peer
+
+	// A blank directory is valid for a peer: it means a temporary one there.
+	f.inputs[fieldDir].SetValue("")
+	if !f.validate() {
+		t.Errorf("a blank peer directory was rejected: %q", f.err)
+	}
+	// A path that need not exist locally is valid for a peer.
+	f.inputs[fieldDir].SetValue("/only/on/the/peer")
+	if !f.validate() {
+		t.Errorf("a peer path was rejected against the local filesystem: %q", f.err)
+	}
+}
+
+func TestSwitchingToAPeerClearsTheDirectory(t *testing.T) {
+	f := newForm("/tmp", newSessionDefaults{mode: "auto"}, []string{"workstation"})
+	f.focus = fieldHost
+	f.Update(tea.KeyMsg{Type: tea.KeyRight}) // choose the peer
+	if got := f.inputs[fieldDir].Value(); got != "" {
+		t.Errorf("directory = %q after switching to a peer, want empty", got)
+	}
+	f.Update(tea.KeyMsg{Type: tea.KeyLeft}) // back to local
+	if got := f.inputs[fieldDir].Value(); got != "/tmp" {
+		t.Errorf("directory = %q after switching back to local, want the default", got)
+	}
+}
+
+func TestLocalDirIsStillRequired(t *testing.T) {
+	f := newForm("", newSessionDefaults{mode: "auto"}, nil)
+	f.inputs[fieldDir].SetValue("")
+	if f.validate() {
+		t.Error("a local session was allowed with no directory")
+	}
+}
+
 func TestADefaultThatIsNotAnOptionFallsBackToTheFirst(t *testing.T) {
-	f := newForm("/tmp", newSessionDefaults{model: "gpt", mode: "auto"})
+	f := newForm("/tmp", newSessionDefaults{model: "gpt", mode: "auto"}, nil)
 	if got := f.selects[fieldModel].value(); got != "" {
 		t.Errorf("an unknown model opens on %q, want the first (default) option", got)
 	}
 }
 
 func TestADefaultModelSendsNothing(t *testing.T) {
-	f := newForm("/tmp", newSessionDefaults{model: "", mode: "auto", effort: ""})
+	f := newForm("/tmp", newSessionDefaults{model: "", mode: "auto", effort: ""}, nil)
 	if f.selects[fieldModel].label() != "default" {
 		t.Fatalf("model label = %q, want default", f.selects[fieldModel].label())
 	}
@@ -48,7 +106,7 @@ func TestADefaultModelSendsNothing(t *testing.T) {
 }
 
 func TestTheFormSpecReadsTheSelects(t *testing.T) {
-	f := newForm("/tmp", newSessionDefaults{model: "opus", mode: "acceptEdits", effort: "max", control: true})
+	f := newForm("/tmp", newSessionDefaults{model: "opus", mode: "acceptEdits", effort: "max", control: true}, nil)
 	spec := f.spec()
 	if spec.Model != "opus" || spec.PermissionMode != "acceptEdits" || spec.Effort != "max" || !spec.Control {
 		t.Errorf("spec = %+v, want the selected options", spec)
@@ -56,7 +114,7 @@ func TestTheFormSpecReadsTheSelects(t *testing.T) {
 }
 
 func TestLeftAndRightCycleAFocusedSelect(t *testing.T) {
-	f := newForm("/tmp", newSessionDefaults{mode: "auto"})
+	f := newForm("/tmp", newSessionDefaults{mode: "auto"}, nil)
 	f.focus = fieldModel
 	first := f.selects[fieldModel].value()
 	f.Update(tea.KeyMsg{Type: tea.KeyLeft})
@@ -74,7 +132,7 @@ func TestLeftAndRightCycleAFocusedSelect(t *testing.T) {
 }
 
 func TestTypingDoesNotChangeASelect(t *testing.T) {
-	f := newForm("/tmp", newSessionDefaults{mode: "auto"})
+	f := newForm("/tmp", newSessionDefaults{mode: "auto"}, nil)
 	f.focus = fieldEffort
 	before := f.selects[fieldEffort].value()
 	f.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("x")})

@@ -85,6 +85,9 @@ func (m Model) handleLeftMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 			line := m.lines[index]
 			m.focus = focusSidebar
 			m.prompt.Blur()
+			if line.isDivider() {
+				return m, nil
+			}
 			if line.header() {
 				m.setFold(m.groups[line.group].key, !m.groups[line.group].folded)
 				return m, nil

@@ -1,10 +1,32 @@
 package mcp
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strings"
 )
+
+// ctxKey is the type of the request-context keys this package sets.
+type ctxKey int
+
+// ctxHosted marks a request that arrived on the peer listener, so restCreate
+// starts the session as hosted. The loopback API never sets it. See
+// docs/peers.md.
+const ctxHosted ctxKey = iota
+
+// hosted reports whether a request arrived on the peer listener.
+func hosted(r *http.Request) bool {
+	value, _ := r.Context().Value(ctxHosted).(bool)
+	return value
+}
+
+// handlePeerAPI serves the REST surface on the peer listener. It marks the
+// request hosted, so a session a peer creates through it starts hosted. See
+// docs/peers.md.
+func (s *Server) handlePeerAPI(w http.ResponseWriter, r *http.Request) {
+	s.handleAPI(w, r.WithContext(context.WithValue(r.Context(), ctxHosted, true)))
+}
 
 // handleAPI serves the REST surface. A client reaches only the sessions it owns,
 // so a route on any other session answers 404. See docs/mcp/api.md.
@@ -34,8 +56,12 @@ func (s *Server) handleAPI(w http.ResponseWriter, r *http.Request) {
 		s.restJobs(w, sess, parts[1])
 	case len(parts) == 3 && parts[2] == "message" && r.Method == http.MethodPost:
 		s.restMessage(w, r, sess, parts[1], grant.clientName)
+	case len(parts) == 3 && parts[2] == "stream" && r.Method == http.MethodGet:
+		s.restStream(w, r, sess, parts[1])
 	case len(parts) == 3 && parts[2] == "stop" && r.Method == http.MethodPost:
 		s.restStop(w, r, sess, parts[1], grant.clientName)
+	case len(parts) == 3 && parts[2] == "interrupt" && r.Method == http.MethodPost:
+		s.restInterrupt(w, r, sess, parts[1], grant.clientName)
 	case len(parts) == 3 && parts[2] == "archive" && r.Method == http.MethodPost:
 		s.restArchive(w, r, sess, parts[1], grant.clientName)
 	case len(parts) == 5 && parts[2] == "jobs" && parts[4] == "stop" && r.Method == http.MethodPost:
@@ -47,15 +73,31 @@ func (s *Server) handleAPI(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) restCreate(w http.ResponseWriter, r *http.Request, sess APISessions, by string) {
 	var body struct {
-		Dir  string `json:"dir"`
-		Name string `json:"name"`
+		Dir            string `json:"dir"`
+		Name           string `json:"name"`
+		Model          string `json:"model"`
+		PermissionMode string `json:"permission_mode"`
+		Effort         string `json:"effort"`
+		TempDir        bool   `json:"temp_dir"`
 	}
 	_ = json.NewDecoder(r.Body).Decode(&body)
-	if strings.TrimSpace(body.Dir) == "" {
-		writeError(w, http.StatusBadRequest, "dir required")
+	if strings.TrimSpace(body.Dir) == "" && !body.TempDir {
+		writeError(w, http.StatusBadRequest, "dir or temp_dir required")
 		return
 	}
-	name, err := sess.Create(body.Dir, strings.TrimSpace(body.Name), by)
+	if hosted(r) && s.sessions.HostingPaused() {
+		writeError(w, http.StatusForbidden, "the host keeps a usage reserve, and is not accepting a new session")
+		return
+	}
+	name, err := sess.Create(CreateInput{
+		Dir:            body.Dir,
+		Name:           strings.TrimSpace(body.Name),
+		Model:          strings.TrimSpace(body.Model),
+		PermissionMode: strings.TrimSpace(body.PermissionMode),
+		Effort:         strings.TrimSpace(body.Effort),
+		Hosted:         hosted(r),
+		TempDir:        body.TempDir,
+	}, by)
 	if err != nil {
 		writeAPIError(w, err)
 		return
@@ -113,6 +155,14 @@ func (s *Server) restStop(w http.ResponseWriter, r *http.Request, sess APISessio
 		return
 	}
 	writeJSON(w, http.StatusOK, okOut{OK: true, Message: name + " is stopped"})
+}
+
+func (s *Server) restInterrupt(w http.ResponseWriter, r *http.Request, sess APISessions, name, by string) {
+	if err := sess.Interrupt(r.Context(), name, by); err != nil {
+		writeAPIError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, okOut{OK: true, Message: name + " is interrupted"})
 }
 
 func (s *Server) restArchive(w http.ResponseWriter, r *http.Request, sess APISessions, name, by string) {

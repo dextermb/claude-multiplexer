@@ -67,6 +67,9 @@ func (s *Session) writeLoop() {
 			if err := s.waitIdle(); err != nil {
 				return
 			}
+			if s.paused.Load() {
+				break
+			}
 			text, ok := s.q.pop()
 			if !ok {
 				break

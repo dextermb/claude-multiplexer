@@ -12,6 +12,7 @@ import (
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/dextermb/claude-multiplexer/internal/mcp"
+	"github.com/dextermb/claude-multiplexer/internal/usage"
 )
 
 type fakeSessions struct {
@@ -43,6 +44,10 @@ type fakeSessions struct {
 	schedules     map[string]mcp.Schedule
 	scheduleRuns  []string
 	failSchedule  error
+	usage         usage.Usage
+	peers         []mcp.PeerReport
+	peerView      mcp.PeersView
+	hostingPaused bool
 	lastControl   bool
 }
 
@@ -411,6 +416,70 @@ func (f *fakeSessions) ListAPIClients() []mcp.APIClient { return nil }
 func (f *fakeSessions) APIEndpoint() mcp.APIEndpoint {
 	return mcp.APIEndpoint{URL: "http://127.0.0.1:0", PortStart: 51890, PortEnd: 51899}
 }
+
+func (f *fakeSessions) Usage() usage.Usage { return f.usage }
+
+func (f *fakeSessions) PeerUsage(context.Context) []mcp.PeerReport { return f.peers }
+
+func (f *fakeSessions) Peers() mcp.PeersView { return f.peerView }
+
+func (f *fakeSessions) EnablePeering(port int) (string, error) {
+	f.peerView.Enabled = true
+	if port > 0 {
+		f.peerView.Port = port
+	}
+	return "config.json", nil
+}
+
+func (f *fakeSessions) DisablePeering() (string, bool, error) {
+	had := f.peerView.Enabled
+	f.peerView.Enabled = false
+	f.peerView.Port = 0
+	return "config.json", had, nil
+}
+
+func (f *fakeSessions) AddPeer(in mcp.PeerHostInput) (string, error) {
+	f.peerView.Hosts = append(f.peerView.Hosts, mcp.PeerHostView{Name: in.Name, URL: in.URL, ClientID: in.ClientID})
+	return "config.json", nil
+}
+
+func (f *fakeSessions) UpdatePeer(in mcp.PeerHostUpdate) (string, error) {
+	for i, h := range f.peerView.Hosts {
+		if h.Name == in.Name {
+			if in.URL != "" {
+				f.peerView.Hosts[i].URL = in.URL
+			}
+			if in.ClientID != "" {
+				f.peerView.Hosts[i].ClientID = in.ClientID
+			}
+			return "config.json", nil
+		}
+	}
+	return "", mcp.ErrNotFound
+}
+
+func (f *fakeSessions) RemovePeer(name string) (string, bool, error) {
+	for i, h := range f.peerView.Hosts {
+		if h.Name == name {
+			f.peerView.Hosts = append(f.peerView.Hosts[:i], f.peerView.Hosts[i+1:]...)
+			return "config.json", true, nil
+		}
+	}
+	return "config.json", false, nil
+}
+
+func (f *fakeSessions) SetReserve(window string, minPercent int) (string, error) {
+	f.peerView.Reserve = &mcp.ReserveView{Window: window, MinPercent: minPercent}
+	return "config.json", nil
+}
+
+func (f *fakeSessions) UnsetReserve() (string, bool, error) {
+	had := f.peerView.Reserve != nil
+	f.peerView.Reserve = nil
+	return "config.json", had, nil
+}
+
+func (f *fakeSessions) HostingPaused() bool { return f.hostingPaused }
 
 func startServer(t *testing.T, sessions mcp.Sessions) *mcp.Server {
 	t.Helper()

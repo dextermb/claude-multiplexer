@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/dextermb/claude-multiplexer/internal/api"
+	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/mcp"
 	"github.com/dextermb/claude-multiplexer/internal/session"
 )
@@ -30,6 +31,14 @@ func (m *Manager) StartMCP() error {
 	}
 	m.mcp = server
 	m.writeEndpoint()
+	m.startUsage()
+	cfg, err := config.Load(m.opts.ConfigPaths...)
+	if err == nil && cfg.Peers != nil {
+		if err := server.StartPeer(cfg.Peers.ListenAddr()); err != nil {
+			return err
+		}
+	}
+	m.reattachRemotes()
 	return nil
 }
 

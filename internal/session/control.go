@@ -31,6 +31,22 @@ func (s *Session) DiscardQueued() {
 	s.q.clear()
 }
 
+// SetPaused holds or releases the queue of a session. While paused, the write
+// loop finishes the running turn and then does not take the next queued prompt.
+// A resume wakes the loop, so a prompt that waited runs at once. The reserve
+// gate drives this on a hosted session. See docs/peers.md.
+func (s *Session) SetPaused(paused bool) {
+	if s.paused.Swap(paused) == paused {
+		return
+	}
+	if !paused {
+		s.q.wake()
+	}
+}
+
+// Paused reports whether the queue is held.
+func (s *Session) Paused() bool { return s.paused.Load() }
+
 func (s *Session) controlID(kind string) string {
 	s.mu.Lock()
 	s.controlSeq++
@@ -39,7 +55,7 @@ func (s *Session) controlID(kind string) string {
 	return fmt.Sprintf("%s-%d", kind, n)
 }
 
-// SetModel switches the model of the running child; see docs/protocol.md.
+// SetModel switches the model of the running child; see docs/protocol/control.md.
 func (s *Session) SetModel(model string) error {
 	if s.cmd == nil {
 		return ErrNotStarted
@@ -57,7 +73,7 @@ func (s *Session) SetModel(model string) error {
 }
 
 // SetPermissionMode switches the permission mode of the running child; see
-// docs/protocol.md.
+// docs/protocol/control.md.
 func (s *Session) SetPermissionMode(mode string) error {
 	if s.cmd == nil {
 		return ErrNotStarted

@@ -24,7 +24,7 @@ type askUserQuestionInput struct {
 // an assistant message. It returns the block id, the questions, and true. The
 // third result is false when the message holds no such block. In headless mode
 // the child answers this tool itself, so the id is for the transcript, not for
-// a reply; see docs/protocol.md.
+// a reply; see docs/protocol/questions.md.
 func (e Event) AskUserQuestion() (string, []Question, bool) {
 	if e.Type != TypeAssistant || e.Message == nil {
 		return "", nil, false

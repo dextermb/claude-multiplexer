@@ -12,6 +12,7 @@ import (
 	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/manager"
 	"github.com/dextermb/claude-multiplexer/internal/markdown"
+	"github.com/dextermb/claude-multiplexer/internal/peer"
 	"github.com/dextermb/claude-multiplexer/internal/protocol"
 	"github.com/dextermb/claude-multiplexer/internal/render"
 	"github.com/dextermb/claude-multiplexer/internal/session"
@@ -120,6 +121,7 @@ type Model struct {
 	rows         []row
 	groups       []group
 	lines        []listLine
+	peering      bool
 	folded       map[string]bool
 	roots        map[string]string
 	stored       []manager.Meta
@@ -239,6 +241,7 @@ func New(opts Options) Model {
 		opts:            opts,
 		sessionDefaults: resolveSessionDefaults(opts, config.Config{}),
 		mgr:             opts.Manager,
+		peering:         len(opts.Manager.PeerNames()) > 0,
 		sub:             opts.Manager.Subscribe(manager.DefaultSubscriberBuffer),
 		output:          viewport.New(0, 0),
 		prompt:          prompt,
@@ -319,6 +322,22 @@ func archiveCmd(mgr *manager.Manager, name string, archived bool) tea.Cmd {
 func spawnCmd(mgr *manager.Manager, spec manager.Spec) tea.Cmd {
 	return func() tea.Msg {
 		name, err := mgr.Spawn(context.Background(), spec)
+		return spawnedMsg{name: name, err: err}
+	}
+}
+
+// attachCmd starts a session on a peer and streams it in, so a remote session
+// appears in the sidebar like a local one. See docs/peers.md.
+func attachCmd(mgr *manager.Manager, host string, spec manager.Spec) tea.Cmd {
+	return func() tea.Msg {
+		name, err := mgr.AttachRemoteByName(host, peer.CreateSpec{
+			Dir:            spec.Dir,
+			TempDir:        strings.TrimSpace(spec.Dir) == "",
+			Name:           spec.Name,
+			Model:          spec.Model,
+			PermissionMode: spec.PermissionMode,
+			Effort:         spec.Effort,
+		})
 		return spawnedMsg{name: name, err: err}
 	}
 }

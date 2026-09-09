@@ -148,7 +148,7 @@ func BashLines(command, output string, err error) []Line {
 }
 
 // taskLines renders a background job lifecycle event for the session pane; see
-// docs/tui/sessions.md. The start event carries the description; a later event
+// docs/tui/sessions/jobs.md. The start event carries the description; a later event
 // carries only the id, so its line names the id.
 func taskLines(subtype string, task *protocol.Task) []Line {
 	switch subtype {

@@ -26,6 +26,7 @@ func (s *Server) mountAPI(mux *http.ServeMux) {
 	mux.HandleFunc("/token", s.handleToken)
 	mux.HandleFunc("/admin/clients", s.handleClients)
 	mux.HandleFunc("/admin/clients/", s.handleClient)
+	mux.HandleFunc("/api/usage", s.handleUsage)
 	mux.HandleFunc("/api/", s.handleAPI)
 }
 

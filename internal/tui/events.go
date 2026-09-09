@@ -64,8 +64,9 @@ func (m Model) handleEvent(ev manager.Event) (tea.Model, tea.Cmd) {
 	turnEnded := ev.Session == m.sel && wasBusy && !m.selectedBusy()
 
 	widthChanged := ev.Session == m.sel && m.outputWidth() != prevWidth
+	replaced := ev.Replace && ev.Session == m.sel
 	switch {
-	case gap || widthChanged:
+	case gap || widthChanged || replaced:
 		m.rebuildOutput()
 	case ev.Session == m.sel && len(ev.Lines) > 0:
 		m.appendOutput(ev.Lines)

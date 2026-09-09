@@ -49,13 +49,12 @@ func (m *Manager) StopJobFrom(target, from, jobID string) (int, error) {
 		return 0, fmt.Errorf("%w: %s", ErrJobNotRunning, jobID)
 	}
 	lines := []render.Line{{Class: render.ClassMeta, Text: "← stop job " + jobID + " from " + from}}
-	item.lines.append(lines)
 	if err := item.sess.Send(killPrompt(job)); err != nil {
 		return 0, err
 	}
 	_ = item.sess.Interrupt()
 	snap := item.sess.Snapshot()
-	m.bus.Publish(Event{
+	m.bus.publishLines(item.lines, lines, Event{
 		Session:  target,
 		Kind:     session.KindState,
 		Lines:    lines,

@@ -8,6 +8,9 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/dextermb/claude-multiplexer/internal/usage"
+	"github.com/dextermb/claude-multiplexer/internal/wire"
 )
 
 // ServerName is the MCP server name, so a tool reaches Claude Code as
@@ -65,6 +68,18 @@ const (
 	ToolListAPIClients  = "list_api_clients"
 	ToolAPIEndpoint     = "get_api_endpoint"
 	ToolAPIDocs         = "get_api_docs"
+
+	ToolGetUsage  = "get_usage"
+	ToolPeerUsage = "peer_usage"
+
+	ToolListPeers      = "list_peers"
+	ToolEnablePeering  = "enable_peering"
+	ToolDisablePeering = "disable_peering"
+	ToolAddPeer        = "add_peer"
+	ToolUpdatePeer     = "update_peer"
+	ToolRemovePeer     = "remove_peer"
+	ToolSetReserve     = "set_reserve"
+	ToolUnsetReserve   = "unset_reserve"
 )
 
 // OpenTools go to every session. ControlTools go only to a session that holds
@@ -76,11 +91,13 @@ var (
 		ToolListProject, ToolAddProjectDir, ToolRemoveProject, ToolSetProject, ToolClearProject,
 		ToolListLayouts, ToolSaveLayout, ToolDeleteLayout, ToolSetLayout, ToolUnsetLayout,
 		ToolCreateSchedule, ToolUpdateSchedule, ToolListSchedules, ToolDeleteSchedule, ToolSetScheduleEnabled, ToolRunSchedule,
-		ToolSchedulePath, ToolAPIURL, ToolAPIDocs}
+		ToolSchedulePath, ToolAPIURL, ToolAPIDocs, ToolGetUsage, ToolPeerUsage}
 	ControlTools = []string{ToolSend, ToolStop, ToolArchive, ToolCreate, ToolStopJob,
 		ToolCreateAPIAdmin, ToolRotateAPIAdmin, ToolRevokeAPIAdmin,
 		ToolCreateAPIClient, ToolUpdateAPIClient, ToolRotateAPIClient, ToolRevokeAPIClient,
-		ToolListAPIClients, ToolAPIEndpoint}
+		ToolListAPIClients, ToolAPIEndpoint,
+		ToolListPeers, ToolEnablePeering, ToolDisablePeering, ToolAddPeer, ToolUpdatePeer, ToolRemovePeer,
+		ToolSetReserve, ToolUnsetReserve}
 	// APITools go to an external client that reaches the session API. The set is
 	// session-only, so no config, layout, or schedule tool is ever exposed. See
 	// docs/mcp/api.md.
@@ -110,6 +127,8 @@ var (
 	ErrBadDim       = errors.New("mcp: a layout dimension must be one or more")
 
 	ErrBadPosition = errors.New("mcp: the diff position must be left, right, top, or bottom")
+
+	ErrNoPeer = errors.New("mcp: this tool needs a peer name and url")
 )
 
 // The scopes a layout tool takes. ScopeSession sets the calling session; ScopeAll
@@ -152,6 +171,11 @@ type Session struct {
 	Queued   int     `json:"queued,omitempty"`
 	Turns    int     `json:"turns"`
 	Cost     float64 `json:"cost_usd"`
+	// Host names the peer a streamed session runs on, and is empty for a session
+	// this host runs. Hosted marks a session this host runs on behalf of a peer.
+	// The sidebar sorts a session into a section from these two. See docs/peers.md.
+	Host   string `json:"host,omitempty"`
+	Hosted bool   `json:"hosted,omitempty"`
 }
 
 // Message is one entry of get_messages. The transcript carries no timestamp for
@@ -314,6 +338,69 @@ type Sessions interface {
 	RevokeAPIClient(id string) error
 	ListAPIClients() []APIClient
 	APIEndpoint() APIEndpoint
+	Usage() usage.Usage
+	PeerUsage(ctx context.Context) []PeerReport
+	Peers() PeersView
+	EnablePeering(port int) (string, error)
+	DisablePeering() (string, bool, error)
+	AddPeer(in PeerHostInput) (string, error)
+	UpdatePeer(in PeerHostUpdate) (string, error)
+	RemovePeer(name string) (string, bool, error)
+	SetReserve(window string, minPercent int) (string, error)
+	UnsetReserve() (string, bool, error)
+	// HostingPaused reports whether the reserve gate is tripped, so the peer
+	// listener refuses a new hosted session. See docs/peers.md.
+	HostingPaused() bool
+}
+
+// PeersView is the output of list_peers: the listen address, the reserve, and
+// the peer hosts. It never holds a secret. See docs/peers.md.
+type PeersView struct {
+	Enabled bool           `json:"enabled"`
+	Port    int            `json:"port,omitempty"`
+	Reserve *ReserveView   `json:"reserve,omitempty"`
+	Hosts   []PeerHostView `json:"hosts"`
+}
+
+// ReserveView is the usage floor in a PeersView.
+type ReserveView struct {
+	Window     string `json:"window"`
+	MinPercent int    `json:"min_percent"`
+}
+
+// PeerHostView is one peer host in a PeersView, without its secret.
+type PeerHostView struct {
+	Name     string `json:"name"`
+	URL      string `json:"url"`
+	ClientID string `json:"client_id"`
+}
+
+// PeerHostInput is the input to AddPeer: a peer host with its secret.
+type PeerHostInput struct {
+	Name         string
+	URL          string
+	ClientID     string
+	ClientSecret string
+}
+
+// PeerHostUpdate is the input to UpdatePeer. Name finds the peer; each other
+// field changes it only when non-empty, so a regenerated secret or a new url
+// updates without re-supplying the rest. See docs/peers.md.
+type PeerHostUpdate struct {
+	Name         string
+	URL          string
+	ClientID     string
+	ClientSecret string
+}
+
+// PeerReport is one peer's usage, or the error that stopped the read. See
+// docs/peers.md.
+type PeerReport struct {
+	Name      string      `json:"name"`
+	URL       string      `json:"url"`
+	Reachable bool        `json:"reachable"`
+	Usage     usage.Usage `json:"usage,omitempty"`
+	Error     string      `json:"error,omitempty"`
 }
 
 // APISessions is the session-only slice of the manager an external API client
@@ -323,12 +410,36 @@ type APISessions interface {
 	SetTitle(name, title string) error
 	SendFrom(target, from, text string) (int, error)
 	Stop(ctx context.Context, name, by string) error
+	Interrupt(ctx context.Context, name, by string) error
 	Archive(name string, archived bool, by string) error
-	Create(dir, name, by string) (string, error)
+	Create(in CreateInput, by string) (string, error)
 	List() []Session
 	Messages(name string, limit int) ([]Message, error)
 	Jobs(name string) ([]Job, error)
 	StopJob(target, jobID, by string) (int, error)
+	// Stream replays the session's current lines, then tails its live events,
+	// until the context is done. It is the source of a remote session's stream.
+	// See docs/peers.md.
+	Stream(ctx context.Context, name string) (<-chan wire.Event, error)
+}
+
+// CreateInput is the input to Create over the API. It carries the fields a peer
+// picks for a session it starts on a host: the directory, the name, and the
+// model, permission mode, and effort. See docs/peers.md.
+type CreateInput struct {
+	Dir            string
+	Name           string
+	Model          string
+	PermissionMode string
+	Effort         string
+	// Hosted marks a session the peer listener creates on behalf of a peer, so
+	// the host sorts it under the hosted section. The loopback API never sets it.
+	// See docs/peers.md.
+	Hosted bool
+	// TempDir asks the host to run the session in a fresh temporary directory it
+	// makes, so a peer starts a session without naming a path on the host. See
+	// docs/peers.md.
+	TempDir bool
 }
 
 // APIClient is one row of list_api_clients, and the record the client tools

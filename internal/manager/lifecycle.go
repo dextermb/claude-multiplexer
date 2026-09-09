@@ -74,6 +74,8 @@ func (m *Manager) Spawn(ctx context.Context, spec Spec) (string, error) {
 			Control:        spec.Control,
 			Scheduled:      spec.Scheduled,
 			Owner:          spec.Owner,
+			Hosted:         spec.Hosted,
+			TempDir:        spec.TempDir,
 			CreatedAt:      time.Now(),
 		},
 	}
@@ -118,7 +120,7 @@ func (m *Manager) Resume(ctx context.Context, meta Meta) (string, error) {
 	if meta.ClaudeSessionID == "" {
 		return "", fmt.Errorf("manager: session %q has no Claude session id", meta.Name)
 	}
-	if err := m.Remove(meta.Name); err != nil && !errors.Is(err, ErrUnknownSession) {
+	if _, err := m.evict(meta.Name); err != nil && !errors.Is(err, ErrUnknownSession) {
 		return "", err
 	}
 	return m.Spawn(ctx, Spec{
@@ -135,6 +137,9 @@ func (m *Manager) Resume(ctx context.Context, meta Meta) (string, error) {
 }
 
 func (m *Manager) Send(name, text string) error {
+	if re := m.remote(name); re != nil {
+		return re.client.Send(context.Background(), re.remoteName, text)
+	}
 	item, err := m.entry(name)
 	if err != nil {
 		return err
@@ -150,12 +155,11 @@ func (m *Manager) SendFrom(target, from, text string) (int, error) {
 		return 0, err
 	}
 	lines := []render.Line{{Class: render.ClassMeta, Text: "← prompt from " + from}}
-	item.lines.append(lines)
 	if err := item.sess.Send(text); err != nil {
 		return 0, err
 	}
 	snap := item.sess.Snapshot()
-	m.bus.Publish(Event{
+	m.bus.publishLines(item.lines, lines, Event{
 		Session:  target,
 		Kind:     session.KindState,
 		Lines:    lines,
@@ -166,6 +170,9 @@ func (m *Manager) SendFrom(target, from, text string) (int, error) {
 }
 
 func (m *Manager) Interrupt(name string, discardQueued bool) error {
+	if re := m.remote(name); re != nil {
+		return re.client.Interrupt(context.Background(), re.remoteName)
+	}
 	item, err := m.entry(name)
 	if err != nil {
 		return err
@@ -375,7 +382,7 @@ func (m *Manager) SetTitle(name, title string) error {
 }
 
 // ResumeWithEffort stops a running session and resumes it with a new effort
-// level, because Claude Code has no live effort switch; see docs/protocol.md.
+// level, because Claude Code has no live effort switch; see docs/protocol/control.md.
 func (m *Manager) ResumeWithEffort(ctx context.Context, name, effort string) (string, error) {
 	item, err := m.entry(name)
 	if err != nil {
@@ -401,6 +408,9 @@ func (m *Manager) ResumeWithEffort(ctx context.Context, name, effort string) (st
 }
 
 func (m *Manager) Stop(ctx context.Context, name string) error {
+	if re := m.remote(name); re != nil {
+		return re.client.Stop(ctx, re.remoteName)
+	}
 	item, err := m.entry(name)
 	if err != nil {
 		return err
@@ -408,22 +418,43 @@ func (m *Manager) Stop(ctx context.Context, name string) error {
 	return item.sess.Stop(ctx)
 }
 
+// Remove drops a session for good, and deletes its temporary working directory
+// when it ran in one. Resume uses evict instead, so it keeps the directory for
+// the re-spawn. See docs/peers.md.
 func (m *Manager) Remove(name string) error {
-	item, err := m.entry(name)
+	item, err := m.evict(name)
 	if err != nil {
 		return err
 	}
+	meta := item.metaCopy()
+	if meta.TempDir && meta.Dir != "" {
+		_ = os.RemoveAll(meta.Dir)
+	}
+	return nil
+}
+
+// evict drops a session from the live set, and returns its entry. It leaves the
+// working directory alone, so a resume that evicts then re-spawns keeps it.
+func (m *Manager) evict(name string) (*entry, error) {
+	item, err := m.entry(name)
+	if err != nil {
+		return nil, err
+	}
 	if item.sess.State().Live() {
-		return fmt.Errorf("%w: %s", ErrStillLive, name)
+		return nil, fmt.Errorf("%w: %s", ErrStillLive, name)
 	}
 	m.mu.Lock()
 	delete(m.entries, name)
 	m.order = removeName(m.order, name)
 	m.mu.Unlock()
-	return nil
+	return item, nil
 }
 
 func (m *Manager) Shutdown(ctx context.Context) {
+	if m.usageStop != nil {
+		m.usageStop()
+		m.usageStop = nil
+	}
 	if m.schedStop != nil {
 		close(m.schedStop)
 		m.schedWG.Wait()
@@ -434,6 +465,9 @@ func (m *Manager) Shutdown(ctx context.Context) {
 	items := make([]*entry, 0, len(m.order))
 	for _, name := range m.order {
 		items = append(items, m.entries[name])
+	}
+	for _, re := range m.remotes {
+		re.cancel()
 	}
 	m.mu.Unlock()
 

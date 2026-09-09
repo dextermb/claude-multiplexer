@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/dextermb/claude-multiplexer/internal/mcp"
+	"github.com/dextermb/claude-multiplexer/internal/wire"
 )
 
 // ownerOf reports the owner of a session, and whether the session is there. A
@@ -102,6 +103,17 @@ func (o *ownedSessions) Stop(ctx context.Context, name, by string) error {
 	return nil
 }
 
+func (o *ownedSessions) Interrupt(ctx context.Context, name, by string) error {
+	if err := o.guard(name); err != nil {
+		return err
+	}
+	if err := o.m.Interrupt(name, false); err != nil {
+		return err
+	}
+	o.m.notify(name, by+" interrupted "+name, false)
+	return nil
+}
+
 func (o *ownedSessions) Archive(name string, archived bool, by string) error {
 	if err := o.guard(name); err != nil {
 		return err
@@ -124,19 +136,47 @@ func (o *ownedSessions) StopJob(target, jobID, by string) (int, error) {
 	return o.m.StopJobFrom(target, by, jobID)
 }
 
-func (o *ownedSessions) Create(dir, name, by string) (string, error) {
-	abs, err := filepath.Abs(dir)
-	if err != nil {
-		return "", err
+func (o *ownedSessions) Create(in mcp.CreateInput, by string) (string, error) {
+	var abs string
+	if in.TempDir {
+		tmp, err := os.MkdirTemp("", "cmux-session-*")
+		if err != nil {
+			return "", err
+		}
+		abs = tmp
+	} else {
+		full, err := filepath.Abs(in.Dir)
+		if err != nil {
+			return "", err
+		}
+		info, err := os.Stat(full)
+		if err != nil || !info.IsDir() {
+			return "", fmt.Errorf("%w: %s", ErrNotDirectory, in.Dir)
+		}
+		abs = full
 	}
-	info, err := os.Stat(abs)
-	if err != nil || !info.IsDir() {
-		return "", fmt.Errorf("%w: %s", ErrNotDirectory, dir)
-	}
-	created, err := o.m.Spawn(context.Background(), Spec{Dir: abs, Name: name, Owner: o.owner})
+	created, err := o.m.Spawn(context.Background(), Spec{
+		Dir:            abs,
+		Name:           in.Name,
+		Model:          in.Model,
+		PermissionMode: in.PermissionMode,
+		Effort:         in.Effort,
+		Owner:          o.owner,
+		Hosted:         in.Hosted,
+		TempDir:        in.TempDir,
+	})
 	if err != nil {
 		return "", err
 	}
 	o.m.notify(created, by+" created "+created, true)
 	return created, nil
+}
+
+// Stream serves the session's events to a peer, once the owner check passes. See
+// docs/peers.md.
+func (o *ownedSessions) Stream(ctx context.Context, name string) (<-chan wire.Event, error) {
+	if err := o.guard(name); err != nil {
+		return nil, err
+	}
+	return o.m.streamSession(ctx, name), nil
 }

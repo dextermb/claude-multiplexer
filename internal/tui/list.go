@@ -2,6 +2,7 @@ package tui
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/dextermb/claude-multiplexer/internal/mcp"
 	"github.com/dextermb/claude-multiplexer/internal/session"
 )
 
@@ -86,6 +87,8 @@ func (m *Model) refresh() {
 	workDirs := m.mgr.WorkingDirs()
 	projects := m.mgr.Projects()
 	layouts := m.mgr.SessionLayouts()
+	hosted := m.mgr.Hosted()
+	owners := m.mgr.Owners()
 	for _, snap := range m.mgr.Snapshots() {
 		item := rowFromSnapshot(snap)
 		item.control = grants[snap.Name]
@@ -94,6 +97,14 @@ func (m *Model) refresh() {
 		item.workDir = workDirs[snap.Name]
 		item.projectDirs = projects[snap.Name]
 		item.layout = layouts[snap.Name]
+		item.hosted = hosted[snap.Name]
+		item.owner = owners[snap.Name]
+		rows = append(rows, item)
+	}
+	hosts := m.mgr.Hosts()
+	for _, snap := range m.mgr.RemoteSnapshots() {
+		item := rowFromSnapshot(snap)
+		item.host = hosts[snap.Name]
 		rows = append(rows, item)
 	}
 	for _, meta := range m.stored {
@@ -108,8 +119,13 @@ func (m *Model) refresh() {
 			children[item.parent] = true
 		}
 	}
+	names := clientNames(m.mgr.ListAPIClients())
 	for i := range rows {
+		if name := names[rows[i].owner]; name != "" {
+			rows[i].owner = name
+		}
 		rows[i].group = m.rowGroup(rows[i], children)
+		rows[i].section = sectionOf(rows[i])
 	}
 	m.rows, m.groups = groupRows(rows, m.folded)
 	m.buildLines()
@@ -126,7 +142,7 @@ func (m *Model) refresh() {
 }
 
 // syncJobsModal gives the open jobs dialog the jobs of its session, so a
-// running job grows while you read it. See docs/tui/sessions.md.
+// running job grows while you read it. See docs/tui/sessions/jobs.md.
 func (m *Model) syncJobsModal() {
 	if m.jobsModal == nil {
 		return
@@ -138,14 +154,28 @@ func (m *Model) syncJobsModal() {
 	m.jobsModal.setJobs(item.jobList)
 }
 
-// rowGroup keys a row on the control session that created it, or that it
-// created rows for, and on its repository when neither holds.
+// clientNames maps a client id to its name, so a hosted session groups under the
+// client name instead of the opaque id it carries.
+func clientNames(clients []mcp.APIClient) map[string]string {
+	names := make(map[string]string, len(clients))
+	for _, client := range clients {
+		names[client.ClientID] = client.Name
+	}
+	return names
+}
+
+// rowGroup keys a row on the control session that created it, or that it created
+// rows for, then on the peer a remote session involves, and on its repository
+// when none of those holds.
 func (m *Model) rowGroup(item row, children map[string]bool) string {
 	if item.parent != "" {
 		return byPrefix + item.parent
 	}
 	if children[item.name] {
 		return byPrefix + item.name
+	}
+	if remote := item.remoteHost(); remote != "" {
+		return hostPrefix + remote
 	}
 	return dirPrefix + m.groupKey(item.dir)
 }
@@ -168,7 +198,34 @@ func (m *Model) groupKey(dir string) string {
 }
 
 func (m *Model) buildLines() {
-	m.lines = listLines(m.rows, m.groups)
+	m.lines = listLines(m.rows, m.groups, m.sectioned())
+}
+
+// sectioned reports whether the sidebar draws section dividers: when this host
+// has peers configured, or a hosted or streamed session is present. See
+// docs/peers.md.
+func (m Model) sectioned() bool {
+	if m.peering {
+		return true
+	}
+	for _, item := range m.rows {
+		if item.section != sectionLocal {
+			return true
+		}
+	}
+	return false
+}
+
+// sectionOf sorts a row into its band from its host and hosted fields.
+func sectionOf(item row) sectionKind {
+	switch {
+	case item.host != "":
+		return sectionStreamed
+	case item.hosted:
+		return sectionHosted
+	default:
+		return sectionLocal
+	}
 }
 
 // selLine is the line the selected session is drawn on, or -1 when a fold hides
@@ -215,7 +272,7 @@ func (m *Model) selectFirst() {
 func (m *Model) selectNear(key string) {
 	at := -1
 	for i, line := range m.lines {
-		if line.header() && m.groups[line.group].key == key {
+		if line.header() && !line.isDivider() && m.groups[line.group].key == key {
 			at = i
 			break
 		}

@@ -92,7 +92,15 @@ var (
 
 	groupLabelStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("111"))
 
+	groupMutedStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("240"))
+
 	groupCountStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+
+	sectionLabelStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("250"))
+
+	sectionRuleStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("238"))
+
+	sectionParentStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("111"))
 
 	hintStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
 

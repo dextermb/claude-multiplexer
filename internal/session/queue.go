@@ -17,11 +17,16 @@ func (q *queue) push(item string) int {
 	q.items = append(q.items, item)
 	n := len(q.items)
 	q.mu.Unlock()
+	q.wake()
+	return n
+}
+
+// wake pokes the write loop, so it re-checks the queue after a push or a resume.
+func (q *queue) wake() {
 	select {
 	case q.sig <- struct{}{}:
 	default:
 	}
-	return n
 }
 
 func (q *queue) pop() (string, bool) {

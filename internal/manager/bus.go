@@ -1,6 +1,10 @@
 package manager
 
-import "sync"
+import (
+	"sync"
+
+	"github.com/dextermb/claude-multiplexer/internal/render"
+)
 
 const DefaultSubscriberBuffer = 256
 
@@ -24,11 +28,27 @@ func NewBus() *Bus {
 }
 
 func (b *Bus) Subscribe(buffer int) *Subscription {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.subscribeLocked(buffer)
+}
+
+// subscribeAt registers a subscription and reads the buffer's lines and
+// watermark under the bus lock, so no event straddles the boundary: an event
+// already in the returned lines is never also delivered live, and an event
+// delivered live is never in the lines. See docs/peers.md.
+func (b *Bus) subscribeAt(buf *lineBuffer, buffer int) (*Subscription, []render.Line, uint64) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	sub := b.subscribeLocked(buffer)
+	lines, seq := buf.snapshot()
+	return sub, lines, seq
+}
+
+func (b *Bus) subscribeLocked(buffer int) *Subscription {
 	if buffer <= 0 {
 		buffer = DefaultSubscriberBuffer
 	}
-	b.mu.Lock()
-	defer b.mu.Unlock()
 	sub := &Subscription{C: make(chan Event, buffer), bus: b, id: b.next}
 	b.next++
 	b.subs[sub.id] = sub
@@ -40,6 +60,33 @@ func (b *Bus) Publish(ev Event) {
 	defer b.mu.Unlock()
 	b.seq++
 	ev.Seq = b.seq
+	b.deliver(ev)
+}
+
+// publishLines appends the lines to the buffer and publishes the event under one
+// hold of the bus lock, so the buffer's watermark stays exact against the events
+// the bus delivers. See docs/peers.md.
+func (b *Bus) publishLines(buf *lineBuffer, lines []render.Line, ev Event) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.seq++
+	ev.Seq = b.seq
+	buf.appendAt(lines, b.seq)
+	b.deliver(ev)
+}
+
+// publishReset replaces the buffer and publishes the event under one hold of the
+// bus lock, for a streamed session whose connection replaces its lines.
+func (b *Bus) publishReset(buf *lineBuffer, lines []render.Line, ev Event) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.seq++
+	ev.Seq = b.seq
+	buf.resetAt(lines, b.seq)
+	b.deliver(ev)
+}
+
+func (b *Bus) deliver(ev Event) {
 	for _, sub := range b.subs {
 		select {
 		case sub.C <- ev:

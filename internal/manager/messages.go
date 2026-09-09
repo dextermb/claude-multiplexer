@@ -1,6 +1,7 @@
 package manager
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -11,8 +12,12 @@ import (
 )
 
 // Messages reads the recent conversation of a session from its transcript, so
-// it works for a stored session as well as a live one.
+// it works for a stored session as well as a live one. A streamed session has
+// no local transcript, so it reads the messages from the peer.
 func (m *Manager) Messages(name string, limit int) ([]mcp.Message, error) {
+	if re := m.remote(name); re != nil {
+		return re.client.Messages(context.Background(), re.remoteName, limit)
+	}
 	file, err := os.Open(transcriptPath(m.opts.Root, name))
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", ErrUnknownSession, name)

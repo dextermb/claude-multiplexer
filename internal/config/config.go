@@ -6,6 +6,7 @@ package config
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -114,6 +115,74 @@ type Config struct {
 	DefaultPermissionMode string `json:"defaultPermissionMode,omitempty"`
 	DefaultEffort         string `json:"defaultEffort,omitempty"`
 	DefaultControl        *bool  `json:"defaultControl,omitempty"`
+	// Peers holds the cross-host settings: whether the peer listener is on and
+	// its port, the usage reserve, and the peer hosts this host reaches. Nil
+	// keeps peering off. See docs/peers.md.
+	Peers *Peers `json:"peers,omitempty"`
+}
+
+// Peers holds the cross-host settings. Enabled off keeps the peer listener off.
+// See docs/peers.md.
+type Peers struct {
+	// Enabled binds the peer listener on 0.0.0.0, so peers on the network reach
+	// this host. Off keeps the surface loopback-only.
+	Enabled bool `json:"enabled,omitempty"`
+	// Port is the port the peer listener binds. Zero takes DefaultPeerPort, so a
+	// peer target stays stable and known.
+	Port int `json:"port,omitempty"`
+	// Reserve is the usage floor that pauses hosted sessions and refuses a new
+	// peer session. Nil keeps hosting on with no floor.
+	Reserve *Reserve `json:"reserve,omitempty"`
+	// Hosts are the peers this host reaches, a list (not a map) so the order in
+	// the file is stable.
+	Hosts []PeerHost `json:"hosts,omitempty"`
+}
+
+// DefaultPeerPort is the port the peer listener binds when the config names
+// none. It sits just past the loopback API range. See docs/peers.md.
+const DefaultPeerPort = 51900
+
+// ListenAddr is the address the peer listener binds, or "" when peering is off.
+// It binds every interface, so a peer on the network reaches it. See
+// docs/peers.md.
+func (p *Peers) ListenAddr() string {
+	if p == nil || !p.Enabled {
+		return ""
+	}
+	port := p.Port
+	if port <= 0 {
+		port = DefaultPeerPort
+	}
+	return fmt.Sprintf("0.0.0.0:%d", port)
+}
+
+// Reserve is the usage floor. Window names the window it guards ("5h" or "7d")
+// and MinPercent is the percent-remaining floor the gate trips below. See
+// docs/peers.md.
+type Reserve struct {
+	Window     string `json:"window"`
+	MinPercent int    `json:"min_percent"`
+}
+
+// PeerHost is one peer this host reaches: a label, the base URL of the peer's
+// peer listener, and the credentials the peer provisioned for this host. See
+// docs/peers.md.
+type PeerHost struct {
+	Name         string `json:"name"`
+	URL          string `json:"url"`
+	ClientID     string `json:"client_id"`
+	ClientSecret string `json:"client_secret"`
+}
+
+// The reserve windows. See docs/peers.md.
+const (
+	Window5h = "5h"
+	Window7d = "7d"
+)
+
+// ValidWindow reports whether a reserve window is one this program knows.
+func ValidWindow(window string) bool {
+	return window == Window5h || window == Window7d
 }
 
 // BlockCapOrDefault reads the cap out of the settings, and gives the default

@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 
 	"github.com/dextermb/claude-multiplexer/internal/api"
 	"github.com/dextermb/claude-multiplexer/internal/config"
@@ -13,6 +14,7 @@ import (
 	"github.com/dextermb/claude-multiplexer/internal/protocol"
 	"github.com/dextermb/claude-multiplexer/internal/render"
 	"github.com/dextermb/claude-multiplexer/internal/session"
+	"github.com/dextermb/claude-multiplexer/internal/usage"
 )
 
 const DefaultMaxLines = 5000
@@ -41,6 +43,11 @@ type Options struct {
 	DefaultPermissionMode string
 	APIPortStart          int
 	APIPortEnd            int
+	// UsageFetch reads the Claude usage-limit headers for the poll. It is the one
+	// integration seam left open: the exact endpoint and credential are settled
+	// against a real account. A nil fetch keeps the poll off, so usage reads as
+	// unknown. See docs/peers.md.
+	UsageFetch usage.Fetch
 }
 
 type Spec struct {
@@ -56,6 +63,8 @@ type Spec struct {
 	Parent         string
 	Scheduled      string
 	Owner          string
+	Hosted         bool
+	TempDir        bool
 }
 
 type Event struct {
@@ -73,18 +82,28 @@ type Event struct {
 	// an MCP tool. Reload says the stored list changed. See docs/mcp/notices.md.
 	Notice string
 	Reload bool
+	// Replace says Lines is the whole buffer, not a delta, so a viewer rebuilds
+	// its output instead of appending. A streamed session sets it on the first
+	// event of each connection. See docs/peers.md.
+	Replace bool
 }
 
 type Manager struct {
-	opts     Options
-	bus      *Bus
-	mcp      *mcp.Server
-	apiStore *api.Store
+	opts      Options
+	bus       *Bus
+	mcp       *mcp.Server
+	apiStore  *api.Store
+	usagePoll *usage.Poller
 
-	mu      sync.Mutex
-	entries map[string]*entry
-	order   []string
-	pumps   sync.WaitGroup
+	usageStop     func()
+	hostingPaused atomic.Bool
+
+	mu          sync.Mutex
+	entries     map[string]*entry
+	order       []string
+	remotes     map[string]*remoteEntry
+	remoteOrder []string
+	pumps       sync.WaitGroup
 
 	schedMu   sync.Mutex
 	schedules map[string]*Schedule
@@ -119,6 +138,7 @@ func New(opts Options) (*Manager, error) {
 		opts:      opts,
 		bus:       NewBus(),
 		entries:   make(map[string]*entry),
+		remotes:   make(map[string]*remoteEntry),
 		schedules: make(map[string]*Schedule),
 	}
 	m.loadSchedules()
@@ -138,14 +158,13 @@ func (m *Manager) pump(item *entry) {
 	for ev := range item.sess.Events() {
 		m.trackWorktree(ev, enterWorktree, exitWorktree)
 		lines := item.skill.Track(ev.Protocol, m.opts.Renderer.Lines(ev))
-		item.lines.append(lines)
 		partial := trackPartial(item, ev)
 		todos := trackTodos(item, ev)
 		snap := ev.Snapshot
 		item.setSnapshot(snap)
 		m.rememberSession(item, snap)
 		qid, questions, _ := ev.Protocol.AskUserQuestion()
-		m.bus.Publish(Event{
+		m.bus.publishLines(item.lines, lines, Event{
 			Session:    ev.Session,
 			Kind:       ev.Kind,
 			Lines:      lines,
@@ -159,9 +178,13 @@ func (m *Manager) pump(item *entry) {
 	m.releaseTools(item.token)
 	final := item.sess.Snapshot()
 	item.setSnapshot(final)
-	name := item.metaCopy().Name
+	meta := item.metaCopy()
+	name := meta.Name
 	if final.Turns == 0 {
 		_ = os.RemoveAll(sessionDir(m.opts.Root, name))
+		if meta.TempDir && meta.Dir != "" {
+			_ = os.RemoveAll(meta.Dir)
+		}
 	}
 	m.bus.Publish(Event{
 		Session:  name,
@@ -251,7 +274,8 @@ func (m *Manager) uniqueName(want, dir string, keep bool) string {
 	name := base
 	for i := 2; ; i++ {
 		_, live := m.entries[name]
-		if !live && (keep || !m.remembered(name)) {
+		_, remote := m.remotes[name]
+		if !live && !remote && (keep || !m.remembered(name)) {
 			return name
 		}
 		name = fmt.Sprintf("%s-%d", base, i)

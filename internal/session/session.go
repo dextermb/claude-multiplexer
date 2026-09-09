@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/dextermb/claude-multiplexer/internal/protocol"
@@ -175,6 +176,8 @@ type Session struct {
 	readers   sync.WaitGroup
 	writeDone chan struct{}
 	closeIn   sync.Once
+
+	paused atomic.Bool
 
 	mu              sync.Mutex
 	state           State

@@ -14,7 +14,8 @@ import (
 )
 
 const (
-	fieldDir = iota
+	fieldHost = iota
+	fieldDir
 	fieldName
 	fieldModel
 	fieldMode
@@ -24,7 +25,10 @@ const (
 	fieldCount
 )
 
-var fieldLabels = [fieldCount]string{"Directory", "Name", "Model", "Permission mode", "Effort", "Control", "First prompt"}
+var fieldLabels = [fieldCount]string{"Host", "Directory", "Name", "Model", "Permission mode", "Effort", "Control", "First prompt"}
+
+// localHost is the host option for a session this host runs itself.
+const localHost = "local"
 
 // The option lists of the four select fields. An empty string sends nothing, so
 // Claude Code takes the project or global default. See docs/config/new-session.md.
@@ -77,23 +81,23 @@ func (s *selectField) value() string { return s.options[s.cursor] }
 func (s *selectField) label() string { return s.labels[s.cursor] }
 
 type form struct {
-	inputs  [fieldCount]textinput.Model
-	selects [fieldCount]*selectField
-	focus   int
-	err     string
-	matches []string
-	picked  int
-	stem    string
+	inputs     [fieldCount]textinput.Model
+	selects    [fieldCount]*selectField
+	focus      int
+	err        string
+	matches    []string
+	picked     int
+	stem       string
+	hostShown  bool
+	defaultDir string
 }
 
-func newForm(dir string, defaults newSessionDefaults) *form {
-	f := &form{}
-	placeholders := [fieldCount]string{
-		dir,
-		"taken from the directory",
-		"", "", "", "",
-		"optional, and /preset works here",
-	}
+func newForm(dir string, defaults newSessionDefaults, peers []string) *form {
+	f := &form{hostShown: len(peers) > 0, defaultDir: dir}
+	var placeholders [fieldCount]string
+	placeholders[fieldDir] = dir
+	placeholders[fieldName] = "taken from the directory"
+	placeholders[fieldFirst] = "optional, and /preset works here"
 	for i := range f.inputs {
 		input := textinput.New()
 		input.Placeholder = placeholders[i]
@@ -102,14 +106,37 @@ func newForm(dir string, defaults newSessionDefaults) *form {
 		f.inputs[i] = input
 	}
 	f.inputs[fieldDir].SetValue(dir)
+	f.selects[fieldHost] = newSelect(append([]string{localHost}, peers...), localHost)
 	f.selects[fieldModel] = newSelect(modelOptions, defaults.model)
 	f.selects[fieldMode] = newSelect(modeChoices, defaults.mode)
 	f.selects[fieldEffort] = newSelect(effortOptions, defaults.effort)
 	f.selects[fieldControl] = newSelect(controlOptions, boolWord(defaults.control))
+	f.focus = fieldDir
 	f.inputs[fieldDir].CursorEnd()
 	f.inputs[fieldDir].Focus()
 	f.suggest()
 	return f
+}
+
+// visible reports whether a field is shown. The host field hides when no peer is
+// configured, so the form is unchanged without peering. See docs/peers.md.
+func (f *form) visible(i int) bool {
+	return i != fieldHost || f.hostShown
+}
+
+// host is the chosen host: "local" for a session this host runs, or a peer name.
+func (f *form) host() string { return f.selects[fieldHost].value() }
+
+// syncDir follows the host: a peer directory is on the peer, so the local
+// default does not apply and the field clears; local restores the default.
+func (f *form) syncDir() {
+	if f.host() == localHost {
+		f.inputs[fieldDir].SetValue(f.defaultDir)
+	} else {
+		f.inputs[fieldDir].SetValue("")
+	}
+	f.inputs[fieldDir].CursorEnd()
+	f.suggest()
 }
 
 func boolWord(value bool) string {
@@ -124,7 +151,8 @@ func (f *form) isSelect(i int) bool { return f.selects[i] != nil }
 func (f *form) suggest() {
 	f.picked = -1
 	f.stem = ""
-	if f.focus != fieldDir {
+	// A peer directory is on the peer, so local path completion does not apply.
+	if f.focus != fieldDir || f.host() != localHost {
 		f.matches = nil
 		return
 	}
@@ -150,6 +178,9 @@ func (f *form) cycle(delta int) bool {
 }
 
 func (f *form) completeDir() bool {
+	if f.host() != localHost {
+		return false
+	}
 	value := f.inputs[fieldDir].Value()
 	completed, matches := completePath(value)
 	f.matches = matches
@@ -197,11 +228,15 @@ func (f *form) Update(msg tea.Msg) (formResult, tea.Cmd) {
 			return formOpen, nil
 		}
 		if f.isSelect(f.focus) {
+			before := f.host()
 			switch key.String() {
 			case "left", "h":
 				f.selects[f.focus].cycle(-1)
 			case "right", "l":
 				f.selects[f.focus].cycle(1)
+			}
+			if f.focus == fieldHost && f.host() != before {
+				f.syncDir()
 			}
 			return formOpen, nil
 		}
@@ -216,7 +251,14 @@ func (f *form) move(delta int) {
 	if !f.isSelect(f.focus) {
 		f.inputs[f.focus].Blur()
 	}
+	step := delta
+	if step == 0 {
+		step = 1
+	}
 	f.focus = (f.focus + delta + fieldCount) % fieldCount
+	for !f.visible(f.focus) {
+		f.focus = (f.focus + step + fieldCount) % fieldCount
+	}
 	if !f.isSelect(f.focus) {
 		f.inputs[f.focus].Focus()
 		f.inputs[f.focus].CursorEnd()
@@ -263,6 +305,12 @@ func directoryOf(path string) string {
 
 func (f *form) validate() bool {
 	dir := strings.TrimSpace(f.inputs[fieldDir].Value())
+	if f.host() != localHost {
+		// The directory is on the peer, so it is not resolved or checked against
+		// the local filesystem. A blank directory means a temporary one there.
+		f.err = ""
+		return true
+	}
 	if dir == "" {
 		f.err = "give a directory"
 		return false
@@ -307,6 +355,9 @@ func (f *form) View(width int) string {
 	b.WriteString("\n\n")
 	inner := modalInner(width)
 	for i := range f.inputs {
+		if !f.visible(i) {
+			continue
+		}
 		b.WriteString(fieldLabelStyle.Render(pad(fieldLabels[i], 16)))
 		if f.isSelect(i) {
 			b.WriteString(f.selectView(i))
@@ -315,7 +366,9 @@ func (f *form) View(width int) string {
 		}
 		b.WriteString("\n")
 		if i == fieldDir && f.focus == fieldDir {
-			if hint := pathHint(f.matches, f.picked, inner-18); hint != "" {
+			if f.host() != localHost {
+				b.WriteString(strings.Repeat(" ", 16) + hintStyle.Render("blank for a temporary directory on "+f.host()) + "\n")
+			} else if hint := pathHint(f.matches, f.picked, inner-18); hint != "" {
 				b.WriteString(strings.Repeat(" ", 16) + hintStyle.Render(hint) + "\n")
 			}
 		}
