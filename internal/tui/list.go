@@ -2,6 +2,7 @@ package tui
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/dextermb/claude-multiplexer/internal/mcp"
 	"github.com/dextermb/claude-multiplexer/internal/session"
 )
 
@@ -87,6 +88,7 @@ func (m *Model) refresh() {
 	projects := m.mgr.Projects()
 	layouts := m.mgr.SessionLayouts()
 	hosted := m.mgr.Hosted()
+	owners := m.mgr.Owners()
 	for _, snap := range m.mgr.Snapshots() {
 		item := rowFromSnapshot(snap)
 		item.control = grants[snap.Name]
@@ -96,6 +98,7 @@ func (m *Model) refresh() {
 		item.projectDirs = projects[snap.Name]
 		item.layout = layouts[snap.Name]
 		item.hosted = hosted[snap.Name]
+		item.owner = owners[snap.Name]
 		rows = append(rows, item)
 	}
 	hosts := m.mgr.Hosts()
@@ -116,7 +119,11 @@ func (m *Model) refresh() {
 			children[item.parent] = true
 		}
 	}
+	names := clientNames(m.mgr.ListAPIClients())
 	for i := range rows {
+		if name := names[rows[i].owner]; name != "" {
+			rows[i].owner = name
+		}
 		rows[i].group = m.rowGroup(rows[i], children)
 		rows[i].section = sectionOf(rows[i])
 	}
@@ -147,14 +154,28 @@ func (m *Model) syncJobsModal() {
 	m.jobsModal.setJobs(item.jobList)
 }
 
-// rowGroup keys a row on the control session that created it, or that it
-// created rows for, and on its repository when neither holds.
+// clientNames maps a client id to its name, so a hosted session groups under the
+// client name instead of the opaque id it carries.
+func clientNames(clients []mcp.APIClient) map[string]string {
+	names := make(map[string]string, len(clients))
+	for _, client := range clients {
+		names[client.ClientID] = client.Name
+	}
+	return names
+}
+
+// rowGroup keys a row on the control session that created it, or that it created
+// rows for, then on the peer a remote session involves, and on its repository
+// when none of those holds.
 func (m *Model) rowGroup(item row, children map[string]bool) string {
 	if item.parent != "" {
 		return byPrefix + item.parent
 	}
 	if children[item.name] {
 		return byPrefix + item.name
+	}
+	if remote := item.remoteHost(); remote != "" {
+		return hostPrefix + remote
 	}
 	return dirPrefix + m.groupKey(item.dir)
 }

@@ -11,10 +11,12 @@ import (
 
 const maxLabelDepth = 8
 
-// A group key names a directory or the control session that created the rows.
+// A group key names a directory, the control session that created the rows, or
+// the peer a remote session involves.
 const (
-	dirPrefix = "dir:"
-	byPrefix  = "by:"
+	dirPrefix  = "dir:"
+	byPrefix   = "by:"
+	hostPrefix = "host:"
 )
 
 type group struct {
@@ -202,6 +204,10 @@ func labelGroups(rows []row) map[string]string {
 			if name, live := shown[creator]; live {
 				labels[item.group] = name
 			}
+			continue
+		}
+		if host, ok := strings.CutPrefix(item.group, hostPrefix); ok {
+			labels[item.group] = host
 			continue
 		}
 		labels[item.group] = ""

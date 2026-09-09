@@ -249,6 +249,22 @@ func (m *Manager) Hosted() map[string]bool {
 	return out
 }
 
+// Owners reports the client that owns each live hosted session, keyed by the
+// local name, so the sidebar groups a hosted session under its client. See
+// docs/peers.md.
+func (m *Manager) Owners() map[string]string {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	out := make(map[string]string, len(m.entries))
+	for name, item := range m.entries {
+		meta := item.metaCopy()
+		if meta.Hosted && meta.Owner != "" {
+			out[name] = meta.Owner
+		}
+	}
+	return out
+}
+
 // fromWireSnapshot converts a streamed snapshot back to a session snapshot,
 // under the local name, so the pane reads it like a local one.
 func fromWireSnapshot(s wire.Snapshot, localName string) session.Snapshot {

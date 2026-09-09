@@ -330,13 +330,17 @@ func (m Model) groupHeader(item group) string {
 	if item.creator {
 		label = controlMark + " " + label
 	}
+	labelStyle := groupLabelStyle
+	if item.section == sectionHosted {
+		labelStyle = groupMutedStyle
+	}
 	count := strconv.Itoa(item.count)
 	width := m.sidebarInnerCols() - 3 - lipgloss.Width(glyph) - len(count)
 	if width < 1 {
 		width = 1
 	}
 	return groupMarkStyle.Render(mark) + " " +
-		groupLabelStyle.Render(pad(label, width)) + " " +
+		labelStyle.Render(pad(label, width)) + " " +
 		glyph + groupCountStyle.Render(count)
 }
 

@@ -32,6 +32,7 @@ type row struct {
 	section     sectionKind
 	host        string
 	hosted      bool
+	owner       string
 	parent      string
 	model       string
 	mode        string
@@ -95,6 +96,7 @@ func rowFromMeta(meta manager.Meta) row {
 		archived:    meta.Archived,
 		control:     meta.Control,
 		hosted:      meta.Hosted,
+		owner:       meta.Owner,
 		scheduled:   meta.Scheduled,
 		parent:      meta.Parent,
 		label:       label,
@@ -137,6 +139,19 @@ func rowGlyph(item row, frame int) string {
 
 func (r row) running() bool {
 	return r.live && r.state.Live()
+}
+
+// remoteHost names the peer a remote session groups under: the host a streamed
+// session runs on, or the client a hosted session runs for. It is empty for a
+// local session. See docs/tui/sessions.md.
+func (r row) remoteHost() string {
+	if r.host != "" {
+		return r.host
+	}
+	if r.hosted {
+		return r.owner
+	}
+	return ""
 }
 
 // displayName is the title when the session has one, else the name.

@@ -38,8 +38,8 @@ directory is on the peer, and it returns to the local default for `local`.
 ## The groups
 
 The list groups the sessions. Each group starts with a header, and its rows
-follow it, indented by one column. A group holds either one directory or the
-work of one control session.
+follow it, indented by one column. A group holds one directory, the work of one
+control session, or the sessions that involve one peer.
 
 ### A directory group
 
@@ -72,6 +72,18 @@ session creates.
 The multiplexer remembers the creator of a session, so a stored session still
 joins its group after a restart. A session you started yourself has no creator.
 See [../manager.md](../manager.md).
+
+### A peer group
+
+A remote session groups by its peer, not by its directory, because the directory
+is on the other host and often a temporary one. So every session that runs on a
+peer shares one group, and the header names the peer, for example `touchbar`. A
+session this host runs for a client shares one group under the client name. The
+group folds like any other, so you fold a whole peer into one line.
+
+The header takes the client name from the credential store, because a hosted
+session carries the client id, not the name. A name the store does not hold
+falls back to the id. See [../peers.md](../peers.md).
 
 ### The order of the groups
 

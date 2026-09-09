@@ -78,6 +78,51 @@ func TestRemoteParentShowsOnceWithoutHosted(t *testing.T) {
 	}
 }
 
+// groupize runs the grouping the way refresh does for remote rows: a streamed
+// or hosted session keys on its peer, so a test reads the groups.
+func groupize(rows []row) ([]row, []group) {
+	for i := range rows {
+		rows[i].section = sectionOf(rows[i])
+		if remote := rows[i].remoteHost(); remote != "" {
+			rows[i].group = hostPrefix + remote
+		} else {
+			rows[i].group = dirPrefix + rows[i].dir
+		}
+	}
+	return groupRows(rows, nil)
+}
+
+func TestStreamedSessionsGroupByHost(t *testing.T) {
+	rows := []row{
+		{name: "s1", dir: "/tmp/cmux-session-1", live: true, host: "touchbar"},
+		{name: "s2", dir: "/tmp/cmux-session-2", live: true, host: "touchbar"},
+	}
+	_, groups := groupize(rows)
+	if len(groups) != 1 {
+		t.Fatalf("groups = %d, want 1: both sessions belong to one host", len(groups))
+	}
+	if groups[0].label != "touchbar" {
+		t.Errorf("group label = %q, want the host name touchbar", groups[0].label)
+	}
+	if groups[0].count != 2 {
+		t.Errorf("group count = %d, want 2", groups[0].count)
+	}
+}
+
+func TestHostedSessionsGroupByClient(t *testing.T) {
+	rows := []row{
+		{name: "h1", dir: "/srv/a", live: true, hosted: true, owner: "laptop"},
+		{name: "h2", dir: "/srv/b", live: true, hosted: true, owner: "laptop"},
+	}
+	_, groups := groupize(rows)
+	if len(groups) != 1 {
+		t.Fatalf("groups = %d, want 1: both sessions belong to one client", len(groups))
+	}
+	if groups[0].label != "laptop" {
+		t.Errorf("group label = %q, want the client name laptop", groups[0].label)
+	}
+}
+
 // TestSectionsSplitTheSameDirectory checks a hosted and a local session in the
 // same directory land in different sections, not one shared group.
 func TestSectionsSplitTheSameDirectory(t *testing.T) {
