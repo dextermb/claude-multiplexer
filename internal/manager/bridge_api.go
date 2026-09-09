@@ -41,6 +41,8 @@ func (b *bridge) DisablePeering() (string, bool, error) { return b.m.DisablePeer
 
 func (b *bridge) AddPeer(in mcp.PeerHostInput) (string, error) { return b.m.AddPeer(in) }
 
+func (b *bridge) UpdatePeer(in mcp.PeerHostUpdate) (string, error) { return b.m.UpdatePeer(in) }
+
 func (b *bridge) RemovePeer(name string) (string, bool, error) { return b.m.RemovePeer(name) }
 
 func (b *bridge) SetReserve(window string, minPercent int) (string, error) {

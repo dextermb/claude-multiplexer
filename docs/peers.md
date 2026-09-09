@@ -208,6 +208,8 @@ entry holds a credential and turning peering on changes the network exposure):
   optional port) or off.
 - `add_peer` / `remove_peer` — add a peer host (name, url, client id, secret),
   or remove one by name.
+- `update_peer` — change a peer host found by name, for example when its client
+  secret is regenerated or its url changes. Give only the fields to change.
 - `set_reserve` / `unset_reserve` — set the window and the floor, or clear it.
 
 A change to peering or a peer host takes effect on the next restart, the same as

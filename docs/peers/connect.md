@@ -72,3 +72,5 @@ The client reaches the host over the peer listener:
   client.
 - To disconnect, run `disable_peering` on the host, or `remove_peer` on the
   client.
+- When the host regenerates the client secret, or its address changes, run
+  `update_peer` on the client with the name and the changed field.

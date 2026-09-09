@@ -62,6 +62,36 @@ func TestPeerConfigToolsRoundTrip(t *testing.T) {
 	}
 }
 
+func TestUpdatePeerChangesOnlyGivenFields(t *testing.T) {
+	m := newTestManager(t)
+	path := filepath.Join(t.TempDir(), config.FileName)
+	m.opts.ConfigPaths = []string{path}
+
+	if _, err := m.AddPeer(mcp.PeerHostInput{Name: "b", URL: "http://old:51900", ClientID: "id", ClientSecret: "old"}); err != nil {
+		t.Fatal(err)
+	}
+	// Change only the secret and the url; the client id stays.
+	if _, err := m.UpdatePeer(mcp.PeerHostUpdate{Name: "b", URL: "http://new:51900", ClientSecret: "new"}); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := config.Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	host := cfg.Peers.Hosts[0]
+	if host.URL != "http://new:51900" || host.ClientSecret != "new" || host.ClientID != "id" {
+		t.Errorf("host = %+v, want url new, secret new, id kept", host)
+	}
+}
+
+func TestUpdatePeerFailsForAnUnknownName(t *testing.T) {
+	m := newTestManager(t)
+	m.opts.ConfigPaths = []string{filepath.Join(t.TempDir(), config.FileName)}
+	if _, err := m.UpdatePeer(mcp.PeerHostUpdate{Name: "ghost", URL: "http://x"}); err == nil {
+		t.Fatal("UpdatePeer took an unknown peer name")
+	}
+}
+
 func TestSetReserveRejectsABadWindow(t *testing.T) {
 	m := newTestManager(t)
 	m.opts.ConfigPaths = []string{filepath.Join(t.TempDir(), config.FileName)}

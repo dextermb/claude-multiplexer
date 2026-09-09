@@ -76,6 +76,7 @@ const (
 	ToolEnablePeering  = "enable_peering"
 	ToolDisablePeering = "disable_peering"
 	ToolAddPeer        = "add_peer"
+	ToolUpdatePeer     = "update_peer"
 	ToolRemovePeer     = "remove_peer"
 	ToolSetReserve     = "set_reserve"
 	ToolUnsetReserve   = "unset_reserve"
@@ -95,7 +96,7 @@ var (
 		ToolCreateAPIAdmin, ToolRotateAPIAdmin, ToolRevokeAPIAdmin,
 		ToolCreateAPIClient, ToolUpdateAPIClient, ToolRotateAPIClient, ToolRevokeAPIClient,
 		ToolListAPIClients, ToolAPIEndpoint,
-		ToolListPeers, ToolEnablePeering, ToolDisablePeering, ToolAddPeer, ToolRemovePeer,
+		ToolListPeers, ToolEnablePeering, ToolDisablePeering, ToolAddPeer, ToolUpdatePeer, ToolRemovePeer,
 		ToolSetReserve, ToolUnsetReserve}
 	// APITools go to an external client that reaches the session API. The set is
 	// session-only, so no config, layout, or schedule tool is ever exposed. See
@@ -343,6 +344,7 @@ type Sessions interface {
 	EnablePeering(port int) (string, error)
 	DisablePeering() (string, bool, error)
 	AddPeer(in PeerHostInput) (string, error)
+	UpdatePeer(in PeerHostUpdate) (string, error)
 	RemovePeer(name string) (string, bool, error)
 	SetReserve(window string, minPercent int) (string, error)
 	UnsetReserve() (string, bool, error)
@@ -375,6 +377,16 @@ type PeerHostView struct {
 
 // PeerHostInput is the input to AddPeer: a peer host with its secret.
 type PeerHostInput struct {
+	Name         string
+	URL          string
+	ClientID     string
+	ClientSecret string
+}
+
+// PeerHostUpdate is the input to UpdatePeer. Name finds the peer; each other
+// field changes it only when non-empty, so a regenerated secret or a new url
+// updates without re-supplying the rest. See docs/peers.md.
+type PeerHostUpdate struct {
 	Name         string
 	URL          string
 	ClientID     string

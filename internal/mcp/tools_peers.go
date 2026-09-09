@@ -19,6 +19,13 @@ type addPeerIn struct {
 	ClientSecret string `json:"client_secret" jsonschema:"the client secret the peer provisioned for this host"`
 }
 
+type updatePeerIn struct {
+	Name         string `json:"name" jsonschema:"the name of the peer to update"`
+	URL          string `json:"url,omitempty" jsonschema:"the new base URL, or omit to keep it"`
+	ClientID     string `json:"client_id,omitempty" jsonschema:"the new client id, or omit to keep it"`
+	ClientSecret string `json:"client_secret,omitempty" jsonschema:"the new client secret, or omit to keep it"`
+}
+
 type removePeerIn struct {
 	Name string `json:"name" jsonschema:"the name of the peer to remove"`
 }
@@ -84,6 +91,20 @@ func (s *Server) addPeerTools(server *sdk.Server, _ string) {
 			return nil, peerOut{}, err
 		}
 		return nil, peerOut{OK: true, Path: path, Message: "added the peer " + in.Name}, nil
+	})
+
+	sdk.AddTool(server, &sdk.Tool{
+		Name:        ToolUpdatePeer,
+		Description: "Update a peer host found by name, for example when its client secret is regenerated or its url changes. Give only the fields to change; omit the rest to keep them. It takes effect on the next restart.",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, in updatePeerIn) (*sdk.CallToolResult, peerOut, error) {
+		if strings.TrimSpace(in.Name) == "" {
+			return nil, peerOut{}, ErrNoPeer
+		}
+		path, err := s.sessions.UpdatePeer(PeerHostUpdate{Name: in.Name, URL: in.URL, ClientID: in.ClientID, ClientSecret: in.ClientSecret})
+		if err != nil {
+			return nil, peerOut{}, err
+		}
+		return nil, peerOut{OK: true, Path: path, Message: "updated the peer " + in.Name}, nil
 	})
 
 	sdk.AddTool(server, &sdk.Tool{

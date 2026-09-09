@@ -443,6 +443,21 @@ func (f *fakeSessions) AddPeer(in mcp.PeerHostInput) (string, error) {
 	return "config.json", nil
 }
 
+func (f *fakeSessions) UpdatePeer(in mcp.PeerHostUpdate) (string, error) {
+	for i, h := range f.peerView.Hosts {
+		if h.Name == in.Name {
+			if in.URL != "" {
+				f.peerView.Hosts[i].URL = in.URL
+			}
+			if in.ClientID != "" {
+				f.peerView.Hosts[i].ClientID = in.ClientID
+			}
+			return "config.json", nil
+		}
+	}
+	return "", mcp.ErrNotFound
+}
+
 func (f *fakeSessions) RemovePeer(name string) (string, bool, error) {
 	for i, h := range f.peerView.Hosts {
 		if h.Name == name {

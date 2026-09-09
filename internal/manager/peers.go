@@ -3,6 +3,7 @@ package manager
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 
 	"github.com/dextermb/claude-multiplexer/internal/config"
@@ -122,6 +123,30 @@ func (m *Manager) AddPeer(in mcp.PeerHostInput) (string, error) {
 		}
 		p.Hosts = append(p.Hosts, host)
 		return nil
+	})
+}
+
+// UpdatePeer changes a peer host found by name. Each field changes only when
+// non-empty, so a regenerated secret or a new url updates without re-supplying
+// the rest. It fails when no peer has the name.
+func (m *Manager) UpdatePeer(in mcp.PeerHostUpdate) (string, error) {
+	return m.mutatePeers(func(p *config.Peers) error {
+		for i := range p.Hosts {
+			if p.Hosts[i].Name != in.Name {
+				continue
+			}
+			if in.URL != "" {
+				p.Hosts[i].URL = in.URL
+			}
+			if in.ClientID != "" {
+				p.Hosts[i].ClientID = in.ClientID
+			}
+			if in.ClientSecret != "" {
+				p.Hosts[i].ClientSecret = in.ClientSecret
+			}
+			return nil
+		}
+		return fmt.Errorf("%w: %s", errUnknownPeer, in.Name)
 	})
 }
 
