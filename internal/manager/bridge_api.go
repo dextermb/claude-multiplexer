@@ -27,6 +27,12 @@ func (b *bridge) RevokeAPIClient(id string) error { return b.m.RevokeAPIClient(i
 
 func (b *bridge) ListAPIClients() []mcp.APIClient { return b.m.ListAPIClients() }
 
+func (b *bridge) CreateAPIKey(client, credentialType, value string) (mcp.APIClient, error) {
+	return b.m.CreateAPIKey(client, credentialType, value)
+}
+
+func (b *bridge) RevokeAPIKey(client string) (bool, error) { return b.m.RevokeAPIKey(client) }
+
 func (b *bridge) APIEndpoint() mcp.APIEndpoint { return b.m.APIEndpoint() }
 
 func (b *bridge) Usage() usage.Usage { return b.m.Usage() }

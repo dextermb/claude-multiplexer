@@ -102,9 +102,54 @@ func (s *Server) addCredentialTools(server *sdk.Server, _ string) {
 
 	sdk.AddTool(server, &sdk.Tool{
 		Name:        ToolListAPIClients,
-		Description: "List every API client, with its id, its name, and whether it is disabled. It never shows a secret.",
+		Description: "List every API client, with its id, its name, whether it is disabled, and whether it lent a Claude credential (the type and last four, never the value). It never shows a secret.",
 	}, func(_ context.Context, _ *sdk.CallToolRequest, _ struct{}) (*sdk.CallToolResult, listClientsOut, error) {
 		return nil, listClientsOut{Clients: s.sessions.ListAPIClients()}, nil
+	})
+
+	sdk.AddTool(server, &sdk.Tool{
+		Name: ToolCreateAPIKey,
+		Description: "Lend a Claude credential to an existing API client, so the client may run a hoisted session as this host. " +
+			"Give the client (id or name), the type (token for a Claude access token, or key for an Anthropic API key), and the value. " +
+			"It stores only the type and the last four characters, and returns the value once to share with the peer.",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, in createAPIKeyIn) (*sdk.CallToolResult, apiKeyOut, error) {
+		client := strings.TrimSpace(in.Client)
+		if client == "" {
+			return nil, apiKeyOut{}, ErrNoClient
+		}
+		ktype := strings.TrimSpace(in.Type)
+		value := strings.TrimSpace(in.Value)
+		if value == "" {
+			return nil, apiKeyOut{}, ErrNoCredential
+		}
+		updated, err := s.sessions.CreateAPIKey(client, ktype, value)
+		if err != nil {
+			return nil, apiKeyOut{}, err
+		}
+		out := apiKeyOut{OK: true, ClientID: updated.ClientID, Name: updated.Name, Value: value, Message: "lent a " + ktype + " to " + updated.Name}
+		if updated.LentKey != nil {
+			out.Type = updated.LentKey.Type
+			out.Last4 = updated.LentKey.Last4
+		}
+		return nil, out, nil
+	})
+
+	sdk.AddTool(server, &sdk.Tool{
+		Name:        ToolRevokeAPIKey,
+		Description: "Remove the lent Claude credential from a client (id or name). It stops this host from lending it, but it does not stop the credential at Anthropic, and it does not retract a copy the peer already holds.",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, in clientRefIn) (*sdk.CallToolResult, okOut, error) {
+		client := strings.TrimSpace(in.Client)
+		if client == "" {
+			return nil, okOut{}, ErrNoClient
+		}
+		had, err := s.sessions.RevokeAPIKey(client)
+		if err != nil {
+			return nil, okOut{}, err
+		}
+		if !had {
+			return nil, okOut{OK: true, Message: "the client had no lent credential"}, nil
+		}
+		return nil, okOut{OK: true, Message: "removed the lent credential"}, nil
 	})
 
 	sdk.AddTool(server, &sdk.Tool{
@@ -127,6 +172,26 @@ type updateClientIn struct {
 
 type clientIDIn struct {
 	ClientID string `json:"client_id" jsonschema:"the id of the client"`
+}
+
+type createAPIKeyIn struct {
+	Client string `json:"client" jsonschema:"the API client to lend to, by id or by name"`
+	Type   string `json:"type" jsonschema:"the credential type: token for a Claude access token, or key for an Anthropic API key"`
+	Value  string `json:"value" jsonschema:"the credential value; it is stored as metadata only, and echoed once to share"`
+}
+
+type clientRefIn struct {
+	Client string `json:"client" jsonschema:"the API client, by id or by name"`
+}
+
+type apiKeyOut struct {
+	OK       bool   `json:"ok"`
+	ClientID string `json:"client_id"`
+	Name     string `json:"name,omitempty"`
+	Type     string `json:"type,omitempty"`
+	Last4    string `json:"last4,omitempty"`
+	Value    string `json:"value"`
+	Message  string `json:"message"`
 }
 
 type adminSecretOut struct {

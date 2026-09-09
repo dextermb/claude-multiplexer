@@ -47,6 +47,7 @@ type Config struct {
 	ClaudePath      string
 	ExtraArgs       []string
 	Env             []string
+	EnvScrub        []string
 	TranscriptPath  string
 	EventBuffer     int
 	StderrLines     int
@@ -244,8 +245,8 @@ func (s *Session) Start(parent context.Context) error {
 
 	cmd := exec.Command(s.cfg.ClaudePath, s.cfg.Args()...)
 	cmd.Dir = s.cfg.Dir
-	if len(s.cfg.Env) > 0 {
-		cmd.Env = append(os.Environ(), s.cfg.Env...)
+	if len(s.cfg.Env) > 0 || len(s.cfg.EnvScrub) > 0 {
+		cmd.Env = buildEnv(os.Environ(), s.cfg.Env, s.cfg.EnvScrub)
 	}
 
 	stdin, err := cmd.StdinPipe()

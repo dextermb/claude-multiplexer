@@ -165,13 +165,56 @@ type Reserve struct {
 }
 
 // PeerHost is one peer this host reaches: a label, the base URL of the peer's
-// peer listener, and the credentials the peer provisioned for this host. See
-// docs/peers.md.
+// peer listener, and the credentials the peer provisioned for this host. A
+// Credential is the lent Claude credential that turns a hoisted session on for
+// this peer. See docs/peers.md and docs/peers/hoisted.md.
 type PeerHost struct {
-	Name         string `json:"name"`
-	URL          string `json:"url"`
-	ClientID     string `json:"client_id"`
-	ClientSecret string `json:"client_secret"`
+	Name         string          `json:"name"`
+	URL          string          `json:"url,omitempty"`
+	ClientID     string          `json:"client_id,omitempty"`
+	ClientSecret string          `json:"client_secret,omitempty"`
+	Credential   *PeerCredential `json:"credential,omitempty"`
+}
+
+// PeerCredential is a lent Claude credential a borrower injects to run a hoisted
+// session as the lender. Type picks the environment variable, and Value is the
+// access token or the API key. See docs/peers/hoisted.md.
+type PeerCredential struct {
+	Type  string `json:"type"`
+	Value string `json:"value"`
+}
+
+// The credential types. A token is a Claude access token, injected as
+// CLAUDE_CODE_OAUTH_TOKEN. A key is an Anthropic API key, injected as
+// ANTHROPIC_API_KEY. See docs/peers/hoisted.md.
+const (
+	CredentialToken = "token"
+	CredentialKey   = "key"
+)
+
+// AuthEnvVars are the environment variables that carry a Claude credential. A
+// hoisted session scrubs all of them from the inherited environment, then sets
+// exactly the one its lent credential needs, so no other credential leaks in.
+// See docs/peers/hoisted.md.
+var AuthEnvVars = []string{"ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "CLAUDE_CODE_OAUTH_TOKEN"}
+
+// ValidCredentialType reports whether a credential type is one this program
+// knows.
+func ValidCredentialType(t string) bool {
+	return t == CredentialToken || t == CredentialKey
+}
+
+// CredentialEnvVar gives the environment variable a credential type sets, or ""
+// for an unknown type.
+func CredentialEnvVar(t string) string {
+	switch t {
+	case CredentialToken:
+		return "CLAUDE_CODE_OAUTH_TOKEN"
+	case CredentialKey:
+		return "ANTHROPIC_API_KEY"
+	default:
+		return ""
+	}
 }
 
 // The reserve windows. See docs/peers.md.

@@ -1,11 +1,17 @@
 package manager
 
 import (
+	"errors"
 	"time"
 
 	"github.com/dextermb/claude-multiplexer/internal/api"
+	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/mcp"
 )
+
+// errBadCredentialType is returned when a lent-credential type is not token or
+// key. See docs/peers/hoisted.md.
+var errBadCredentialType = errors.New("manager: the credential type must be token or key")
 
 // The credential-management methods delegate to the api store, and drop the
 // access tokens of a client the moment the client changes. See docs/mcp/api.md.
@@ -91,6 +97,34 @@ func (m *Manager) ListAPIClients() []mcp.APIClient {
 	return out
 }
 
+// CreateAPIKey records a Claude credential lent to a client, found by id or
+// name. It stores only the metadata; the value is echoed by the tool. See
+// docs/peers/hoisted.md.
+func (m *Manager) CreateAPIKey(client, credentialType, value string) (mcp.APIClient, error) {
+	if m.apiStore == nil {
+		return mcp.APIClient{}, ErrNoAPIStore
+	}
+	if !config.ValidCredentialType(credentialType) {
+		return mcp.APIClient{}, errBadCredentialType
+	}
+	updated, err := m.apiStore.SetLentKey(client, credentialType, value)
+	if err != nil {
+		return mcp.APIClient{}, err
+	}
+	return apiClientView(updated), nil
+}
+
+// RevokeAPIKey clears the lent-credential metadata from a client, and reports
+// whether it had one. It does not stop the credential at Anthropic, and it does
+// not retract a copy a peer already holds. See docs/peers/hoisted.md.
+func (m *Manager) RevokeAPIKey(client string) (bool, error) {
+	if m.apiStore == nil {
+		return false, ErrNoAPIStore
+	}
+	_, had, err := m.apiStore.ClearLentKey(client)
+	return had, err
+}
+
 func (m *Manager) APIEndpoint() mcp.APIEndpoint {
 	start, end := m.apiPortRange()
 	url := ""
@@ -117,6 +151,12 @@ func apiClientView(client api.Client) mcp.APIClient {
 	}
 	if !client.RotatedAt.IsZero() {
 		view.RotatedAt = client.RotatedAt.Format(time.RFC3339)
+	}
+	if client.LentKey != nil {
+		view.LentKey = &mcp.APILentKey{Type: client.LentKey.Type, Last4: client.LentKey.Last4}
+		if !client.LentKey.IssuedAt.IsZero() {
+			view.LentKey.IssuedAt = client.LentKey.IssuedAt.Format(time.RFC3339)
+		}
 	}
 	return view
 }

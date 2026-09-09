@@ -413,6 +413,16 @@ func (f *fakeSessions) RevokeAPIClient(id string) error { return nil }
 
 func (f *fakeSessions) ListAPIClients() []mcp.APIClient { return nil }
 
+func (f *fakeSessions) CreateAPIKey(client, credentialType, value string) (mcp.APIClient, error) {
+	last4 := value
+	if len(last4) > 4 {
+		last4 = last4[len(last4)-4:]
+	}
+	return mcp.APIClient{ClientID: client, Name: client, LentKey: &mcp.APILentKey{Type: credentialType, Last4: last4}}, nil
+}
+
+func (f *fakeSessions) RevokeAPIKey(client string) (bool, error) { return true, nil }
+
 func (f *fakeSessions) APIEndpoint() mcp.APIEndpoint {
 	return mcp.APIEndpoint{URL: "http://127.0.0.1:0", PortStart: 51890, PortEnd: 51899}
 }

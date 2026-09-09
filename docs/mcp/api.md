@@ -164,6 +164,9 @@ A control session manages the API through these tools:
 - `create_api_admin`, `rotate_api_admin`, `revoke_api_admin` — the admin secret.
 - `create_api_client`, `update_api_client`, `rotate_api_client`,
   `revoke_api_client`, `list_api_clients` — the clients.
+- `create_api_key`, `revoke_api_key` — lend a Claude credential to a client, so
+  the client runs a hoisted session as this host. See
+  [../peers/hoisted.md](../peers/hoisted.md).
 - `get_api_endpoint` — the base URL and the port range.
 
 A rotate or a revoke drops the client's live access tokens at once, so a leaked

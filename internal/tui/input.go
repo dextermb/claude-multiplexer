@@ -124,7 +124,10 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			host := m.form.host()
 			m.pending = m.form.firstPrompt()
 			m.form = nil
-			if host != localHost {
+			// A hoisted session runs here with the peer's credential, so it spawns
+			// locally; only a streamed session attaches to the peer. spec.Lender is
+			// set only when hoisting. See docs/peers/hoisted.md.
+			if host != localHost && spec.Lender == "" {
 				return m, attachCmd(m.mgr, host, spec)
 			}
 			return m, spawnCmd(m.mgr, spec)

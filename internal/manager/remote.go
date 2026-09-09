@@ -70,6 +70,19 @@ func (m *Manager) PeerNames() []string {
 	return names
 }
 
+// HoistPeers lists the peer hosts that hold a lent credential, so the new-session
+// form offers a hoisted session for them. It reads no secret. See
+// docs/peers/hoisted.md.
+func (m *Manager) HoistPeers() []string {
+	var names []string
+	for _, host := range m.peerHosts() {
+		if host.Credential != nil {
+			names = append(names, host.Name)
+		}
+	}
+	return names
+}
+
 // AttachRemoteByName starts a session on the named peer, so the TUI attaches a
 // remote session without handling a credential. It fails when no peer has the
 // name. See docs/peers.md.

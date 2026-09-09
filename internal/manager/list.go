@@ -37,6 +37,7 @@ func (m *Manager) List() []mcp.Session {
 			Turns:   snap.Turns,
 			Cost:    snap.Cost,
 			Hosted:  meta.Hosted,
+			Lender:  meta.Lender,
 		})
 	}
 	for _, re := range remotes {
@@ -71,6 +72,7 @@ func (m *Manager) List() []mcp.Session {
 			Turns:    meta.Turns,
 			Cost:     meta.Cost,
 			Hosted:   meta.Hosted,
+			Lender:   meta.Lender,
 		})
 	}
 	return out

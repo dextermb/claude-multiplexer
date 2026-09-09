@@ -47,6 +47,11 @@ func (m *Manager) Spawn(ctx context.Context, spec Spec) (string, error) {
 		IncludePartial: true,
 		TranscriptPath: transcriptPath(m.opts.Root, name),
 	}
+	if spec.Lender != "" {
+		if err := m.hoist(&cfg, spec.Lender); err != nil {
+			return "", err
+		}
+	}
 	token, err := m.equipTools(&cfg, name, spec.Control)
 	if err != nil {
 		return "", err
@@ -75,6 +80,7 @@ func (m *Manager) Spawn(ctx context.Context, spec Spec) (string, error) {
 			Scheduled:      spec.Scheduled,
 			Owner:          spec.Owner,
 			Hosted:         spec.Hosted,
+			Lender:         spec.Lender,
 			TempDir:        spec.TempDir,
 			CreatedAt:      time.Now(),
 		},
