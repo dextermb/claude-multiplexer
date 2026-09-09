@@ -7,7 +7,48 @@ import (
 	"time"
 
 	"github.com/dextermb/claude-multiplexer/internal/render"
+	"github.com/dextermb/claude-multiplexer/internal/wire"
 )
+
+// TestApplyRemoteResetMarksReplace pins the reset contract: the first event of a
+// connection replaces the buffer and marks the event Replace, so a viewer
+// rebuilds instead of appending the whole buffer a second time. A later event
+// appends and does not mark Replace. See docs/peers.md.
+func TestApplyRemoteResetMarksReplace(t *testing.T) {
+	m := newTestManager(t)
+	sub := m.Subscribe(16)
+	defer sub.Close()
+
+	re := &remoteEntry{localName: "r", lines: newLineBuffer(1000), cancel: func() {}}
+	m.mu.Lock()
+	m.remotes["r"] = re
+	m.remoteOrder = append(m.remoteOrder, "r")
+	m.mu.Unlock()
+
+	full := []render.Line{{Text: "a"}, {Text: "b"}}
+	m.applyRemote(re, wire.Event{Session: "remote", Lines: full}, true)
+
+	if got := re.lines.all(); len(got) != 2 {
+		t.Fatalf("buffer has %d lines after the reset, want 2", len(got))
+	}
+	ev := <-sub.C
+	if !ev.Replace {
+		t.Fatal("the reset event must set Replace")
+	}
+	if len(ev.Lines) != 2 {
+		t.Fatalf("the reset event carries %d lines, want the whole buffer", len(ev.Lines))
+	}
+
+	m.applyRemote(re, wire.Event{Session: "remote", Lines: []render.Line{{Text: "c"}}}, false)
+
+	if got := re.lines.all(); len(got) != 3 {
+		t.Fatalf("buffer has %d lines after the append, want 3", len(got))
+	}
+	ev = <-sub.C
+	if ev.Replace {
+		t.Fatal("an append event must not set Replace")
+	}
+}
 
 // TestSubscribeAtSplitsReplayFromLive pins the boundary contract: an event
 // already folded into the buffer is in the replay and never in the live

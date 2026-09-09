@@ -82,6 +82,10 @@ type Event struct {
 	// an MCP tool. Reload says the stored list changed. See docs/mcp/notices.md.
 	Notice string
 	Reload bool
+	// Replace says Lines is the whole buffer, not a delta, so a viewer rebuilds
+	// its output instead of appending. A streamed session sets it on the first
+	// event of each connection. See docs/peers.md.
+	Replace bool
 }
 
 type Manager struct {

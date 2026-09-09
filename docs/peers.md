@@ -101,6 +101,12 @@ the local bus. The first event of each connection carries the whole line buffer,
 so the pump replaces the local buffer; a later event appends. See
 `internal/manager` (`remote.go`).
 
+The pump marks the first event of each connection with `Replace`, because its
+lines are the whole buffer, not a delta. A viewer that reads the event rebuilds
+its output from the buffer instead of appending. Without the mark, a reconnect
+draws the whole transcript a second time, below the copy already on the pane.
+See `internal/tui` (`events.go`).
+
 The create carries a directory on the peer, or `temp_dir` for a fresh one the
 host makes (`os.MkdirTemp`), so a client starts a session without knowing the
 host's paths. The host removes a temporary directory when the session did no

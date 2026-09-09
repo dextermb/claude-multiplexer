@@ -171,6 +171,7 @@ func (m *Manager) applyRemote(re *remoteEntry, ev wire.Event, replace bool) {
 		Questions:  ev.Questions,
 		QuestionID: ev.QuestionID,
 		Todos:      ev.Todos,
+		Replace:    replace,
 	}
 	if replace {
 		m.bus.publishReset(re.lines, ev.Lines, local)
