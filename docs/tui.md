@@ -7,7 +7,7 @@ in `internal/tui`. It talks only to the manager, which is described in
 ## The layout
 
 ```
-▎▾ ⇄ boss               3│  api · claude-opus-4-8 · auto     busy · ⇢2 · 4.2k in 0.3k out · $0.0212
+▎▾ C boss               3│  api · claude-opus-4-8 · auto     busy · ⇢2 · 4.2k in 0.3k out · $0.0212
 ▎ ● boss                 │ › write the summary
 ▎ ⠋ api                ⇢2│ ● 2127c615 · claude-opus-4-8 · 31 tools
 ▎ ○ invoices             │ → Bash echo hello
@@ -26,7 +26,8 @@ task panel width, the diff panel position and size, and the prompt bar height.
 See [tui/layouts.md](tui/layouts.md). The sessions are grouped under a header that names
 the group and counts its rows: one group for each repository, and one for the
 work of each control session. Each row shows a state glyph, the display name,
-and `⇢n` when prompts wait in the queue. The selected row has a
+the muted session flags (`H` hoisted, `S` scheduled, `C` control), and `⇢n` when
+prompts wait in the queue. The selected row has a
 highlighted background, and the focused pane carries a blue left edge. The
 palette is the Tailwind gray and blue scale. See
 [tui/sessions.md](tui/sessions.md) for the groups, the folds, and the glyph

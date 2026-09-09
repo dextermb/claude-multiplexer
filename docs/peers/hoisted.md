@@ -141,8 +141,9 @@ option. A peer with no credential shows no select and streams as before.
 On `hoist`, the form keeps the directory path, because the session runs on the
 borrower's machine and the local path is valid. On `stream`, the directory is on
 the peer, so the field clears. A hoisted session runs locally, so it sits in the
-local band of the sidebar. Its lender is on the session record that
-`list_sessions` returns.
+local band of the sidebar, with a muted `H` flag to the right of the name (see
+[../tui/sessions.md](../tui/sessions.md)). Its lender is on the session record
+that `list_sessions` returns.
 
 ## Cautions
 

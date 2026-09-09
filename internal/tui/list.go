@@ -88,6 +88,7 @@ func (m *Model) refresh() {
 	projects := m.mgr.Projects()
 	layouts := m.mgr.SessionLayouts()
 	hosted := m.mgr.Hosted()
+	lenders := m.mgr.Lenders()
 	owners := m.mgr.Owners()
 	for _, snap := range m.mgr.Snapshots() {
 		item := rowFromSnapshot(snap)
@@ -98,6 +99,7 @@ func (m *Model) refresh() {
 		item.projectDirs = projects[snap.Name]
 		item.layout = layouts[snap.Name]
 		item.hosted = hosted[snap.Name]
+		item.lender = lenders[snap.Name]
 		item.owner = owners[snap.Name]
 		rows = append(rows, item)
 	}

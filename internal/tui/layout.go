@@ -269,26 +269,24 @@ func (m Model) sidebarView() string {
 
 func (m Model) sessionRow(item row) string {
 	width := m.sidebarInnerCols()
-	badge := ""
-	if item.control && !headsGroup(item) {
-		badge = " " + controlMark
-	}
-	if item.scheduled != "" {
-		badge += " " + scheduleMark
-	}
+	counts := ""
 	if item.jobs > 0 {
-		badge += fmt.Sprintf(" ⚙%d", item.jobs)
+		counts += fmt.Sprintf(" ⚙%d", item.jobs)
 	}
 	if item.queued > 0 {
-		badge += fmt.Sprintf(" ⇢%d", item.queued)
+		counts += fmt.Sprintf(" ⇢%d", item.queued)
 	}
-	nameWidth := width - 3 - lipgloss.Width(badge)
+	flagText := ""
+	if flags := rowFlags(item); flags != "" {
+		flagText = " " + flags
+	}
+	nameWidth := width - 3 - lipgloss.Width(flagText) - lipgloss.Width(counts)
 	if nameWidth < 1 {
 		nameWidth = 1
 	}
-	rest := " " + pad(item.displayName(), nameWidth) + badge
 	glyph := rowGlyph(item, m.spinFrame)
 	if item.name == m.sel {
+		rest := " " + pad(item.displayName(), nameWidth) + flagText + counts
 		return selectedRowStyle.Render(" ") +
 			item.style().Background(lipgloss.Color("62")).Render(glyph) +
 			selectedRowStyle.Width(width-2).Render(rest)
@@ -297,7 +295,28 @@ func (m Model) sessionRow(item row) string {
 	if item.archived || item.hosted {
 		nameStyle = rowMutedStyle
 	}
-	return " " + item.style().Render(glyph) + nameStyle.Width(width-2).Render(rest)
+	return " " + item.style().Render(glyph) +
+		nameStyle.Render(" "+pad(item.displayName(), nameWidth)) +
+		rowMutedStyle.Render(flagText) +
+		nameStyle.Render(counts)
+}
+
+// rowFlags is the muted single-letter flags for a session row, concatenated in a
+// fixed order: hoisted, scheduled, control. A control session that heads its own
+// group takes no flag, because the group header already marks it. See
+// docs/tui/sessions.md.
+func rowFlags(item row) string {
+	flags := ""
+	if item.lender != "" {
+		flags += hoistMark
+	}
+	if item.scheduled != "" {
+		flags += scheduleMark
+	}
+	if item.control && !headsGroup(item) {
+		flags += controlMark
+	}
+	return flags
 }
 
 // sectionDivider draws a section band header: a label between horizontal rules.

@@ -32,6 +32,7 @@ type row struct {
 	section     sectionKind
 	host        string
 	hosted      bool
+	lender      string
 	owner       string
 	parent      string
 	model       string
@@ -96,6 +97,7 @@ func rowFromMeta(meta manager.Meta) row {
 		archived:    meta.Archived,
 		control:     meta.Control,
 		hosted:      meta.Hosted,
+		lender:      meta.Lender,
 		owner:       meta.Owner,
 		scheduled:   meta.Scheduled,
 		parent:      meta.Parent,

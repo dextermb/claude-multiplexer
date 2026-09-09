@@ -44,8 +44,12 @@ const edgeMark = "▎"
 const (
 	foldOpenMark = "▾"
 	foldShutMark = "▸"
-	controlMark  = "⇄"
-	scheduleMark = "⏱"
+	// The single-letter session flags, shown muted to the right of a session name
+	// in the sidebar. They concatenate, so a hoisted control session reads "HC".
+	// See docs/tui/sessions.md.
+	controlMark  = "C"
+	scheduleMark = "S"
+	hoistMark    = "H"
 )
 
 // modalInner caps a dialog at width-2, because a wider box pushes the sidebar

@@ -278,6 +278,21 @@ func (m *Manager) Owners() map[string]string {
 	return out
 }
 
+// Lenders reports the peer whose credential each live hoisted session runs with,
+// keyed by the local name, so the sidebar flags a hoisted session. See
+// docs/peers/hoisted.md.
+func (m *Manager) Lenders() map[string]string {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	out := make(map[string]string, len(m.entries))
+	for name, item := range m.entries {
+		if lender := item.metaCopy().Lender; lender != "" {
+			out[name] = lender
+		}
+	}
+	return out
+}
+
 // fromWireSnapshot converts a streamed snapshot back to a session snapshot,
 // under the local name, so the pane reads it like a local one.
 func fromWireSnapshot(s wire.Snapshot, localName string) session.Snapshot {

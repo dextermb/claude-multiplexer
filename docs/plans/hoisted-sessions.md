@@ -9,8 +9,9 @@ The build landed: the credential type in `internal/config`, the environment
 builder in `internal/session` (`env.go`), the lent-key metadata in
 `internal/api`, the `create_api_key` / `revoke_api_key` tools and the peer
 credential in `internal/mcp`, the hoisted spawn and the seed in
-`internal/manager` (`hoist.go`), and the peer-mode select in the new-session
-form.
+`internal/manager` (`hoist.go`), the peer-mode select in the new-session form,
+and the muted `H` flag in the sidebar (with the `C`/`S`/`H` flags standardised,
+see [../tui/sessions.md](../tui/sessions.md)).
 
 ---
 
@@ -24,10 +25,3 @@ form.
    defensive (a missing source is skipped), so a hoisted session starts either
    way, but the seed is not verified against a running tool. Confirm the paths,
    then fix `seedHoistDir` in `internal/manager/hoist.go` if they differ.
-
-2. **A sidebar badge for the lender.** A hoisted session sits in the local band,
-   and its lender is on the session record that `list_sessions` returns
-   (`mcp.Session.Lender`). The sidebar does not yet draw a visible badge for it.
-   The sidebar marks remote sessions by grouping them under a peer header, and a
-   hoisted session stays local by design, so a badge would be a new inline
-   convention. Add one only after use shows it is wanted.
