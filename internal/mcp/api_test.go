@@ -457,6 +457,38 @@ func TestCredentialToolsViaControlSession(t *testing.T) {
 	}
 }
 
+func TestPeerURLToolReturnsTheDialAddress(t *testing.T) {
+	sessions := newFakeSessions()
+	sessions.peerView.Enabled = true
+	server := startServer(t, sessions)
+	token, err := server.Register("host", false)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+	session := connect(t, server, token)
+
+	out := resultText(call(t, session, mcp.ToolPeerURL, map[string]any{}))
+	for _, want := range []string{"192.168.1.20", "51900", "true"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("get_peer_url output is missing %q: %s", want, out)
+		}
+	}
+}
+
+func TestPeerURLToolIsEmptyWhenPeeringIsOff(t *testing.T) {
+	server := startServer(t, newFakeSessions())
+	token, err := server.Register("host", false)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+	session := connect(t, server, token)
+
+	out := resultText(call(t, session, mcp.ToolPeerURL, map[string]any{}))
+	if !strings.Contains(out, `"enabled":false`) {
+		t.Errorf("get_peer_url should report peering off: %s", out)
+	}
+}
+
 func TestAPIDocsToolDescribesTheRESTSurface(t *testing.T) {
 	server := startServer(t, newFakeSessions())
 	token, err := server.Register("docs", false)

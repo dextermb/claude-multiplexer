@@ -214,6 +214,14 @@ Read usage:
   peer that is off or unreachable reports `reachable: false` with the error, and
   never blocks the others.
 
+Read the dial address (any session, because it holds no secret):
+
+- `get_peer_url` — the url a peer on the network dials to reach this host, with
+  the host and port inside it. The host is a routable LAN address, not the
+  `0.0.0.0` the listener binds, so a peer uses the url as returned. It reports
+  `enabled: false` with an empty url when the peer listener is off. Give this url
+  to another host, which sets it as the peer `url` in `add_peer`.
+
 Manage the config (control tools, next to the API-client tools, because a peer
 entry holds a credential and turning peering on changes the network exposure):
 

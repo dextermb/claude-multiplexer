@@ -423,6 +423,13 @@ func (f *fakeSessions) PeerUsage(context.Context) []mcp.PeerReport { return f.pe
 
 func (f *fakeSessions) Peers() mcp.PeersView { return f.peerView }
 
+func (f *fakeSessions) PeerEndpoint() mcp.PeerEndpoint {
+	if !f.peerView.Enabled {
+		return mcp.PeerEndpoint{}
+	}
+	return mcp.PeerEndpoint{URL: "http://192.168.1.20:51900", Host: "192.168.1.20", Port: 51900, Enabled: true}
+}
+
 func (f *fakeSessions) EnablePeering(port int) (string, error) {
 	f.peerView.Enabled = true
 	if port > 0 {
