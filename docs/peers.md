@@ -12,6 +12,12 @@ where a session runs: the new-session `host` field starts a session on a peer,
 and the sidebar splits into bands (see docs/tui/sessions.md). A usage reserve
 protects a share of this host's Claude usage for its own work (below).
 
+## The pages
+
+| Page | Read it for |
+|---|---|
+| [peers/connect.md](peers/connect.md) | Connect two hosts: the roles, the diagrams, and the step-by-step |
+
 # The usage source
 
 The usage figure is the Claude usage-limit stat, the same one Claude Code shows
@@ -205,9 +211,10 @@ path it wrote.
 
 # Turn on peering
 
-1. Set `peers.enabled` to `true` (or run `enable_peering`, with a `port` to
-   override the default `51900`).
-2. For each host that will reach this host, run `create_api_client`, and give
-   the `client_id` and `client_secret` to that host's `peers.hosts` block (or
-   run `add_peer` there).
-3. Restart. The peer listener binds `0.0.0.0` on the port.
+For the full walkthrough — the two roles, the diagrams, and the steps on each
+host — see [peers/connect.md](peers/connect.md). In short:
+
+1. On the host that runs the sessions: run `enable_peering`, then
+   `create_api_client` for each peer, and restart.
+2. On the host that starts the sessions: run `add_peer` with the address and
+   those credentials, and restart.
