@@ -34,7 +34,7 @@ func (m *Manager) StartMCP() error {
 	m.startUsage()
 	cfg, err := config.Load(m.opts.ConfigPaths...)
 	if err == nil && cfg.Peers != nil {
-		if err := server.StartPeer(cfg.Peers.Listen); err != nil {
+		if err := server.StartPeer(cfg.Peers.ListenAddr()); err != nil {
 			return err
 		}
 	}

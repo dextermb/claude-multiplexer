@@ -2,13 +2,14 @@ package mcp
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-type setPeerListenIn struct {
-	Listen string `json:"listen" jsonschema:"the address the peer listener binds, e.g. 0.0.0.0:51900"`
+type enablePeeringIn struct {
+	Port int `json:"port,omitempty" jsonschema:"the port the peer listener binds on 0.0.0.0; omit for the default 51900"`
 }
 
 type addPeerIn struct {
@@ -37,37 +38,38 @@ type peerOut struct {
 func (s *Server) addPeerTools(server *sdk.Server, _ string) {
 	sdk.AddTool(server, &sdk.Tool{
 		Name:        ToolListPeers,
-		Description: "List the peer settings: the listen address, the reserve, and the peer hosts. No secret is shown.",
+		Description: "List the peer settings: whether peering is on and its port, the reserve, and the peer hosts. No secret is shown.",
 	}, func(_ context.Context, _ *sdk.CallToolRequest, _ struct{}) (*sdk.CallToolResult, PeersView, error) {
 		return nil, s.sessions.Peers(), nil
 	})
 
 	sdk.AddTool(server, &sdk.Tool{
-		Name:        ToolSetPeerListen,
-		Description: "Set the address the peer listener binds. It takes effect on the next restart.",
-	}, func(_ context.Context, _ *sdk.CallToolRequest, in setPeerListenIn) (*sdk.CallToolResult, peerOut, error) {
-		if strings.TrimSpace(in.Listen) == "" {
-			return nil, peerOut{}, ErrNoListen
-		}
-		path, err := s.sessions.SetPeerListen(in.Listen)
+		Name:        ToolEnablePeering,
+		Description: "Turn the peer listener on. It binds 0.0.0.0 so peers on the network reach this host. Give a port to override the default 51900. It takes effect on the next restart.",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, in enablePeeringIn) (*sdk.CallToolResult, peerOut, error) {
+		path, err := s.sessions.EnablePeering(in.Port)
 		if err != nil {
 			return nil, peerOut{}, err
 		}
-		return nil, peerOut{OK: true, Path: path, Message: "the peer listener binds " + in.Listen + " on the next restart"}, nil
+		message := "peering is on for the next restart"
+		if in.Port > 0 {
+			message = fmt.Sprintf("peering is on, on port %d, for the next restart", in.Port)
+		}
+		return nil, peerOut{OK: true, Path: path, Message: message}, nil
 	})
 
 	sdk.AddTool(server, &sdk.Tool{
-		Name:        ToolUnsetPeerListen,
-		Description: "Clear the peer listener address, so the peer listener stays off.",
+		Name:        ToolDisablePeering,
+		Description: "Turn the peer listener off, so the peering surface stays loopback-only.",
 	}, func(_ context.Context, _ *sdk.CallToolRequest, _ struct{}) (*sdk.CallToolResult, peerOut, error) {
-		path, had, err := s.sessions.UnsetPeerListen()
+		path, had, err := s.sessions.DisablePeering()
 		if err != nil {
 			return nil, peerOut{}, err
 		}
 		if !had {
-			return nil, peerOut{OK: true, Path: path, Message: "the peer listener was already off"}, nil
+			return nil, peerOut{OK: true, Path: path, Message: "peering was already off"}, nil
 		}
-		return nil, peerOut{OK: true, Path: path, Message: "the peer listener is off on the next restart"}, nil
+		return nil, peerOut{OK: true, Path: path, Message: "peering is off on the next restart"}, nil
 	})
 
 	sdk.AddTool(server, &sdk.Tool{

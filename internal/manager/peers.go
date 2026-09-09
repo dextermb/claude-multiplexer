@@ -3,7 +3,6 @@ package manager
 import (
 	"context"
 	"errors"
-	"strings"
 	"sync"
 
 	"github.com/dextermb/claude-multiplexer/internal/config"
@@ -15,6 +14,7 @@ import (
 var (
 	errBadWindow  = errors.New("manager: the reserve window must be 5h or 7d")
 	errBadPercent = errors.New("manager: the reserve percent must be 0 to 100")
+	errBadPort    = errors.New("manager: the peer port must be 1 to 65535")
 )
 
 // startUsage starts the usage poll when a fetch is wired, and runs it until the
@@ -83,22 +83,29 @@ func (m *Manager) Peers() mcp.PeersView {
 	return peersView(cfg.Peers)
 }
 
-// SetPeerListen sets the peer listener address in the config.
-func (m *Manager) SetPeerListen(addr string) (string, error) {
+// EnablePeering turns the peer listener on. It binds 0.0.0.0 on the next
+// restart. A port over zero sets the port; zero keeps the default.
+func (m *Manager) EnablePeering(port int) (string, error) {
+	if port < 0 || port > 65535 {
+		return "", errBadPort
+	}
 	return m.mutatePeers(func(p *config.Peers) error {
-		p.Listen = strings.TrimSpace(addr)
+		p.Enabled = true
+		if port > 0 {
+			p.Port = port
+		}
 		return nil
 	})
 }
 
-// UnsetPeerListen clears the peer listener address, and reports whether one was
-// set.
-func (m *Manager) UnsetPeerListen() (string, bool, error) {
+// DisablePeering turns the peer listener off, and reports whether it was on.
+func (m *Manager) DisablePeering() (string, bool, error) {
 	return m.mutatePeersBool(func(p *config.Peers) bool {
-		if p.Listen == "" {
+		if !p.Enabled {
 			return false
 		}
-		p.Listen = ""
+		p.Enabled = false
+		p.Port = 0
 		return true
 	})
 }
@@ -204,7 +211,7 @@ func (m *Manager) mutatePeersBool(fn func(*config.Peers) bool) (string, bool, er
 // normalizePeers drops an empty peers block to nil, so the file does not keep an
 // empty object.
 func normalizePeers(p *config.Peers) *config.Peers {
-	if p == nil || (p.Listen == "" && p.Reserve == nil && len(p.Hosts) == 0) {
+	if p == nil || (!p.Enabled && p.Reserve == nil && len(p.Hosts) == 0) {
 		return nil
 	}
 	return p
@@ -214,7 +221,7 @@ func peersView(p *config.Peers) mcp.PeersView {
 	if p == nil {
 		return mcp.PeersView{Hosts: []mcp.PeerHostView{}}
 	}
-	view := mcp.PeersView{Listen: p.Listen, Hosts: make([]mcp.PeerHostView, 0, len(p.Hosts))}
+	view := mcp.PeersView{Enabled: p.Enabled, Port: p.Port, Hosts: make([]mcp.PeerHostView, 0, len(p.Hosts))}
 	if p.Reserve != nil {
 		view.Reserve = &mcp.ReserveView{Window: p.Reserve.Window, MinPercent: p.Reserve.MinPercent}
 	}

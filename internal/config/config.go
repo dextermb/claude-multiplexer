@@ -6,6 +6,7 @@ package config
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -114,24 +115,45 @@ type Config struct {
 	DefaultPermissionMode string `json:"defaultPermissionMode,omitempty"`
 	DefaultEffort         string `json:"defaultEffort,omitempty"`
 	DefaultControl        *bool  `json:"defaultControl,omitempty"`
-	// Peers holds the cross-host settings: the peer listener address, the usage
-	// reserve, and the peer hosts this host reaches. Nil keeps peering off. See
-	// docs/peers.md.
+	// Peers holds the cross-host settings: whether the peer listener is on and
+	// its port, the usage reserve, and the peer hosts this host reaches. Nil
+	// keeps peering off. See docs/peers.md.
 	Peers *Peers `json:"peers,omitempty"`
 }
 
-// Peers holds the cross-host settings. An empty Listen keeps the peer listener
-// off. See docs/peers.md.
+// Peers holds the cross-host settings. Enabled off keeps the peer listener off.
+// See docs/peers.md.
 type Peers struct {
-	// Listen is the address the peer listener binds, e.g. "0.0.0.0:51900". Empty
-	// keeps it off.
-	Listen string `json:"listen,omitempty"`
+	// Enabled binds the peer listener on 0.0.0.0, so peers on the network reach
+	// this host. Off keeps the surface loopback-only.
+	Enabled bool `json:"enabled,omitempty"`
+	// Port is the port the peer listener binds. Zero takes DefaultPeerPort, so a
+	// peer target stays stable and known.
+	Port int `json:"port,omitempty"`
 	// Reserve is the usage floor that pauses hosted sessions and refuses a new
 	// peer session. Nil keeps hosting on with no floor.
 	Reserve *Reserve `json:"reserve,omitempty"`
-	// Hosts are the peers this host reaches, keyed by no map so the order is
-	// stable in the file.
+	// Hosts are the peers this host reaches, a list (not a map) so the order in
+	// the file is stable.
 	Hosts []PeerHost `json:"hosts,omitempty"`
+}
+
+// DefaultPeerPort is the port the peer listener binds when the config names
+// none. It sits just past the loopback API range. See docs/peers.md.
+const DefaultPeerPort = 51900
+
+// ListenAddr is the address the peer listener binds, or "" when peering is off.
+// It binds every interface, so a peer on the network reaches it. See
+// docs/peers.md.
+func (p *Peers) ListenAddr() string {
+	if p == nil || !p.Enabled {
+		return ""
+	}
+	port := p.Port
+	if port <= 0 {
+		port = DefaultPeerPort
+	}
+	return fmt.Sprintf("0.0.0.0:%d", port)
 }
 
 // Reserve is the usage floor. Window names the window it guards ("5h" or "7d")

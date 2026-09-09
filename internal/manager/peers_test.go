@@ -14,7 +14,7 @@ func TestPeerConfigToolsRoundTrip(t *testing.T) {
 	path := filepath.Join(t.TempDir(), config.FileName)
 	m.opts.ConfigPaths = []string{path}
 
-	if _, err := m.SetPeerListen("0.0.0.0:51900"); err != nil {
+	if _, err := m.EnablePeering(51900); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := m.AddPeer(mcp.PeerHostInput{Name: "b", URL: "http://host:51900", ClientID: "id", ClientSecret: "sec"}); err != nil {
@@ -25,8 +25,8 @@ func TestPeerConfigToolsRoundTrip(t *testing.T) {
 	}
 
 	view := m.Peers()
-	if view.Listen != "0.0.0.0:51900" {
-		t.Errorf("listen = %q, want 0.0.0.0:51900", view.Listen)
+	if !view.Enabled || view.Port != 51900 {
+		t.Errorf("enabled/port = %v/%d, want true/51900", view.Enabled, view.Port)
 	}
 	if view.Reserve == nil || view.Reserve.MinPercent != 20 {
 		t.Errorf("reserve = %+v, want min_percent 20", view.Reserve)
@@ -49,8 +49,8 @@ func TestPeerConfigToolsRoundTrip(t *testing.T) {
 	if _, had, err := m.UnsetReserve(); err != nil || !had {
 		t.Fatalf("UnsetReserve = (%v, %v), want (true, nil)", had, err)
 	}
-	if _, had, err := m.UnsetPeerListen(); err != nil || !had {
-		t.Fatalf("UnsetPeerListen = (%v, %v), want (true, nil)", had, err)
+	if _, had, err := m.DisablePeering(); err != nil || !had {
+		t.Fatalf("DisablePeering = (%v, %v), want (true, nil)", had, err)
 	}
 
 	cfg, err = config.Load(path)

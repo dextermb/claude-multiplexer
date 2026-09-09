@@ -30,6 +30,13 @@ Two integration seams stay open, both below:
 Once the poll is wired against a real account, this plan is done: move nothing
 new (the durable content is already in docs), and delete it.
 
+Note: the config below still shows the original `peers.listen` address string.
+It shipped instead as a boolean `peers.enabled` plus an optional `peers.port`
+(default 51900), because the peer listener must bind its own stable port on
+`0.0.0.0` anyway — the loopback API port is dynamic and loopback-only. The tools
+are `enable_peering` / `disable_peering`, not `set_peer_listen`. See
+docs/peers.md for the shipped shape.
+
 # Goal
 
 Let multiplexer hosts on the same network work together. Three capabilities:

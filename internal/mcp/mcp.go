@@ -72,13 +72,13 @@ const (
 	ToolGetUsage  = "get_usage"
 	ToolPeerUsage = "peer_usage"
 
-	ToolListPeers       = "list_peers"
-	ToolSetPeerListen   = "set_peer_listen"
-	ToolUnsetPeerListen = "unset_peer_listen"
-	ToolAddPeer         = "add_peer"
-	ToolRemovePeer      = "remove_peer"
-	ToolSetReserve      = "set_reserve"
-	ToolUnsetReserve    = "unset_reserve"
+	ToolListPeers      = "list_peers"
+	ToolEnablePeering  = "enable_peering"
+	ToolDisablePeering = "disable_peering"
+	ToolAddPeer        = "add_peer"
+	ToolRemovePeer     = "remove_peer"
+	ToolSetReserve     = "set_reserve"
+	ToolUnsetReserve   = "unset_reserve"
 )
 
 // OpenTools go to every session. ControlTools go only to a session that holds
@@ -95,7 +95,7 @@ var (
 		ToolCreateAPIAdmin, ToolRotateAPIAdmin, ToolRevokeAPIAdmin,
 		ToolCreateAPIClient, ToolUpdateAPIClient, ToolRotateAPIClient, ToolRevokeAPIClient,
 		ToolListAPIClients, ToolAPIEndpoint,
-		ToolListPeers, ToolSetPeerListen, ToolUnsetPeerListen, ToolAddPeer, ToolRemovePeer,
+		ToolListPeers, ToolEnablePeering, ToolDisablePeering, ToolAddPeer, ToolRemovePeer,
 		ToolSetReserve, ToolUnsetReserve}
 	// APITools go to an external client that reaches the session API. The set is
 	// session-only, so no config, layout, or schedule tool is ever exposed. See
@@ -127,8 +127,7 @@ var (
 
 	ErrBadPosition = errors.New("mcp: the diff position must be left, right, top, or bottom")
 
-	ErrNoListen = errors.New("mcp: this tool needs a listen address")
-	ErrNoPeer   = errors.New("mcp: this tool needs a peer name and url")
+	ErrNoPeer = errors.New("mcp: this tool needs a peer name and url")
 )
 
 // The scopes a layout tool takes. ScopeSession sets the calling session; ScopeAll
@@ -341,8 +340,8 @@ type Sessions interface {
 	Usage() usage.Usage
 	PeerUsage(ctx context.Context) []PeerReport
 	Peers() PeersView
-	SetPeerListen(addr string) (string, error)
-	UnsetPeerListen() (string, bool, error)
+	EnablePeering(port int) (string, error)
+	DisablePeering() (string, bool, error)
 	AddPeer(in PeerHostInput) (string, error)
 	RemovePeer(name string) (string, bool, error)
 	SetReserve(window string, minPercent int) (string, error)
@@ -355,7 +354,8 @@ type Sessions interface {
 // PeersView is the output of list_peers: the listen address, the reserve, and
 // the peer hosts. It never holds a secret. See docs/peers.md.
 type PeersView struct {
-	Listen  string         `json:"listen,omitempty"`
+	Enabled bool           `json:"enabled"`
+	Port    int            `json:"port,omitempty"`
 	Reserve *ReserveView   `json:"reserve,omitempty"`
 	Hosts   []PeerHostView `json:"hosts"`
 }

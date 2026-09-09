@@ -45,8 +45,12 @@ fetch is wired, usage reads as unknown.
 # The peer listener
 
 A host that opts in binds a second listener, separate from the loopback API. The
-loopback API stays on `127.0.0.1` and is unchanged. The peer listener binds a
-network interface, and serves only the owner-scoped surface a peer reaches:
+loopback API stays on `127.0.0.1` and is unchanged. The peer listener binds
+`0.0.0.0` on a fixed port (default `51900`), so a peer on the network reaches
+this host at a stable address. It must be a separate listener on its own port,
+because the loopback API binds `127.0.0.1` on a dynamic port and carries the
+`/admin` surface, which never reaches the network. The peer listener serves only
+the owner-scoped surface a peer reaches:
 
 - `POST /token` — the client-credentials grant, the same one an external client
   uses.
@@ -56,10 +60,9 @@ network interface, and serves only the owner-scoped surface a peer reaches:
 - `GET /api/sessions/{name}/stream` — the session's event stream as server-sent
   events: the replay of the current lines first, then the live events.
 
-The `/admin` surface never reaches the network. A peer reaches only the sessions
-it owns, because every session it creates is owned by its client. The peer
-listener starts only when the config names a listen address. See `internal/mcp`
-(`StartPeer`).
+A peer reaches only the sessions it owns, because every session it creates is
+owned by its client. The peer listener starts only when `peers.enabled` is on.
+See `internal/mcp` (`StartPeer`) and `config.Peers.ListenAddr`.
 
 A session a peer creates through this listener is marked hosted, so the host that
 runs it sorts it under the hosted section. The loopback API never marks a create
@@ -143,13 +146,14 @@ token when the host answers `401`. See `internal/peer`.
 
 # The config
 
-The `peers` block in `config.json`. No block, or an empty `listen`, keeps the
-peer listener off.
+The `peers` block in `config.json`. No block, or `enabled` off, keeps the peer
+listener off.
 
 ```json
 {
   "peers": {
-    "listen": "0.0.0.0:51900",
+    "enabled": true,
+    "port": 51900,
     "reserve": { "window": "5h", "min_percent": 20 },
     "hosts": [
       {
@@ -163,7 +167,10 @@ peer listener off.
 }
 ```
 
-- `listen` — the address the peer listener binds. Empty keeps it off.
+- `enabled` — turns the peer listener on. It binds `0.0.0.0`, so a peer on the
+  network reaches this host. Off (or absent) keeps the surface loopback-only.
+- `port` — the port the peer listener binds. Omit for the default `51900`, which
+  sits just past the loopback API range (`51890`–`51899`).
 - `reserve.window` — the window a usage reserve guards: `5h` or `7d`.
 - `reserve.min_percent` — the percent-remaining floor the gate trips below (the
   reserve). Omit `reserve` for no floor.
@@ -182,23 +189,25 @@ Read usage:
   never blocks the others.
 
 Manage the config (control tools, next to the API-client tools, because a peer
-entry holds a credential and the listen address changes the network exposure):
+entry holds a credential and turning peering on changes the network exposure):
 
-- `list_peers` — the listen address, the reserve, and each peer host (the name,
-  the url, and the client id). No secret is shown.
-- `set_peer_listen` / `unset_peer_listen` — set or clear the listen address.
+- `list_peers` — whether peering is on and its port, the reserve, and each peer
+  host (the name, the url, and the client id). No secret is shown.
+- `enable_peering` / `disable_peering` — turn the peer listener on (with an
+  optional port) or off.
 - `add_peer` / `remove_peer` — add a peer host (name, url, client id, secret),
   or remove one by name.
 - `set_reserve` / `unset_reserve` — set the window and the floor, or clear it.
 
-A change to the listen address or a peer host takes effect on the next restart,
-the same as a hand edit of the file. Each tool writes the config and returns the
+A change to peering or a peer host takes effect on the next restart, the same as
+a hand edit of the file. Each tool writes the config and returns the
 path it wrote.
 
 # Turn on peering
 
-1. Add `peers.listen`, e.g. `0.0.0.0:51900` (or run `set_peer_listen`).
+1. Set `peers.enabled` to `true` (or run `enable_peering`, with a `port` to
+   override the default `51900`).
 2. For each host that will reach this host, run `create_api_client`, and give
    the `client_id` and `client_secret` to that host's `peers.hosts` block (or
    run `add_peer` there).
-3. Restart. The peer listener binds the address.
+3. Restart. The peer listener binds `0.0.0.0` on the port.

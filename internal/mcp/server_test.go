@@ -423,14 +423,18 @@ func (f *fakeSessions) PeerUsage(context.Context) []mcp.PeerReport { return f.pe
 
 func (f *fakeSessions) Peers() mcp.PeersView { return f.peerView }
 
-func (f *fakeSessions) SetPeerListen(addr string) (string, error) {
-	f.peerView.Listen = addr
+func (f *fakeSessions) EnablePeering(port int) (string, error) {
+	f.peerView.Enabled = true
+	if port > 0 {
+		f.peerView.Port = port
+	}
 	return "config.json", nil
 }
 
-func (f *fakeSessions) UnsetPeerListen() (string, bool, error) {
-	had := f.peerView.Listen != ""
-	f.peerView.Listen = ""
+func (f *fakeSessions) DisablePeering() (string, bool, error) {
+	had := f.peerView.Enabled
+	f.peerView.Enabled = false
+	f.peerView.Port = 0
 	return "config.json", had, nil
 }
 
