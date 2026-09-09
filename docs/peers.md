@@ -83,6 +83,15 @@ republishes it to its own bus under a local name, so the pane treats a remote
 session as local. `render.Line` is width-independent, so the viewing host draws
 the lines at its own width.
 
+The stream sends the current lines first (the replay), then the live events. The
+host must not send a line in both, or the viewer draws it twice. So the host
+reads the replay lines and a watermark together, under one hold of the bus lock:
+the watermark is the sequence of the last event the replay lines hold. The host
+then drops the lines of a live event at or below the watermark, because the
+replay holds them. The read is atomic, so no event falls in the gap between the
+subscribe and the replay, and no line is lost or doubled. See
+`internal/manager` (`stream.go`, `bus.go`).
+
 # Remote sessions in the manager
 
 `AttachRemote` starts a session on a peer, then streams it into this host under a

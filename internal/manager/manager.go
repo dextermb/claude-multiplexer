@@ -154,14 +154,13 @@ func (m *Manager) pump(item *entry) {
 	for ev := range item.sess.Events() {
 		m.trackWorktree(ev, enterWorktree, exitWorktree)
 		lines := item.skill.Track(ev.Protocol, m.opts.Renderer.Lines(ev))
-		item.lines.append(lines)
 		partial := trackPartial(item, ev)
 		todos := trackTodos(item, ev)
 		snap := ev.Snapshot
 		item.setSnapshot(snap)
 		m.rememberSession(item, snap)
 		qid, questions, _ := ev.Protocol.AskUserQuestion()
-		m.bus.Publish(Event{
+		m.bus.publishLines(item.lines, lines, Event{
 			Session:    ev.Session,
 			Kind:       ev.Kind,
 			Lines:      lines,

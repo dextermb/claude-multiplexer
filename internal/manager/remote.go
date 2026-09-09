@@ -159,14 +159,9 @@ func (m *Manager) remotePump(ctx context.Context, re *remoteEntry) {
 // first event of each connection carries the whole line buffer, so it replaces
 // the local buffer; a later event appends. See docs/peers.md.
 func (m *Manager) applyRemote(re *remoteEntry, ev wire.Event, replace bool) {
-	if replace {
-		re.lines.reset(ev.Lines)
-	} else {
-		re.lines.append(ev.Lines)
-	}
 	snap := fromWireSnapshot(ev.Snapshot, re.localName)
 	re.set(snap, ev.Todos)
-	m.bus.Publish(Event{
+	local := Event{
 		Session:    re.localName,
 		Kind:       session.EventKind(ev.Kind),
 		Lines:      ev.Lines,
@@ -176,7 +171,12 @@ func (m *Manager) applyRemote(re *remoteEntry, ev wire.Event, replace bool) {
 		Questions:  ev.Questions,
 		QuestionID: ev.QuestionID,
 		Todos:      ev.Todos,
-	})
+	}
+	if replace {
+		m.bus.publishReset(re.lines, ev.Lines, local)
+	} else {
+		m.bus.publishLines(re.lines, ev.Lines, local)
+	}
 }
 
 // detachRemote stops a streamed session's pump and forgets it, so it leaves the

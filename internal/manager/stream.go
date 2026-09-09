@@ -3,22 +3,49 @@ package manager
 import (
 	"context"
 
+	"github.com/dextermb/claude-multiplexer/internal/render"
 	"github.com/dextermb/claude-multiplexer/internal/session"
 	"github.com/dextermb/claude-multiplexer/internal/wire"
 )
 
+// sessionBuffer returns the line buffer of a live local session or a streamed
+// session, or nil when the name has no live buffer. The buffer carries the
+// watermark a stream reads. See docs/peers.md.
+func (m *Manager) sessionBuffer(name string) *lineBuffer {
+	if re := m.remote(name); re != nil {
+		return re.lines
+	}
+	if item, err := m.entry(name); err == nil {
+		return item.lines
+	}
+	return nil
+}
+
 // streamSession replays the session's current lines, then tails its live events,
-// converting each to the wire form. It subscribes before it replays, so no live
-// event is lost in the gap. The channel closes when the context is done. See
-// docs/peers.md.
+// converting each to the wire form. It reads the lines and a watermark together
+// with the subscription, then drops the lines of a live event already in the
+// replay, so the boundary never doubles the output. The channel closes when the
+// context is done. See docs/peers.md.
 func (m *Manager) streamSession(ctx context.Context, name string) <-chan wire.Event {
 	out := make(chan wire.Event, 64)
-	sub := m.bus.Subscribe(DefaultSubscriberBuffer)
+
+	var (
+		sub       *Subscription
+		lines     []render.Line
+		watermark uint64
+	)
+	if buf := m.sessionBuffer(name); buf != nil {
+		sub, lines, watermark = m.bus.subscribeAt(buf, DefaultSubscriberBuffer)
+	} else {
+		sub = m.bus.Subscribe(DefaultSubscriberBuffer)
+		lines = m.Lines(name)
+	}
+
 	go func() {
 		defer close(out)
 		defer sub.Close()
 
-		replay := wire.Event{Session: name, Lines: m.Lines(name)}
+		replay := wire.Event{Session: name, Lines: lines}
 		if snap, err := m.Snapshot(name); err == nil {
 			replay.Snapshot = wireSnapshot(snap)
 		}
@@ -38,6 +65,9 @@ func (m *Manager) streamSession(ctx context.Context, name string) <-chan wire.Ev
 				}
 				if ev.Session != name {
 					continue
+				}
+				if ev.Seq != 0 && ev.Seq <= watermark {
+					ev.Lines = nil
 				}
 				select {
 				case out <- wireEvent(ev):

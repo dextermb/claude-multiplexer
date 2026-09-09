@@ -155,12 +155,11 @@ func (m *Manager) SendFrom(target, from, text string) (int, error) {
 		return 0, err
 	}
 	lines := []render.Line{{Class: render.ClassMeta, Text: "← prompt from " + from}}
-	item.lines.append(lines)
 	if err := item.sess.Send(text); err != nil {
 		return 0, err
 	}
 	snap := item.sess.Snapshot()
-	m.bus.Publish(Event{
+	m.bus.publishLines(item.lines, lines, Event{
 		Session:  target,
 		Kind:     session.KindState,
 		Lines:    lines,
