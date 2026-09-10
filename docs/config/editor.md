@@ -15,7 +15,7 @@ Five sources name the editor. The first one that names one wins:
 
 | Order | Source | Example |
 |---|---|---|
-| 1 | `--editor` | `multiplexer --editor "code -n"` |
+| 1 | `--editor` | `cmux --editor "code -n"` |
 | 2 | `$VISUAL` | `export VISUAL=nvim` |
 | 3 | `$EDITOR` | `export EDITOR=vi` |
 | 4 | `editor` in the settings file | `{"editor": "zed"}` |

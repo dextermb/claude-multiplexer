@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"syscall"
@@ -24,14 +25,15 @@ import (
 	"github.com/dextermb/claude-multiplexer/internal/tui"
 )
 
-const usage = `multiplexer — a Claude Code multiplexer
+const usage = `cmux — a Claude Code multiplexer
 
 Usage:
-  multiplexer [flags]               Start the terminal user interface.
-  multiplexer run [flags] PROMPT    Start one session, send one prompt, print the stream.
-  multiplexer templates [flags]     List the preset prompts, and the fields each one takes.
+  cmux [flags]               Start the terminal user interface.
+  cmux run [flags] PROMPT    Start one session, send one prompt, print the stream.
+  cmux templates [flags]     List the preset prompts, and the fields each one takes.
+  cmux version               Print the version and the revision of this build.
 
-Run "multiplexer -h" or "multiplexer run -h" for the flags.
+Run "cmux -h" or "cmux run -h" for the flags.
 `
 
 func main() {
@@ -44,6 +46,8 @@ func main() {
 			os.Exit(tuiCommand(args[1:]))
 		case "templates":
 			os.Exit(templatesCommand(args[1:]))
+		case "version":
+			os.Exit(versionCommand())
 		case "help":
 			fmt.Print(usage)
 			os.Exit(0)
@@ -62,12 +66,12 @@ func templatesCommand(argv []string) int {
 
 	stateRoot, err := resolveRoot(*root)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "multiplexer: %v\n", err)
+		fmt.Fprintf(os.Stderr, "cmux: %v\n", err)
 		return 1
 	}
 	sessionDir, err := filepath.Abs(*dir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "multiplexer: %v\n", err)
+		fmt.Fprintf(os.Stderr, "cmux: %v\n", err)
 		return 1
 	}
 
@@ -104,6 +108,31 @@ func fieldSummary(tpl template.Template) []string {
 		out = append(out, field.Name)
 	}
 	return out
+}
+
+func versionCommand() int {
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		fmt.Println("unknown (no build info)")
+		return 0
+	}
+	version := info.Main.Version
+	if version == "" {
+		version = "devel"
+	}
+	revision := ""
+	for _, setting := range info.Settings {
+		if setting.Key == "vcs.revision" {
+			revision = setting.Value
+			break
+		}
+	}
+	if revision == "" {
+		fmt.Println(version)
+		return 0
+	}
+	fmt.Printf("%s (%s)\n", version, revision)
+	return 0
 }
 
 func resolveRoot(root string) (string, error) {
@@ -145,7 +174,7 @@ func tuiCommand(argv []string) int {
 
 	configPaths, editorFlags, err := settings(*configPath, *editor, *editorTerminal, *blockCap, blockCapTypes.caps)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "multiplexer: %v\n", err)
+		fmt.Fprintf(os.Stderr, "cmux: %v\n", err)
 		return 2
 	}
 
@@ -161,12 +190,12 @@ func tuiCommand(argv []string) int {
 		APIPortEnd:            *apiPortEnd,
 	})
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "multiplexer: %v\n", err)
+		fmt.Fprintf(os.Stderr, "cmux: %v\n", err)
 		return 1
 	}
 
 	if err := mgr.StartMCP(); err != nil {
-		fmt.Fprintf(os.Stderr, "multiplexer: %v\n", err)
+		fmt.Fprintf(os.Stderr, "cmux: %v\n", err)
 		return 1
 	}
 
@@ -176,7 +205,7 @@ func tuiCommand(argv []string) int {
 	if initialDir != "" {
 		abs, err := filepath.Abs(initialDir)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "multiplexer: %v\n", err)
+			fmt.Fprintf(os.Stderr, "cmux: %v\n", err)
 			return 2
 		}
 		initialDir = abs
@@ -192,7 +221,7 @@ func tuiCommand(argv []string) int {
 		InitialDir:            initialDir,
 		InitialControl:        *control,
 	}); err != nil {
-		fmt.Fprintf(os.Stderr, "multiplexer: %v\n", err)
+		fmt.Fprintf(os.Stderr, "cmux: %v\n", err)
 		return 1
 	}
 	return 0
@@ -280,13 +309,13 @@ func runCommand(argv []string) int {
 
 	prompt, err := readPrompt(fs.Args())
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "multiplexer: %v\n", err)
+		fmt.Fprintf(os.Stderr, "cmux: %v\n", err)
 		return 2
 	}
 
 	absDir, err := filepath.Abs(*dir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "multiplexer: %v\n", err)
+		fmt.Fprintf(os.Stderr, "cmux: %v\n", err)
 		return 2
 	}
 
@@ -305,7 +334,7 @@ func runCommand(argv []string) int {
 
 	s, err := session.New(cfg)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "multiplexer: %v\n", err)
+		fmt.Fprintf(os.Stderr, "cmux: %v\n", err)
 		return 1
 	}
 
@@ -313,11 +342,11 @@ func runCommand(argv []string) int {
 	defer stop()
 
 	if err := s.Start(ctx); err != nil {
-		fmt.Fprintf(os.Stderr, "multiplexer: %v\n", err)
+		fmt.Fprintf(os.Stderr, "cmux: %v\n", err)
 		return 1
 	}
 	if err := s.Send(prompt); err != nil {
-		fmt.Fprintf(os.Stderr, "multiplexer: %v\n", err)
+		fmt.Fprintf(os.Stderr, "cmux: %v\n", err)
 		return 1
 	}
 
@@ -326,7 +355,7 @@ func runCommand(argv []string) int {
 	shutdown, cancel := context.WithTimeout(context.Background(), session.DefaultStopGrace)
 	defer cancel()
 	if err := s.Stop(shutdown); err != nil && !errors.Is(err, context.Canceled) {
-		fmt.Fprintf(os.Stderr, "multiplexer: %v\n", err)
+		fmt.Fprintf(os.Stderr, "cmux: %v\n", err)
 		if code == 0 {
 			code = 1
 		}

@@ -52,7 +52,7 @@ A project template wins when both hold the same name. So a repository can give
 the state directory wins over the older spellings. In a repository,
 `.multiplexer` wins over `.multiplexier`.
 
-`multiplexer templates` lists what exists, with the fields each one takes:
+`cmux templates` lists what exists, with the fields each one takes:
 
 ```
 /linear  issue focus=correctness       Work a Linear issue from end to end

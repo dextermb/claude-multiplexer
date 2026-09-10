@@ -1,5 +1,5 @@
-binary := "bin/multiplexer"
-main := "./cmd/multiplexer"
+binary := "bin/cmux"
+main := "./cmd/cmux"
 
 # List the recipes.
 default:

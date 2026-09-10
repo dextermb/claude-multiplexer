@@ -5,7 +5,7 @@ session is a `claude` child process in headless mode, with its own directory and
 its own conversation. One terminal interface shows them all: a list of sessions,
 the output of the selected one, and a prompt box.
 
-The command is `multiplexer`, and it keeps its state in
+The command is `cmux`, and it keeps its state in
 `~/.claude-multiplexer`, named for the repository. An installation from before
 the rename keeps `~/.multiplexier`, so the sessions you already have still open.
 A repository holds its own templates in `.multiplexer/` or `.multiplexier/`.
@@ -21,10 +21,21 @@ blue left edge marks the pane that has the focus. See
 - Claude Code 2.1.176 or later, on the path as `claude`.
 - A terminal that supports 256 colours.
 
+## Install it
+
+Install the command with `go install`, without a clone:
+
+```sh
+go install github.com/dextermb/claude-multiplexer/cmd/cmux@latest
+```
+
+This installs a command named `cmux` into the Go bin directory (`$GOBIN`, or
+`$(go env GOPATH)/bin`). Put that directory on PATH to run `cmux` from anywhere.
+
 ## Start it
 
 ```sh
-just build            # build bin/multiplexer
+just build            # build bin/cmux
 just tui              # start the interface
 just tui-in ~/code    # start it, and open one session in ~/code
 just tui-fake         # start it against a fake binary: no network, no cost
@@ -34,13 +45,14 @@ just install-as cmux  # build it into ~/.local/bin under the name cmux
 Or run the binary directly:
 
 ```sh
-multiplexer                            # the interface
-multiplexer --dir ~/code --model …     # the interface, with one session open
-multiplexer run --dir . "your prompt"  # one session, one prompt, plain output
-multiplexer templates                  # the preset prompts, and their fields
+cmux                            # the interface
+cmux --dir ~/code --model …     # the interface, with one session open
+cmux run --dir . "your prompt"  # one session, one prompt, plain output
+cmux templates                  # the preset prompts, and their fields
+cmux version                    # the version and the revision of this build
 ```
 
-`multiplexer run` exists to drive the engine from a script or a pipe. It prints
+`cmux run` exists to drive the engine from a script or a pipe. It prints
 plain text, and it never renders markdown.
 
 ## What it does
@@ -98,7 +110,7 @@ State goes under `~/.claude-multiplexer/sessions/<name>/`:
 | `meta.json` | The directory, the working directory, the model, the effort, the title, the Claude session id, the totals, the creator, the control grant, and the archive flag |
 | `mcp.json` | Where the session reaches the multiplexer's own tools, and the token that names it |
 
-`multiplexer --root <path>` moves that directory. `just clean-state` removes it.
+`cmux --root <path>` moves that directory. `just clean-state` removes it.
 
 The settings live apart from the state, in
 `~/.config/claude-multiplexer/config.json`. They name the editor that `s d` opens on
