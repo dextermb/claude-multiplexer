@@ -50,6 +50,21 @@ func (b *bridge) Archive(name string, archived bool, by string) error {
 	return nil
 }
 
+func (b *bridge) StopWhenIdle(name string, stop, archive bool) error {
+	if err := b.m.SetIdleAction(name, stop, archive); err != nil {
+		return err
+	}
+	notice := name + " will stop itself when idle"
+	switch {
+	case archive:
+		notice = name + " will archive itself when idle"
+	case !stop:
+		notice = name + " will not stop itself when idle"
+	}
+	b.m.notify(name, notice, false)
+	return nil
+}
+
 func (b *bridge) Create(dir, name, by string) (string, error) {
 	abs, err := filepath.Abs(dir)
 	if err != nil {

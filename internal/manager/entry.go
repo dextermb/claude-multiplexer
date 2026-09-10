@@ -31,6 +31,11 @@ type entry struct {
 
 	snapMu sync.Mutex
 	snap   session.Snapshot
+
+	idleMu          sync.Mutex
+	stopWhenIdle    bool
+	archiveWhenIdle bool
+	idleFired       bool
 }
 
 // metaCopy and setMeta guard the record of a live session, because the pump
