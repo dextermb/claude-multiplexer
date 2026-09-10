@@ -1,6 +1,6 @@
 # The terminal user interface
 
-`multiplexer` with no command starts the interface. It is a Bubble Tea program
+`cmux` with no command starts the interface. It is a Bubble Tea program
 in `internal/tui`. It talks only to the manager, which is described in
 [manager.md](./manager.md).
 

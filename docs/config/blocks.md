@@ -13,7 +13,7 @@ the first one that names one wins:
 
 | Order | Source | Example |
 |---|---|---|
-| 1 | `--block-cap` | `multiplexer --block-cap 40` |
+| 1 | `--block-cap` | `cmux --block-cap 40` |
 | 2 | `blockCap` in the settings file | `{"blockCap": 40}` |
 | 3 | The built-in default | 20 rows |
 

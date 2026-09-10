@@ -8,7 +8,7 @@ API, **only** when it is started with control. For the API tools, see
 [api.md](api.md).
 
 - In the new session form, set the `Control` field to `yes`.
-- On the command line, `multiplexer --dir <path> --control`.
+- On the command line, `cmux --dir <path> --control`.
 
 The grant is stored in `meta.json`, so a resumed session keeps what it had.
 

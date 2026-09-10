@@ -21,8 +21,9 @@ word:
 The word is **multiplexer**. Write "the multiplexer" wherever the program is the
 subject of a sentence.
 
-The command is `multiplexer`, and so is the source directory,
-`cmd/multiplexer`. The directories a user owns are named for the repository:
+The command is `cmux`, and so is the source directory, `cmd/cmux`. The prose
+noun is still "the multiplexer"; only the command and the directory use the
+short name. The directories a user owns are named for the repository:
 `~/.claude-multiplexer` and `$XDG_CONFIG_HOME/claude-multiplexer/config.json`.
 
 Three names keep an older spelling, because they are already written on a disk:
