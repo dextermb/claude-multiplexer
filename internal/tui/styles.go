@@ -137,6 +137,8 @@ var (
 
 	spinnerStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
 
+	ageStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+
 	markerStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
 
 	markerCursorStyle = lipgloss.NewStyle().

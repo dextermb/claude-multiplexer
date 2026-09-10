@@ -185,7 +185,7 @@ func (m *Model) setContent() {
 func (m Model) liveView() string {
 	var parts []string
 	if partial := m.partials[m.sel]; partial != "" {
-		parts = append(parts, classStyle(render.ClassText).Width(m.outputWidth()).Render(partial+cursorMark))
+		parts = append(parts, classStyle(render.ClassText).Width(m.textWidth()).Render(partial+cursorMark))
 	}
 	for _, text := range m.queued[m.sel] {
 		parts = append(parts, m.wrap(render.PromptLines(text)))
@@ -218,7 +218,7 @@ func (m *Model) linesFor(name string) []render.Line {
 }
 
 func (m Model) wrap(lines []render.Line) string {
-	width := m.outputWidth()
+	width := m.textWidth()
 	wrapped := make([]string, 0, len(lines))
 	for _, line := range lines {
 		if line.Text == "" {

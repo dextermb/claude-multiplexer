@@ -57,6 +57,21 @@ func (m Model) toggleMarkdown() (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+func (m Model) toggleAge() (tea.Model, tea.Cmd) {
+	m.showAge = !m.showAge
+	m.status = "block age off"
+	var cmd tea.Cmd
+	if m.showAge {
+		m.status = "block age on"
+		if !m.ageTicking {
+			m.ageTicking = true
+			cmd = ageTick()
+		}
+	}
+	m.rebuildOutput()
+	return m, cmd
+}
+
 func (m Model) resumeSelected() (tea.Model, tea.Cmd) {
 	item, ok := m.selectedRow()
 	if !ok {

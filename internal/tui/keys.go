@@ -99,6 +99,7 @@ var sequenceActions = map[string]action{
 
 	"o m": Model.toggleMarkdown,
 	"o l": Model.openLayoutSwitcher,
+	"o a": Model.toggleAge,
 
 	"d +": Model.widenDiff,
 	"d -": Model.narrowDiff,
