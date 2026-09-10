@@ -119,6 +119,35 @@ close. `DefaultStopGrace` is 5 seconds.
 
 `Wait` blocks until the session ends, and returns the first error.
 
+## Stop when idle
+
+A session arms a deferred action on itself with the `stop_when_idle` tool. The
+action is a stop, and an archive after the stop when the caller asks for it. A
+scheduled run is the main user: a prompt does its work, then arms the action, so
+a spawn-mode run leaves no exited session behind. See
+[mcp/tools.md](./mcp/tools.md) and [scheduler.md](./scheduler.md).
+
+The tool cannot stop the session in the same turn, because the stop kills the
+process that runs the tool call. So the manager defers the action. The
+per-session pump watches every state event, and it starts the action once three
+conditions hold:
+
+- the state is `idle`, so the turn is complete and the model did not ask a
+  question,
+- the queue is empty, so no prompt waits, and
+- the session ran at least one turn, so a fresh session does not act before its
+  first prompt.
+
+A queued prompt keeps the session busy, so the arm stays set until every prompt
+is complete. Then the session goes idle, and the action runs once. The manager
+runs the stop in its own goroutine, not in the pump, because the pump must keep
+draining events for the session to exit. The arm lives in memory on the live
+session, so a restart does not carry it, the same as the session itself.
+
+A reuse-mode schedule works the same way. The stop ends the session after the
+turn, and the next fire resumes it from its Claude session id, so it keeps its
+memory. An archive clears on the resume, so the reuse session comes back.
+
 ## Interrupt
 
 `Interrupt` stops the running turn without stopping the session. It writes a

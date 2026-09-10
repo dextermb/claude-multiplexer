@@ -49,6 +49,11 @@ type archiveIn struct {
 	Restore bool   `json:"restore,omitempty" jsonschema:"true to bring an archived session back into the list"`
 }
 
+type stopWhenIdleIn struct {
+	Stop    *bool `json:"stop,omitempty" jsonschema:"stop this session when it next goes idle; defaults to true; set stop false and archive false to disarm"`
+	Archive bool  `json:"archive,omitempty" jsonschema:"archive this session after the stop; implies a stop"`
+}
+
 type createIn struct {
 	Path string `json:"path" jsonschema:"the directory the new session works in"`
 	Name string `json:"name,omitempty" jsonschema:"an optional name for the new session"`

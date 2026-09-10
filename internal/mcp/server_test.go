@@ -49,6 +49,13 @@ type fakeSessions struct {
 	peerView      mcp.PeersView
 	hostingPaused bool
 	lastControl   bool
+	idleArmed     []idleArm
+}
+
+type idleArm struct {
+	Name    string
+	Stop    bool
+	Archive bool
 }
 
 func newFakeSessions() *fakeSessions {
@@ -270,6 +277,11 @@ func (f *fakeSessions) Stop(_ context.Context, name, by string) error {
 
 func (f *fakeSessions) Archive(name string, archived bool, by string) error {
 	f.archived[name] = archived
+	return nil
+}
+
+func (f *fakeSessions) StopWhenIdle(name string, stop, archive bool) error {
+	f.idleArmed = append(f.idleArmed, idleArm{Name: name, Stop: stop, Archive: archive})
 	return nil
 }
 
@@ -681,6 +693,40 @@ func TestASessionCannotSendToItselfOrStopItself(t *testing.T) {
 	}
 	if len(sessions.stopped) != 0 {
 		t.Fatalf("stopped = %v", sessions.stopped)
+	}
+}
+
+func TestStopWhenIdleArmsTheCallerItself(t *testing.T) {
+	sessions := newFakeSessions()
+	server := startServer(t, sessions)
+	token, err := server.Register("docs", true)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+	client := connect(t, server, token)
+
+	if result := call(t, client, mcp.ToolStopWhenIdle, map[string]any{}); result.IsError {
+		t.Fatalf("stop_when_idle failed: %s", resultText(result))
+	}
+	if len(sessions.idleArmed) != 1 {
+		t.Fatalf("armed = %v", sessions.idleArmed)
+	}
+	if got := sessions.idleArmed[0]; got.Name != "docs" || !got.Stop || got.Archive {
+		t.Fatalf("default arm = %+v, want stop for docs", got)
+	}
+
+	if result := call(t, client, mcp.ToolStopWhenIdle, map[string]any{"archive": true}); result.IsError {
+		t.Fatalf("stop_when_idle archive failed: %s", resultText(result))
+	}
+	if got := sessions.idleArmed[1]; !got.Stop || !got.Archive {
+		t.Fatalf("archive arm = %+v, want stop and archive", got)
+	}
+
+	if result := call(t, client, mcp.ToolStopWhenIdle, map[string]any{"stop": false}); result.IsError {
+		t.Fatalf("stop_when_idle disarm failed: %s", resultText(result))
+	}
+	if got := sessions.idleArmed[2]; got.Stop || got.Archive {
+		t.Fatalf("disarm = %+v, want neither", got)
 	}
 }
 

@@ -46,6 +46,7 @@ const (
 	ToolSend            = "send_message"
 	ToolStop            = "stop_session"
 	ToolArchive         = "archive_session"
+	ToolStopWhenIdle    = "stop_when_idle"
 	ToolCreate          = "create_session"
 	ToolStopJob         = "stop_job"
 
@@ -305,6 +306,7 @@ type Sessions interface {
 	SendFrom(target, from, text string) (int, error)
 	Stop(ctx context.Context, name, by string) error
 	Archive(name string, archived bool, by string) error
+	StopWhenIdle(name string, stop, archive bool) error
 	Create(dir, name, by string) (string, error)
 	List() []Session
 	Messages(name string, limit int) ([]Message, error)

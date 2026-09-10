@@ -33,6 +33,7 @@ grant. See [grant.md](grant.md).
 | `send_message` | `session`, `text` | Queues a prompt for another session, and returns the queue length. | control |
 | `stop_session` | `session` | Ends another child in a clean way. Its transcript is kept. | control |
 | `archive_session` | `session`, `restore` | Takes a stopped session out of the list, or with `restore` brings it back. | control |
+| `stop_when_idle` | `stop`, `archive` | Arms this session to stop itself the next time it is idle, and to archive itself after the stop when `archive` is true. | open |
 | `create_session` | `path`, `name` | Starts a new session in a directory. Returns the name it takes. | control |
 | `stop_job` | `session`, `job` | Interrupts a session and asks it to kill one background job. An empty session means the caller. | control |
 | `create_schedule` | `cron`, `dir`, `prompt`, `name`, `session`, `model`, `permission_mode`, `effort`, `control` | Creates a durable schedule that runs a prompt on a cron. Returns the schedule record. | open |
@@ -70,6 +71,12 @@ shell. The interrupt ends the turn at once, so the instruction runs on the next
 turn. The tool marks the pane with `← stop job <id> from <caller>`, the same way
 `send_message` marks a prompt. It finds the job by its id first, so it never
 interrupts a turn for a job that does not exist or already stopped.
+
+`stop_session` rejects a self-target, because a direct stop kills the process
+that runs the tool call, and the turn never returns. `stop_when_idle` is the
+deferred path a session uses on itself. The session arms the action, and the
+manager runs it later, when the session is idle. See
+[sessions.md](../sessions.md) for the idle point and the action.
 
 The five schedule tools create and drive durable, recurring tasks. The manager
 runs each schedule on its own clock, so a schedule survives a restart. See

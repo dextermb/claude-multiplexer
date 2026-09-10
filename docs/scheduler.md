@@ -75,6 +75,14 @@ The `session` field picks the mode.
 Each run marks the session pane with `← prompt from schedule:<name>`, the same
 way `send_message` marks a prompt, so the human sees where the prompt came from.
 
+## Self-cleanup when idle
+
+A scheduled prompt may ask the session to clean itself up when its work is done.
+The prompt calls `stop_when_idle`, and the session stops, or archives, the next
+time it is idle. A spawn-mode run then leaves no exited session behind, and a
+reuse-mode run frees its process between fires. See
+[sessions.md](./sessions.md) for the idle point and the deferred action.
+
 ## The clock
 
 One goroutine wakes every 30 seconds and runs each schedule that is due. The
