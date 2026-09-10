@@ -57,6 +57,9 @@ type Line struct {
 	Summary string
 	// Cont marks a line that continues the block the line before it started.
 	Cont bool
+	// At is the time of the event that started this block. It is set only on a
+	// block's first line (Cont is false); every other line holds the zero time.
+	At time.Time
 }
 
 // Print returns the line a one-line printer shows for each line: the summary
@@ -87,6 +90,21 @@ type Renderer struct {
 }
 
 func (r Renderer) Lines(ev session.Event) []Line {
+	return stampAt(r.lines(ev), ev.At)
+}
+
+// stampAt records the event time on every block-start line (Cont is false), so
+// the output pane can show a relative age for each block. See docs/tui/output.md.
+func stampAt(lines []Line, at time.Time) []Line {
+	for i := range lines {
+		if !lines[i].Cont {
+			lines[i].At = at
+		}
+	}
+	return lines
+}
+
+func (r Renderer) lines(ev session.Event) []Line {
 	switch ev.Kind {
 	case session.KindProtocol:
 		return r.protocolLines(ev.Protocol)

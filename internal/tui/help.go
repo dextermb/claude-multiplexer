@@ -49,6 +49,7 @@ var bindings = []binding{
 
 	{"The output pane (o)", "o", "o m", "Switch between rendered markdown and raw text", "m markdown"},
 	{"The output pane (o)", "o", "o l", "Open the layouts, to switch between them", "l layouts"},
+	{"The output pane (o)", "o", "o a", "Show or hide the age of each block at the right edge", "a age"},
 
 	{"The diff panel (d)", "d", "d +", "Widen the diff panel", "+ wider"},
 	{"The diff panel (d)", "d", "d -", "Narrow the diff panel", "- narrower"},

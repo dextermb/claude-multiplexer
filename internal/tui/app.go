@@ -140,6 +140,8 @@ type Model struct {
 	md           *markdown.Renderer
 	mdMuted      *markdown.Renderer
 	showRaw      bool
+	showAge      bool
+	ageTicking   bool
 	templates    []template.Template
 	help         *help
 	picker       *picker
@@ -445,6 +447,8 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleFileDiff(msg)
 	case diffTickMsg:
 		return m.handleDiffTick()
+	case ageTickMsg:
+		return m.handleAgeTick()
 	case tea.MouseMsg:
 		return m.handleMouse(msg)
 	case tea.KeyMsg:

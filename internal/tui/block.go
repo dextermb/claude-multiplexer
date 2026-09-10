@@ -3,6 +3,7 @@ package tui
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/render"
@@ -58,6 +59,9 @@ func (m Model) capFor(c render.Class) int {
 func (m Model) blockRows(index int, blk block) ([]string, int, bool) {
 	cap := m.capFor(m.shownLines[blk.from].Class)
 	rows := strings.Split(m.wrap(m.shownLines[blk.from:blk.to]), "\n")
+	if m.showAge && len(rows) > 0 {
+		rows[0] = m.withAge(rows[0], m.shownLines[blk.from].At, time.Now())
+	}
 	if cap < 0 || (cap > 0 && len(rows) <= cap) {
 		return rows, 0, false
 	}

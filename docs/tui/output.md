@@ -110,6 +110,29 @@ transcript. The buffer caps the line count, so the extra memory is bounded. See
 A change of selection closes every open block, because the buffer may have
 dropped lines from the front, and a block is named by its place in the list.
 
+## The age of each block
+
+Press `o a` to show the age of each block at the right edge of the pane. Press
+it again to hide the column. The age is relative: `now` under one minute, then
+minutes (`2m`), hours (`1h`), and days (`3d`).
+
+The age marks when the block started, so the pane shows it on the block's first
+row only. The continuation rows and the marker row stay clear. A `10s` tick
+redraws the pane while the column is on, so the age stays current. The tick runs
+only while the column is on.
+
+The column takes a fixed rail at the right (`ageWidth` plus `ageGap`, in
+`internal/tui/age.go`). With the column on, each block wraps to a narrower text
+width, so the age never collides with the text. With the column off, the pane is
+the same as before.
+
+The renderer stamps the event time on each block's first line
+(`render.Line.At`), because the manager builds the lines where the event time is
+in scope. See [manager.md](../manager.md). A stored session has no time, because
+the transcript holds the raw protocol and the protocol carries no timestamp. So
+the age shows for a live session, and a stored session shows the text without a
+column.
+
 ## Text as it arrives
 
 Before the first word arrives, the pane shows a spinner and the word
