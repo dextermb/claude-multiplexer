@@ -272,6 +272,21 @@ func (m *Manager) Hosts() map[string]string {
 	return out
 }
 
+// ReadOnly reports which streamed sessions are read-only spectator sessions,
+// keyed by the local name, so the interface flags them and takes no input. See
+// docs/peers.md.
+func (m *Manager) ReadOnly() map[string]bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	out := make(map[string]bool, len(m.remotes))
+	for name, re := range m.remotes {
+		if re.readOnly {
+			out[name] = true
+		}
+	}
+	return out
+}
+
 // Hosted reports which live sessions this host runs on behalf of a peer, so the
 // sidebar sorts them under the hosted section. See docs/peers.md.
 func (m *Manager) Hosted() map[string]bool {

@@ -33,6 +33,11 @@ This file holds only the work that is not built. Delete it when nothing is left.
   version emits.
 - **A task router.** A queue, and dispatch to the first free session. This is a
   second product rather than a feature, so it needs its own plan.
+- **Spectator sessions, after they are used.** Read-only shares shipped (see
+  [../peers/spectate.md](../peers/spectate.md)). Two ideas the build set aside,
+  both to answer from use: a "watched" indicator on the host, so the sharer sees
+  a session is shared and how many watch it; and a host-wide read-only mirror
+  (`scope: "host"`), so one share opens every session on the host, read-only.
 - **An expanded diff width, in a layout.** The half-diff mode (`d /`) is a
   toggle today. A layout could hold an "expanded diff" width, so `d /` switches
   to a width the layout sets, in place of the fixed half. The `Layout` struct

@@ -32,6 +32,7 @@ type row struct {
 	section     sectionKind
 	host        string
 	hosted      bool
+	readOnly    bool
 	lender      string
 	owner       string
 	parent      string

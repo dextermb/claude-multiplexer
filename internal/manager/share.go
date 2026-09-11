@@ -208,6 +208,19 @@ func shareHost(peerURL string) string {
 	return "shared"
 }
 
+// StopWatching detaches a read-only spectator session locally, so the viewer
+// stops watching. It never touches the session on the host, because a share is
+// read-only. It reports whether the name was a spectator session. See
+// docs/peers.md.
+func (m *Manager) StopWatching(name string) bool {
+	re := m.remote(name)
+	if re == nil || !re.readOnly {
+		return false
+	}
+	m.detachRemote(name)
+	return true
+}
+
 // WatchShare attaches a read-only spectator session from a spectate link. It
 // returns the local name. The viewer needs no peer listener and no client. See
 // docs/peers.md.

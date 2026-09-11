@@ -104,9 +104,11 @@ func (m *Model) refresh() {
 		rows = append(rows, item)
 	}
 	hosts := m.mgr.Hosts()
+	readOnlys := m.mgr.ReadOnly()
 	for _, snap := range m.mgr.RemoteSnapshots() {
 		item := rowFromSnapshot(snap)
 		item.host = hosts[snap.Name]
+		item.readOnly = readOnlys[snap.Name]
 		rows = append(rows, item)
 	}
 	for _, meta := range m.stored {

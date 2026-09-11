@@ -65,6 +65,17 @@ it at once. Two keys then act on the running turn:
 Both use the interrupt described in [../../sessions.md](../../sessions.md#interrupt).
 When the session is not busy, `Esc` still leaves the pane as before.
 
+## Watching a shared session
+
+A spectator session is read-only: you watch a session another host shared, but
+you cannot drive it. It carries the `R` flag. The prompt takes no text, and the
+write keys (`s r`, `s n`, `s a`, `s m`, `s e`, `s p`, `s C`) do nothing but show
+a read-only message.
+
+`s x` on a spectator session stops the watch: it detaches the stream locally,
+and never touches the session on the host. See
+[../../peers/spectate.md](../../peers/spectate.md).
+
 ## Showing background jobs
 
 Press `s j` to open the jobs dialog for the selected session. It has two levels:

@@ -16,12 +16,17 @@ A peer may instead lend its Claude credential. The borrower then runs the sessio
 on its own machine as the peer — a hoisted session. See
 [peers/hoisted.md](peers/hoisted.md).
 
+A host may also share a session read-only. It mints a share link, and whoever
+holds the link watches the session live but cannot drive it — a spectator
+session. See [peers/spectate.md](peers/spectate.md).
+
 ## The pages
 
 | Page | Read it for |
 |---|---|
 | [peers/connect.md](peers/connect.md) | Connect two hosts: the roles, the diagrams, and the step-by-step |
 | [peers/hoisted.md](peers/hoisted.md) | Run a peer's session locally with the peer's credential: the opt-in, the tools, and the run |
+| [peers/spectate.md](peers/spectate.md) | Share a session read-only, and watch a shared session: the link, the tools, and the run |
 
 # The usage source
 
@@ -70,10 +75,14 @@ the owner-scoped surface a peer reaches:
   scoped to the client's own sessions.
 - `GET /api/sessions/{name}/stream` — the session's event stream as server-sent
   events: the replay of the current lines first, then the live events.
+- The `/api/shares/{id}` surface — the read-only routes a spectator reaches with
+  a share token: the label, the stream, and the transcript. See
+  [peers/spectate.md](peers/spectate.md).
 
 A peer reaches only the sessions it owns, because every session it creates is
-owned by its client. The peer listener starts only when `peers.enabled` is on.
-See `internal/mcp` (`StartPeer`) and `config.Peers.ListenAddr`.
+owned by its client. A spectator reaches only the one session its share opens.
+The peer listener starts only when `peers.enabled` is on. See `internal/mcp`
+(`StartPeer`) and `config.Peers.ListenAddr`.
 
 A session a peer creates through this listener is marked hosted, so the host that
 runs it sorts it under the hosted section. The loopback API never marks a create
@@ -240,6 +249,13 @@ entry holds a credential and turning peering on changes the network exposure):
 - `update_peer` — change a peer host found by name, for example when its client
   secret is regenerated or its url changes. Give only the fields to change.
 - `set_reserve` / `unset_reserve` — set the window and the floor, or clear it.
+
+Share a session read-only (control tools):
+
+- `share_session` — mint a read-only share link for one session. See
+  [peers/spectate.md](peers/spectate.md).
+- `list_shares` / `revoke_share` — list the active shares, or end one by id.
+- `watch_share` — on the spectator, attach a read-only session from a link.
 
 To lend a Claude credential, so a peer runs its session locally as this host, use
 `create_api_key` and `revoke_api_key`, and give the peer entry a credential. See

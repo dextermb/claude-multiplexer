@@ -72,9 +72,17 @@ func (m Model) toggleAge() (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
+// readOnlyStatus is the message a write action shows when the selected session
+// is a read-only spectator session.
+const readOnlyStatus = "this session is read-only — you are watching it"
+
 func (m Model) resumeSelected() (tea.Model, tea.Cmd) {
 	item, ok := m.selectedRow()
 	if !ok {
+		return m, nil
+	}
+	if item.readOnly {
+		m.errText = readOnlyStatus
 		return m, nil
 	}
 	if item.running() {
@@ -104,6 +112,10 @@ func (m Model) toggleControl() (tea.Model, tea.Cmd) {
 	if !ok {
 		return m, nil
 	}
+	if item.readOnly {
+		m.errText = readOnlyStatus
+		return m, nil
+	}
 	if !item.running() {
 		m.errText = "start the session before you change it"
 		return m, nil
@@ -121,6 +133,10 @@ func (m Model) toggleControl() (tea.Model, tea.Cmd) {
 func (m Model) archiveSelected() (tea.Model, tea.Cmd) {
 	item, ok := m.selectedRow()
 	if !ok {
+		return m, nil
+	}
+	if item.readOnly {
+		m.errText = readOnlyStatus
 		return m, nil
 	}
 	if item.running() {
@@ -220,6 +236,10 @@ func (m Model) send() (tea.Model, tea.Cmd) {
 		m.errText = "no session is selected"
 		return m, nil
 	}
+	if item.readOnly {
+		m.errText = readOnlyStatus
+		return m, nil
+	}
 	if text == "" {
 		if item.state == session.StateBusy && len(m.queued[m.sel]) > 0 {
 			m.errText = ""
@@ -240,6 +260,9 @@ func (m Model) send() (tea.Model, tea.Cmd) {
 func (m Model) stopBusy() (tea.Model, tea.Cmd, bool) {
 	item, ok := m.selectedRow()
 	if !ok || item.state != session.StateBusy {
+		return m, nil, false
+	}
+	if item.readOnly {
 		return m, nil, false
 	}
 	delete(m.queued, m.sel)
@@ -281,6 +304,17 @@ func (m Model) askToStop() (tea.Model, tea.Cmd) {
 	if !ok {
 		return m, nil
 	}
+	// On a spectator session, s x stops the watch: it detaches the stream
+	// locally, and never stops the session on the host. See docs/peers.md.
+	if item.readOnly {
+		if m.mgr.StopWatching(item.name) {
+			m.errText = ""
+			m.status = "stopped watching " + item.name
+			m.refresh()
+			m.setContent()
+		}
+		return m, nil
+	}
 	if !item.running() {
 		m.errText = "that session is not running"
 		return m, nil
@@ -293,6 +327,10 @@ func (m Model) askToStop() (tea.Model, tea.Cmd) {
 func (m Model) openChoice(kind settingKind) (tea.Model, tea.Cmd) {
 	item, ok := m.selectedRow()
 	if !ok {
+		return m, nil
+	}
+	if item.readOnly {
+		m.errText = readOnlyStatus
 		return m, nil
 	}
 	if !item.running() {
@@ -396,6 +434,10 @@ func (m Model) openRename() (tea.Model, tea.Cmd) {
 	item, ok := m.selectedRow()
 	if !ok {
 		m.errText = "no session is selected"
+		return m, nil
+	}
+	if item.readOnly {
+		m.errText = readOnlyStatus
 		return m, nil
 	}
 	m.rename = newRenameDialog(item.name, item.title)

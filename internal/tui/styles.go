@@ -50,6 +50,9 @@ const (
 	controlMark  = "C"
 	scheduleMark = "S"
 	hoistMark    = "H"
+	// readOnlyMark flags a spectator session: it streams a peer's session
+	// read-only, so the interface takes no input for it. See docs/tui/sessions.md.
+	readOnlyMark = "R"
 )
 
 // modalInner caps a dialog at width-2, because a wider box pushes the sidebar

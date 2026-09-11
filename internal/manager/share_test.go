@@ -233,6 +233,23 @@ func TestWatchShareDetachesOnRevokedShare(t *testing.T) {
 	}
 }
 
+func TestStopWatchingDetachesLocally(t *testing.T) {
+	m := newTestManager(t)
+	name, _ := watchOwnShare(t, m, "brave-otter")
+
+	if m.StopWatching("no-such-session") {
+		t.Error("StopWatching reported a detach for an unknown session")
+	}
+	if !m.StopWatching(name) {
+		t.Fatalf("StopWatching(%q) = false, want true", name)
+	}
+	for _, s := range m.List() {
+		if s.Name == name {
+			t.Fatalf("the spectator session %q is still listed after StopWatching", name)
+		}
+	}
+}
+
 func TestWatchShareRejectsABadLink(t *testing.T) {
 	m := newTestManager(t)
 	if _, err := m.WatchShare("not-a-link"); !errors.Is(err, errBadShareLink) {

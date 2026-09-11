@@ -143,6 +143,7 @@ reads `HC`:
 
 | Flag | Meaning |
 |---|---|
+| `R` | Read-only — a spectator session, watched through a share. See [../peers/spectate.md](../peers/spectate.md). |
 | `H` | Hoisted — it runs here with a peer's credential. See [../peers/hoisted.md](../peers/hoisted.md). |
 | `S` | Scheduled — a schedule spawned it. See [../scheduler.md](../scheduler.md). |
 | `C` | Control — it may drive its neighbours. See [../mcp/grant.md](../mcp/grant.md). |

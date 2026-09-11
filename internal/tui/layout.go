@@ -307,6 +307,9 @@ func (m Model) sessionRow(item row) string {
 // docs/tui/sessions.md.
 func rowFlags(item row) string {
 	flags := ""
+	if item.readOnly {
+		flags += readOnlyMark
+	}
 	if item.lender != "" {
 		flags += hoistMark
 	}
