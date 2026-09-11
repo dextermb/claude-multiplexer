@@ -25,6 +25,7 @@ func (m *Manager) StartMCP() error {
 	m.apiStore = store
 	server := mcp.NewServer(&bridge{m: m})
 	server.EnableAPI(store, m.apiSessions)
+	server.EnableShares(m.shareSessions)
 	start, end := m.apiPortRange()
 	if err := server.Start(start, end); err != nil {
 		return err

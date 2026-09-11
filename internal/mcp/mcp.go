@@ -134,6 +134,9 @@ var (
 	ErrBadPosition = errors.New("mcp: the diff position must be left, right, top, or bottom")
 
 	ErrNoPeer = errors.New("mcp: this tool needs a peer name and url")
+
+	ErrReadOnly = errors.New("mcp: a share is read-only")
+	ErrNoShare  = errors.New("mcp: this tool needs a share id")
 )
 
 // The scopes a layout tool takes. ScopeSession sets the calling session; ScopeAll
