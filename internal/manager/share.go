@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"net/url"
 	"strings"
 	"time"
@@ -200,12 +201,61 @@ func parseSpectateLink(link string) (spectatePayload, string, error) {
 	return payload, id, nil
 }
 
-// shareHost is the host of a peer URL, shown as the Host of a spectator session.
+// spectatorHost names the Host of a spectator session from its peer URL. It uses
+// the configured peer name when the URL points at a configured peer, so the
+// session groups with the other sessions of that host, and the URL host
+// otherwise. See docs/peers/spectate.md.
+func (m *Manager) spectatorHost(peerURL string) string {
+	if name := m.peerNameForURL(peerURL); name != "" {
+		return name
+	}
+	return shareHost(peerURL)
+}
+
+// peerNameForURL returns the name of the configured peer whose URL points at the
+// same host as peerURL, or an empty string when no configured peer matches.
+func (m *Manager) peerNameForURL(peerURL string) string {
+	host := urlHost(peerURL)
+	if host == "" {
+		return ""
+	}
+	for _, cfg := range m.peerHosts() {
+		if sameHost(host, urlHost(cfg.URL)) {
+			return cfg.Name
+		}
+	}
+	return ""
+}
+
+// shareHost is the host of a peer URL, or "shared" when the URL names no host.
 func shareHost(peerURL string) string {
-	if u, err := url.Parse(peerURL); err == nil && u.Hostname() != "" {
-		return u.Hostname()
+	if host := urlHost(peerURL); host != "" {
+		return host
 	}
 	return "shared"
+}
+
+// urlHost is the host of a URL, without the port. It is empty when the URL does
+// not parse, or names no host.
+func urlHost(raw string) string {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return ""
+	}
+	return u.Hostname()
+}
+
+// sameHost reports whether two hosts name the same machine. It compares the
+// parsed IP addresses when both hosts are IP addresses, and the host names
+// otherwise.
+func sameHost(a, b string) bool {
+	if a == "" || b == "" {
+		return false
+	}
+	if ipA, ipB := net.ParseIP(a), net.ParseIP(b); ipA != nil && ipB != nil {
+		return ipA.Equal(ipB)
+	}
+	return strings.EqualFold(a, b)
 }
 
 // Watched reports which local sessions a spectator watches now, keyed by name,
@@ -241,7 +291,7 @@ func (m *Manager) WatchShare(link string) (string, error) {
 	}
 	client := peer.NewShare(payload.U, payload.T)
 	local := m.attach(attachSpec{
-		peer:       shareHost(payload.U),
+		peer:       m.spectatorHost(payload.U),
 		client:     client,
 		remoteName: id,
 		base:       spectatorBase,
