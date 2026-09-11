@@ -76,6 +76,8 @@ func (s *Server) shareInfo(w http.ResponseWriter, sess APISessions, shareID, ses
 // the share is revoked or expires. It re-checks the share on an interval,
 // because the initial token check does not see a later revoke. See docs/peers.md.
 func (s *Server) shareStream(w http.ResponseWriter, r *http.Request, sess APISessions, shareID, session string) {
+	s.addWatcher(session)
+	defer s.removeWatcher(session)
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
 	go func() {

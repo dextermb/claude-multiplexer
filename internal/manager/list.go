@@ -20,6 +20,7 @@ func (m *Manager) List() []mcp.Session {
 	}
 	m.mu.Unlock()
 
+	watched := m.Watched()
 	out := make([]mcp.Session, 0, len(items)+len(remotes))
 	for _, item := range items {
 		snap := item.sess.Snapshot()
@@ -38,6 +39,7 @@ func (m *Manager) List() []mcp.Session {
 			Cost:    snap.Cost,
 			Hosted:  meta.Hosted,
 			Lender:  meta.Lender,
+			Watched: watched[snap.Name],
 		})
 	}
 	for _, re := range remotes {

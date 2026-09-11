@@ -53,6 +53,9 @@ const (
 	// readOnlyMark flags a spectator session: it streams a peer's session
 	// read-only, so the interface takes no input for it. See docs/tui/sessions.md.
 	readOnlyMark = "R"
+	// watchedMark flags a session a spectator watches now, through a share this
+	// host minted, so the host sees it is shared. See docs/tui/sessions.md.
+	watchedMark = "W"
 )
 
 // modalInner caps a dialog at width-2, because a wider box pushes the sidebar

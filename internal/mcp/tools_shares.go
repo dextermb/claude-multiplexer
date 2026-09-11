@@ -8,7 +8,7 @@ import (
 )
 
 type shareSessionIn struct {
-	Session      string   `json:"session" jsonschema:"the session to share read-only"`
+	Session      string   `json:"session,omitempty" jsonschema:"the session to share read-only; omit for this session. A plain session may share only itself."`
 	ExpiresHours *float64 `json:"expires_hours,omitempty" jsonschema:"hours until the share expires; omit for the default 24, or 0 for no expiry"`
 }
 
@@ -39,21 +39,38 @@ type revokeShareOut struct {
 	Message string `json:"message"`
 }
 
-func (s *Server) addShareTools(server *sdk.Server, _ string) {
+// addShareSessionTool registers share_session for every session. A control
+// session shares any session; a plain session shares only itself, which is the
+// default when the session argument is empty. See docs/peers/spectate.md.
+func (s *Server) addShareSessionTool(server *sdk.Server, caller string, control bool) {
+	description := "Mint a read-only share link for a session. Anyone with the link watches the session live, but cannot type, stop, or interrupt it. The link is shown once. It expires in 24 hours by default; give expires_hours to change it, or 0 for no expiry. Peering must be on."
+	if control {
+		description += " Name any session, or omit it for this one."
+	} else {
+		description += " It shares this session; a session may share only itself."
+	}
 	sdk.AddTool(server, &sdk.Tool{
 		Name:        ToolShareSession,
-		Description: "Mint a read-only share link for a session. Anyone with the link watches the session live, but cannot type, stop, or interrupt it. The link is shown once. It expires in 24 hours by default; give expires_hours to change it, or 0 for no expiry. Peering must be on.",
+		Description: description,
 	}, func(_ context.Context, _ *sdk.CallToolRequest, in shareSessionIn) (*sdk.CallToolResult, ShareCreated, error) {
-		if strings.TrimSpace(in.Session) == "" {
-			return nil, ShareCreated{}, ErrNoTarget
+		target := strings.TrimSpace(in.Session)
+		if target == "" {
+			target = caller
 		}
-		created, err := s.sessions.ShareSession(in.Session, in.ExpiresHours)
+		if !control && target != caller {
+			return nil, ShareCreated{}, ErrNotSelf
+		}
+		created, err := s.sessions.ShareSession(target, in.ExpiresHours)
 		if err != nil {
 			return nil, ShareCreated{}, err
 		}
 		return nil, created, nil
 	})
+}
 
+// addShareAdminTools registers the share tools a control session holds: list,
+// revoke, and watch. See docs/peers/spectate.md.
+func (s *Server) addShareAdminTools(server *sdk.Server, _ string) {
 	sdk.AddTool(server, &sdk.Tool{
 		Name:        ToolListShares,
 		Description: "List the active read-only shares: the id, the session, and the expiry. No secret is shown.",

@@ -208,6 +208,16 @@ func shareHost(peerURL string) string {
 	return "shared"
 }
 
+// Watched reports which local sessions a spectator watches now, keyed by name,
+// so the interface flags a watched session. It reads the live share streams the
+// peer listener serves. See docs/peers.md.
+func (m *Manager) Watched() map[string]bool {
+	if m.mcp == nil {
+		return nil
+	}
+	return m.mcp.WatchedSessions()
+}
+
 // StopWatching detaches a read-only spectator session locally, so the viewer
 // stops watching. It never touches the session on the host, because a share is
 // read-only. It reports whether the name was a spectator session. See

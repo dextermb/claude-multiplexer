@@ -101,14 +101,15 @@ var (
 		ToolListProject, ToolAddProjectDir, ToolRemoveProject, ToolSetProject, ToolClearProject,
 		ToolListLayouts, ToolSaveLayout, ToolDeleteLayout, ToolSetLayout, ToolUnsetLayout,
 		ToolCreateSchedule, ToolUpdateSchedule, ToolListSchedules, ToolDeleteSchedule, ToolSetScheduleEnabled, ToolRunSchedule,
-		ToolSchedulePath, ToolAPIURL, ToolAPIDocs, ToolGetUsage, ToolPeerUsage, ToolPeerURL}
+		ToolSchedulePath, ToolAPIURL, ToolAPIDocs, ToolGetUsage, ToolPeerUsage, ToolPeerURL,
+		ToolShareSession}
 	ControlTools = []string{ToolSend, ToolStop, ToolArchive, ToolCreate, ToolStopJob,
 		ToolCreateAPIAdmin, ToolRotateAPIAdmin, ToolRevokeAPIAdmin,
 		ToolCreateAPIClient, ToolUpdateAPIClient, ToolRotateAPIClient, ToolRevokeAPIClient,
 		ToolListAPIClients, ToolCreateAPIKey, ToolRevokeAPIKey, ToolAPIEndpoint,
 		ToolListPeers, ToolEnablePeering, ToolDisablePeering, ToolAddPeer, ToolUpdatePeer, ToolRemovePeer,
 		ToolSetReserve, ToolUnsetReserve,
-		ToolShareSession, ToolListShares, ToolRevokeShare, ToolWatchShare}
+		ToolListShares, ToolRevokeShare, ToolWatchShare}
 	// APITools go to an external client that reaches the session API. The set is
 	// session-only, so no config, layout, or schedule tool is ever exposed. See
 	// docs/mcp/api.md.
@@ -144,6 +145,7 @@ var (
 
 	ErrReadOnly = errors.New("mcp: a share is read-only")
 	ErrNoShare  = errors.New("mcp: this tool needs a share id")
+	ErrNotSelf  = errors.New("mcp: a session may share only itself; a control session may share any session")
 )
 
 // The scopes a layout tool takes. ScopeSession sets the calling session; ScopeAll
@@ -194,6 +196,9 @@ type Session struct {
 	// ReadOnly marks a spectator session: it streams a peer's session read-only
 	// through a share, so the interface disables input for it. See docs/peers.md.
 	ReadOnly bool `json:"read_only,omitempty"`
+	// Watched marks a session a spectator watches now, through a share this host
+	// minted, so the host sees it is shared. See docs/peers.md.
+	Watched bool `json:"watched,omitempty"`
 	// Lender names the peer whose Claude credential a hoisted session runs with.
 	// A hoisted session runs locally, so Host is empty and Hosted is false. See
 	// docs/peers/hoisted.md.

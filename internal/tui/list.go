@@ -90,6 +90,7 @@ func (m *Model) refresh() {
 	hosted := m.mgr.Hosted()
 	lenders := m.mgr.Lenders()
 	owners := m.mgr.Owners()
+	watched := m.mgr.Watched()
 	for _, snap := range m.mgr.Snapshots() {
 		item := rowFromSnapshot(snap)
 		item.control = grants[snap.Name]
@@ -101,6 +102,7 @@ func (m *Model) refresh() {
 		item.hosted = hosted[snap.Name]
 		item.lender = lenders[snap.Name]
 		item.owner = owners[snap.Name]
+		item.watched = watched[snap.Name]
 		rows = append(rows, item)
 	}
 	hosts := m.mgr.Hosts()

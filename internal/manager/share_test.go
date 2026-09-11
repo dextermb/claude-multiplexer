@@ -233,6 +233,20 @@ func TestWatchShareDetachesOnRevokedShare(t *testing.T) {
 	}
 }
 
+func TestWatchedReflectsALiveSpectator(t *testing.T) {
+	m := newTestManager(t)
+	name, _ := watchOwnShare(t, m, "brave-otter")
+
+	// The stream opens on its own pump, so wait for the host to see the watcher.
+	waitFor(t, 3*time.Second, func() bool { return m.Watched()["brave-otter"] })
+
+	// Stop watching, and the host no longer reports the session as watched.
+	if !m.StopWatching(name) {
+		t.Fatalf("StopWatching(%q) = false", name)
+	}
+	waitFor(t, 3*time.Second, func() bool { return !m.Watched()["brave-otter"] })
+}
+
 func TestStopWatchingDetachesLocally(t *testing.T) {
 	m := newTestManager(t)
 	name, _ := watchOwnShare(t, m, "brave-otter")

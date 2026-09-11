@@ -16,6 +16,15 @@ func TestReadOnlyRowShowsTheFlag(t *testing.T) {
 	}
 }
 
+func TestWatchedRowShowsTheFlag(t *testing.T) {
+	if got := rowFlags(row{watched: true}); !strings.Contains(got, watchedMark) {
+		t.Fatalf("rowFlags = %q, want the watched mark", got)
+	}
+	if got := rowFlags(row{}); strings.Contains(got, watchedMark) {
+		t.Fatalf("a normal row shows the watched mark: %q", got)
+	}
+}
+
 func TestReadOnlySessionRefusesWriteActions(t *testing.T) {
 	base := Model{}
 	base.rows = []row{{name: "shared", live: true, readOnly: true, state: session.StateIdle}}
