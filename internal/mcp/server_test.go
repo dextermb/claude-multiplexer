@@ -520,6 +520,13 @@ func (f *fakeSessions) ListShares() []mcp.ShareView {
 
 func (f *fakeSessions) RevokeShare(id string) (bool, error) { return id == "shr_test", nil }
 
+func (f *fakeSessions) WatchShare(link string) (string, error) {
+	if link == "" {
+		return "", mcp.ErrNoShare
+	}
+	return "shared", nil
+}
+
 func startServer(t *testing.T, sessions mcp.Sessions) *mcp.Server {
 	t.Helper()
 	server := mcp.NewServer(sessions)

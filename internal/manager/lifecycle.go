@@ -144,6 +144,9 @@ func (m *Manager) Resume(ctx context.Context, meta Meta) (string, error) {
 
 func (m *Manager) Send(name, text string) error {
 	if re := m.remote(name); re != nil {
+		if re.readOnly {
+			return ErrReadOnly
+		}
 		return re.client.Send(context.Background(), re.remoteName, text)
 	}
 	item, err := m.entry(name)
@@ -177,6 +180,9 @@ func (m *Manager) SendFrom(target, from, text string) (int, error) {
 
 func (m *Manager) Interrupt(name string, discardQueued bool) error {
 	if re := m.remote(name); re != nil {
+		if re.readOnly {
+			return ErrReadOnly
+		}
 		return re.client.Interrupt(context.Background(), re.remoteName)
 	}
 	item, err := m.entry(name)
@@ -442,6 +448,9 @@ func (m *Manager) ResumeWithControl(ctx context.Context, name string, control bo
 
 func (m *Manager) Stop(ctx context.Context, name string) error {
 	if re := m.remote(name); re != nil {
+		if re.readOnly {
+			return ErrReadOnly
+		}
 		return re.client.Stop(ctx, re.remoteName)
 	}
 	item, err := m.entry(name)

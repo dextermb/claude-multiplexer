@@ -16,6 +16,18 @@ type revokeShareIn struct {
 	ID string `json:"id" jsonschema:"the id of the share to revoke, from list_shares"`
 }
 
+type watchShareIn struct {
+	Link string `json:"link" jsonschema:"a cmux://spectate/... link a host gave you"`
+}
+
+// watchShareOut is the result of watch_share: the local name of the read-only
+// session, so the human finds it in the sidebar.
+type watchShareOut struct {
+	OK      bool   `json:"ok"`
+	Name    string `json:"name"`
+	Message string `json:"message"`
+}
+
 // shareListOut is the result of list_shares.
 type shareListOut struct {
 	Shares []ShareView `json:"shares"`
@@ -64,5 +76,19 @@ func (s *Server) addShareTools(server *sdk.Server, _ string) {
 			return nil, revokeShareOut{OK: true, Message: "no share with id " + in.ID}, nil
 		}
 		return nil, revokeShareOut{OK: true, Message: "revoked the share " + in.ID}, nil
+	})
+
+	sdk.AddTool(server, &sdk.Tool{
+		Name:        ToolWatchShare,
+		Description: "Watch a session another host shared, from its cmux://spectate/... link. The session appears read-only: you see it live, but you cannot type, stop, or interrupt it. Close it to stop watching; the session on the host is untouched.",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, in watchShareIn) (*sdk.CallToolResult, watchShareOut, error) {
+		if strings.TrimSpace(in.Link) == "" {
+			return nil, watchShareOut{}, ErrNoShare
+		}
+		name, err := s.sessions.WatchShare(in.Link)
+		if err != nil {
+			return nil, watchShareOut{}, err
+		}
+		return nil, watchShareOut{OK: true, Name: name, Message: "watching " + name + " read-only"}, nil
 	})
 }

@@ -43,16 +43,17 @@ func (m *Manager) List() []mcp.Session {
 	for _, re := range remotes {
 		snap := re.snapshot()
 		out = append(out, mcp.Session{
-			Name:   re.localName,
-			Title:  snap.Title,
-			Dir:    snap.Dir,
-			State:  snap.State.String(),
-			Model:  snap.Model,
-			Live:   true,
-			Host:   re.peer,
-			Queued: snap.Queued,
-			Turns:  snap.Turns,
-			Cost:   snap.Cost,
+			Name:     re.localName,
+			Title:    snap.Title,
+			Dir:      snap.Dir,
+			State:    snap.State.String(),
+			Model:    snap.Model,
+			Live:     true,
+			Host:     re.peer,
+			ReadOnly: re.readOnly,
+			Queued:   snap.Queued,
+			Turns:    snap.Turns,
+			Cost:     snap.Cost,
 		})
 	}
 	for _, meta := range m.Stored() {

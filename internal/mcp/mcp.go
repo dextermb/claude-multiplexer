@@ -89,6 +89,7 @@ const (
 	ToolShareSession = "share_session"
 	ToolListShares   = "list_shares"
 	ToolRevokeShare  = "revoke_share"
+	ToolWatchShare   = "watch_share"
 )
 
 // OpenTools go to every session. ControlTools go only to a session that holds
@@ -107,7 +108,7 @@ var (
 		ToolListAPIClients, ToolCreateAPIKey, ToolRevokeAPIKey, ToolAPIEndpoint,
 		ToolListPeers, ToolEnablePeering, ToolDisablePeering, ToolAddPeer, ToolUpdatePeer, ToolRemovePeer,
 		ToolSetReserve, ToolUnsetReserve,
-		ToolShareSession, ToolListShares, ToolRevokeShare}
+		ToolShareSession, ToolListShares, ToolRevokeShare, ToolWatchShare}
 	// APITools go to an external client that reaches the session API. The set is
 	// session-only, so no config, layout, or schedule tool is ever exposed. See
 	// docs/mcp/api.md.
@@ -190,6 +191,9 @@ type Session struct {
 	// The sidebar sorts a session into a section from these two. See docs/peers.md.
 	Host   string `json:"host,omitempty"`
 	Hosted bool   `json:"hosted,omitempty"`
+	// ReadOnly marks a spectator session: it streams a peer's session read-only
+	// through a share, so the interface disables input for it. See docs/peers.md.
+	ReadOnly bool `json:"read_only,omitempty"`
 	// Lender names the peer whose Claude credential a hoisted session runs with.
 	// A hoisted session runs locally, so Host is empty and Hosted is false. See
 	// docs/peers/hoisted.md.
@@ -381,6 +385,9 @@ type Sessions interface {
 	ListShares() []ShareView
 	// RevokeShare ends a share by id, and reports whether the share was there.
 	RevokeShare(id string) (bool, error)
+	// WatchShare attaches a read-only spectator session from a spectate link, and
+	// returns the local name. See docs/peers.md.
+	WatchShare(link string) (string, error)
 }
 
 // ShareView is one row of list_shares. It never holds the secret. See

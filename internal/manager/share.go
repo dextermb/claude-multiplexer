@@ -6,11 +6,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 
 	"github.com/dextermb/claude-multiplexer/internal/api"
 	"github.com/dextermb/claude-multiplexer/internal/mcp"
+	"github.com/dextermb/claude-multiplexer/internal/peer"
 	"github.com/dextermb/claude-multiplexer/internal/wire"
 )
 
@@ -18,9 +20,17 @@ import (
 // a forgotten link does not stay open. See docs/peers.md.
 const defaultShareTTL = 24 * time.Hour
 
+// spectatorBase is the base name of a spectator session, because the viewer
+// hides the host-local name. The row shows the shared title from the stream.
+const spectatorBase = "shared"
+
 // errPeeringOff is the failure when a session shares a session but the peer
 // listener is off, because the link would point at nothing.
 var errPeeringOff = errors.New("manager: peering is off; run enable_peering and restart before you share a session")
+
+// errBadShareLink is the failure when a watch link is not a spectate link this
+// host understands.
+var errBadShareLink = errors.New("manager: not a cmux spectate link")
 
 // shareSessions returns the read-only view a spectator reaches through a share.
 // A share opens one session, so the view pins that name and serves only its read
@@ -166,4 +176,55 @@ func (m *Manager) RevokeShare(id string) (bool, error) {
 		return false, err
 	}
 	return true, nil
+}
+
+// parseSpectateLink decodes a cmux://spectate/<blob> link into its payload and
+// the share id inside the token. It fails when the link is not a spectate link.
+func parseSpectateLink(link string) (spectatePayload, string, error) {
+	blob, ok := strings.CutPrefix(strings.TrimSpace(link), "cmux://spectate/")
+	if !ok || blob == "" {
+		return spectatePayload{}, "", errBadShareLink
+	}
+	raw, err := base64.RawURLEncoding.DecodeString(blob)
+	if err != nil {
+		return spectatePayload{}, "", errBadShareLink
+	}
+	var payload spectatePayload
+	if err := json.Unmarshal(raw, &payload); err != nil {
+		return spectatePayload{}, "", errBadShareLink
+	}
+	id, _, ok := strings.Cut(payload.T, ".")
+	if payload.U == "" || payload.T == "" || !ok || id == "" {
+		return spectatePayload{}, "", errBadShareLink
+	}
+	return payload, id, nil
+}
+
+// shareHost is the host of a peer URL, shown as the Host of a spectator session.
+func shareHost(peerURL string) string {
+	if u, err := url.Parse(peerURL); err == nil && u.Hostname() != "" {
+		return u.Hostname()
+	}
+	return "shared"
+}
+
+// WatchShare attaches a read-only spectator session from a spectate link. It
+// returns the local name. The viewer needs no peer listener and no client. See
+// docs/peers.md.
+func (m *Manager) WatchShare(link string) (string, error) {
+	payload, id, err := parseSpectateLink(link)
+	if err != nil {
+		return "", err
+	}
+	client := peer.NewShare(payload.U, payload.T)
+	local := m.attach(attachSpec{
+		peer:       shareHost(payload.U),
+		client:     client,
+		remoteName: id,
+		base:       spectatorBase,
+		readOnly:   true,
+		shareLink:  strings.TrimSpace(link),
+	})
+	m.saveRemotes()
+	return local, nil
 }

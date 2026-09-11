@@ -1,11 +1,14 @@
 package manager
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/dextermb/claude-multiplexer/internal/mcp"
 )
@@ -116,5 +119,123 @@ func TestShareSessionErrors(t *testing.T) {
 	// Revoke of an unknown share reports not-there, no error.
 	if had, err := m.RevokeShare("shr_missing"); err != nil || had {
 		t.Fatalf("revoke unknown = (%v, %v), want (false, nil)", had, err)
+	}
+}
+
+func TestParseSpectateLinkRoundTrip(t *testing.T) {
+	link := spectateLink("http://192.168.1.20:51900", "shr_abc.secret")
+	payload, id, err := parseSpectateLink(link)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	if payload.U != "http://192.168.1.20:51900" || payload.T != "shr_abc.secret" || id != "shr_abc" {
+		t.Fatalf("payload = %+v, id = %q", payload, id)
+	}
+	for _, bad := range []string{"", "http://x", "cmux://spectate/", "cmux://spectate/!!notbase64"} {
+		if _, _, err := parseSpectateLink(bad); !errors.Is(err, errBadShareLink) {
+			t.Errorf("parse %q: want errBadShareLink, got %v", bad, err)
+		}
+	}
+}
+
+// watchOwnShare mints a share on a manager for a stored session, then watches it
+// through the same manager's peer listener. It returns the local name.
+func watchOwnShare(t *testing.T, m *Manager, session string) (string, mcp.ShareCreated) {
+	t.Helper()
+	if err := m.StartMCP(); err != nil {
+		t.Fatalf("start mcp: %v", err)
+	}
+	if err := m.mcp.StartPeer("127.0.0.1:0"); err != nil {
+		t.Fatalf("start peer: %v", err)
+	}
+	writeStoredMeta(t, m.opts.Root, session, "")
+	created, err := m.ShareSession(session, nil)
+	if err != nil {
+		t.Fatalf("share session: %v", err)
+	}
+	name, err := m.WatchShare(created.Link)
+	if err != nil {
+		t.Fatalf("watch share: %v", err)
+	}
+	return name, created
+}
+
+func TestWatchShareAttachesReadOnly(t *testing.T) {
+	m := newTestManager(t)
+	name, _ := watchOwnShare(t, m, "brave-otter")
+
+	var row *mcp.Session
+	for _, s := range m.List() {
+		if s.Name == name {
+			row = &s
+		}
+	}
+	if row == nil || !row.ReadOnly {
+		t.Fatalf("the spectator session is not read-only in the list: %+v", row)
+	}
+
+	if err := m.Send(name, "hi"); !errors.Is(err, ErrReadOnly) {
+		t.Errorf("Send: want ErrReadOnly, got %v", err)
+	}
+	if err := m.Stop(context.Background(), name); !errors.Is(err, ErrReadOnly) {
+		t.Errorf("Stop: want ErrReadOnly, got %v", err)
+	}
+	if err := m.Interrupt(name, false); !errors.Is(err, ErrReadOnly) {
+		t.Errorf("Interrupt: want ErrReadOnly, got %v", err)
+	}
+
+	data, err := os.ReadFile(remotesPath(m.opts.Root))
+	if err != nil {
+		t.Fatalf("read remotes: %v", err)
+	}
+	if !strings.Contains(string(data), "share_link") || !strings.Contains(string(data), "read_only") {
+		t.Fatalf("remotes.json did not record the share link: %s", data)
+	}
+}
+
+func TestWatchShareDetachesOnRevokedShare(t *testing.T) {
+	m := newTestManager(t)
+	if err := m.StartMCP(); err != nil {
+		t.Fatalf("start mcp: %v", err)
+	}
+	if err := m.mcp.StartPeer("127.0.0.1:0"); err != nil {
+		t.Fatalf("start peer: %v", err)
+	}
+	writeStoredMeta(t, m.opts.Root, "brave-otter", "")
+	created, err := m.ShareSession("brave-otter", nil)
+	if err != nil {
+		t.Fatalf("share session: %v", err)
+	}
+	// Revoke first, so the very first stream attempt gets a terminal 401.
+	if _, err := m.RevokeShare(created.ID); err != nil {
+		t.Fatalf("revoke: %v", err)
+	}
+	name, err := m.WatchShare(created.Link)
+	if err != nil {
+		t.Fatalf("watch share: %v", err)
+	}
+
+	deadline := time.Now().Add(3 * time.Second)
+	for {
+		found := false
+		for _, s := range m.List() {
+			if s.Name == name {
+				found = true
+			}
+		}
+		if !found {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("the spectator session did not detach after the share was revoked")
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+}
+
+func TestWatchShareRejectsABadLink(t *testing.T) {
+	m := newTestManager(t)
+	if _, err := m.WatchShare("not-a-link"); !errors.Is(err, errBadShareLink) {
+		t.Fatalf("bad link: want errBadShareLink, got %v", err)
 	}
 }

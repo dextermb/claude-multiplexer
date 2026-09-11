@@ -68,3 +68,5 @@ func (b *bridge) ShareSession(session string, expiresHours *float64) (mcp.ShareC
 func (b *bridge) ListShares() []mcp.ShareView { return b.m.ListShares() }
 
 func (b *bridge) RevokeShare(id string) (bool, error) { return b.m.RevokeShare(id) }
+
+func (b *bridge) WatchShare(link string) (string, error) { return b.m.WatchShare(link) }

@@ -31,6 +31,7 @@ var (
 	ErrNoPrompt        = errors.New("manager: a schedule needs a prompt")
 	ErrUnknownSchedule = errors.New("manager: unknown schedule")
 	ErrNoAPIStore      = errors.New("manager: the api is not started")
+	ErrReadOnly        = errors.New("manager: this session is read-only")
 )
 
 type Options struct {

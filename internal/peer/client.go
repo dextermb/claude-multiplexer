@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -20,11 +21,23 @@ import (
 // carry a token that expires in flight.
 const tokenSlack = 30 * time.Second
 
+// ErrUnauthorized is the failure when a peer answers 401. For a share, it is
+// terminal: the share is revoked or expired, so the viewer stops watching. See
+// docs/peers.md.
+var ErrUnauthorized = errors.New("peer: unauthorized")
+
+// errReadOnlyShare is the failure when a share client is asked to drive a
+// session, because a share is read-only.
+var errReadOnlyShare = errors.New("peer: a share is read-only")
+
 // Client reaches one peer host. It caches the access token until it expires, so
-// a repeat read does not run the grant again.
+// a repeat read does not run the grant again. A share client instead holds a
+// fixed share token, so it reads one session read-only with no grant. See
+// docs/peers.md.
 type Client struct {
-	host config.PeerHost
-	http *http.Client
+	host       config.PeerHost
+	http       *http.Client
+	shareToken string
 
 	mu     sync.Mutex
 	token  string
@@ -34,6 +47,29 @@ type Client struct {
 // New builds a client for one peer host.
 func New(host config.PeerHost) *Client {
 	return &Client{host: host, http: &http.Client{Timeout: 10 * time.Second}}
+}
+
+// NewShare builds a read-only client that reads one session through a share.
+// The base URL is the peer listener, and the token is the share token. It runs
+// no grant. See docs/peers.md.
+func NewShare(baseURL, token string) *Client {
+	return &Client{
+		host:       config.PeerHost{Name: shareLabel(baseURL), URL: baseURL},
+		http:       &http.Client{Timeout: 10 * time.Second},
+		shareToken: token,
+	}
+}
+
+// shareLabel is a short label for a share client, from the host of the URL.
+func shareLabel(baseURL string) string {
+	trimmed := strings.TrimPrefix(strings.TrimPrefix(baseURL, "http://"), "https://")
+	if host, _, ok := strings.Cut(trimmed, ":"); ok {
+		return host
+	}
+	if slash := strings.IndexByte(trimmed, '/'); slash >= 0 {
+		return trimmed[:slash]
+	}
+	return trimmed
 }
 
 // Name is the label of the peer.

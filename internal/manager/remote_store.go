@@ -9,13 +9,16 @@ import (
 	"github.com/dextermb/claude-multiplexer/internal/peer"
 )
 
-// remoteLink is the record of one streamed session, so a restart re-attaches it.
-// The peer keeps running the session, so this host re-opens the stream under the
-// same local name. See docs/peers.md.
+// remoteLink is the record of one streamed or spectator session, so a restart
+// re-attaches it. The peer keeps running the session, so this host re-opens the
+// stream under the same local name. A spectator session records its share link
+// in place of a peer, and re-attaches from it. See docs/peers.md.
 type remoteLink struct {
 	Peer       string `json:"peer"`
 	RemoteName string `json:"remote_name"`
 	LocalName  string `json:"local_name"`
+	ReadOnly   bool   `json:"read_only,omitempty"`
+	ShareLink  string `json:"share_link,omitempty"`
 }
 
 func remotesPath(root string) string {
@@ -29,7 +32,13 @@ func (m *Manager) saveRemotes() {
 	links := make([]remoteLink, 0, len(m.remoteOrder))
 	for _, name := range m.remoteOrder {
 		if re, ok := m.remotes[name]; ok {
-			links = append(links, remoteLink{Peer: re.peer, RemoteName: re.remoteName, LocalName: re.localName})
+			links = append(links, remoteLink{
+				Peer:       re.peer,
+				RemoteName: re.remoteName,
+				LocalName:  re.localName,
+				ReadOnly:   re.readOnly,
+				ShareLink:  re.shareLink,
+			})
 		}
 	}
 	m.mu.Unlock()
@@ -69,12 +78,29 @@ func (m *Manager) reattachRemotes() {
 
 	changed := false
 	for _, link := range links {
+		if link.ShareLink != "" {
+			payload, id, err := parseSpectateLink(link.ShareLink)
+			if err != nil {
+				changed = true
+				continue
+			}
+			m.attach(attachSpec{
+				peer:       shareHost(payload.U),
+				client:     peer.NewShare(payload.U, payload.T),
+				remoteName: id,
+				base:       spectatorBase,
+				localName:  link.LocalName,
+				readOnly:   true,
+				shareLink:  link.ShareLink,
+			})
+			continue
+		}
 		host, ok := hosts[link.Peer]
 		if !ok {
 			changed = true
 			continue
 		}
-		m.attach(link.Peer, peer.New(host), link.RemoteName, link.LocalName)
+		m.attach(attachSpec{peer: link.Peer, client: peer.New(host), remoteName: link.RemoteName, base: link.RemoteName, localName: link.LocalName})
 	}
 	if changed {
 		m.saveRemotes()
