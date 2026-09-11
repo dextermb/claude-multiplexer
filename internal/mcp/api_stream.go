@@ -8,8 +8,9 @@ import (
 
 // restStream serves a session's events as server-sent events: the replay of the
 // current lines first, then the live events, each as one `data:` line. The peer
-// decodes them into a remote session. See docs/peers.md.
-func (s *Server) restStream(w http.ResponseWriter, r *http.Request, sess APISessions, name string) {
+// decodes them into a remote session. Each event carries `display` as its
+// session field, so a share hides the host-local name. See docs/peers.md.
+func (s *Server) restStream(w http.ResponseWriter, r *http.Request, sess APISessions, name, display string) {
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		writeError(w, http.StatusInternalServerError, "the stream needs a flushing writer")
@@ -34,6 +35,8 @@ func (s *Server) restStream(w http.ResponseWriter, r *http.Request, sess APISess
 			if !ok {
 				return
 			}
+			ev.Session = display
+			ev.Snapshot.Name = display
 			data, err := json.Marshal(ev)
 			if err != nil {
 				continue

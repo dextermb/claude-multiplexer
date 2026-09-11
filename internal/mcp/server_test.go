@@ -510,6 +510,23 @@ func (f *fakeSessions) UnsetReserve() (string, bool, error) {
 
 func (f *fakeSessions) HostingPaused() bool { return f.hostingPaused }
 
+func (f *fakeSessions) ShareSession(session string, _ *float64) (mcp.ShareCreated, error) {
+	return mcp.ShareCreated{ID: "shr_test", Session: session, Link: "cmux://spectate/test"}, nil
+}
+
+func (f *fakeSessions) ListShares() []mcp.ShareView {
+	return []mcp.ShareView{{ID: "shr_test", Session: "mine", Scope: "view"}}
+}
+
+func (f *fakeSessions) RevokeShare(id string) (bool, error) { return id == "shr_test", nil }
+
+func (f *fakeSessions) WatchShare(link string) (string, error) {
+	if link == "" {
+		return "", mcp.ErrNoShare
+	}
+	return "shared", nil
+}
+
 func startServer(t *testing.T, sessions mcp.Sessions) *mcp.Server {
 	t.Helper()
 	server := mcp.NewServer(sessions)

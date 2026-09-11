@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/dextermb/claude-multiplexer/internal/usage"
 	"github.com/dextermb/claude-multiplexer/internal/wire"
@@ -84,6 +85,11 @@ const (
 	ToolRemovePeer     = "remove_peer"
 	ToolSetReserve     = "set_reserve"
 	ToolUnsetReserve   = "unset_reserve"
+
+	ToolShareSession = "share_session"
+	ToolListShares   = "list_shares"
+	ToolRevokeShare  = "revoke_share"
+	ToolWatchShare   = "watch_share"
 )
 
 // OpenTools go to every session. ControlTools go only to a session that holds
@@ -101,7 +107,8 @@ var (
 		ToolCreateAPIClient, ToolUpdateAPIClient, ToolRotateAPIClient, ToolRevokeAPIClient,
 		ToolListAPIClients, ToolCreateAPIKey, ToolRevokeAPIKey, ToolAPIEndpoint,
 		ToolListPeers, ToolEnablePeering, ToolDisablePeering, ToolAddPeer, ToolUpdatePeer, ToolRemovePeer,
-		ToolSetReserve, ToolUnsetReserve}
+		ToolSetReserve, ToolUnsetReserve,
+		ToolShareSession, ToolListShares, ToolRevokeShare, ToolWatchShare}
 	// APITools go to an external client that reaches the session API. The set is
 	// session-only, so no config, layout, or schedule tool is ever exposed. See
 	// docs/mcp/api.md.
@@ -134,6 +141,9 @@ var (
 	ErrBadPosition = errors.New("mcp: the diff position must be left, right, top, or bottom")
 
 	ErrNoPeer = errors.New("mcp: this tool needs a peer name and url")
+
+	ErrReadOnly = errors.New("mcp: a share is read-only")
+	ErrNoShare  = errors.New("mcp: this tool needs a share id")
 )
 
 // The scopes a layout tool takes. ScopeSession sets the calling session; ScopeAll
@@ -181,6 +191,9 @@ type Session struct {
 	// The sidebar sorts a session into a section from these two. See docs/peers.md.
 	Host   string `json:"host,omitempty"`
 	Hosted bool   `json:"hosted,omitempty"`
+	// ReadOnly marks a spectator session: it streams a peer's session read-only
+	// through a share, so the interface disables input for it. See docs/peers.md.
+	ReadOnly bool `json:"read_only,omitempty"`
 	// Lender names the peer whose Claude credential a hoisted session runs with.
 	// A hoisted session runs locally, so Host is empty and Hosted is false. See
 	// docs/peers/hoisted.md.
@@ -364,6 +377,36 @@ type Sessions interface {
 	// HostingPaused reports whether the reserve gate is tripped, so the peer
 	// listener refuses a new hosted session. See docs/peers.md.
 	HostingPaused() bool
+	// ShareSession mints a read-only share for one session, and returns the share
+	// and its link. A nil expiresHours takes the default; a value of zero or less
+	// makes a share with no expiry. See docs/peers.md.
+	ShareSession(session string, expiresHours *float64) (ShareCreated, error)
+	// ListShares lists the active shares. It never returns a secret.
+	ListShares() []ShareView
+	// RevokeShare ends a share by id, and reports whether the share was there.
+	RevokeShare(id string) (bool, error)
+	// WatchShare attaches a read-only spectator session from a spectate link, and
+	// returns the local name. See docs/peers.md.
+	WatchShare(link string) (string, error)
+}
+
+// ShareView is one row of list_shares. It never holds the secret. See
+// docs/peers.md.
+type ShareView struct {
+	ID      string    `json:"id"`
+	Session string    `json:"session"`
+	Scope   string    `json:"scope"`
+	Created time.Time `json:"created_at"`
+	Expires time.Time `json:"expires_at,omitempty"`
+}
+
+// ShareCreated is the result of share_session: the share and its link. The link
+// is shown only here, the same as a client secret. See docs/peers.md.
+type ShareCreated struct {
+	ID      string    `json:"id"`
+	Session string    `json:"session"`
+	Expires time.Time `json:"expires_at,omitempty"`
+	Link    string    `json:"link"`
 }
 
 // PeersView is the output of list_peers: the listen address, the reserve, and

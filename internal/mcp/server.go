@@ -31,8 +31,9 @@ const (
 type Server struct {
 	sessions Sessions
 
-	store   *api.Store
-	resolve func(clientID, clientName string) APISessions
+	store        *api.Store
+	resolve      func(clientID, clientName string) APISessions
+	resolveShare func(session string) APISessions
 
 	mu        sync.Mutex
 	servers   map[string]*sdk.Server
@@ -59,6 +60,13 @@ func NewServer(sessions Sessions) *Server {
 func (s *Server) EnableAPI(store *api.Store, resolve func(clientID, clientName string) APISessions) {
 	s.store = store
 	s.resolve = resolve
+}
+
+// EnableShares gives the server the read-only share view, so the peer listener
+// serves a spectator the one session a share opens. Call it before StartPeer.
+// See docs/peers.md.
+func (s *Server) EnableShares(resolve func(session string) APISessions) {
+	s.resolveShare = resolve
 }
 
 // Start binds the first free port in the range, on loopback. It fails only when
@@ -163,12 +171,14 @@ func (s *Server) StartPeer(addr string) error {
 	return nil
 }
 
-// mountPeer adds the peer surface to a mux: the token grant, the usage read, and
-// the owner-scoped session REST and stream. The admin surface is never here, so
-// it does not reach the network. See docs/peers.md.
+// mountPeer adds the peer surface to a mux: the token grant, the usage read, the
+// owner-scoped session REST and stream, and the read-only share surface. The
+// admin surface is never here, so it does not reach the network. See
+// docs/peers.md.
 func (s *Server) mountPeer(mux *http.ServeMux) {
 	mux.HandleFunc("/token", s.handleToken)
 	mux.HandleFunc("/api/usage", s.handleUsage)
+	mux.HandleFunc("/api/shares/", s.handleShare)
 	mux.HandleFunc("/api/", s.handlePeerAPI)
 }
 

@@ -27,8 +27,10 @@ var errUnknownPeer = errors.New("manager: unknown peer")
 type remoteEntry struct {
 	localName  string
 	peer       string // the peer host name, shown as the Host of the session
-	remoteName string // the name the session has on the peer
+	remoteName string // the name the session has on the peer, or the share id
 	client     *peer.Client
+	readOnly   bool   // a spectator session, streamed read-only through a share
+	shareLink  string // the share link, so a restart re-attaches a spectator
 
 	lines  *lineBuffer
 	cancel context.CancelFunc
@@ -36,6 +38,19 @@ type remoteEntry struct {
 	mu    sync.Mutex
 	snap  session.Snapshot
 	todos []protocol.Todo
+}
+
+// attachSpec is the input to attach. It carries everything a streamed or a
+// spectator session needs. base names the session when localName is empty. See
+// docs/peers.md.
+type attachSpec struct {
+	peer       string
+	client     *peer.Client
+	remoteName string
+	base       string
+	localName  string
+	readOnly   bool
+	shareLink  string
 }
 
 func (r *remoteEntry) snapshot() session.Snapshot {
@@ -104,26 +119,29 @@ func (m *Manager) AttachRemote(host config.PeerHost, spec peer.CreateSpec) (stri
 	if err != nil {
 		return "", err
 	}
-	local := m.attach(host.Name, client, remoteName, "")
+	local := m.attach(attachSpec{peer: host.Name, client: client, remoteName: remoteName, base: remoteName})
 	m.saveRemotes()
 	return local, nil
 }
 
-// attach registers a streamed session and starts its pump. A non-empty
-// localName is taken as given (a re-attach on start); an empty one takes a
-// unique name. It makes no network call, so an unreachable peer still registers
-// and the pump retries.
-func (m *Manager) attach(peerName string, client *peer.Client, remoteName, localName string) string {
+// attach registers a streamed or spectator session and starts its pump. A
+// non-empty localName is taken as given (a re-attach on start); an empty one
+// takes a unique name from base. It makes no network call, so an unreachable
+// peer still registers and the pump retries.
+func (m *Manager) attach(spec attachSpec) string {
 	m.mu.Lock()
+	localName := spec.localName
 	if localName == "" {
-		localName = m.uniqueName(remoteName, "", false)
+		localName = m.uniqueName(spec.base, "", false)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	re := &remoteEntry{
 		localName:  localName,
-		peer:       peerName,
-		remoteName: remoteName,
-		client:     client,
+		peer:       spec.peer,
+		remoteName: spec.remoteName,
+		client:     spec.client,
+		readOnly:   spec.readOnly,
+		shareLink:  spec.shareLink,
 		lines:      newLineBuffer(m.opts.MaxLines),
 		cancel:     cancel,
 		snap:       session.Snapshot{Name: localName, State: session.StateStarting},
@@ -148,6 +166,12 @@ func (m *Manager) remotePump(ctx context.Context, re *remoteEntry) {
 		}
 		ch, err := re.client.Stream(ctx, re.remoteName)
 		if err != nil {
+			// A revoked or expired share is terminal, so the spectator stops
+			// watching instead of retrying for ever. See docs/peers.md.
+			if re.readOnly && errors.Is(err, peer.ErrUnauthorized) {
+				m.detachRemote(re.localName)
+				return
+			}
 			if !sleepCtx(ctx, remoteRetry) {
 				return
 			}
@@ -244,6 +268,21 @@ func (m *Manager) Hosts() map[string]string {
 	out := make(map[string]string, len(m.remotes))
 	for name, re := range m.remotes {
 		out[name] = re.peer
+	}
+	return out
+}
+
+// ReadOnly reports which streamed sessions are read-only spectator sessions,
+// keyed by the local name, so the interface flags them and takes no input. See
+// docs/peers.md.
+func (m *Manager) ReadOnly() map[string]bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	out := make(map[string]bool, len(m.remotes))
+	for name, re := range m.remotes {
+		if re.readOnly {
+			out[name] = true
+		}
 	}
 	return out
 }

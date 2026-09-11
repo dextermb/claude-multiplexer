@@ -44,26 +44,39 @@ func (c *Client) CreateSession(ctx context.Context, spec CreateSpec) (string, er
 
 // Send queues a prompt for a session on the peer.
 func (c *Client) Send(ctx context.Context, name, text string) error {
+	if c.shareToken != "" {
+		return errReadOnlyShare
+	}
 	_, err := c.post(ctx, "/api/sessions/"+name+"/message", map[string]string{"text": text})
 	return err
 }
 
 // Stop stops a session on the peer.
 func (c *Client) Stop(ctx context.Context, name string) error {
+	if c.shareToken != "" {
+		return errReadOnlyShare
+	}
 	_, err := c.post(ctx, "/api/sessions/"+name+"/stop", map[string]string{})
 	return err
 }
 
 // Interrupt interrupts the running turn of a session on the peer.
 func (c *Client) Interrupt(ctx context.Context, name string) error {
+	if c.shareToken != "" {
+		return errReadOnlyShare
+	}
 	_, err := c.post(ctx, "/api/sessions/"+name+"/interrupt", map[string]string{})
 	return err
 }
 
 // Messages reads the recent conversation of a session on the peer, so the host
 // that views a streamed session reads its transcript from the peer that runs it.
+// A share reads the transcript through its share path.
 func (c *Client) Messages(ctx context.Context, name string, limit int) ([]mcp.Message, error) {
 	path := "/api/sessions/" + name + "/messages"
+	if c.shareToken != "" {
+		path = "/api/shares/" + name + "/messages"
+	}
 	if limit > 0 {
 		path += "?limit=" + strconv.Itoa(limit)
 	}
@@ -81,12 +94,18 @@ func (c *Client) Messages(ctx context.Context, name string, limit int) ([]mcp.Me
 }
 
 // Stream opens the session's event stream on the peer and decodes each SSE event
-// into a wire event. The channel closes when the stream ends or the context is
-// done. See docs/peers.md.
+// into a wire event. A share reads the stream through its share path, where the
+// name is the share id. The channel closes when the stream ends or the context
+// is done. A 401 returns ErrUnauthorized, which is terminal for a share. See
+// docs/peers.md.
 func (c *Client) Stream(ctx context.Context, name string) (<-chan wire.Event, error) {
+	path := "/api/sessions/" + name + "/stream"
+	if c.shareToken != "" {
+		path = "/api/shares/" + name + "/stream"
+	}
 	var resp *http.Response
 	for attempt := 0; attempt < 2; attempt++ {
-		got, retry, err := c.do(ctx, http.MethodGet, "/api/sessions/"+name+"/stream", nil, attempt)
+		got, retry, err := c.do(ctx, http.MethodGet, path, nil, attempt)
 		if err != nil {
 			return nil, err
 		}
@@ -95,13 +114,16 @@ func (c *Client) Stream(ctx context.Context, name string) (<-chan wire.Event, er
 		}
 		if got.StatusCode != http.StatusOK {
 			got.Body.Close()
+			if got.StatusCode == http.StatusUnauthorized {
+				return nil, fmt.Errorf("peer %s: stream %s: %w", c.host.Name, name, ErrUnauthorized)
+			}
 			return nil, fmt.Errorf("peer %s: stream %s: %s", c.host.Name, name, got.Status)
 		}
 		resp = got
 		break
 	}
 	if resp == nil {
-		return nil, fmt.Errorf("peer %s: stream %s: unauthorized", c.host.Name, name)
+		return nil, fmt.Errorf("peer %s: stream %s: %w", c.host.Name, name, ErrUnauthorized)
 	}
 
 	out := make(chan wire.Event)

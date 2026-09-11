@@ -51,13 +51,13 @@ func (s *Server) handleAPI(w http.ResponseWriter, r *http.Request) {
 	case len(parts) == 2 && r.Method == http.MethodPatch:
 		s.restRename(w, r, sess, parts[1])
 	case len(parts) == 3 && parts[2] == "messages" && r.Method == http.MethodGet:
-		s.restMessages(w, r, sess, parts[1])
+		s.restMessages(w, r, sess, parts[1], parts[1])
 	case len(parts) == 3 && parts[2] == "jobs" && r.Method == http.MethodGet:
 		s.restJobs(w, sess, parts[1])
 	case len(parts) == 3 && parts[2] == "message" && r.Method == http.MethodPost:
 		s.restMessage(w, r, sess, parts[1], grant.clientName)
 	case len(parts) == 3 && parts[2] == "stream" && r.Method == http.MethodGet:
-		s.restStream(w, r, sess, parts[1])
+		s.restStream(w, r, sess, parts[1], parts[1])
 	case len(parts) == 3 && parts[2] == "stop" && r.Method == http.MethodPost:
 		s.restStop(w, r, sess, parts[1], grant.clientName)
 	case len(parts) == 3 && parts[2] == "interrupt" && r.Method == http.MethodPost:
@@ -117,14 +117,14 @@ func (s *Server) restRename(w http.ResponseWriter, r *http.Request, sess APISess
 	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 }
 
-func (s *Server) restMessages(w http.ResponseWriter, r *http.Request, sess APISessions, name string) {
+func (s *Server) restMessages(w http.ResponseWriter, r *http.Request, sess APISessions, name, display string) {
 	limit := clampLimit(queryInt(r, "limit"))
 	messages, err := sess.Messages(name, limit)
 	if err != nil {
 		writeAPIError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, messagesOut{Session: name, Messages: messages})
+	writeJSON(w, http.StatusOK, messagesOut{Session: display, Messages: messages})
 }
 
 func (s *Server) restJobs(w http.ResponseWriter, sess APISessions, name string) {

@@ -48,9 +48,12 @@ func (c *Client) get(ctx context.Context, path string) ([]byte, error) {
 // 401 on the first attempt, so the caller runs the grant again with a fresh
 // token. The caller closes the response body when retry is false.
 func (c *Client) do(ctx context.Context, method, path string, body []byte, attempt int) (resp *http.Response, retry bool, err error) {
-	token, err := c.accessToken(ctx, attempt == 1)
-	if err != nil {
-		return nil, false, err
+	token := c.shareToken
+	if token == "" {
+		token, err = c.accessToken(ctx, attempt == 1)
+		if err != nil {
+			return nil, false, err
+		}
 	}
 	var reader io.Reader
 	if body != nil {
@@ -68,7 +71,8 @@ func (c *Client) do(ctx context.Context, method, path string, body []byte, attem
 	if err != nil {
 		return nil, false, err
 	}
-	if resp.StatusCode == http.StatusUnauthorized && attempt == 0 {
+	// A share token is fixed, so a 401 is terminal and never retried.
+	if resp.StatusCode == http.StatusUnauthorized && attempt == 0 && c.shareToken == "" {
 		resp.Body.Close()
 		return nil, true, nil
 	}

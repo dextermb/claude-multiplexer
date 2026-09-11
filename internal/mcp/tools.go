@@ -23,6 +23,7 @@ func (s *Server) build(caller string, control bool) *sdk.Server {
 		s.addControlTools(server, caller)
 		s.addCredentialTools(server, caller)
 		s.addPeerTools(server, caller)
+		s.addShareTools(server, caller)
 	}
 
 	return server
