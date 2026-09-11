@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/dextermb/claude-multiplexer/internal/usage"
 	"github.com/dextermb/claude-multiplexer/internal/wire"
@@ -84,6 +85,10 @@ const (
 	ToolRemovePeer     = "remove_peer"
 	ToolSetReserve     = "set_reserve"
 	ToolUnsetReserve   = "unset_reserve"
+
+	ToolShareSession = "share_session"
+	ToolListShares   = "list_shares"
+	ToolRevokeShare  = "revoke_share"
 )
 
 // OpenTools go to every session. ControlTools go only to a session that holds
@@ -101,7 +106,8 @@ var (
 		ToolCreateAPIClient, ToolUpdateAPIClient, ToolRotateAPIClient, ToolRevokeAPIClient,
 		ToolListAPIClients, ToolCreateAPIKey, ToolRevokeAPIKey, ToolAPIEndpoint,
 		ToolListPeers, ToolEnablePeering, ToolDisablePeering, ToolAddPeer, ToolUpdatePeer, ToolRemovePeer,
-		ToolSetReserve, ToolUnsetReserve}
+		ToolSetReserve, ToolUnsetReserve,
+		ToolShareSession, ToolListShares, ToolRevokeShare}
 	// APITools go to an external client that reaches the session API. The set is
 	// session-only, so no config, layout, or schedule tool is ever exposed. See
 	// docs/mcp/api.md.
@@ -367,6 +373,33 @@ type Sessions interface {
 	// HostingPaused reports whether the reserve gate is tripped, so the peer
 	// listener refuses a new hosted session. See docs/peers.md.
 	HostingPaused() bool
+	// ShareSession mints a read-only share for one session, and returns the share
+	// and its link. A nil expiresHours takes the default; a value of zero or less
+	// makes a share with no expiry. See docs/peers.md.
+	ShareSession(session string, expiresHours *float64) (ShareCreated, error)
+	// ListShares lists the active shares. It never returns a secret.
+	ListShares() []ShareView
+	// RevokeShare ends a share by id, and reports whether the share was there.
+	RevokeShare(id string) (bool, error)
+}
+
+// ShareView is one row of list_shares. It never holds the secret. See
+// docs/peers.md.
+type ShareView struct {
+	ID      string    `json:"id"`
+	Session string    `json:"session"`
+	Scope   string    `json:"scope"`
+	Created time.Time `json:"created_at"`
+	Expires time.Time `json:"expires_at,omitempty"`
+}
+
+// ShareCreated is the result of share_session: the share and its link. The link
+// is shown only here, the same as a client secret. See docs/peers.md.
+type ShareCreated struct {
+	ID      string    `json:"id"`
+	Session string    `json:"session"`
+	Expires time.Time `json:"expires_at,omitempty"`
+	Link    string    `json:"link"`
 }
 
 // PeersView is the output of list_peers: the listen address, the reserve, and

@@ -60,3 +60,11 @@ func (b *bridge) SetReserve(window string, minPercent int) (string, error) {
 func (b *bridge) UnsetReserve() (string, bool, error) { return b.m.UnsetReserve() }
 
 func (b *bridge) HostingPaused() bool { return b.m.HostingPaused() }
+
+func (b *bridge) ShareSession(session string, expiresHours *float64) (mcp.ShareCreated, error) {
+	return b.m.ShareSession(session, expiresHours)
+}
+
+func (b *bridge) ListShares() []mcp.ShareView { return b.m.ListShares() }
+
+func (b *bridge) RevokeShare(id string) (bool, error) { return b.m.RevokeShare(id) }
