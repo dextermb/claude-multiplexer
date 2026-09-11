@@ -78,19 +78,32 @@ leaves the sidebar instead of reconnecting. The spectator also stops watching at
 any time — `s x` on a spectator session detaches the stream locally, and never
 touches the session on the host.
 
+## The host sees who watches
+
+The host marks a session a spectator watches now with the `W` flag. The flag
+follows the live stream: it shows when a spectator connects, and it clears when
+the last spectator stops. A minted-but-unwatched share shows no flag, because
+nobody watches yet. See [../tui/sessions.md](../tui/sessions.md).
+
 ## The tools
 
-Host (mint and manage — control tools):
+Who may share:
 
-- `share_session` — mint a read-only share for one session. It takes the session
+- A control session shares any session on the host.
+- A plain session shares only itself. It omits the session argument, or names
+  itself; naming another session fails.
+
+Host (mint and manage):
+
+- `share_session` — mint a read-only share for a session. It takes the session
   name and an optional `expires_hours` (omit for 24, or 0 for no expiry). It
   returns the share id and the link once. Peering must be on.
 - `list_shares` — the active shares: the id, the session, and the expiry. No
-  secret.
+  secret. Control only.
 - `revoke_share` — end a share by id. A live spectator drops within a few
-  seconds.
+  seconds. Control only.
 
-Spectator (watch — a control tool):
+Spectator (watch — control only):
 
 - `watch_share` — take a link, attach a read-only streamed session, and return
   its local name.

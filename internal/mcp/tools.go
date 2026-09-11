@@ -18,12 +18,13 @@ func (s *Server) build(caller string, control bool) *sdk.Server {
 	s.addConfigTools(server, caller)
 	s.addLayoutTools(server, caller)
 	s.addScheduleTools(server, caller, control)
+	s.addShareSessionTool(server, caller, control)
 
 	if control {
 		s.addControlTools(server, caller)
 		s.addCredentialTools(server, caller)
 		s.addPeerTools(server, caller)
-		s.addShareTools(server, caller)
+		s.addShareAdminTools(server, caller)
 	}
 
 	return server

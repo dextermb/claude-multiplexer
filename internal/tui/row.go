@@ -33,6 +33,7 @@ type row struct {
 	host        string
 	hosted      bool
 	readOnly    bool
+	watched     bool
 	lender      string
 	owner       string
 	parent      string

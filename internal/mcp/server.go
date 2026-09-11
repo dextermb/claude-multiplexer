@@ -38,6 +38,7 @@ type Server struct {
 	mu        sync.Mutex
 	servers   map[string]*sdk.Server
 	apiTokens map[string]apiGrant
+	watchers  map[string]int
 
 	ln   net.Listener
 	http *http.Server
@@ -51,7 +52,41 @@ func NewServer(sessions Sessions) *Server {
 		sessions:  sessions,
 		servers:   make(map[string]*sdk.Server),
 		apiTokens: make(map[string]apiGrant),
+		watchers:  make(map[string]int),
 	}
+}
+
+// addWatcher records that one spectator watches a session, and removeWatcher
+// drops it, so the host reports which of its sessions a spectator watches now.
+// See docs/peers.md.
+func (s *Server) addWatcher(session string) {
+	s.mu.Lock()
+	s.watchers[session]++
+	s.mu.Unlock()
+}
+
+func (s *Server) removeWatcher(session string) {
+	s.mu.Lock()
+	if s.watchers[session] > 1 {
+		s.watchers[session]--
+	} else {
+		delete(s.watchers, session)
+	}
+	s.mu.Unlock()
+}
+
+// WatchedSessions reports which sessions a spectator watches now, keyed by the
+// host-local name, so the interface flags a watched session. See docs/peers.md.
+func (s *Server) WatchedSessions() map[string]bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make(map[string]bool, len(s.watchers))
+	for name, n := range s.watchers {
+		if n > 0 {
+			out[name] = true
+		}
+	}
+	return out
 }
 
 // EnableAPI gives the server the credential store and the owner-scoped session
