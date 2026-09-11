@@ -116,6 +116,21 @@ Spectator (watch — control only):
 3. Give the link to the person who watches.
 4. To end the watch, run `revoke_share` with the id from `list_shares`.
 
+## The spectator Host label
+
+A spectator session takes a Host label from the peer URL inside the link. The
+multiplexer parses the link host, then compares it with the address of each
+configured peer (see [../peers.md](../peers.md)). It compares IP addresses when
+both are IP addresses, and the host names otherwise. The port does not matter,
+because it identifies the peer machine.
+
+- A match gives the peer name as the Host, so the spectator session groups with
+  the other sessions of that peer in the sidebar.
+- No match keeps the link host (an address or a name) as the Host.
+
+So a spectator session and a streamed session from the same peer sit together
+under one group, and a share from an unknown host still shows a clear address.
+
 ## Watch a share (spectator)
 
 1. Run `watch_share` with the link.

@@ -6,10 +6,12 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/mcp"
 )
 
@@ -261,6 +263,44 @@ func TestStopWatchingDetachesLocally(t *testing.T) {
 		if s.Name == name {
 			t.Fatalf("the spectator session %q is still listed after StopWatching", name)
 		}
+	}
+}
+
+func TestSameHost(t *testing.T) {
+	for _, tc := range []struct {
+		a, b string
+		want bool
+	}{
+		{"192.168.1.20", "192.168.1.20", true},
+		{"::1", "0:0:0:0:0:0:0:1", true},
+		{"192.168.1.20", "192.168.1.21", false},
+		{"MacBook.local", "macbook.local", true},
+		{"host-a", "host-b", false},
+		{"192.168.1.20", "", false},
+		{"", "192.168.1.20", false},
+	} {
+		if got := sameHost(tc.a, tc.b); got != tc.want {
+			t.Errorf("sameHost(%q, %q) = %v, want %v", tc.a, tc.b, got, tc.want)
+		}
+	}
+}
+
+func TestSpectatorHostGroupsUnderConfiguredPeer(t *testing.T) {
+	m := newTestManager(t)
+	m.opts.ConfigPaths = []string{filepath.Join(m.opts.Root, config.FileName)}
+	if _, err := m.AddPeer(mcp.PeerHostInput{Name: "studio", URL: "http://192.168.1.20:51900"}); err != nil {
+		t.Fatalf("add peer: %v", err)
+	}
+
+	// The share link reaches the same host on any port, so the spectator groups
+	// under the configured peer name, not the raw address.
+	if got := m.spectatorHost("http://192.168.1.20:60123"); got != "studio" {
+		t.Errorf("spectatorHost matched peer = %q, want \"studio\"", got)
+	}
+
+	// A link to an unconfigured host keeps the URL host as the group.
+	if got := m.spectatorHost("http://10.0.0.5:51900"); got != "10.0.0.5" {
+		t.Errorf("spectatorHost no match = %q, want \"10.0.0.5\"", got)
 	}
 }
 
