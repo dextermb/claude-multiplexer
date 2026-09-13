@@ -134,6 +134,26 @@ func (b *bridge) UnsetBlockCap(bucket, by string) (string, bool, error) {
 	return path, changed, nil
 }
 
+func (b *bridge) SetAutoArchive(days int, by string) (string, error) {
+	path, err := b.m.SetAutoArchive(days)
+	if err != nil {
+		return "", err
+	}
+	b.m.notify(by, by+" set auto-archive to "+strconv.Itoa(days)+" days", false)
+	return path, nil
+}
+
+func (b *bridge) UnsetAutoArchive(by string) (string, bool, error) {
+	path, changed, err := b.m.UnsetAutoArchive()
+	if err != nil {
+		return "", false, err
+	}
+	if changed {
+		b.m.notify(by, by+" turned auto-archive off", false)
+	}
+	return path, changed, nil
+}
+
 func blockCapNotice(bucket string, rows *int) string {
 	if bucket == "" {
 		if rows == nil || *rows == 0 {

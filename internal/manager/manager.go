@@ -113,6 +113,9 @@ type Manager struct {
 	schedules map[string]*Schedule
 	schedStop chan struct{}
 	schedWG   sync.WaitGroup
+
+	archiveStop chan struct{}
+	archiveWG   sync.WaitGroup
 }
 
 func New(opts Options) (*Manager, error) {

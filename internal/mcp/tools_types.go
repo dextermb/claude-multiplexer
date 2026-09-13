@@ -119,6 +119,24 @@ type unsetBlockCapOut struct {
 	Message string `json:"message"`
 }
 
+type setAutoArchiveIn struct {
+	Days int `json:"days" jsonschema:"the number of days a stopped session waits, idle, before the multiplexer archives it; must be one or more"`
+}
+
+type setAutoArchiveOut struct {
+	OK      bool   `json:"ok"`
+	Path    string `json:"path"`
+	Days    int    `json:"days"`
+	Message string `json:"message"`
+}
+
+type unsetAutoArchiveOut struct {
+	OK      bool   `json:"ok"`
+	Path    string `json:"path"`
+	Changed bool   `json:"changed"`
+	Message string `json:"message"`
+}
+
 type setWorkingDirIn struct {
 	Path string `json:"path" jsonschema:"the directory this session works in now, such as '.worktrees/feature'; a relative path is resolved against the directory the session started in"`
 }

@@ -20,18 +20,22 @@ import (
 const ServerName = "cmux"
 
 const (
-	ToolRename          = "rename_session"
-	ToolList            = "list_sessions"
-	ToolMessages        = "get_messages"
-	ToolListJobs        = "list_jobs"
-	ToolConfigPath      = "get_config_path"
-	ToolTemplatePath    = "get_template_path"
-	ToolSetConfig       = "set_config"
-	ToolUnsetConfig     = "unset_config"
-	ToolSetEditor       = "set_editor"
-	ToolUnsetEditor     = "unset_editor"
-	ToolSetBlockCap     = "set_block_cap"
-	ToolUnsetBlockCap   = "unset_block_cap"
+	ToolRename        = "rename_session"
+	ToolList          = "list_sessions"
+	ToolMessages      = "get_messages"
+	ToolListJobs      = "list_jobs"
+	ToolConfigPath    = "get_config_path"
+	ToolTemplatePath  = "get_template_path"
+	ToolSetConfig     = "set_config"
+	ToolUnsetConfig   = "unset_config"
+	ToolSetEditor     = "set_editor"
+	ToolUnsetEditor   = "unset_editor"
+	ToolSetBlockCap   = "set_block_cap"
+	ToolUnsetBlockCap = "unset_block_cap"
+
+	ToolSetAutoArchive   = "set_auto_archive"
+	ToolUnsetAutoArchive = "unset_auto_archive"
+
 	ToolSetWorkingDir   = "set_working_dir"
 	ToolUnsetWorkingDir = "unset_working_dir"
 	ToolListProject     = "list_project"
@@ -97,7 +101,8 @@ const (
 var (
 	OpenTools = []string{ToolRename, ToolList, ToolMessages, ToolListJobs, ToolConfigPath, ToolTemplatePath,
 		ToolSetConfig, ToolUnsetConfig,
-		ToolSetEditor, ToolUnsetEditor, ToolSetBlockCap, ToolUnsetBlockCap, ToolSetWorkingDir, ToolUnsetWorkingDir,
+		ToolSetEditor, ToolUnsetEditor, ToolSetBlockCap, ToolUnsetBlockCap,
+		ToolSetAutoArchive, ToolUnsetAutoArchive, ToolSetWorkingDir, ToolUnsetWorkingDir,
 		ToolListProject, ToolAddProjectDir, ToolRemoveProject, ToolSetProject, ToolClearProject,
 		ToolListLayouts, ToolSaveLayout, ToolDeleteLayout, ToolSetLayout, ToolUnsetLayout,
 		ToolCreateSchedule, ToolUpdateSchedule, ToolListSchedules, ToolDeleteSchedule, ToolSetScheduleEnabled, ToolRunSchedule,
@@ -133,6 +138,7 @@ var (
 	ErrNoEditor     = errors.New("mcp: this tool needs an editor, a terminal flag, or both")
 	ErrNoDir        = errors.New("mcp: this tool needs a directory path")
 	ErrBadCap       = errors.New("mcp: the block cap must be zero or more rows")
+	ErrBadDays      = errors.New("mcp: the auto-archive days must be one or more")
 	ErrCapBoth      = errors.New("mcp: give rows or unlimited, not both")
 	ErrBadType      = errors.New("mcp: the block type must be prompt, message, tool, meta, bash, or error")
 	ErrNoLayout     = errors.New("mcp: this tool needs a layout name")
@@ -337,6 +343,8 @@ type Sessions interface {
 	UnsetEditor(field, by string) (string, bool, error)
 	SetBlockCap(bucket string, rows *int, by string) (string, error)
 	UnsetBlockCap(bucket, by string) (string, bool, error)
+	SetAutoArchive(days int, by string) (string, error)
+	UnsetAutoArchive(by string) (string, bool, error)
 	SetWorkingDir(path, by string) (string, error)
 	UnsetWorkingDir(by string) (bool, error)
 	Project(session string) ([]string, error)

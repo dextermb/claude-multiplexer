@@ -54,6 +54,7 @@ a typing mistake.
 | `defaultPermissionMode` | The permission mode the new session form opens on | [config/new-session.md](config/new-session.md) |
 | `defaultEffort` | The effort the new session form opens on | [config/new-session.md](config/new-session.md) |
 | `defaultControl` | `true` when the new session form opens on a control grant | [config/new-session.md](config/new-session.md) |
+| `autoArchiveDays` | The days a stopped session waits, idle, before the multiplexer archives it | [sessions.md](sessions.md) |
 
 ## Write any key by its path
 
@@ -68,6 +69,7 @@ with `unset_config`. Both tools take a dot path and reach a nested key:
 | `blockCaps.tool` | The cap for one block type |
 | `layouts.wide.sidebarSize` | One dimension of the layout named `wide` |
 | `defaultModel` | The model the new session form opens on |
+| `autoArchiveDays` | The days before a stopped session is archived |
 
 `set_config` also takes a `value`, as any JSON value: a string, a number, a
 boolean, an object, or `null`. It checks the path and the value against the
