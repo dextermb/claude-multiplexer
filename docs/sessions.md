@@ -148,6 +148,27 @@ A reuse-mode schedule works the same way. The stop ends the session after the
 turn, and the next fire resumes it from its Claude session id, so it keeps its
 memory. An archive clears on the resume, so the reuse session comes back.
 
+## Auto-archive stopped sessions
+
+The `autoArchiveDays` setting archives a stopped session on its own, after it is
+idle for that many days. A sweep runs every hour. It reads the setting each time,
+so a change takes effect on the next sweep with no restart. A nil setting, or a
+value below 1, archives nothing. See [config.md](./config.md).
+
+The sweep archives a session only when three conditions hold:
+
+- the session is stopped, so it is not live,
+- the session is not archived yet, and
+- `now - last_active_at` is more than the set days, from the last turn time in
+  the meta.
+
+A session sets the value with the `set_auto_archive` tool, and clears it with
+`unset_auto_archive`. The `set_config` tool reaches the same field by the path
+`autoArchiveDays`. See [mcp/tools.md](./mcp/tools.md).
+
+A raised value does not bring a session back: an archived session stays
+archived, the same as a manual archive. The human clears the archive by hand.
+
 ## Interrupt
 
 `Interrupt` stops the running turn without stopping the session. It writes a

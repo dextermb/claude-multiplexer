@@ -200,6 +200,7 @@ func tuiCommand(argv []string) int {
 	}
 
 	mgr.StartScheduler()
+	mgr.StartAutoArchive()
 
 	initialDir := *dir
 	if initialDir != "" {

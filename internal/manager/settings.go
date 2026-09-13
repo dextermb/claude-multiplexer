@@ -54,6 +54,50 @@ func (m *Manager) UnsetEditor(field string) (string, bool, error) {
 	return path, true, nil
 }
 
+// SetAutoArchive writes the number of days a stopped session waits before the
+// sweep archives it. The days must be one or more. See docs/config.md.
+func (m *Manager) SetAutoArchive(days int) (string, error) {
+	if days < 1 {
+		return "", errors.New("manager: the auto-archive days must be one or more")
+	}
+	path := config.Target(m.opts.ConfigPaths...)
+	if path == "" {
+		return "", errors.New("manager: no settings file to write")
+	}
+	current, err := config.Load(path)
+	if err != nil {
+		return "", err
+	}
+	value := days
+	current.AutoArchiveDays = &value
+	if err := config.Write(path, current); err != nil {
+		return "", err
+	}
+	return path, nil
+}
+
+// UnsetAutoArchive takes the auto-archive setting out of the settings file, so
+// the sweep archives nothing. It reports whether the file held the setting. See
+// docs/config.md.
+func (m *Manager) UnsetAutoArchive() (string, bool, error) {
+	path := config.Target(m.opts.ConfigPaths...)
+	if path == "" {
+		return "", false, errors.New("manager: no settings file to write")
+	}
+	current, err := config.Load(path)
+	if err != nil {
+		return "", false, err
+	}
+	if current.AutoArchiveDays == nil {
+		return path, false, nil
+	}
+	current.AutoArchiveDays = nil
+	if err := config.Write(path, current); err != nil {
+		return "", false, err
+	}
+	return path, true, nil
+}
+
 // SetConfig sets one settings key by a dot-notation path, so a session can write
 // any settings-file value. It validates the change against the schema before it
 // writes. See docs/config.md.

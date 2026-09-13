@@ -33,6 +33,7 @@ type fakeSessions struct {
 	cleared       []string
 	blockCap      *int
 	blockCaps     map[string]*int
+	autoArchive   *int
 	workingDir    string
 	project       []string
 	layouts       map[string]mcp.LayoutDims
@@ -180,6 +181,18 @@ func (f *fakeSessions) UnsetBlockCap(bucket, by string) (string, bool, error) {
 	}
 	_, changed := f.blockCaps[bucket]
 	delete(f.blockCaps, bucket)
+	return "/tmp/config.json", changed, nil
+}
+
+func (f *fakeSessions) SetAutoArchive(days int, by string) (string, error) {
+	value := days
+	f.autoArchive = &value
+	return "/tmp/config.json", nil
+}
+
+func (f *fakeSessions) UnsetAutoArchive(by string) (string, bool, error) {
+	changed := f.autoArchive != nil
+	f.autoArchive = nil
 	return "/tmp/config.json", changed, nil
 }
 

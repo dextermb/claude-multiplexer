@@ -163,6 +163,39 @@ func (s *Server) addConfigTools(server *sdk.Server, caller string) {
 	})
 
 	sdk.AddTool(server, &sdk.Tool{
+		Name: ToolSetAutoArchive,
+		Description: "Archive a stopped session on its own, after it is idle for a number of days. " +
+			"Give 'days' as one or more. A stopped session with no turn for that many days is archived, so the sidebar stays short. " +
+			"It writes the settings file of the multiplexer, and the setting holds for every session.",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, in setAutoArchiveIn) (*sdk.CallToolResult, setAutoArchiveOut, error) {
+		if in.Days < 1 {
+			return nil, setAutoArchiveOut{}, ErrBadDays
+		}
+		path, err := s.sessions.SetAutoArchive(in.Days, caller)
+		if err != nil {
+			return nil, setAutoArchiveOut{}, err
+		}
+		return nil, setAutoArchiveOut{OK: true, Path: path, Days: in.Days,
+			Message: "a stopped session is now archived after " + strconv.Itoa(in.Days) + " days idle, in " + path}, nil
+	})
+
+	sdk.AddTool(server, &sdk.Tool{
+		Name: ToolUnsetAutoArchive,
+		Description: "Turn auto-archive off, so a stopped session stays until the human archives it. " +
+			"It takes the setting out of the settings file of the multiplexer.",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, _ struct{}) (*sdk.CallToolResult, unsetAutoArchiveOut, error) {
+		path, changed, err := s.sessions.UnsetAutoArchive(caller)
+		if err != nil {
+			return nil, unsetAutoArchiveOut{}, err
+		}
+		message := "auto-archive was not set in " + path
+		if changed {
+			message = "auto-archive is off, in " + path
+		}
+		return nil, unsetAutoArchiveOut{OK: true, Path: path, Changed: changed, Message: message}, nil
+	})
+
+	sdk.AddTool(server, &sdk.Tool{
 		Name: ToolSetWorkingDir,
 		Description: "Say which directory this session works in now, so the human opens that one instead of the directory the session started in. " +
 			"Call it after you move into a worktree. The directory must exist.",

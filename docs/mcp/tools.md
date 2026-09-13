@@ -18,6 +18,8 @@ grant. See [grant.md](grant.md).
 | `unset_editor` | `field` | Takes the editor, the terminal flag, or both out of the settings file. | open |
 | `set_block_cap` | `rows` | Sets the rows one block draws in the session pane before the pane caps it. `0` caps nothing. | open |
 | `unset_block_cap` | — | Takes the block cap out of the settings file, so the pane returns to 20 rows. | open |
+| `set_auto_archive` | `days` | Archives a stopped session after it is idle for this many days. `days` must be one or more. | open |
+| `unset_auto_archive` | — | Turns auto-archive off, so a stopped session stays until the human archives it. | open |
 | `set_working_dir` | `path` | Says which directory the calling session works in now. | open |
 | `unset_working_dir` | — | Takes the working directory off the calling session. | open |
 | `list_project` | `session` | The directories of a session's project, in order. An empty session means the caller. | open |
@@ -156,6 +158,17 @@ rows. It answers with `changed: false` when the file held no such cap.
 The interface reads the settings file again at each notice, so a new cap reaches
 the pane at once and the pane draws itself again. `--block-cap` still sits above
 the file. See [config.md](../config.md).
+
+### Auto-archive
+
+`set_auto_archive` writes the number of days a stopped session waits, idle,
+before the multiplexer archives it. Give `days` as one or more; a value below one
+is an error. The setting holds for every session, and an hourly sweep archives
+each stopped session past the limit. See [../sessions.md](../sessions.md).
+
+`unset_auto_archive` turns the feature off again, so a stopped session stays until
+the human archives it. It answers with `changed: false` when the file held no
+setting. `set_config` reaches the same field by the path `autoArchiveDays`.
 
 ### The working directory
 
