@@ -69,7 +69,7 @@ func (s *Server) addControlTools(server *sdk.Server, caller string) {
 		if path == "" {
 			return nil, createOut{}, ErrNoPath
 		}
-		created, err := s.sessions.Create(path, strings.TrimSpace(in.Name), caller)
+		created, err := s.sessions.Create(path, strings.TrimSpace(in.Name), strings.TrimSpace(in.Model), strings.TrimSpace(in.Effort), caller)
 		if err != nil {
 			return nil, createOut{}, err
 		}
