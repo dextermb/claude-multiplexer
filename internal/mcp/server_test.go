@@ -21,6 +21,8 @@ type fakeSessions struct {
 	stopped       []string
 	archived      map[string]bool
 	created       []string
+	createModel   string
+	createEffort  string
 	list          []mcp.Session
 	messages      map[string][]mcp.Message
 	jobs          map[string][]mcp.Job
@@ -298,11 +300,13 @@ func (f *fakeSessions) StopWhenIdle(name string, stop, archive bool) error {
 	return nil
 }
 
-func (f *fakeSessions) Create(dir, name, by string) (string, error) {
+func (f *fakeSessions) Create(dir, name, model, effort, by string) (string, error) {
 	if name == "" {
 		name = "session"
 	}
 	f.created = append(f.created, by+"->"+name+"@"+dir)
+	f.createModel = model
+	f.createEffort = effort
 	return name, nil
 }
 
@@ -697,6 +701,32 @@ func TestControlToolsDriveOtherSessions(t *testing.T) {
 	}
 	if sessions.archived["landing"] {
 		t.Fatal("landing was not restored")
+	}
+}
+
+func TestCreateSessionPassesModelAndEffort(t *testing.T) {
+	sessions := newFakeSessions()
+	server := startServer(t, sessions)
+	token, err := server.Register("docs", true)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+	client := connect(t, server, token)
+
+	result := call(t, client, mcp.ToolCreate, map[string]any{
+		"path":   "/tmp",
+		"name":   "landing",
+		"model":  "opus",
+		"effort": "high",
+	})
+	if result.IsError {
+		t.Fatalf("create failed: %s", resultText(result))
+	}
+	if sessions.createModel != "opus" {
+		t.Fatalf("model = %q, want %q", sessions.createModel, "opus")
+	}
+	if sessions.createEffort != "high" {
+		t.Fatalf("effort = %q, want %q", sessions.createEffort, "high")
 	}
 }
 

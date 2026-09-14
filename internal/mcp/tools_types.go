@@ -55,8 +55,10 @@ type stopWhenIdleIn struct {
 }
 
 type createIn struct {
-	Path string `json:"path" jsonschema:"the directory the new session works in"`
-	Name string `json:"name,omitempty" jsonschema:"an optional name for the new session"`
+	Path   string `json:"path" jsonschema:"the directory the new session works in"`
+	Name   string `json:"name,omitempty" jsonschema:"an optional name for the new session"`
+	Model  string `json:"model,omitempty" jsonschema:"the model of the new session; the default model when it is empty"`
+	Effort string `json:"effort,omitempty" jsonschema:"the effort level of the new session; low, medium, high, xhigh, or max; the default when it is empty"`
 }
 
 type listJobsIn struct {

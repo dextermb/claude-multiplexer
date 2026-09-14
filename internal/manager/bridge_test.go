@@ -198,7 +198,7 @@ func TestBridgeSession(t *testing.T) {
 	if _, err := b.StopJob(name, "no-such-job", "boss"); err == nil {
 		t.Fatal("StopJob on an unknown job did not error")
 	}
-	if _, err := b.Create("/does/not/exist", "x", "boss"); err == nil {
+	if _, err := b.Create("/does/not/exist", "x", "", "", "boss"); err == nil {
 		t.Fatal("Create on a missing directory did not error")
 	}
 }

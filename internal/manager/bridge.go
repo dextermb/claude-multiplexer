@@ -65,7 +65,7 @@ func (b *bridge) StopWhenIdle(name string, stop, archive bool) error {
 	return nil
 }
 
-func (b *bridge) Create(dir, name, by string) (string, error) {
+func (b *bridge) Create(dir, name, model, effort, by string) (string, error) {
 	abs, err := filepath.Abs(dir)
 	if err != nil {
 		return "", err
@@ -74,7 +74,7 @@ func (b *bridge) Create(dir, name, by string) (string, error) {
 	if err != nil || !info.IsDir() {
 		return "", fmt.Errorf("%w: %s", ErrNotDirectory, dir)
 	}
-	created, err := b.m.Spawn(context.Background(), Spec{Dir: abs, Name: name, Parent: by})
+	created, err := b.m.Spawn(context.Background(), Spec{Dir: abs, Name: name, Model: model, Effort: effort, Parent: by})
 	if err != nil {
 		return "", err
 	}

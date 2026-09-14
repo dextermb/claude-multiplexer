@@ -331,7 +331,7 @@ type Sessions interface {
 	Stop(ctx context.Context, name, by string) error
 	Archive(name string, archived bool, by string) error
 	StopWhenIdle(name string, stop, archive bool) error
-	Create(dir, name, by string) (string, error)
+	Create(dir, name, model, effort, by string) (string, error)
 	List() []Session
 	Messages(name string, limit int) ([]Message, error)
 	Jobs(name string) ([]Job, error)
