@@ -93,6 +93,7 @@ var sequenceActions = map[string]action{
 	"l F": Model.foldOthers,
 	"l u": Model.unfoldAll,
 	"l a": Model.toggleArchived,
+	"l s": Model.focusSearch,
 	"l t": Model.toggleSidebar,
 	"l c": Model.collapseSidebar,
 	"l e": Model.expandSidebar,

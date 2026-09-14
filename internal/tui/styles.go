@@ -114,6 +114,10 @@ var (
 
 	hintStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
 
+	searchStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("252")).
+			Background(lipgloss.Color("236"))
+
 	pickedPathStyle = lipgloss.NewStyle().
 			Bold(true).
 			Foreground(lipgloss.Color("15")).

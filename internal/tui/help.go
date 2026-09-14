@@ -43,6 +43,7 @@ var bindings = []binding{
 	{"The list (l)", "l", "l F", "Fold every group but this one", "F others"},
 	{"The list (l)", "l", "l u", "Unfold every group", "u unfold"},
 	{"The list (l)", "l", "l a", "Show or hide the archived sessions", "a archived"},
+	{"The list (l)", "l", "l s", "Search the sessions in the list", "s search"},
 	{"The list (l)", "l", "l t", "Hide or show the sidebar", "t sidebar"},
 	{"The list (l)", "l", "l c", "Hide the sidebar, for more pane width", "c hide"},
 	{"The list (l)", "l", "l e", "Show the sidebar again", "e show"},

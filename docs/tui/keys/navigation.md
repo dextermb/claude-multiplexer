@@ -11,6 +11,19 @@ session that created them. `l f` folds the group of the selected session, and
 `l u` unfolds every group. A fold moves the selection to a row you can see, and
 it is forgotten when the program stops. See [../sessions.md](../sessions.md).
 
+## Searching the list
+
+`l s` opens a search box at the top of the sidebar and gives it the focus. As
+you type, the list narrows to the sessions whose name, title, or directory holds
+the text. The search reads only the rows the current filters keep, so it narrows
+the list and never widens it. An archived session stays hidden unless `l a`
+shows it first.
+
+The first `Esc` blurs the box but keeps the text, so the list stays narrowed
+while you move through the results with `j` and `k`. `Enter`, or an arrow key,
+also steps the focus into the list. A second `Esc`, on the list, clears the text
+and restores the full list. The search is forgotten when the program stops.
+
 ## Hiding the sidebar
 
 `l c` hides the whole sidebar, and the output pane and the diff panel gain its

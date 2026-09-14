@@ -58,6 +58,7 @@ See [keys/session-actions.md](keys/session-actions.md) for what these do.
 | `l F` | Fold every group but the one you are in |
 | `l u` | Unfold every group |
 | `l a` | Show or hide the archived sessions |
+| `l s` | Search the sessions in the list |
 | `l t` | Hide or show the sidebar |
 | `l c` | Hide the sidebar, for more pane width |
 | `l e` | Show the sidebar again |
@@ -138,6 +139,7 @@ shows the actions of that target instead.
 
 - A click on a sidebar row selects that session.
 - A click on a group header folds or unfolds that group.
+- A click on the search box, while it shows, moves the focus to it.
 - A click on the prompt area moves the focus there.
 - The wheel over the sidebar moves the selection.
 - The wheel over the output scrolls it.
