@@ -146,6 +146,10 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 	}
 
+	if m.searchOn {
+		return m.searchKey(msg)
+	}
+
 	if m.seq != nil {
 		return m.resolveSequence(msg)
 	}
@@ -374,6 +378,11 @@ func (m Model) taskPage() int {
 
 func (m Model) sidebarKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
+	case "esc":
+		if m.searchActive() {
+			m.clearSearch()
+		}
+		return m, nil
 	case "up", "k":
 		return m.move(-1)
 	case "down", "j":

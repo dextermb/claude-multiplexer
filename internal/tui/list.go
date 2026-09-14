@@ -133,6 +133,15 @@ func (m *Model) refresh() {
 		rows[i].group = m.rowGroup(rows[i], children)
 		rows[i].section = sectionOf(rows[i])
 	}
+	if needle := m.searchNeedle(); needle != "" {
+		kept := rows[:0]
+		for _, item := range rows {
+			if rowMatches(item, needle) {
+				kept = append(kept, item)
+			}
+		}
+		rows = kept
+	}
 	m.rows, m.groups = groupRows(rows, m.folded)
 	m.buildLines()
 	m.syncJobsModal()

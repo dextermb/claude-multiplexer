@@ -80,8 +80,12 @@ func (m Model) handleLeftMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		m.clearSelection()
-		index := m.listOffset + msg.Y - titleHeight
-		if msg.Y >= titleHeight && index >= 0 && index < len(m.lines) {
+		if m.searchActive() && msg.Y == titleHeight {
+			m.focus = focusSidebar
+			return m.focusSearch()
+		}
+		index := m.listOffset + msg.Y - titleHeight - m.searchRows()
+		if msg.Y >= titleHeight+m.searchRows() && index >= 0 && index < len(m.lines) {
 			line := m.lines[index]
 			m.focus = focusSidebar
 			m.prompt.Blur()

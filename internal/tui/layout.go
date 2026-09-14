@@ -31,7 +31,7 @@ func (m Model) outputHeight() int {
 }
 
 func (m Model) visibleLines() int {
-	lines := m.bodyHeight() - titleHeight
+	lines := m.bodyHeight() - titleHeight - m.searchRows()
 	if lines < 1 {
 		return 1
 	}
@@ -247,9 +247,15 @@ func withEdge(block string, on bool) string {
 func (m Model) sidebarView() string {
 	rows := make([]string, 0, m.bodyHeight())
 
+	if m.searchActive() {
+		rows = append(rows, m.searchView())
+	}
+
 	visible := m.visibleLines()
-	for i := m.listOffset; i < len(m.lines) && len(rows) < visible; i++ {
+	drawn := 0
+	for i := m.listOffset; i < len(m.lines) && drawn < visible; i++ {
 		line := m.lines[i]
+		drawn++
 		if line.isDivider() {
 			rows = append(rows, m.sectionDivider(line.divider))
 			continue

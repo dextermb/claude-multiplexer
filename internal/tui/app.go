@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/charmbracelet/bubbles/textarea"
+	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/dextermb/claude-multiplexer/internal/config"
@@ -128,6 +129,8 @@ type Model struct {
 	storedLoaded bool
 	greeted      bool
 	showArchived bool
+	search       textinput.Model
+	searchOn     bool
 	replays      map[string][]render.Line
 	partials     map[string]string
 	queued       map[string][]string
@@ -247,6 +250,7 @@ func New(opts Options) Model {
 		sub:             opts.Manager.Subscribe(manager.DefaultSubscriberBuffer),
 		output:          viewport.New(0, 0),
 		prompt:          prompt,
+		search:          newSearchInput(),
 		pathPicked:      -1,
 		blockCursor:     -1,
 		caps:            config.ResolveBlockCaps(config.Config{}),
