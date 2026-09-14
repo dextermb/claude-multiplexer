@@ -196,6 +196,30 @@ func (s *Server) addConfigTools(server *sdk.Server, caller string) {
 	})
 
 	sdk.AddTool(server, &sdk.Tool{
+		Name: ToolStopWhenIdle,
+		Description: "Arm this session to stop itself the next time it is idle, after it finishes the current turn and every queued prompt. " +
+			"Unlike " + ToolStop + ", a session can arm this on itself, because the stop is deferred. " +
+			"With archive, the session archives itself after the stop. Call with stop false and archive false to disarm. " +
+			"A scheduled run uses this to clean itself up when its work is done.",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, in stopWhenIdleIn) (*sdk.CallToolResult, okOut, error) {
+		stop := true
+		if in.Stop != nil {
+			stop = *in.Stop
+		}
+		if err := s.sessions.StopWhenIdle(caller, stop, in.Archive); err != nil {
+			return nil, okOut{}, err
+		}
+		switch {
+		case in.Archive:
+			return nil, okOut{OK: true, Message: caller + " will archive itself when idle"}, nil
+		case stop:
+			return nil, okOut{OK: true, Message: caller + " will stop itself when idle"}, nil
+		default:
+			return nil, okOut{OK: true, Message: caller + " will not stop itself when idle"}, nil
+		}
+	})
+
+	sdk.AddTool(server, &sdk.Tool{
 		Name: ToolSetWorkingDir,
 		Description: "Say which directory this session works in now, so the human opens that one instead of the directory the session started in. " +
 			"Call it after you move into a worktree. The directory must exist.",
