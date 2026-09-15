@@ -336,21 +336,23 @@ func (m *Manager) Lenders() map[string]string {
 // under the local name, so the pane reads it like a local one.
 func fromWireSnapshot(s wire.Snapshot, localName string) session.Snapshot {
 	out := session.Snapshot{
-		Name:            localName,
-		Title:           s.Title,
-		Dir:             s.Dir,
-		Model:           s.Model,
-		PermissionMode:  s.PermissionMode,
-		Effort:          s.Effort,
-		State:           session.ParseState(s.State),
-		ClaudeSessionID: s.ClaudeSessionID,
-		Cost:            s.Cost,
-		Turns:           s.Turns,
-		Queued:          s.Queued,
-		LastDuration:    time.Duration(s.LastDurationMS) * time.Millisecond,
-		InputTokens:     s.InputTokens,
-		OutputTokens:    s.OutputTokens,
-		ContextTokens:   s.ContextTokens,
+		Name:             localName,
+		Title:            s.Title,
+		Dir:              s.Dir,
+		Model:            s.Model,
+		PermissionMode:   s.PermissionMode,
+		Effort:           s.Effort,
+		State:            session.ParseState(s.State),
+		ClaudeSessionID:  s.ClaudeSessionID,
+		Cost:             s.Cost,
+		Turns:            s.Turns,
+		Queued:           s.Queued,
+		LastDuration:     time.Duration(s.LastDurationMS) * time.Millisecond,
+		InputTokens:      s.InputTokens,
+		CacheReadTokens:  s.CacheReadTokens,
+		CacheWriteTokens: s.CacheWriteTokens,
+		OutputTokens:     s.OutputTokens,
+		ContextTokens:    s.ContextTokens,
 	}
 	if s.Err != "" {
 		out.Err = errors.New(s.Err)

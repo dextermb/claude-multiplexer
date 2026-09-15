@@ -26,6 +26,8 @@ func (m *Manager) rememberSession(item *entry, snap session.Snapshot) {
 	next.Turns = item.base.turns + snap.Turns
 	next.Cost = item.base.cost + snap.Cost
 	next.InputTokens = item.base.input + snap.InputTokens
+	next.CacheReadTokens = item.base.cacheRead + snap.CacheReadTokens
+	next.CacheWriteTokens = item.base.cacheWrite + snap.CacheWriteTokens
 	next.OutputTokens = item.base.output + snap.OutputTokens
 	if next.sameAs(item.meta) && !item.meta.LastActiveAt.IsZero() {
 		item.metaMu.Unlock()

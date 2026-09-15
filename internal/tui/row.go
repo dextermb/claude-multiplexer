@@ -51,6 +51,8 @@ type row struct {
 	cost        float64
 	last        time.Duration
 	input       int
+	cacheRead   int
+	cacheWrite  int
 	output      int
 	context     int
 	jobs        int
@@ -60,24 +62,26 @@ type row struct {
 
 func rowFromSnapshot(snap session.Snapshot) row {
 	return row{
-		name:    snap.Name,
-		title:   snap.Title,
-		dir:     snap.Dir,
-		model:   snap.Model,
-		mode:    snap.PermissionMode,
-		effort:  snap.Effort,
-		live:    true,
-		state:   snap.State,
-		label:   snap.State.String(),
-		queued:  snap.Queued,
-		turns:   snap.Turns,
-		cost:    snap.Cost,
-		last:    snap.LastDuration,
-		input:   snap.InputTokens,
-		output:  snap.OutputTokens,
-		context: snap.ContextTokens,
-		jobs:    snap.RunningJobs(),
-		jobList: snap.Jobs,
+		name:       snap.Name,
+		title:      snap.Title,
+		dir:        snap.Dir,
+		model:      snap.Model,
+		mode:       snap.PermissionMode,
+		effort:     snap.Effort,
+		live:       true,
+		state:      snap.State,
+		label:      snap.State.String(),
+		queued:     snap.Queued,
+		turns:      snap.Turns,
+		cost:       snap.Cost,
+		last:       snap.LastDuration,
+		input:      snap.InputTokens,
+		cacheRead:  snap.CacheReadTokens,
+		cacheWrite: snap.CacheWriteTokens,
+		output:     snap.OutputTokens,
+		context:    snap.ContextTokens,
+		jobs:       snap.RunningJobs(),
+		jobList:    snap.Jobs,
 	}
 }
 
@@ -107,6 +111,8 @@ func rowFromMeta(meta manager.Meta) row {
 		turns:       meta.Turns,
 		cost:        meta.Cost,
 		input:       meta.InputTokens,
+		cacheRead:   meta.CacheReadTokens,
+		cacheWrite:  meta.CacheWriteTokens,
 		output:      meta.OutputTokens,
 		meta:        meta,
 	}

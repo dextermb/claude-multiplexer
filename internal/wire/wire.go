@@ -28,23 +28,25 @@ type Event struct {
 // Snapshot mirrors the session snapshot the pane reads, with the error as a
 // string, so the whole snapshot marshals to the stream.
 type Snapshot struct {
-	Name            string  `json:"name"`
-	Title           string  `json:"title,omitempty"`
-	Dir             string  `json:"dir,omitempty"`
-	Model           string  `json:"model,omitempty"`
-	PermissionMode  string  `json:"permission_mode,omitempty"`
-	Effort          string  `json:"effort,omitempty"`
-	State           string  `json:"state"`
-	ClaudeSessionID string  `json:"claude_session_id,omitempty"`
-	Cost            float64 `json:"cost_usd"`
-	Turns           int     `json:"turns"`
-	Queued          int     `json:"queued"`
-	LastDurationMS  int64   `json:"last_duration_ms"`
-	InputTokens     int     `json:"input_tokens"`
-	OutputTokens    int     `json:"output_tokens"`
-	ContextTokens   int     `json:"context_tokens"`
-	Err             string  `json:"error,omitempty"`
-	Jobs            []Job   `json:"jobs,omitempty"`
+	Name             string  `json:"name"`
+	Title            string  `json:"title,omitempty"`
+	Dir              string  `json:"dir,omitempty"`
+	Model            string  `json:"model,omitempty"`
+	PermissionMode   string  `json:"permission_mode,omitempty"`
+	Effort           string  `json:"effort,omitempty"`
+	State            string  `json:"state"`
+	ClaudeSessionID  string  `json:"claude_session_id,omitempty"`
+	Cost             float64 `json:"cost_usd"`
+	Turns            int     `json:"turns"`
+	Queued           int     `json:"queued"`
+	LastDurationMS   int64   `json:"last_duration_ms"`
+	InputTokens      int     `json:"input_tokens"`
+	CacheReadTokens  int     `json:"cache_read_tokens,omitempty"`
+	CacheWriteTokens int     `json:"cache_write_tokens,omitempty"`
+	OutputTokens     int     `json:"output_tokens"`
+	ContextTokens    int     `json:"context_tokens"`
+	Err              string  `json:"error,omitempty"`
+	Jobs             []Job   `json:"jobs,omitempty"`
 }
 
 // Job mirrors one background job in a snapshot.

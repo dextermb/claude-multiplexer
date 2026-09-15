@@ -128,25 +128,40 @@ type Event struct {
 }
 
 type Snapshot struct {
-	Name            string
-	Title           string
-	Dir             string
-	Model           string
-	PermissionMode  string
-	Effort          string
-	State           State
-	ClaudeSessionID string
-	Cost            float64
-	Turns           int
-	Queued          int
-	LastDuration    time.Duration
-	InputTokens     int
-	OutputTokens    int
-	ContextTokens   int
-	StartedAt       time.Time
-	EndedAt         time.Time
-	Err             error
-	Jobs            []Job
+	Name             string
+	Title            string
+	Dir              string
+	Model            string
+	PermissionMode   string
+	Effort           string
+	State            State
+	ClaudeSessionID  string
+	Cost             float64
+	Turns            int
+	Queued           int
+	LastDuration     time.Duration
+	InputTokens      int
+	CacheReadTokens  int
+	CacheWriteTokens int
+	OutputTokens     int
+	ContextTokens    int
+	StartedAt        time.Time
+	EndedAt          time.Time
+	Err              error
+	Jobs             []Job
+}
+
+// CacheHitRate is the share of the prompt tokens that came from the prompt
+// cache, as a percent. It reports false when no prompt token is counted yet.
+func CacheHitRate(input, cacheRead int) (int, bool) {
+	if input <= 0 {
+		return 0, false
+	}
+	return cacheRead * 100 / input, true
+}
+
+func (s Snapshot) CacheHitRate() (int, bool) {
+	return CacheHitRate(s.InputTokens, s.CacheReadTokens)
 }
 
 // RunningJobs is the count of background jobs that still run.
@@ -180,31 +195,33 @@ type Session struct {
 
 	paused atomic.Bool
 
-	mu              sync.Mutex
-	state           State
-	title           string
-	model           string
-	permissionMode  string
-	effort          string
-	claudeSessionID string
-	cost            float64
-	turns           int
-	lastDuration    time.Duration
-	inputTokens     int
-	outputTokens    int
-	contextTokens   int
-	startedAt       time.Time
-	endedAt         time.Time
-	sent            bool
-	askedQuestion   bool
-	interruptSeq    int
-	controlSeq      int
-	err             error
-	jobs            map[string]*Job
-	jobOrder        []string
-	pendingBash     map[string]string
-	pendingPath     map[string]string
-	jobByToolUse    map[string]string
+	mu               sync.Mutex
+	state            State
+	title            string
+	model            string
+	permissionMode   string
+	effort           string
+	claudeSessionID  string
+	cost             float64
+	turns            int
+	lastDuration     time.Duration
+	inputTokens      int
+	cacheReadTokens  int
+	cacheWriteTokens int
+	outputTokens     int
+	contextTokens    int
+	startedAt        time.Time
+	endedAt          time.Time
+	sent             bool
+	askedQuestion    bool
+	interruptSeq     int
+	controlSeq       int
+	err              error
+	jobs             map[string]*Job
+	jobOrder         []string
+	pendingBash      map[string]string
+	pendingPath      map[string]string
+	jobByToolUse     map[string]string
 
 	idleSig chan struct{}
 }
@@ -305,25 +322,27 @@ func (s *Session) Snapshot() Snapshot {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return Snapshot{
-		Name:            s.cfg.Name,
-		Title:           s.title,
-		Dir:             s.cfg.Dir,
-		Model:           s.model,
-		PermissionMode:  s.permissionMode,
-		Effort:          s.effort,
-		State:           s.state,
-		ClaudeSessionID: s.claudeSessionID,
-		Cost:            s.cost,
-		Turns:           s.turns,
-		Queued:          s.q.len(),
-		LastDuration:    s.lastDuration,
-		InputTokens:     s.inputTokens,
-		OutputTokens:    s.outputTokens,
-		ContextTokens:   s.contextTokens,
-		StartedAt:       s.startedAt,
-		EndedAt:         s.endedAt,
-		Err:             s.err,
-		Jobs:            s.jobList(),
+		Name:             s.cfg.Name,
+		Title:            s.title,
+		Dir:              s.cfg.Dir,
+		Model:            s.model,
+		PermissionMode:   s.permissionMode,
+		Effort:           s.effort,
+		State:            s.state,
+		ClaudeSessionID:  s.claudeSessionID,
+		Cost:             s.cost,
+		Turns:            s.turns,
+		Queued:           s.q.len(),
+		LastDuration:     s.lastDuration,
+		InputTokens:      s.inputTokens,
+		CacheReadTokens:  s.cacheReadTokens,
+		CacheWriteTokens: s.cacheWriteTokens,
+		OutputTokens:     s.outputTokens,
+		ContextTokens:    s.contextTokens,
+		StartedAt:        s.startedAt,
+		EndedAt:          s.endedAt,
+		Err:              s.err,
+		Jobs:             s.jobList(),
 	}
 }
 

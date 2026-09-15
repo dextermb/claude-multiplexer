@@ -99,21 +99,23 @@ func wireEvent(ev Event) wire.Event {
 // string and the duration in milliseconds.
 func wireSnapshot(s session.Snapshot) wire.Snapshot {
 	out := wire.Snapshot{
-		Name:            s.Name,
-		Title:           s.Title,
-		Dir:             s.Dir,
-		Model:           s.Model,
-		PermissionMode:  s.PermissionMode,
-		Effort:          s.Effort,
-		State:           s.State.String(),
-		ClaudeSessionID: s.ClaudeSessionID,
-		Cost:            s.Cost,
-		Turns:           s.Turns,
-		Queued:          s.Queued,
-		LastDurationMS:  s.LastDuration.Milliseconds(),
-		InputTokens:     s.InputTokens,
-		OutputTokens:    s.OutputTokens,
-		ContextTokens:   s.ContextTokens,
+		Name:             s.Name,
+		Title:            s.Title,
+		Dir:              s.Dir,
+		Model:            s.Model,
+		PermissionMode:   s.PermissionMode,
+		Effort:           s.Effort,
+		State:            s.State.String(),
+		ClaudeSessionID:  s.ClaudeSessionID,
+		Cost:             s.Cost,
+		Turns:            s.Turns,
+		Queued:           s.Queued,
+		LastDurationMS:   s.LastDuration.Milliseconds(),
+		InputTokens:      s.InputTokens,
+		CacheReadTokens:  s.CacheReadTokens,
+		CacheWriteTokens: s.CacheWriteTokens,
+		OutputTokens:     s.OutputTokens,
+		ContextTokens:    s.ContextTokens,
 	}
 	if s.Err != nil {
 		out.Err = s.Err.Error()
