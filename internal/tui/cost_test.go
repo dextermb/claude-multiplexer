@@ -1,58 +1,37 @@
 package tui
 
 import (
+	"strings"
 	"testing"
 )
 
-func TestTheTotalCountsAStoredSessionAndAnArchivedOne(t *testing.T) {
-	m, mgr := newTestModel(t, "")
-	dir := t.TempDir()
-	storeSession(t, mgr, "kept", dir, "hello")
-	storeSession(t, mgr, "filed", dir, "hello")
-	if err := mgr.Archive("filed", true); err != nil {
-		t.Fatalf("Archive: %v", err)
-	}
-	m = start(t, m, 100, 24)
-	m, _ = step(t, m, storedMsg{metas: mgr.Stored()})
-
-	if got := m.totalCost(); got != 0.5 {
-		t.Fatalf("total = %v, want the two stored sessions summed to 0.5", got)
+func TestTheStatusBarNamesTheWindow(t *testing.T) {
+	m := Model{cost: 12.3456, costWindow: "1d"}
+	if got := m.costSeg(); got != "$12.3456 1d" {
+		t.Fatalf("costSeg = %q, want the window named", got)
 	}
 }
 
-func TestTheTotalIgnoresTheSearchFilter(t *testing.T) {
-	m, mgr := newTestModel(t, "")
-	dir := t.TempDir()
-	storeSession(t, mgr, "kept", dir, "hello")
-	storeSession(t, mgr, "other", dir, "hello")
-	m = start(t, m, 100, 24)
-	m, _ = step(t, m, storedMsg{metas: mgr.Stored()})
-
-	before := m.totalCost()
-	m.search.SetValue("kept")
-	m.refresh()
-	if len(m.rows) != 1 {
-		t.Fatalf("rows = %d, want the search to keep one", len(m.rows))
-	}
-	if got := m.totalCost(); got != before {
-		t.Fatalf("total = %v with a search, want %v", got, before)
+func TestTheStatusBarNamesNoWindowForTheWholeHistory(t *testing.T) {
+	m := Model{cost: 12.3456}
+	if got := m.costSeg(); got != "$12.3456" {
+		t.Fatalf("costSeg = %q, want no suffix", got)
 	}
 }
 
-func TestTheTotalCountsALiveSessionOnce(t *testing.T) {
+func TestTheStatusBarDrawsTheWindowedTotal(t *testing.T) {
 	m, mgr := newTestModel(t, "")
-	storeSession(t, mgr, "back", t.TempDir(), "hello")
-	stored := mgr.Stored()
-	if len(stored) != 1 {
-		t.Fatalf("stored = %+v, want one", stored)
-	}
-	if _, err := mgr.Resume(t.Context(), stored[0]); err != nil {
-		t.Fatalf("Resume: %v", err)
-	}
+	storeSession(t, mgr, "kept", t.TempDir(), "hello")
 	m = start(t, m, 100, 24)
-	m, _ = step(t, m, storedMsg{metas: mgr.Stored()})
+	m, _ = step(t, m, reloadStored(mgr)())
 
-	if got := m.totalCost(); got != 0.25 {
-		t.Fatalf("total = %v, want the one session counted once at 0.25", got)
+	if m.costWindow != "1d" {
+		t.Fatalf("window = %q, want the 1d default", m.costWindow)
+	}
+	if m.cost != 0.25 {
+		t.Fatalf("cost = %v, want the one turn of today", m.cost)
+	}
+	if view := m.View(); !strings.Contains(view, "$0.2500 1d") {
+		t.Fatalf("the status bar does not draw the windowed total:\n%s", view)
 	}
 }

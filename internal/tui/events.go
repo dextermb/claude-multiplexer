@@ -37,6 +37,8 @@ func sameCaps(a, b map[string]int) bool {
 
 func (m Model) handleStored(msg storedMsg) (tea.Model, tea.Cmd) {
 	m.stored = msg.metas
+	m.cost = msg.cost
+	m.costWindow = msg.window
 	m.storedLoaded = true
 	m.refresh()
 	if m.sel != "" {

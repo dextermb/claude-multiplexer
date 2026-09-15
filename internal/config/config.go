@@ -135,6 +135,10 @@ type Config struct {
 	// AutoArchiveDays archives a stopped session after it is idle for this many
 	// days. Nil, or a value below 1, keeps the feature off. See docs/config.md.
 	AutoArchiveDays *int `json:"autoArchiveDays,omitempty"`
+	// CostWindow bounds the status bar total to a UTC calendar bucket, such as
+	// "1d", "7d", "2w", or "1m". The value "all" counts the whole history, and
+	// an empty or unknown value takes DefaultCostWindow. See docs/cost.md.
+	CostWindow string `json:"costWindow,omitempty"`
 }
 
 // Peers holds the cross-host settings. Enabled off keeps the peer listener off.

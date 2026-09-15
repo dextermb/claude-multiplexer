@@ -23,6 +23,9 @@ type entry struct {
 
 	metaMu sync.Mutex
 
+	costMu  sync.Mutex
+	written totals
+
 	partialMu sync.Mutex
 	partial   strings.Builder
 
