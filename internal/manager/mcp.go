@@ -67,13 +67,30 @@ func (m *Manager) MCPURL() string {
 	return m.mcp.URL()
 }
 
+// resolveProfile reads the profile of a new session: the one the spec names, or
+// the defaultToolProfile setting, or the default. A name that does not parse
+// takes the default, so a mistyped setting never stops a session starting. See
+// docs/mcp/profiles.md.
+func (m *Manager) resolveProfile(name string) mcp.Profile {
+	if name == "" {
+		if cfg, err := config.Load(m.opts.ConfigPaths...); err == nil {
+			name = cfg.DefaultToolProfile
+		}
+	}
+	profile, err := mcp.ParseProfile(name)
+	if err != nil {
+		return mcp.DefaultProfile
+	}
+	return profile
+}
+
 // equipTools gives one session its token, its configuration file, and the tool
 // names it may call.
-func (m *Manager) equipTools(cfg *session.Config, name string, control bool) (string, error) {
+func (m *Manager) equipTools(cfg *session.Config, name string, profile mcp.Profile, control bool) (string, error) {
 	if m.mcp == nil {
 		return "", nil
 	}
-	token, err := m.mcp.Register(name, control)
+	token, err := m.mcp.Register(name, profile, control)
 	if err != nil {
 		return "", err
 	}
@@ -92,7 +109,7 @@ func (m *Manager) equipTools(cfg *session.Config, name string, control bool) (st
 		return "", err
 	}
 	cfg.ExtraArgs = append(cfg.ExtraArgs, "--mcp-config", path)
-	cfg.AllowedTools = append(append([]string{}, cfg.AllowedTools...), mcp.AllowedTools(control)...)
+	cfg.AllowedTools = append(append([]string{}, cfg.AllowedTools...), mcp.AllowedTools(profile, control)...)
 	return token, nil
 }
 

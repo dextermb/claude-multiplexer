@@ -424,7 +424,7 @@ func TestAPIToolCall(t *testing.T) {
 
 func TestCredentialToolsViaControlSession(t *testing.T) {
 	server := startServer(t, newFakeSessions())
-	token, err := server.Register("boss", true)
+	token, err := server.Register("boss", mcp.DefaultProfile, true)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -461,7 +461,7 @@ func TestPeerURLToolReturnsTheDialAddress(t *testing.T) {
 	sessions := newFakeSessions()
 	sessions.peerView.Enabled = true
 	server := startServer(t, sessions)
-	token, err := server.Register("host", false)
+	token, err := server.Register("host", mcp.DefaultProfile, false)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -477,7 +477,7 @@ func TestPeerURLToolReturnsTheDialAddress(t *testing.T) {
 
 func TestPeerURLToolIsEmptyWhenPeeringIsOff(t *testing.T) {
 	server := startServer(t, newFakeSessions())
-	token, err := server.Register("host", false)
+	token, err := server.Register("host", mcp.DefaultProfile, false)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -491,7 +491,7 @@ func TestPeerURLToolIsEmptyWhenPeeringIsOff(t *testing.T) {
 
 func TestAPIKeyToolsViaControlSession(t *testing.T) {
 	server := startServer(t, newFakeSessions())
-	token, err := server.Register("boss", true)
+	token, err := server.Register("boss", mcp.DefaultProfile, true)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -514,7 +514,7 @@ func TestAPIKeyToolsViaControlSession(t *testing.T) {
 
 func TestAddPeerCredentialOnly(t *testing.T) {
 	server := startServer(t, newFakeSessions())
-	token, err := server.Register("boss", true)
+	token, err := server.Register("boss", mcp.DefaultProfile, true)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -530,7 +530,7 @@ func TestAddPeerCredentialOnly(t *testing.T) {
 
 func TestAPIDocsToolDescribesTheRESTSurface(t *testing.T) {
 	server := startServer(t, newFakeSessions())
-	token, err := server.Register("docs", false)
+	token, err := server.Register("docs", mcp.DefaultProfile, false)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}

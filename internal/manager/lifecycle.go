@@ -52,7 +52,7 @@ func (m *Manager) Spawn(ctx context.Context, spec Spec) (string, error) {
 			return "", err
 		}
 	}
-	token, err := m.equipTools(&cfg, name, spec.Control)
+	token, err := m.equipTools(&cfg, name, m.resolveProfile(spec.Profile), spec.Control)
 	if err != nil {
 		return "", err
 	}

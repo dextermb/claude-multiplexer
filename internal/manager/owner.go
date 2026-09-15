@@ -157,6 +157,7 @@ func (o *ownedSessions) Create(in mcp.CreateInput, by string) (string, error) {
 	}
 	created, err := o.m.Spawn(context.Background(), Spec{
 		Dir:            abs,
+		Profile:        in.Profile,
 		Name:           in.Name,
 		Model:          in.Model,
 		PermissionMode: in.PermissionMode,

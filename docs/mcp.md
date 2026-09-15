@@ -15,6 +15,7 @@ name without a migration.
 | Page | Read it for |
 |---|---|
 | [mcp/tools.md](mcp/tools.md) | Every tool: its arguments, what it does, and the three it takes to change a setting |
+| [mcp/profiles.md](mcp/profiles.md) | The open tools a session carries, why a profile is a cost control and not a permission, and how a session takes one |
 | [mcp/grant.md](mcp/grant.md) | Which tools need the control grant, what a tool refuses, and two agents in a circle |
 | [mcp/transport.md](mcp/transport.md) | The HTTP server, the token of a session, and what the installed Claude Code was proven to do |
 | [mcp/api.md](mcp/api.md) | The API a program outside the multiplexer reaches, its two secrets, and the sessions a client owns |

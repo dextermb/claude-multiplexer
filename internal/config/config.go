@@ -115,6 +115,10 @@ type Config struct {
 	DefaultPermissionMode string `json:"defaultPermissionMode,omitempty"`
 	DefaultEffort         string `json:"defaultEffort,omitempty"`
 	DefaultControl        *bool  `json:"defaultControl,omitempty"`
+	// DefaultToolProfile names the open tools a new session carries: "minimal" or
+	// "standard". An empty string takes the standard profile. See
+	// docs/mcp/profiles.md.
+	DefaultToolProfile string `json:"defaultToolProfile,omitempty"`
 	// DefaultScheduleModel is the model a new schedule takes when it names none.
 	// An empty string leaves the choice to the child. See docs/scheduler.md.
 	DefaultScheduleModel string `json:"defaultScheduleModel,omitempty"`

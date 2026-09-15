@@ -96,8 +96,50 @@ const (
 	ToolWatchShare   = "watch_share"
 )
 
-// OpenTools go to every session. ControlTools go only to a session that holds
-// the control grant.
+// A Profile names the open tools a session carries. It is a cost control, and
+// not a permission: the control grant adds the control tools whatever the
+// profile says. See docs/mcp/profiles.md.
+type Profile string
+
+const (
+	ProfileMinimal  Profile = "minimal"
+	ProfileStandard Profile = "standard"
+)
+
+// DefaultProfile is the profile of a session that names none.
+const DefaultProfile = ProfileStandard
+
+// ErrBadProfile is the failure when a name is not a profile.
+var ErrBadProfile = errors.New("mcp: the profile must be minimal or standard")
+
+// ParseProfile reads a profile name. An empty name takes the default.
+func ParseProfile(name string) (Profile, error) {
+	switch Profile(strings.TrimSpace(name)) {
+	case "":
+		return DefaultProfile, nil
+	case ProfileMinimal:
+		return ProfileMinimal, nil
+	case ProfileStandard:
+		return ProfileStandard, nil
+	}
+	return "", ErrBadProfile
+}
+
+// MinimalTools are the open tools of the minimal profile: the session reads, and
+// the description of the REST API.
+var MinimalTools = []string{ToolRename, ToolList, ToolMessages, ToolListJobs,
+	ToolConfigPath, ToolTemplatePath, ToolAPIDocs}
+
+// OpenToolsFor names the open tools of a profile.
+func OpenToolsFor(profile Profile) []string {
+	if profile == ProfileMinimal {
+		return MinimalTools
+	}
+	return OpenTools
+}
+
+// OpenTools go to every session on the standard profile. ControlTools go only to
+// a session that holds the control grant.
 var (
 	OpenTools = []string{ToolRename, ToolList, ToolMessages, ToolListJobs, ToolConfigPath, ToolTemplatePath,
 		ToolSetConfig, ToolUnsetConfig,
@@ -163,8 +205,8 @@ const (
 
 // AllowedTools names the tools a session may call, in the form Claude Code
 // takes on --allowedTools.
-func AllowedTools(control bool) []string {
-	names := append([]string{}, OpenTools...)
+func AllowedTools(profile Profile, control bool) []string {
+	names := append([]string{}, OpenToolsFor(profile)...)
 	if control {
 		names = append(names, ControlTools...)
 	}
@@ -331,7 +373,7 @@ type Sessions interface {
 	Stop(ctx context.Context, name, by string) error
 	Archive(name string, archived bool, by string) error
 	StopWhenIdle(name string, stop, archive bool) error
-	Create(dir, name, model, effort, by string) (string, error)
+	Create(in CreateInput, by string) (string, error)
 	List() []Session
 	Messages(name string, limit int) ([]Message, error)
 	Jobs(name string) ([]Job, error)
@@ -519,6 +561,9 @@ type CreateInput struct {
 	Model          string
 	PermissionMode string
 	Effort         string
+	// Profile names the open tools the session carries. An empty profile takes
+	// the defaultToolProfile setting. See docs/mcp/profiles.md.
+	Profile string
 	// Hosted marks a session the peer listener creates on behalf of a peer, so
 	// the host sorts it under the hosted section. The loopback API never sets it.
 	// See docs/peers.md.

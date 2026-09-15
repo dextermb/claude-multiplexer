@@ -9,7 +9,7 @@ import (
 
 func TestShareToolsViaControlSession(t *testing.T) {
 	server := startServer(t, newFakeSessions())
-	token, err := server.Register("boss", true)
+	token, err := server.Register("boss", mcp.DefaultProfile, true)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -35,7 +35,7 @@ func TestShareToolsViaControlSession(t *testing.T) {
 
 func TestPlainSessionSharesOnlyItself(t *testing.T) {
 	server := startServer(t, newFakeSessions())
-	token, err := server.Register("plain", false)
+	token, err := server.Register("plain", mcp.DefaultProfile, false)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}

@@ -65,16 +65,19 @@ func (b *bridge) StopWhenIdle(name string, stop, archive bool) error {
 	return nil
 }
 
-func (b *bridge) Create(dir, name, model, effort, by string) (string, error) {
-	abs, err := filepath.Abs(dir)
+func (b *bridge) Create(in mcp.CreateInput, by string) (string, error) {
+	abs, err := filepath.Abs(in.Dir)
 	if err != nil {
 		return "", err
 	}
 	info, err := os.Stat(abs)
 	if err != nil || !info.IsDir() {
-		return "", fmt.Errorf("%w: %s", ErrNotDirectory, dir)
+		return "", fmt.Errorf("%w: %s", ErrNotDirectory, in.Dir)
 	}
-	created, err := b.m.Spawn(context.Background(), Spec{Dir: abs, Name: name, Model: model, Effort: effort, Parent: by})
+	created, err := b.m.Spawn(context.Background(), Spec{
+		Dir: abs, Name: in.Name, Model: in.Model, Effort: in.Effort,
+		Profile: in.Profile, Parent: by,
+	})
 	if err != nil {
 		return "", err
 	}
