@@ -1,8 +1,9 @@
 # Token cost — spend less for the same work
 
 **Status:** in progress. Effort 1 shipped, and it is described in
-[../tui/sessions/bars.md](../tui/sessions/bars.md). Efforts 2 to 5 are ahead,
-in build order, and each one lands on its own. No effort depends on a later one.
+[../tui/sessions/bars.md](../tui/sessions/bars.md). Effort 2 shipped, and it is
+described in [../scheduler.md](../scheduler.md). Efforts 3 to 5 are ahead, in
+build order, and each one lands on its own. No effort depends on a later one.
 Every effort measures itself with the cache hit rate that effort 1 added.
 
 ---
@@ -69,31 +70,6 @@ them. That is enough.
    a keep-warm session stops paying. Read it from the cache-write count of a
    session that idles for ten minutes, with effort 1 in place. *Blocks:* the
    threshold of effort 3, not the build.
-
----
-
-## Effort 2 — route a schedule to a cheap model
-
-**Worktree:** `just worktree schedule-model`.
-
-`manager.Schedule` already holds `Model` and `Effort`
-(`internal/manager/schedule.go:22`), and `fireSchedule` already passes both to
-`Spawn`. Nothing is missing except a default and a way to see it. A recurring
-housekeeping prompt that runs on the most expensive model is pure waste, and
-today nothing shows which model a schedule uses.
-
-### The build
-
-1. Add `defaultScheduleModel` to `config.Settings`, beside `defaultModel`. Add
-   it to the table in [../config.md](../config.md).
-2. `CreateSchedule` applies it when `ScheduleSpec.Model` is empty.
-3. Show the model on the schedule row in the sidebar, so a costly schedule is
-   visible without opening a file.
-
-### How it is verified
-
-A test asserts that a schedule created with no model takes the setting, and
-that a schedule created with a model keeps it.
 
 ---
 
@@ -265,7 +241,6 @@ Each effort moves its durable part into `docs/` in the same change:
 
 | Effort | Where the content goes |
 |---|---|
-| 2 | [../scheduler.md](../scheduler.md), [../config.md](../config.md) |
 | 3 | [../scheduler.md](../scheduler.md), [../sessions.md](../sessions.md) |
 | 4 | [../mcp/tools.md](../mcp/tools.md), [../config.md](../config.md) |
 | 5 | [../sessions.md](../sessions.md), [../config.md](../config.md) |
