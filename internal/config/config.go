@@ -115,6 +115,9 @@ type Config struct {
 	DefaultPermissionMode string `json:"defaultPermissionMode,omitempty"`
 	DefaultEffort         string `json:"defaultEffort,omitempty"`
 	DefaultControl        *bool  `json:"defaultControl,omitempty"`
+	// DefaultScheduleModel is the model a new schedule takes when it names none.
+	// An empty string leaves the choice to the child. See docs/scheduler.md.
+	DefaultScheduleModel string `json:"defaultScheduleModel,omitempty"`
 	// Peers holds the cross-host settings: whether the peer listener is on and
 	// its port, the usage reserve, and the peer hosts this host reaches. Nil
 	// keeps peering off. See docs/peers.md.
