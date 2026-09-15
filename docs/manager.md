@@ -138,8 +138,12 @@ lifetime figure. A resumed child starts its counters at zero, so the pump calls
 the meta file. The pump is the one place that does this, so the interface, the
 tools, and a peer all read the same figures. The context fill is not one of
 them, because it describes the window now. The pump adds each of these only
-after it appends that event's lines. So the count never leads the buffer:
-when `Snapshot` shows five turns, `Lines` already holds those five turns.
+after it appends that event's lines. So the count never leads the buffer: when
+`Snapshot` shows five turns, `Lines` already holds those five turns.
+
+The pump writes the cost ledger from the same snapshot, one line per prompt.
+That file is the only record that dates a cost, and the status bar total reads
+it. See [cost.md](cost.md).
 
 Each session event carries the snapshot as of that event, because the session
 reads the stream on one goroutine and the pump appends the lines on another. The

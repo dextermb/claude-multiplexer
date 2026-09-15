@@ -108,6 +108,7 @@ func (m *Manager) Spawn(ctx context.Context, spec Spec) (string, error) {
 				output:     stored.OutputTokens,
 			}
 			item.snap = item.total(item.snap)
+			item.written = item.base
 		}
 	}
 

@@ -81,6 +81,10 @@ func TestResumedSessionReportsTheLifetimeTotals(t *testing.T) {
 	if snap.Cost != 0.5 {
 		t.Fatalf("cost = %v, want the two turns summed to 0.5", snap.Cost)
 	}
+	waitFor(t, 10*time.Second, func() bool {
+		meta, err := ReadMeta(metaPath(m.Root(), resumed))
+		return err == nil && meta.Turns == snap.Turns
+	})
 	meta := waitForMeta(t, m, resumed)
 	if meta.Cost != snap.Cost || meta.Turns != snap.Turns {
 		t.Fatalf("the meta %+v and the snapshot %+v disagree", meta, snap)

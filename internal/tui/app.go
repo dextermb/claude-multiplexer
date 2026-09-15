@@ -52,7 +52,9 @@ type spawnedMsg struct {
 }
 
 type storedMsg struct {
-	metas []manager.Meta
+	metas  []manager.Meta
+	cost   float64
+	window string
 }
 
 type settingsMsg struct {
@@ -127,6 +129,8 @@ type Model struct {
 	roots        map[string]string
 	stored       []manager.Meta
 	storedLoaded bool
+	cost         float64
+	costWindow   string
 	greeted      bool
 	showArchived bool
 	search       textinput.Model
@@ -298,7 +302,8 @@ func waitEvent(sub *manager.Subscription) tea.Cmd {
 
 func reloadStored(mgr *manager.Manager) tea.Cmd {
 	return func() tea.Msg {
-		return storedMsg{metas: mgr.Stored()}
+		cost, window := mgr.WindowCost()
+		return storedMsg{metas: mgr.Stored(), cost: cost, window: window}
 	}
 }
 

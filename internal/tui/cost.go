@@ -1,15 +1,13 @@
 package tui
 
-// totalCost is the cost of every session this host holds, live and stored, an
-// archived session included. A remote session is left out, because the peer
-// account pays for it. See docs/tui/sessions/bars.md.
-func (m Model) totalCost() float64 {
-	var total float64
-	for _, snap := range m.mgr.Snapshots() {
-		total += snap.Cost
+import "fmt"
+
+// costSeg is the total the status bar draws. The manager sums it, so the label
+// names the window the figure covers, and an empty label means the whole
+// history. See docs/cost.md.
+func (m Model) costSeg() string {
+	if m.costWindow == "" {
+		return fmt.Sprintf("$%.4f", m.cost)
 	}
-	for _, meta := range m.stored {
-		total += meta.Cost
-	}
-	return total
+	return fmt.Sprintf("$%.4f %s", m.cost, m.costWindow)
 }

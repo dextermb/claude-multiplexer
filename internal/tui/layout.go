@@ -700,7 +700,7 @@ func (m Model) statusView() string {
 	if busy > 0 {
 		left = append(left, barSeg{fmt.Sprintf("%d busy", busy), statusMutedStyle})
 	}
-	left = append(left, barSeg{fmt.Sprintf("$%.4f", m.totalCost()), statusCostStyle})
+	left = append(left, barSeg{m.costSeg(), statusCostStyle})
 	if m.status != "" {
 		left = append(left, barSeg{m.status, statusMutedStyle})
 	}

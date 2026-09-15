@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/dextermb/claude-multiplexer/internal/api"
 	"github.com/dextermb/claude-multiplexer/internal/config"
@@ -101,6 +102,7 @@ type Manager struct {
 	mcp       *mcp.Server
 	apiStore  *api.Store
 	usagePoll *usage.Poller
+	ledger    *ledger
 
 	usageStop     func()
 	hostingPaused atomic.Bool
@@ -150,7 +152,9 @@ func New(opts Options) (*Manager, error) {
 		entries:   make(map[string]*entry),
 		remotes:   make(map[string]*remoteEntry),
 		schedules: make(map[string]*Schedule),
+		ledger:    newLedger(opts.Root),
 	}
+	m.startLedger()
 	m.loadSchedules()
 	return m, nil
 }
@@ -172,6 +176,9 @@ func (m *Manager) pump(item *entry) {
 		todos := trackTodos(item, ev)
 		snap := item.total(ev.Snapshot)
 		item.setSnapshot(snap)
+		if entry, ok := item.costEntry(snap, time.Now()); ok {
+			_ = m.ledger.append(entry)
+		}
 		m.rememberSession(item, snap)
 		m.maybeIdleAction(item, ev.Snapshot)
 		m.maybeContextNotice(item, snap)

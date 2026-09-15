@@ -60,6 +60,7 @@ a typing mistake.
 | `contextActPercent` | The context fill at which the governor takes its action | [sessions/context.md](sessions/context.md) |
 | `contextAction` | What the governor does at the act threshold: `notify` or `hold` | [sessions/context.md](sessions/context.md) |
 | `autoArchiveDays` | The days a stopped session waits, idle, before the multiplexer archives it | [sessions.md](sessions.md) |
+| `costWindow` | The window the status bar total counts: `1d`, `7d`, `2w`, `1m`, or `all`. The boundary is UTC, and the default is `1d` | [cost.md](cost.md) |
 
 ## Write any key by its path
 
@@ -80,6 +81,7 @@ with `unset_config`. Both tools take a dot path and reach a nested key:
 | `contextActPercent` | The context fill that takes the action |
 | `contextAction` | `notify` or `hold` |
 | `autoArchiveDays` | The days before a stopped session is archived |
+| `costWindow` | The window the status bar total counts, such as `1d` or `all` |
 
 `set_config` also takes a `value`, as any JSON value: a string, a number, a
 boolean, an object, or `null`. It checks the path and the value against the

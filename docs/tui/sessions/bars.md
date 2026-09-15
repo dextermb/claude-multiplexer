@@ -23,8 +23,9 @@ different: it shows how full the window is now.
 
 The cost is the price Claude Code reports for the work, against the first-party
 API rate card. A subscription pays a plan fee in place of that price, so the
-figure is what the same work costs through the API, and not a bill. For the rate
-card, see [../../caching.md](../../caching.md).
+figure is what the same work costs through the API, and not a bill. See
+[../../cost.md](../../cost.md), and for the rate card,
+[../../caching.md](../../caching.md).
 
 ## The cache hit rate
 
@@ -61,12 +62,17 @@ running context.
 The **status bar** at the bottom describes the whole program. The left side
 gives the state: how many sessions run, how many are busy, and the total cost.
 
-The total counts every session this host holds: the live ones, the stored ones,
-and the archived ones. So it does not fall when a session ends, and it does not
-fall when you archive one. Two things stay out of it. A remote session stays
-out, because the peer account pays for it, and see [../../peers.md](../../peers.md).
-The search box and the archive toggle stay out, because they filter the sidebar,
-and the total describes the host and not the view.
+The total covers a window, and the bar names it: `$12.3456 1d`. The default
+window is the current UTC day, so the figure answers what today cost, and it
+returns to zero at 00:00 UTC. The `costWindow` setting takes another window, and
+`all` counts every session this host ever ran and names no window. For the
+grammar, the ledger behind the figure, and the one estimate it holds, see
+[../../cost.md](../../cost.md).
+
+Two things stay out of the total. A remote session stays out, because the peer
+account pays for it, and see [../../peers.md](../../peers.md). The search box and
+the archive toggle stay out, because they filter the sidebar, and the total
+describes the host and not the view.
 A transient message (for example `copied 3 lines`, or `docs archived landing`
 when a session did it through a tool) also appears on the left, for its moment.
 The right side gives the keys, and the keys stay in one place.
