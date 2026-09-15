@@ -486,12 +486,16 @@ func retire(t *testing.T, m *Manager, name string) {
 
 func runOneTurn(t *testing.T, m *Manager, name, prompt string) {
 	t.Helper()
+	before, err := m.Snapshot(name)
+	if err != nil {
+		t.Fatalf("Snapshot: %v", err)
+	}
 	if err := m.Send(name, prompt); err != nil {
 		t.Fatalf("Send: %v", err)
 	}
 	waitFor(t, 10*time.Second, func() bool {
 		snap, err := m.Snapshot(name)
-		return err == nil && snap.Turns >= 1
+		return err == nil && snap.Turns > before.Turns
 	})
 }
 

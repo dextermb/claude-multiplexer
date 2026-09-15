@@ -170,10 +170,10 @@ func (m *Manager) pump(item *entry) {
 		lines := item.skill.Track(ev.Protocol, m.opts.Renderer.Lines(ev))
 		partial := trackPartial(item, ev)
 		todos := trackTodos(item, ev)
-		snap := ev.Snapshot
+		snap := item.total(ev.Snapshot)
 		item.setSnapshot(snap)
 		m.rememberSession(item, snap)
-		m.maybeIdleAction(item, snap)
+		m.maybeIdleAction(item, ev.Snapshot)
 		m.maybeContextNotice(item, snap)
 		qid, questions, _ := ev.Protocol.AskUserQuestion()
 		m.bus.publishLines(item.lines, lines, Event{
@@ -188,11 +188,12 @@ func (m *Manager) pump(item *entry) {
 		})
 	}
 	m.releaseTools(item.token)
-	final := item.sess.Snapshot()
+	child := item.sess.Snapshot()
+	final := item.total(child)
 	item.setSnapshot(final)
 	meta := item.metaCopy()
 	name := meta.Name
-	if final.Turns == 0 {
+	if child.Turns == 0 {
 		_ = os.RemoveAll(sessionDir(m.opts.Root, name))
 		if meta.TempDir && meta.Dir != "" {
 			_ = os.RemoveAll(meta.Dir)

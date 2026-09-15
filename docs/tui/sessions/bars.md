@@ -16,8 +16,15 @@ The model and the permission mode come from the `init` event, so the bar names
 what the child confirms, and not what the flags asked for. The two can differ.
 
 The tokens (`11.6k in 0.6k out`) add up every turn, so they show the total work
-billed. The context fill (`ctx 12.2k/200k (6%)`) is different: it shows how full
-the window is now.
+billed. The cost and the tokens are lifetime figures: a session that you resume
+carries the counts of its earlier runs, and does not restart them. See
+[../../manager.md](../../manager.md). The context fill (`ctx 12.2k/200k (6%)`) is
+different: it shows how full the window is now.
+
+The cost is the price Claude Code reports for the work, against the first-party
+API rate card. A subscription pays a plan fee in place of that price, so the
+figure is what the same work costs through the API, and not a bill. For the rate
+card, see [../../caching.md](../../caching.md).
 
 ## The cache hit rate
 
@@ -34,7 +41,8 @@ lifetime, and what invalidates the cache, see
 
 The bar hides the rate until the session counts its first prompt token, because
 a rate of zero and no data look the same. A stored session keeps its counts in
-the meta file, so the rate survives a restart.
+the meta file, so the rate survives a restart, and it covers the whole lifetime
+of the session for a live row and a stored row alike.
 
 The context fill comes from the last `assistant` message, not the `result`. One
 `assistant` message reports the usage of one request. Its `input`, `cache_read`,
@@ -52,6 +60,13 @@ running context.
 
 The **status bar** at the bottom describes the whole program. The left side
 gives the state: how many sessions run, how many are busy, and the total cost.
+
+The total counts every session this host holds: the live ones, the stored ones,
+and the archived ones. So it does not fall when a session ends, and it does not
+fall when you archive one. Two things stay out of it. A remote session stays
+out, because the peer account pays for it, and see [../../peers.md](../../peers.md).
+The search box and the archive toggle stay out, because they filter the sidebar,
+and the total describes the host and not the view.
 A transient message (for example `copied 3 lines`, or `docs archived landing`
 when a session did it through a tool) also appears on the left, for its moment.
 The right side gives the keys, and the keys stay in one place.
