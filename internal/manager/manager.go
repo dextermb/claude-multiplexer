@@ -174,6 +174,7 @@ func (m *Manager) pump(item *entry) {
 		item.setSnapshot(snap)
 		m.rememberSession(item, snap)
 		m.maybeIdleAction(item, snap)
+		m.maybeContextNotice(item, snap)
 		qid, questions, _ := ev.Protocol.AskUserQuestion()
 		m.bus.publishLines(item.lines, lines, Event{
 			Session:    ev.Session,

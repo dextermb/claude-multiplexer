@@ -560,3 +560,23 @@ func (m Model) startQuit() (tea.Model, tea.Cmd) {
 		return shutdownDoneMsg{}
 	}
 }
+
+// clearContextHold lets a held session take a prompt again. See
+// docs/sessions/context.md.
+func (m Model) clearContextHold() (tea.Model, tea.Cmd) {
+	item, ok := m.selectedRow()
+	if !ok {
+		return m, nil
+	}
+	if !item.held {
+		m.errText = item.displayName() + " is not held"
+		return m, nil
+	}
+	if err := m.mgr.ClearContextHold(item.name); err != nil {
+		m.errText = err.Error()
+		return m, nil
+	}
+	m.errText = ""
+	m.status = item.displayName() + " is no longer held"
+	return m, nil
+}

@@ -56,6 +56,9 @@ const (
 	// watchedMark flags a session a spectator watches now, through a share this
 	// host minted, so the host sees it is shared. See docs/tui/sessions.md.
 	watchedMark = "W"
+	// heldMark flags a session the context governor holds, so it takes no prompt
+	// until the human clears the hold. See docs/sessions/context.md.
+	heldMark = "!"
 )
 
 // modalInner caps a dialog at width-2, because a wider box pushes the sidebar

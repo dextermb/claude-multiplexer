@@ -155,6 +155,9 @@ func (m *Manager) Send(name, text string) error {
 	if err != nil {
 		return err
 	}
+	if m.ContextHeld(name) {
+		return fmt.Errorf("%w: %s", ErrContextHeld, name)
+	}
 	return item.sess.Send(text)
 }
 
@@ -164,6 +167,9 @@ func (m *Manager) SendFrom(target, from, text string) (int, error) {
 	item, err := m.entry(target)
 	if err != nil {
 		return 0, err
+	}
+	if m.ContextHeld(target) {
+		return 0, fmt.Errorf("%w: %s", ErrContextHeld, target)
 	}
 	lines := []render.Line{{Class: render.ClassMeta, Text: "← prompt from " + from}}
 	if err := item.sess.Send(text); err != nil {

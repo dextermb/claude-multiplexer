@@ -44,6 +44,7 @@ type row struct {
 	archived    bool
 	control     bool
 	scheduled   string
+	held        bool
 	state       session.State
 	label       string
 	queued      int

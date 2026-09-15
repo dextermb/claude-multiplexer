@@ -1,4 +1,4 @@
-package tui
+package session
 
 import "testing"
 
@@ -13,8 +13,8 @@ func TestContextWindow(t *testing.T) {
 		{"", 0},
 	}
 	for _, c := range cases {
-		if got := contextWindow(c.model); got != c.want {
-			t.Errorf("contextWindow(%q) = %d, want %d", c.model, got, c.want)
+		if got := ContextWindow(c.model); got != c.want {
+			t.Errorf("ContextWindow(%q) = %d, want %d", c.model, got, c.want)
 		}
 	}
 }
