@@ -2,9 +2,10 @@
 
 **Status:** in progress. Effort 1 shipped, and it is described in
 [../tui/sessions/bars.md](../tui/sessions/bars.md). Effort 2 shipped, and it is
-described in [../scheduler.md](../scheduler.md). Efforts 3 to 5 are ahead, in
-build order, and each one lands on its own. No effort depends on a later one.
-Every effort measures itself with the cache hit rate that effort 1 added.
+described in [../scheduler.md](../scheduler.md). Effort 3 is dropped, because
+the measurement under Resolved question 5 removed its reason. Efforts 4 and 5
+are ahead, in build order, and each one lands on its own. Every effort measures
+itself with the cache hit rate that effort 1 added.
 
 ---
 
@@ -18,9 +19,9 @@ Three costs are structural, and the multiplexer controls all three:
 
 1. **The fixed prefix.** The multiplexer injects 76 MCP tool schemas and two
    rule files into the system prompt of every session.
-2. **The cache state.** A resumed session reads its prefix from the prompt
-   cache and pays about a tenth. A fresh session writes the prefix again and
-   pays more than the base rate.
+2. **The cache state.** A stable prefix reads from the prompt cache and pays
+   about a tenth. A prefix that changes writes again and pays more than the base
+   rate, and the write starts at the first byte that differs.
 3. **The context size.** Every turn re-reads the whole context. A session at
    180k tokens costs many times the same session at 12k.
 
@@ -59,75 +60,25 @@ them. That is enough.
    under it expires after one hour of silence at the most.
 3. **Does a resume hit the cache?** Yes, inside the lifetime. A resume that
    comes back after the lifetime replays the history and writes the cache again.
+4. **Does Claude Code ask for the five-minute lifetime, or the one hour?** The
+   one hour, for the session of a multiplexer. Claude Code 2.1.231 selects the
+   lifetime from the query source, against an allowlist of `repl_main_thread*`,
+   `sdk`, `auto_mode`, and `memdir_relevance`. A session of the multiplexer runs
+   the main loop, so it matches. Three conditions turn the choice back to five
+   minutes: an API key in place of a subscription login, an account in usage
+   overage, and the environment variable `FORCE_PROMPT_CACHING_5M`. The variable
+   `ENABLE_PROMPT_CACHING_1H` forces the hour.
+5. **Does the cache need the session process to live?** No. The cache is
+   server-side, and it keys on the bytes of the prefix, not on the session or the
+   process. Two fresh sessions in one directory, one after the other, read 18465
+   and 22421 tokens from the cache on their first turn. So a fresh spawn already
+   reads most of its prefix, and a session that lives longer buys nothing.
 
 ## Open questions
 
-4. **Does the search-and-dispatch shape break the model?** A model that cannot
+6. **Does the search-and-dispatch shape break the model?** A model that cannot
    see a tool schema may not find the tool. Measure the call rate before and
    after. *Blocks:* the third option of effort 4 only.
-5. **Does Claude Code ask for the five-minute lifetime, or the one hour?** The
-   two have different break-even points, so the answer sets the cadence at which
-   a keep-warm session stops paying. Read it from the cache-write count of a
-   session that idles for ten minutes, with effort 1 in place. *Blocks:* the
-   threshold of effort 3, not the build.
-
----
-
-## Effort 3 — keep the cache warm across scheduled runs
-
-**Worktree:** `just worktree schedule-keep-warm`.
-
-A scheduled run arms `stop_when_idle`, so the process ends after the turn. See
-[../sessions.md](../sessions.md). That is correct for a nightly schedule, and
-wrong for a schedule that fires every two minutes, because each fire then pays
-to write the whole prefix again.
-
-### The limit of this effort
-
-The prompt cache lives for one hour at the most. So a keep-warm session helps a
-schedule that fires more often than the cache lifetime, and it helps nothing
-else. A schedule that fires every four hours writes the cache again on every
-fire, whether the process lives or dies. The setting is therefore a cadence
-control, and not a working-day control.
-
-### The negatives
-
-Each one is a reason to keep the setting off by default.
-
-1. **A spawn-mode schedule breaks.** `runDue` skips a fire when the last session
-   of the schedule is still live (`internal/manager/scheduler.go`). A warm
-   session is always live, so every fire after the first is skipped. The setting
-   must therefore be valid in reuse mode only, and `CreateSchedule` must refuse
-   it when `Session` is empty.
-2. **The context grows without a limit.** A reuse session keeps its history
-   across fires. A cache read is cheap, but the context it reads grows every
-   fire, so the cost per fire climbs in a straight line. This is the problem of
-   effort 5, and a warm schedule reaches it faster than a human session does.
-3. **Auto-archive never runs.** The sweep archives a stopped session only. A
-   warm session is never stopped, so it never archives, and it holds its
-   transcript and its process for ever. See [../sessions.md](../sessions.md).
-4. **One live process per warm schedule.** Each one holds memory, file handles,
-   and an MCP connection. Ten warm schedules are ten live child processes.
-5. **A restart drops the state.** The arm lives in memory on the live session,
-   so a restart of the multiplexer loses every warm session at once.
-
-### The build
-
-1. Add `keepWarm bool` to `Schedule` and `ScheduleSpec`, and to the
-   `create_schedule` and `update_schedule` tools.
-2. `CreateSchedule` and `UpdateSchedule` refuse `keepWarm` on a spawn-mode
-   schedule, with a clear error. See negative 1.
-3. When `keepWarm` is set, `fireSchedule` does not arm the stop.
-4. When `keepWarm` is set and the cron fires less often than one hour, warn once
-   at creation, because the cache is cold by the next fire. Do not override the
-   choice.
-
-### How it is verified
-
-A test asserts that `keepWarm` on a spawn-mode schedule fails, and that a
-reuse-mode fire with `keepWarm` set does not arm the stop. Then run one schedule
-at a one-minute cron, with `keepWarm` on and then off, and compare the cache hit
-rate from effort 1 across ten fires. Record both runs as evidence.
 
 ---
 
@@ -139,12 +90,31 @@ rate from effort 1 across ten fires. Record both runs as evidence.
 every session carries all 40 whether or not it ever calls one. The schemas sit
 in the system prompt of every request of every session.
 
-Position makes this worse than size alone. A prompt renders in the order tools,
-then system, then messages, and a cache entry matches a prefix of that render.
-So the tool list sits at the front of every prefix, and a change to it
-invalidates the tools, the system, and the messages together. The tool list is
-therefore both the largest fixed cost and the most cache-sensitive part of the
-prompt.
+### How large the share is
+
+Measure the share before you size the work. A one-word prompt on a machine with
+14 MCP servers reported 280 tools and 35079 input tokens. The 40 open tools of
+the multiplexer are one part of that, and the other servers hold the rest, so
+the multiplexer is a minority of the tool surface on a machine like this one.
+Read the tool count from the `init` event of a fresh session, and size the work
+from it before you start.
+
+### Position matters more than size
+
+A prompt renders in the order tools, then system, then messages, and a cache
+entry matches a prefix of that render. So the tool list sits at the front of
+every prefix, and a change to it invalidates the tools, the system, and the
+messages together.
+
+The two measured sessions show the cost of that. The first reported 280 tools,
+and the second reported 344, because one remote MCP server answered in time for
+the second and not for the first. The 64 extra schemas landed at the front of
+the prefix, so the second session wrote 13798 tokens to the cache that a stable
+tool list would have read.
+
+The multiplexer cannot order another server to answer on time. It can keep its
+own contribution small and deterministic, which is what the three options below
+do.
 
 A session picks its profile once, at spawn, so a profile never changes a live
 conversation and never invalidates a live cache. A profile change reaches a
@@ -179,7 +149,7 @@ names and their schemas, and `call_tool(name, args)` runs one. The prefix then
 holds two schemas rather than 40, at the cost of one extra turn the first time
 a session needs a tool.
 
-**Resolve open question 4 first.** Measure the call rate before and after. A
+**Resolve open question 6 first.** Measure the call rate before and after. A
 model that no longer finds `rename_session` has cost more than it saved.
 
 ### How it is verified
@@ -241,7 +211,6 @@ Each effort moves its durable part into `docs/` in the same change:
 
 | Effort | Where the content goes |
 |---|---|
-| 3 | [../scheduler.md](../scheduler.md), [../sessions.md](../sessions.md) |
 | 4 | [../mcp/tools.md](../mcp/tools.md), [../config.md](../config.md) |
 | 5 | [../sessions.md](../sessions.md), [../config.md](../config.md) |
 
