@@ -581,7 +581,7 @@ func (m Model) rightSegs(item row) []barSeg {
 }
 
 func contextLabel(item row) string {
-	if limit := contextWindow(item.model); limit > 0 {
+	if limit := session.ContextWindow(item.model); limit > 0 {
 		pct := item.context * 100 / limit
 		return fmt.Sprintf("ctx %s/%s (%d%%)", formatCount(item.context), formatCount(limit), pct)
 	}
