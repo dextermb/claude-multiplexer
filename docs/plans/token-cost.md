@@ -5,8 +5,9 @@
 described in [../scheduler.md](../scheduler.md). Effort 3 is dropped, because
 the measurement under Resolved question 5 removed its reason. Effort 4 shipped
 in part, and it is described in [../mcp/profiles.md](../mcp/profiles.md).
-Effort 5 is ahead. Every effort measures itself with the cache hit rate that
-effort 1 added.
+Effort 5 shipped, and it is described in
+[../sessions/context.md](../sessions/context.md). Only one part of effort 4 is
+ahead, and it waits on the open question below.
 
 ---
 
@@ -83,51 +84,6 @@ them. That is enough.
 
 ---
 
-## Effort 5 — the context-fill governor
-
-**Worktree:** `just worktree context-governor`.
-
-The session bar already shows `ctx 12.2k/200k (6%)`, from `contextTokens` in
-`apply.go:34`. Nothing acts on it. A long session grows its context every turn,
-and every turn pays for the whole of it, so the cost per turn climbs while the
-work per turn does not.
-
-### The workflow
-
-```
-   context fill crosses warnPercent
-              |
-              v
-     a notice in the status bar,  <---- no state change, the session runs on
-     and a flag on the sidebar row
-              |
-   context fill crosses actPercent
-              |
-              v
-        action, by setting:
-          "notify"  -> a notice only, the default
-          "hold"    -> refuse a new prompt until the human clears the hold
-```
-
-A hold is a guard the human clears. The multiplexer does not compact the
-session on its own, because a compaction throws away context the human may
-need, and a silent loss is worse than a cost.
-
-### The build
-
-1. Add `contextWarnPercent`, `contextActPercent`, and `contextAction` to
-   `config.Settings`. All three are absent by default, which means off.
-2. The per-session pump compares the fill on every snapshot, and raises the
-   notice once per crossing, not once per event.
-3. A hold blocks `Send` with a clear error, and the human clears it with a key.
-
-### How it is verified
-
-A test drives a session past each threshold and asserts one notice per
-crossing, and asserts that `Send` fails while the hold is set.
-
----
-
 ## What is left of effort 4
 
 Two parts of the tool schema diet did not ship, and one of them never will.
@@ -146,19 +102,3 @@ so measure the profile in use before you build the harder thing.
 **A measurement note.** The `cmux run` command starts a bare child and attaches
 no MCP server, so a transcript from it holds no `mcp__cmux__` tool. Measure the
 tool surface from a session the manager spawns, and not from `cmux run`.
-
----
-
-## When this lands
-
-Each effort moves its durable part into `docs/` in the same change:
-
-| Effort | Where the content goes |
-|---|---|
-| 5 | [../sessions.md](../sessions.md), [../config.md](../config.md) |
-
-Strike each effort from this file as it lands. Delete the file when the last
-one is in. See [../../.claude/rules/plans.md](../../.claude/rules/plans.md).
-
----
-
