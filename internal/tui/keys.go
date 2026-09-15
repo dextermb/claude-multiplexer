@@ -88,6 +88,7 @@ var sequenceActions = map[string]action{
 	"s e": func(m Model) (tea.Model, tea.Cmd) { return m.openChoice(settingEffort) },
 	"s p": func(m Model) (tea.Model, tea.Cmd) { return m.openChoice(settingMode) },
 	"s C": Model.toggleControl,
+	"s h": Model.clearContextHold,
 
 	"l f": Model.toggleFold,
 	"l F": Model.foldOthers,

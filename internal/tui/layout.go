@@ -308,11 +308,14 @@ func (m Model) sessionRow(item row) string {
 }
 
 // rowFlags is the muted single-letter flags for a session row, concatenated in a
-// fixed order: read-only, watched, hoisted, scheduled, control. A control session
+// fixed order: held, read-only, watched, hoisted, scheduled, control. A control session
 // that heads its own group takes no flag, because the group header already marks
 // it. See docs/tui/sessions.md.
 func rowFlags(item row) string {
 	flags := ""
+	if item.held {
+		flags += heldMark
+	}
 	if item.readOnly {
 		flags += readOnlyMark
 	}

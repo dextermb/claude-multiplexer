@@ -126,6 +126,12 @@ type Config struct {
 	// its port, the usage reserve, and the peer hosts this host reaches. Nil
 	// keeps peering off. See docs/peers.md.
 	Peers *Peers `json:"peers,omitempty"`
+	// ContextWarnPercent, ContextActPercent, and ContextAction drive the context
+	// governor. A nil percent, or a value below 1, keeps that threshold off. The
+	// action is "notify" or "hold". See docs/sessions/context.md.
+	ContextWarnPercent *int   `json:"contextWarnPercent,omitempty"`
+	ContextActPercent  *int   `json:"contextActPercent,omitempty"`
+	ContextAction      string `json:"contextAction,omitempty"`
 	// AutoArchiveDays archives a stopped session after it is idle for this many
 	// days. Nil, or a value below 1, keeps the feature off. See docs/config.md.
 	AutoArchiveDays *int `json:"autoArchiveDays,omitempty"`

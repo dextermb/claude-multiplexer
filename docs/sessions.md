@@ -208,6 +208,12 @@ They start as the flag values, and the `init` event replaces them. So an empty
 `--model` becomes the model Claude Code chose, and a mode the child changes is
 the mode the interface shows.
 
+## The context governor
+
+A session pays for its whole context on every turn. The governor raises a notice
+as the context fills, and it holds the session when you ask it to. See
+[sessions/context.md](sessions/context.md).
+
 ## Background jobs
 
 A session tracks the background jobs Claude Code starts, and the interface lists

@@ -36,6 +36,12 @@ type entry struct {
 	stopWhenIdle    bool
 	archiveWhenIdle bool
 	idleFired       bool
+
+	ctxMu     sync.Mutex
+	ctxLast   int
+	ctxWarned bool
+	ctxActed  bool
+	ctxHeld   bool
 }
 
 // metaCopy and setMeta guard the record of a live session, because the pump

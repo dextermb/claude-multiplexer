@@ -56,6 +56,9 @@ a typing mistake.
 | `defaultControl` | `true` when the new session form opens on a control grant | [config/new-session.md](config/new-session.md) |
 | `defaultScheduleModel` | The model a new schedule takes when it names none | [scheduler.md](scheduler.md) |
 | `defaultToolProfile` | The open tools a new session carries: `minimal` or `standard` | [mcp/profiles.md](mcp/profiles.md) |
+| `contextWarnPercent` | The context fill at which the governor raises a notice | [sessions/context.md](sessions/context.md) |
+| `contextActPercent` | The context fill at which the governor takes its action | [sessions/context.md](sessions/context.md) |
+| `contextAction` | What the governor does at the act threshold: `notify` or `hold` | [sessions/context.md](sessions/context.md) |
 | `autoArchiveDays` | The days a stopped session waits, idle, before the multiplexer archives it | [sessions.md](sessions.md) |
 
 ## Write any key by its path
@@ -73,6 +76,9 @@ with `unset_config`. Both tools take a dot path and reach a nested key:
 | `defaultModel` | The model the new session form opens on |
 | `defaultScheduleModel` | The model a new schedule takes when it names none |
 | `defaultToolProfile` | The open tools a new session carries |
+| `contextWarnPercent` | The context fill that raises a notice |
+| `contextActPercent` | The context fill that takes the action |
+| `contextAction` | `notify` or `hold` |
 | `autoArchiveDays` | The days before a stopped session is archived |
 
 `set_config` also takes a `value`, as any JSON value: a string, a number, a
