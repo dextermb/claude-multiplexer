@@ -76,6 +76,8 @@ func (e *entry) view() session.Snapshot {
 	live.Turns = cached.Turns
 	live.Cost = cached.Cost
 	live.InputTokens = cached.InputTokens
+	live.CacheReadTokens = cached.CacheReadTokens
+	live.CacheWriteTokens = cached.CacheWriteTokens
 	live.OutputTokens = cached.OutputTokens
 	live.ContextTokens = cached.ContextTokens
 	live.LastDuration = cached.LastDuration
@@ -89,10 +91,12 @@ func (e *entry) todoList() []protocol.Todo {
 }
 
 type totals struct {
-	turns  int
-	cost   float64
-	input  int
-	output int
+	turns      int
+	cost       float64
+	input      int
+	cacheRead  int
+	cacheWrite int
+	output     int
 }
 
 func (m *Manager) entry(name string) (*entry, error) {

@@ -9,7 +9,8 @@ The **session bar** sits above the output, and it describes the selected session
 only. The left side names it: the display name (the title or the name),
 `control` when the session holds that grant, the model in use, and the
 permission mode. The right side gives the numbers: the state, the running-job
-count, the queue length, the tokens, the cost, and the context fill.
+count, the queue length, the tokens, the cache hit rate, the cost, and the
+context fill.
 
 The model and the permission mode come from the `init` event, so the bar names
 what the child confirms, and not what the flags asked for. The two can differ.
@@ -17,6 +18,21 @@ what the child confirms, and not what the flags asked for. The two can differ.
 The tokens (`11.6k in 0.6k out`) add up every turn, so they show the total work
 billed. The context fill (`ctx 12.2k/200k (6%)`) is different: it shows how full
 the window is now.
+
+## The cache hit rate
+
+The cache hit rate (`cache 94%`) is the share of the prompt tokens that came
+from the prompt cache. It is the cache-read count over the input count, and the
+input count is the sum of the three parts of the prompt.
+
+The rate matters because the three parts have three prices. A cache read costs
+about a tenth of the base input rate, and a cache write costs more than the base
+rate. So `11.6k in` is cheap when the rate is high, and expensive when it is low,
+and the token count alone cannot tell the two apart.
+
+The bar hides the rate until the session counts its first prompt token, because
+a rate of zero and no data look the same. A stored session keeps its counts in
+the meta file, so the rate survives a restart.
 
 The context fill comes from the last `assistant` message, not the `result`. One
 `assistant` message reports the usage of one request. Its `input`, `cache_read`,
@@ -53,17 +69,20 @@ The bar always fits on one line. When the window is too narrow, the two sides
 shed detail in turn, and the least useful item goes first:
 
 ```
- alpha · fake-model · auto        idle · ctx 12.2k/200k (6%) · 11.6k in 0.6k out · $0.2500
- alpha · fake-model · auto        idle · ctx 12.2k/200k (6%) · 11.6k in 0.6k out
- alpha · fake-model               idle · ctx 12.2k/200k (6%)
- alpha · fake-model               idle
- alpha                            idle
+ alpha · fake-model · auto  idle · ctx 12.2k/200k (6%) · 11.6k in 0.6k out · cache 94% · $0.2500
+ alpha · fake-model · auto  idle · ctx 12.2k/200k (6%) · 11.6k in 0.6k out · cache 94%
+ alpha · fake-model · auto  idle · ctx 12.2k/200k (6%) · 11.6k in 0.6k out
+ alpha · fake-model         idle · ctx 12.2k/200k (6%)
+ alpha · fake-model         idle
+ alpha                      idle
  alpha
 ```
 
-The right side sheds from the end: the cost first, then the tokens, then the
-queue length, then the running-job count, then the context fill, and last of all
-the state, so that only the name remains. The left side sheds the effort, then the permission mode, then
+The right side sheds from the end: the cost first, then the cache hit rate, then
+the tokens, then the queue length, then the running-job count, then the context
+fill, and last of all the state, so that only the name remains. The rate goes
+before the tokens, because the tokens are the headline and the rate explains
+them. The left side sheds the effort, then the permission mode, then
 the model, and `control` last of all, because a session that can stop your work
 is worth the space. The name always stays, and only when the name alone cannot
 fit is it cut short.

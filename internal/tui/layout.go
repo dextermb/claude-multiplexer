@@ -574,6 +574,9 @@ func (m Model) rightSegs(item row) []barSeg {
 			barMutedStyle,
 		})
 	}
+	if rate, ok := session.CacheHitRate(item.input, item.cacheRead); ok {
+		segs = append(segs, barSeg{fmt.Sprintf("cache %d%%", rate), barMutedStyle})
+	}
 	return append(segs, barSeg{fmt.Sprintf("$%.4f", item.cost), barCostStyle})
 }
 

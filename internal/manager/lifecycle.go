@@ -100,10 +100,12 @@ func (m *Manager) Spawn(ctx context.Context, spec Spec) (string, error) {
 			stored.Archived = false
 			item.setMeta(stored)
 			item.base = totals{
-				turns:  stored.Turns,
-				cost:   stored.Cost,
-				input:  stored.InputTokens,
-				output: stored.OutputTokens,
+				turns:      stored.Turns,
+				cost:       stored.Cost,
+				input:      stored.InputTokens,
+				cacheRead:  stored.CacheReadTokens,
+				cacheWrite: stored.CacheWriteTokens,
+				output:     stored.OutputTokens,
 			}
 		}
 	}

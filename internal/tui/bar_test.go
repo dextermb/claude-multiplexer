@@ -1,0 +1,74 @@
+package tui
+
+import (
+	"strings"
+	"testing"
+)
+
+func segTexts(segs []barSeg) []string {
+	out := make([]string, 0, len(segs))
+	for _, seg := range segs {
+		out = append(out, seg.text)
+	}
+	return out
+}
+
+func indexOfPrefix(texts []string, prefix string) int {
+	for i, text := range texts {
+		if strings.HasPrefix(text, prefix) {
+			return i
+		}
+	}
+	return -1
+}
+
+func busyRow() row {
+	return row{
+		label:     "idle",
+		live:      true,
+		input:     1000,
+		cacheRead: 940,
+		output:    50,
+		cost:      0.25,
+	}
+}
+
+func TestSessionBarShowsTheCacheHitRate(t *testing.T) {
+	var m Model
+	texts := segTexts(m.rightSegs(busyRow()))
+	if indexOfPrefix(texts, "cache 94%") < 0 {
+		t.Fatalf("segments = %v, want one reading cache 94%%", texts)
+	}
+}
+
+func TestSessionBarShedsTheCacheRateAfterTheCostAndBeforeTheTokens(t *testing.T) {
+	var m Model
+	texts := segTexts(m.rightSegs(busyRow()))
+
+	tokens := indexOfPrefix(texts, "1.0k in")
+	cache := indexOfPrefix(texts, "cache ")
+	cost := indexOfPrefix(texts, "$")
+	if tokens < 0 || cache < 0 || cost < 0 {
+		t.Fatalf("segments = %v, want the tokens, the cache rate, and the cost", texts)
+	}
+	if !(tokens < cache && cache < cost) {
+		t.Fatalf("segments = %v, want the order tokens, cache, cost", texts)
+	}
+}
+
+func TestSessionBarHidesTheCacheRateWithoutAPromptToken(t *testing.T) {
+	var m Model
+	texts := segTexts(m.rightSegs(row{label: "idle", live: true}))
+	if indexOfPrefix(texts, "cache ") >= 0 {
+		t.Fatalf("segments = %v, want no cache rate", texts)
+	}
+}
+
+func TestSessionBarShedsOneSegmentAtATime(t *testing.T) {
+	var m Model
+	item := busyRow()
+	want := len(m.rightSegs(item)) + 1
+	if got := len(m.barRights(item)); got != want {
+		t.Fatalf("barRights gave %d widths, want %d", got, want)
+	}
+}

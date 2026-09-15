@@ -40,6 +40,8 @@ func (s *Session) apply(ev protocol.Event) {
 		s.lastDuration = time.Duration(ev.Result.DurationMS) * time.Millisecond
 		if usage := ev.Result.Usage; usage != nil {
 			s.inputTokens += usage.InputTokens + usage.CacheReadInputTokens + usage.CacheCreationInputTokens
+			s.cacheReadTokens += usage.CacheReadInputTokens
+			s.cacheWriteTokens += usage.CacheCreationInputTokens
 			s.outputTokens += usage.OutputTokens
 		}
 		if ev.Result.SessionID != "" {

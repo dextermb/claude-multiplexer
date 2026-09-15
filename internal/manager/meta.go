@@ -9,31 +9,33 @@ import (
 )
 
 type Meta struct {
-	Name            string    `json:"name"`
-	Title           string    `json:"title,omitempty"`
-	Dir             string    `json:"dir"`
-	Model           string    `json:"model"`
-	PermissionMode  string    `json:"permission_mode"`
-	Effort          string    `json:"effort,omitempty"`
-	ClaudeSessionID string    `json:"claude_session_id"`
-	CreatedAt       time.Time `json:"created_at"`
-	LastActiveAt    time.Time `json:"last_active_at"`
-	Turns           int       `json:"turns"`
-	Cost            float64   `json:"cost_usd"`
-	InputTokens     int       `json:"input_tokens"`
-	OutputTokens    int       `json:"output_tokens"`
-	WorkingDir      string    `json:"working_dir,omitempty"`
-	WorkingDirs     []string  `json:"working_dirs,omitempty"`
-	Layout          string    `json:"layout,omitempty"`
-	Control         bool      `json:"control,omitempty"`
-	Parent          string    `json:"parent,omitempty"`
-	Scheduled       string    `json:"scheduled,omitempty"`
-	Owner           string    `json:"owner,omitempty"`
-	Hosted          bool      `json:"hosted,omitempty"`
-	Lender          string    `json:"lender,omitempty"`
-	TempDir         bool      `json:"temp_dir,omitempty"`
-	Archived        bool      `json:"archived"`
-	ArchivedAt      time.Time `json:"archived_at,omitempty"`
+	Name             string    `json:"name"`
+	Title            string    `json:"title,omitempty"`
+	Dir              string    `json:"dir"`
+	Model            string    `json:"model"`
+	PermissionMode   string    `json:"permission_mode"`
+	Effort           string    `json:"effort,omitempty"`
+	ClaudeSessionID  string    `json:"claude_session_id"`
+	CreatedAt        time.Time `json:"created_at"`
+	LastActiveAt     time.Time `json:"last_active_at"`
+	Turns            int       `json:"turns"`
+	Cost             float64   `json:"cost_usd"`
+	InputTokens      int       `json:"input_tokens"`
+	CacheReadTokens  int       `json:"cache_read_tokens,omitempty"`
+	CacheWriteTokens int       `json:"cache_write_tokens,omitempty"`
+	OutputTokens     int       `json:"output_tokens"`
+	WorkingDir       string    `json:"working_dir,omitempty"`
+	WorkingDirs      []string  `json:"working_dirs,omitempty"`
+	Layout           string    `json:"layout,omitempty"`
+	Control          bool      `json:"control,omitempty"`
+	Parent           string    `json:"parent,omitempty"`
+	Scheduled        string    `json:"scheduled,omitempty"`
+	Owner            string    `json:"owner,omitempty"`
+	Hosted           bool      `json:"hosted,omitempty"`
+	Lender           string    `json:"lender,omitempty"`
+	TempDir          bool      `json:"temp_dir,omitempty"`
+	Archived         bool      `json:"archived"`
+	ArchivedAt       time.Time `json:"archived_at,omitempty"`
 }
 
 func (m Meta) sameAs(other Meta) bool {
@@ -49,6 +51,8 @@ func (m Meta) sameAs(other Meta) bool {
 		m.Turns == other.Turns &&
 		m.Cost == other.Cost &&
 		m.InputTokens == other.InputTokens &&
+		m.CacheReadTokens == other.CacheReadTokens &&
+		m.CacheWriteTokens == other.CacheWriteTokens &&
 		m.OutputTokens == other.OutputTokens &&
 		m.Archived == other.Archived
 }
