@@ -132,6 +132,7 @@ caps it. `--config <path>` names another file. See
 | [docs/mcp.md](docs/mcp.md) | The tools a session can call: renaming itself, and driving its neighbours |
 | [docs/peers.md](docs/peers.md) | Sharing usage between hosts, remote sessions, the reserve, and the tools |
 | [docs/scheduler.md](docs/scheduler.md) | Durable, recurring tasks: the record, the two run modes, and the clock |
+| [docs/caching.md](docs/caching.md) | What a turn pays for: the prompt cache, its lifetime, and what invalidates it |
 
 `docs/plans/` holds the thinking that came before the code. It records what is
 still ahead. It is not a specification, so do not follow it.
