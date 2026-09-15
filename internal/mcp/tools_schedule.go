@@ -74,7 +74,7 @@ func (s *Server) addScheduleTools(server *sdk.Server, caller string, control boo
 
 	sdk.AddTool(server, &sdk.Tool{
 		Name:        ToolListSchedules,
-		Description: "List every schedule, with its cron, its directory, whether it runs a fresh session or reuses one, and when it last ran.",
+		Description: "List every schedule, with its cron, its directory, its model, whether it runs a fresh session or reuses one, and when it last ran.",
 	}, func(_ context.Context, _ *sdk.CallToolRequest, _ struct{}) (*sdk.CallToolResult, listSchedulesOut, error) {
 		return nil, listSchedulesOut{Schedules: s.sessions.ListSchedules()}, nil
 	})

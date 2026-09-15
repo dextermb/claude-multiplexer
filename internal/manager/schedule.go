@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/robfig/cron/v3"
+
+	"github.com/dextermb/claude-multiplexer/internal/config"
 )
 
 // Schedule is one recurring task the manager runs on its own clock. It holds only
@@ -116,6 +118,17 @@ func (m *Manager) loadSchedules() {
 	}
 }
 
+// defaultScheduleModel is the model a new schedule takes when it names none. It
+// reads the setting on each call, so a change needs no restart. See
+// docs/scheduler.md.
+func (m *Manager) defaultScheduleModel() string {
+	cfg, err := config.Load(m.opts.ConfigPaths...)
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(cfg.DefaultScheduleModel)
+}
+
 // CreateSchedule validates the cron, the directory, and the prompt, then writes a
 // new schedule to disk and holds it in memory. See docs/scheduler.md.
 func (m *Manager) CreateSchedule(spec ScheduleSpec) (Schedule, error) {
@@ -139,6 +152,10 @@ func (m *Manager) CreateSchedule(spec ScheduleSpec) (Schedule, error) {
 	if strings.TrimSpace(spec.Prompt) == "" {
 		return Schedule{}, ErrNoPrompt
 	}
+	model := strings.TrimSpace(spec.Model)
+	if model == "" {
+		model = m.defaultScheduleModel()
+	}
 
 	m.schedMu.Lock()
 	name := m.uniqueScheduleName(spec.Name, dir)
@@ -148,7 +165,7 @@ func (m *Manager) CreateSchedule(spec ScheduleSpec) (Schedule, error) {
 		Dir:            dir,
 		Prompt:         spec.Prompt,
 		Session:        strings.TrimSpace(spec.Session),
-		Model:          spec.Model,
+		Model:          model,
 		PermissionMode: spec.PermissionMode,
 		Effort:         spec.Effort,
 		Control:        spec.Control,

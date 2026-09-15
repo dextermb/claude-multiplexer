@@ -46,7 +46,7 @@ directory with `get_schedule_path`.
 | `dir` | The directory a run works in |
 | `prompt` | The prompt each run sends |
 | `session` | The reuse target; empty means spawn a fresh session |
-| `model` | The model of the session a run starts |
+| `model` | The model of the session a run starts, or the setting default |
 | `permission_mode` | The permission mode of that session |
 | `effort` | The effort level of that session |
 | `control` | True gives that session the control grant; only a control caller may set it |
@@ -59,6 +59,22 @@ A schedule refers to a session by name, through `session` and `last_session`. Th
 reference is loose. The named session may not exist, and a missing session is not
 an error. Nothing refers back to a schedule, so a session does not know that a
 schedule started it.
+
+## The default model
+
+A schedule runs on its own, for as long as it is enabled, so its model is a
+standing cost. The `defaultScheduleModel` setting names the model a new schedule
+takes when the caller names none. A cheap model there is the one change that
+lowers the cost of every schedule you create later. See
+[config.md](config.md).
+
+The default applies at creation only, and the manager reads the setting on each
+call, so a change needs no restart. `create_schedule` writes the resolved model
+into the record, so a later change to the setting leaves an existing schedule as
+it is. To change the model of a schedule that exists, call `update_schedule`.
+
+`list_schedules` reports the model of every schedule, so a costly schedule is
+visible without a read of the files. See [mcp/tools.md](mcp/tools.md).
 
 ## The two run modes
 
