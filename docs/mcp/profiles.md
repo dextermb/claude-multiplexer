@@ -16,8 +16,12 @@ in the order tools, then system, then messages, and the prompt cache matches a
 prefix of that render. So the tool list sits at the front of every prefix, and a
 change to it invalidates the whole cache entry.
 
-A profile therefore does two things. It removes schemas a session will never
-call, and it keeps what remains the same from one session to the next.
+A profile therefore does two things. It removes tools a session will never call,
+and it keeps what remains the same from one session to the next.
+
+Claude Code defers the schemas of an MCP tool until the model asks for one, so a
+profile removes a deferred entry rather than a loaded schema. That makes the
+saving smaller than the tool count suggests. See [../caching.md](../caching.md).
 
 ## The two profiles
 

@@ -4,7 +4,9 @@ A session pays for its whole context on every turn. The context grows with each
 turn, so the cost of a turn climbs while the work of a turn does not. The
 governor watches that growth, and it tells you before the bill does.
 
-The governor is off until you turn it on. See [../config.md](../config.md).
+The governor is off until you turn it on. See [../config.md](../config.md). For
+what a turn pays for, and what the prompt cache does about it, see
+[../caching.md](../caching.md).
 
 ## What it watches
 

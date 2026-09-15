@@ -28,7 +28,9 @@ input count is the sum of the three parts of the prompt.
 The rate matters because the three parts have three prices. A cache read costs
 about a tenth of the base input rate, and a cache write costs more than the base
 rate. So `11.6k in` is cheap when the rate is high, and expensive when it is low,
-and the token count alone cannot tell the two apart.
+and the token count alone cannot tell the two apart. For the prices, the
+lifetime, and what invalidates the cache, see
+[../../caching.md](../../caching.md).
 
 The bar hides the rate until the session counts its first prompt token, because
 a rate of zero and no data look the same. A stored session keeps its counts in
