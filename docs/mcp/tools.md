@@ -36,7 +36,7 @@ grant. See [grant.md](grant.md).
 | `stop_session` | `session` | Ends another child in a clean way. Its transcript is kept. | control |
 | `archive_session` | `session`, `restore` | Takes a stopped session out of the list, or with `restore` brings it back. | control |
 | `stop_when_idle` | `stop`, `archive` | Arms this session to stop itself the next time it is idle, and to archive itself after the stop when `archive` is true. | open |
-| `create_session` | `path`, `name`, `model`, `effort` | Starts a new session in a directory. Returns the name it takes. | control |
+| `create_session` | `path`, `name`, `model`, `effort`, `profile` | Starts a new session in a directory. Returns the name it takes. | control |
 | `stop_job` | `session`, `job` | Interrupts a session and asks it to kill one background job. An empty session means the caller. | control |
 | `create_schedule` | `cron`, `dir`, `prompt`, `name`, `session`, `model`, `permission_mode`, `effort`, `control` | Creates a durable schedule that runs a prompt on a cron. Returns the schedule record. | open |
 | `update_schedule` | `name`, `cron`, `dir`, `prompt`, `session`, `model`, `permission_mode`, `effort`, `control` | Changes the fields it is sent, and leaves the rest. An empty string clears an optional field. Returns the schedule record. | open |
@@ -54,6 +54,11 @@ the session takes. The new session starts without the control grant.
 The tool also takes an optional `model` and an optional `effort`. The `effort`
 is `low`, `medium`, `high`, `xhigh`, or `max`. An empty field takes the default,
 the same as the new session form.
+
+The optional `profile` names the open tools the new session carries. It is
+`minimal` or `standard`, and an empty field takes the `defaultToolProfile`
+setting. A name that is not a profile fails the call. See
+[profiles.md](profiles.md).
 
 The manager writes the name of the caller into the record of the new session,
 as its creator. The sidebar groups a session under the control session that

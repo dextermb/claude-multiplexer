@@ -6,7 +6,7 @@ import (
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-func (s *Server) build(caller string, control bool) *sdk.Server {
+func (s *Server) build(caller string, profile Profile, control bool) *sdk.Server {
 	server := sdk.NewServer(
 		&sdk.Implementation{Name: ServerName, Version: version},
 		&sdk.ServerOptions{Instructions: instructions()},
@@ -14,11 +14,14 @@ func (s *Server) build(caller string, control bool) *sdk.Server {
 
 	s.addReadTools(server, caller)
 	s.addAPIDocsTool(server)
-	s.addUsageTools(server)
-	s.addConfigTools(server, caller)
-	s.addLayoutTools(server, caller)
-	s.addScheduleTools(server, caller, control)
-	s.addShareSessionTool(server, caller, control)
+
+	if profile != ProfileMinimal {
+		s.addUsageTools(server)
+		s.addConfigTools(server, caller)
+		s.addLayoutTools(server, caller)
+		s.addScheduleTools(server, caller, control)
+		s.addShareSessionTool(server, caller, control)
+	}
 
 	if control {
 		s.addControlTools(server, caller)

@@ -23,6 +23,7 @@ type fakeSessions struct {
 	created       []string
 	createModel   string
 	createEffort  string
+	createProfile string
 	list          []mcp.Session
 	messages      map[string][]mcp.Message
 	jobs          map[string][]mcp.Job
@@ -300,13 +301,15 @@ func (f *fakeSessions) StopWhenIdle(name string, stop, archive bool) error {
 	return nil
 }
 
-func (f *fakeSessions) Create(dir, name, model, effort, by string) (string, error) {
+func (f *fakeSessions) Create(in mcp.CreateInput, by string) (string, error) {
+	name := in.Name
 	if name == "" {
 		name = "session"
 	}
-	f.created = append(f.created, by+"->"+name+"@"+dir)
-	f.createModel = model
-	f.createEffort = effort
+	f.created = append(f.created, by+"->"+name+"@"+in.Dir)
+	f.createModel = in.Model
+	f.createEffort = in.Effort
+	f.createProfile = in.Profile
 	return name, nil
 }
 
@@ -607,7 +610,7 @@ func resultText(result *sdk.CallToolResult) string {
 func TestRenameToolTitlesTheCaller(t *testing.T) {
 	sessions := newFakeSessions()
 	server := startServer(t, sessions)
-	token, err := server.Register("docs", false)
+	token, err := server.Register("docs", mcp.DefaultProfile, false)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -638,7 +641,7 @@ func TestUnknownTokenIsRejected(t *testing.T) {
 
 func TestASessionWithoutControlSeesOnlyTheOpenTools(t *testing.T) {
 	server := startServer(t, newFakeSessions())
-	token, err := server.Register("docs", false)
+	token, err := server.Register("docs", mcp.DefaultProfile, false)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -670,7 +673,7 @@ func TestControlToolsDriveOtherSessions(t *testing.T) {
 	sessions := newFakeSessions()
 	sessions.list = []mcp.Session{{Name: "api", Live: true}, {Name: "landing"}}
 	server := startServer(t, sessions)
-	token, err := server.Register("docs", true)
+	token, err := server.Register("docs", mcp.DefaultProfile, true)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -707,7 +710,7 @@ func TestControlToolsDriveOtherSessions(t *testing.T) {
 func TestCreateSessionPassesModelAndEffort(t *testing.T) {
 	sessions := newFakeSessions()
 	server := startServer(t, sessions)
-	token, err := server.Register("docs", true)
+	token, err := server.Register("docs", mcp.DefaultProfile, true)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -733,7 +736,7 @@ func TestCreateSessionPassesModelAndEffort(t *testing.T) {
 func TestASessionCannotSendToItselfOrStopItself(t *testing.T) {
 	sessions := newFakeSessions()
 	server := startServer(t, sessions)
-	token, err := server.Register("docs", true)
+	token, err := server.Register("docs", mcp.DefaultProfile, true)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -759,7 +762,7 @@ func TestASessionCannotSendToItselfOrStopItself(t *testing.T) {
 func TestStopWhenIdleArmsTheCallerItself(t *testing.T) {
 	sessions := newFakeSessions()
 	server := startServer(t, sessions)
-	token, err := server.Register("docs", true)
+	token, err := server.Register("docs", mcp.DefaultProfile, true)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -802,7 +805,7 @@ func TestListAndMessagesReadTheOtherSessions(t *testing.T) {
 		{Role: "assistant", Text: "three"},
 	}
 	server := startServer(t, sessions)
-	token, err := server.Register("docs", false)
+	token, err := server.Register("docs", mcp.DefaultProfile, false)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -831,7 +834,7 @@ func TestListJobsReadsSelfAndANeighbour(t *testing.T) {
 	sessions.jobs["docs"] = []mcp.Job{{ID: "d1", Description: "own job", Status: "running", Running: true}}
 	sessions.jobs["api"] = []mcp.Job{{ID: "a1", Description: "build", Status: "done"}}
 	server := startServer(t, sessions)
-	token, err := server.Register("docs", false)
+	token, err := server.Register("docs", mcp.DefaultProfile, false)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -851,7 +854,7 @@ func TestListJobsReadsSelfAndANeighbour(t *testing.T) {
 func TestStopJobDrivesAnotherSessionAndSelf(t *testing.T) {
 	sessions := newFakeSessions()
 	server := startServer(t, sessions)
-	token, err := server.Register("docs", true)
+	token, err := server.Register("docs", mcp.DefaultProfile, true)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -872,7 +875,7 @@ func TestStopJobDrivesAnotherSessionAndSelf(t *testing.T) {
 func TestStopJobNeedsAJobID(t *testing.T) {
 	sessions := newFakeSessions()
 	server := startServer(t, sessions)
-	token, err := server.Register("docs", true)
+	token, err := server.Register("docs", mcp.DefaultProfile, true)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -901,14 +904,14 @@ func TestConfigNamesTheServerAndTheToken(t *testing.T) {
 }
 
 func TestAllowedToolsFollowTheGrant(t *testing.T) {
-	open := mcp.AllowedTools(false)
+	open := mcp.AllowedTools(mcp.DefaultProfile, false)
 	if len(open) != len(mcp.OpenTools) {
 		t.Fatalf("open tools = %v", open)
 	}
 	if open[0] != "mcp__cmux__rename_session" {
 		t.Fatalf("qualified name = %q", open[0])
 	}
-	control := mcp.AllowedTools(true)
+	control := mcp.AllowedTools(mcp.DefaultProfile, true)
 	if len(control) != len(mcp.OpenTools)+len(mcp.ControlTools) {
 		t.Fatalf("control tools = %v", control)
 	}
@@ -932,7 +935,7 @@ func contains(items []string, want string) bool {
 func TestSetConfigToolPassesTheRawValue(t *testing.T) {
 	sessions := newFakeSessions()
 	server := startServer(t, sessions)
-	token, err := server.Register("docs", false)
+	token, err := server.Register("docs", mcp.DefaultProfile, false)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -954,7 +957,7 @@ func TestSetConfigToolPassesTheRawValue(t *testing.T) {
 func TestSetConfigToolNeedsAPath(t *testing.T) {
 	sessions := newFakeSessions()
 	server := startServer(t, sessions)
-	token, err := server.Register("docs", false)
+	token, err := server.Register("docs", mcp.DefaultProfile, false)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -968,7 +971,7 @@ func TestSetConfigToolNeedsAPath(t *testing.T) {
 func TestUnsetConfigTool(t *testing.T) {
 	sessions := newFakeSessions()
 	server := startServer(t, sessions)
-	token, err := server.Register("docs", false)
+	token, err := server.Register("docs", mcp.DefaultProfile, false)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -985,7 +988,7 @@ func TestUnsetConfigTool(t *testing.T) {
 func TestSetEditorToolWritesBothFields(t *testing.T) {
 	sessions := newFakeSessions()
 	server := startServer(t, sessions)
-	token, err := server.Register("docs", false)
+	token, err := server.Register("docs", mcp.DefaultProfile, false)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -1009,7 +1012,7 @@ func TestSetEditorToolWritesBothFields(t *testing.T) {
 func TestSetEditorToolKeepsTheFieldItIsNotGiven(t *testing.T) {
 	sessions := newFakeSessions()
 	server := startServer(t, sessions)
-	token, err := server.Register("docs", false)
+	token, err := server.Register("docs", mcp.DefaultProfile, false)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -1029,7 +1032,7 @@ func TestSetEditorToolKeepsTheFieldItIsNotGiven(t *testing.T) {
 func TestSetEditorToolNeedsOneField(t *testing.T) {
 	sessions := newFakeSessions()
 	server := startServer(t, sessions)
-	token, err := server.Register("docs", false)
+	token, err := server.Register("docs", mcp.DefaultProfile, false)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -1046,7 +1049,7 @@ func TestSetEditorToolNeedsOneField(t *testing.T) {
 
 func TestEverySessionGetsTheEditorTool(t *testing.T) {
 	server := startServer(t, newFakeSessions())
-	token, err := server.Register("docs", false)
+	token, err := server.Register("docs", mcp.DefaultProfile, false)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -1072,7 +1075,7 @@ func TestUnsetEditorToolClearsBothFields(t *testing.T) {
 	yes := true
 	sessions.terminal = &yes
 	server := startServer(t, sessions)
-	token, err := server.Register("docs", false)
+	token, err := server.Register("docs", mcp.DefaultProfile, false)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -1096,7 +1099,7 @@ func TestUnsetEditorToolClearsOneField(t *testing.T) {
 	yes := true
 	sessions.terminal = &yes
 	server := startServer(t, sessions)
-	token, err := server.Register("docs", false)
+	token, err := server.Register("docs", mcp.DefaultProfile, false)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -1116,7 +1119,7 @@ func TestUnsetEditorToolClearsOneField(t *testing.T) {
 func TestUnsetEditorToolSaysWhenNothingWasSet(t *testing.T) {
 	sessions := newFakeSessions()
 	server := startServer(t, sessions)
-	token, err := server.Register("docs", false)
+	token, err := server.Register("docs", mcp.DefaultProfile, false)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -1133,7 +1136,7 @@ func TestUnsetEditorToolSaysWhenNothingWasSet(t *testing.T) {
 
 func TestEverySessionGetsTheUnsetEditorTool(t *testing.T) {
 	server := startServer(t, newFakeSessions())
-	token, err := server.Register("docs", false)
+	token, err := server.Register("docs", mcp.DefaultProfile, false)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -1156,7 +1159,7 @@ func TestEverySessionGetsTheUnsetEditorTool(t *testing.T) {
 func workingDirClient(t *testing.T, sessions *fakeSessions) *sdk.ClientSession {
 	t.Helper()
 	server := startServer(t, sessions)
-	token, err := server.Register("docs", false)
+	token, err := server.Register("docs", mcp.DefaultProfile, false)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -1339,7 +1342,7 @@ func TestEverySessionGetsTheProjectTools(t *testing.T) {
 func TestSaveLayoutToolCarriesTheDiffPositionAndSize(t *testing.T) {
 	sessions := newFakeSessions()
 	server := startServer(t, sessions)
-	token, err := server.Register("docs", false)
+	token, err := server.Register("docs", mcp.DefaultProfile, false)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -1374,7 +1377,7 @@ func TestSaveLayoutToolCarriesTheDiffPositionAndSize(t *testing.T) {
 func TestSaveLayoutToolRefusesABadDiffPosition(t *testing.T) {
 	sessions := newFakeSessions()
 	server := startServer(t, sessions)
-	token, err := server.Register("docs", false)
+	token, err := server.Register("docs", mcp.DefaultProfile, false)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -1393,7 +1396,7 @@ func TestSaveLayoutToolRefusesABadDiffPosition(t *testing.T) {
 func TestSetBlockCapToolWritesTheCap(t *testing.T) {
 	sessions := newFakeSessions()
 	server := startServer(t, sessions)
-	token, err := server.Register("docs", false)
+	token, err := server.Register("docs", mcp.DefaultProfile, false)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -1421,7 +1424,7 @@ func TestSetBlockCapToolWritesTheCap(t *testing.T) {
 func TestSetBlockCapToolRefusesALessThanZeroCap(t *testing.T) {
 	sessions := newFakeSessions()
 	server := startServer(t, sessions)
-	token, err := server.Register("docs", false)
+	token, err := server.Register("docs", mcp.DefaultProfile, false)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -1438,7 +1441,7 @@ func TestSetBlockCapToolRefusesALessThanZeroCap(t *testing.T) {
 func TestUnsetBlockCapToolClearsTheCap(t *testing.T) {
 	sessions := newFakeSessions()
 	server := startServer(t, sessions)
-	token, err := server.Register("docs", false)
+	token, err := server.Register("docs", mcp.DefaultProfile, false)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -1462,7 +1465,7 @@ func TestUnsetBlockCapToolClearsTheCap(t *testing.T) {
 func TestSetBlockCapToolWritesOneType(t *testing.T) {
 	sessions := newFakeSessions()
 	server := startServer(t, sessions)
-	token, err := server.Register("docs", false)
+	token, err := server.Register("docs", mcp.DefaultProfile, false)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -1483,7 +1486,7 @@ func TestSetBlockCapToolWritesOneType(t *testing.T) {
 func TestSetBlockCapToolWritesAnUnlimitedType(t *testing.T) {
 	sessions := newFakeSessions()
 	server := startServer(t, sessions)
-	token, err := server.Register("docs", false)
+	token, err := server.Register("docs", mcp.DefaultProfile, false)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -1501,7 +1504,7 @@ func TestSetBlockCapToolWritesAnUnlimitedType(t *testing.T) {
 func TestSetBlockCapToolRefusesAnUnknownType(t *testing.T) {
 	sessions := newFakeSessions()
 	server := startServer(t, sessions)
-	token, err := server.Register("docs", false)
+	token, err := server.Register("docs", mcp.DefaultProfile, false)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -1515,7 +1518,7 @@ func TestSetBlockCapToolRefusesAnUnknownType(t *testing.T) {
 func TestSetBlockCapToolRefusesRowsWithUnlimited(t *testing.T) {
 	sessions := newFakeSessions()
 	server := startServer(t, sessions)
-	token, err := server.Register("docs", false)
+	token, err := server.Register("docs", mcp.DefaultProfile, false)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -1530,7 +1533,7 @@ func TestSetBlockCapToolRefusesRowsWithUnlimited(t *testing.T) {
 func TestUnsetBlockCapToolClearsOneType(t *testing.T) {
 	sessions := newFakeSessions()
 	server := startServer(t, sessions)
-	token, err := server.Register("docs", false)
+	token, err := server.Register("docs", mcp.DefaultProfile, false)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -1550,7 +1553,7 @@ func TestUnsetBlockCapToolClearsOneType(t *testing.T) {
 func TestConfigPathToolNamesEveryFileInOrder(t *testing.T) {
 	sessions := newFakeSessions()
 	server := startServer(t, sessions)
-	token, err := server.Register("docs", false)
+	token, err := server.Register("docs", mcp.DefaultProfile, false)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -1571,7 +1574,7 @@ func TestConfigPathToolNamesEveryFileInOrder(t *testing.T) {
 func TestTemplatePathToolReadsTheCallerByDefault(t *testing.T) {
 	sessions := newFakeSessions()
 	server := startServer(t, sessions)
-	token, err := server.Register("docs", false)
+	token, err := server.Register("docs", mcp.DefaultProfile, false)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -1592,7 +1595,7 @@ func TestTemplatePathToolReadsTheCallerByDefault(t *testing.T) {
 func TestTemplatePathToolTakesAnotherSession(t *testing.T) {
 	sessions := newFakeSessions()
 	server := startServer(t, sessions)
-	token, err := server.Register("api", false)
+	token, err := server.Register("api", mcp.DefaultProfile, false)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -1609,7 +1612,7 @@ func TestTemplatePathToolTakesAnotherSession(t *testing.T) {
 func TestSchedulePathToolNamesTheDirectory(t *testing.T) {
 	sessions := newFakeSessions()
 	server := startServer(t, sessions)
-	token, err := server.Register("docs", false)
+	token, err := server.Register("docs", mcp.DefaultProfile, false)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}

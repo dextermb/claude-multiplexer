@@ -11,7 +11,7 @@ import (
 func controlClient(t *testing.T, sessions mcp.Sessions) *sdk.ClientSession {
 	t.Helper()
 	server := startServer(t, sessions)
-	token, err := server.Register("boss", true)
+	token, err := server.Register("boss", mcp.DefaultProfile, true)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -167,7 +167,7 @@ func TestDeleteScheduleToolRemovesTheSchedule(t *testing.T) {
 func plainClient(t *testing.T, sessions mcp.Sessions) *sdk.ClientSession {
 	t.Helper()
 	server := startServer(t, sessions)
-	token, err := server.Register("plain", false)
+	token, err := server.Register("plain", mcp.DefaultProfile, false)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}

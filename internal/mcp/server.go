@@ -219,13 +219,13 @@ func (s *Server) mountPeer(mux *http.ServeMux) {
 
 // Register gives a session its own token and its own tool set. A session
 // without the control grant is never offered the tools it may not call.
-func (s *Server) Register(name string, control bool) (string, error) {
+func (s *Server) Register(name string, profile Profile, control bool) (string, error) {
 	token, err := newToken()
 	if err != nil {
 		return "", err
 	}
 	s.mu.Lock()
-	s.servers[token] = s.build(name, control)
+	s.servers[token] = s.build(name, profile, control)
 	s.mu.Unlock()
 	return token, nil
 }

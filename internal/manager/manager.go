@@ -61,11 +61,14 @@ type Spec struct {
 	AllowedTools   []string
 	ResumeID       string
 	Control        bool
-	Parent         string
-	Scheduled      string
-	Owner          string
-	Hosted         bool
-	TempDir        bool
+	// Profile names the open tools the session carries. An empty profile takes
+	// the defaultToolProfile setting. See docs/mcp/profiles.md.
+	Profile   string
+	Parent    string
+	Scheduled string
+	Owner     string
+	Hosted    bool
+	TempDir   bool
 	// Lender names the peer whose Claude credential a hoisted session runs with.
 	// It is empty for every other session. See docs/peers/hoisted.md.
 	Lender string

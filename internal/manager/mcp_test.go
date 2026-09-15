@@ -29,7 +29,7 @@ func TestEquipToolsWritesTheConfigAndNamesTheTools(t *testing.T) {
 	m := withMCP(t)
 
 	var cfg session.Config
-	token, err := m.equipTools(&cfg, "docs", false)
+	token, err := m.equipTools(&cfg, "docs", mcp.DefaultProfile, false)
 	if err != nil {
 		t.Fatalf("equipTools: %v", err)
 	}
@@ -74,10 +74,10 @@ func TestEquipToolsAddsTheControlToolsOnlyWithTheGrant(t *testing.T) {
 	m := withMCP(t)
 
 	var open, control session.Config
-	if _, err := m.equipTools(&open, "docs", false); err != nil {
+	if _, err := m.equipTools(&open, "docs", mcp.DefaultProfile, false); err != nil {
 		t.Fatalf("equipTools: %v", err)
 	}
-	if _, err := m.equipTools(&control, "api", true); err != nil {
+	if _, err := m.equipTools(&control, "api", mcp.DefaultProfile, true); err != nil {
 		t.Fatalf("equipTools: %v", err)
 	}
 	if len(control.AllowedTools)-len(open.AllowedTools) != len(mcp.ControlTools) {
@@ -96,7 +96,7 @@ func TestEquipToolsAddsTheControlToolsOnlyWithTheGrant(t *testing.T) {
 func TestSpawnWithoutTheServerAddsNoTools(t *testing.T) {
 	m := newTestManager(t)
 	var cfg session.Config
-	token, err := m.equipTools(&cfg, "docs", true)
+	token, err := m.equipTools(&cfg, "docs", mcp.DefaultProfile, true)
 	if err != nil {
 		t.Fatalf("equipTools: %v", err)
 	}
