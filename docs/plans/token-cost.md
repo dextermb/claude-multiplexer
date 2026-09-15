@@ -3,9 +3,10 @@
 **Status:** in progress. Effort 1 shipped, and it is described in
 [../tui/sessions/bars.md](../tui/sessions/bars.md). Effort 2 shipped, and it is
 described in [../scheduler.md](../scheduler.md). Effort 3 is dropped, because
-the measurement under Resolved question 5 removed its reason. Efforts 4 and 5
-are ahead, in build order, and each one lands on its own. Every effort measures
-itself with the cache hit rate that effort 1 added.
+the measurement under Resolved question 5 removed its reason. Effort 4 shipped
+in part, and it is described in [../mcp/profiles.md](../mcp/profiles.md).
+Effort 5 is ahead. Every effort measures itself with the cache hit rate that
+effort 1 added.
 
 ---
 
@@ -82,84 +83,6 @@ them. That is enough.
 
 ---
 
-## Effort 4 — the tool schema diet
-
-**Worktree:** `just worktree tool-diet`.
-
-`internal/mcp/tools.go` builds 76 tools. `mcp.OpenTools` holds 40 of them, and
-every session carries all 40 whether or not it ever calls one. The schemas sit
-in the system prompt of every request of every session.
-
-### How large the share is
-
-Measure the share before you size the work. A one-word prompt on a machine with
-14 MCP servers reported 280 tools and 35079 input tokens. The 40 open tools of
-the multiplexer are one part of that, and the other servers hold the rest, so
-the multiplexer is a minority of the tool surface on a machine like this one.
-Read the tool count from the `init` event of a fresh session, and size the work
-from it before you start.
-
-### Position matters more than size
-
-A prompt renders in the order tools, then system, then messages, and a cache
-entry matches a prefix of that render. So the tool list sits at the front of
-every prefix, and a change to it invalidates the tools, the system, and the
-messages together.
-
-The two measured sessions show the cost of that. The first reported 280 tools,
-and the second reported 344, because one remote MCP server answered in time for
-the second and not for the first. The 64 extra schemas landed at the front of
-the prefix, so the second session wrote 13798 tokens to the cache that a stable
-tool list would have read.
-
-The multiplexer cannot order another server to answer on time. It can keep its
-own contribution small and deterministic, which is what the three options below
-do.
-
-A session picks its profile once, at spawn, so a profile never changes a live
-conversation and never invalidates a live cache. A profile change reaches a
-running session on its next start.
-
-Three options. Build them in order, and stop when the hit rate stops moving.
-
-### 4a — trim the descriptions
-
-Cut every tool description to one line, and point at `get_api_docs` for the
-detail. This is the smallest change, it risks nothing, and it needs no new
-concept.
-
-### 4b — tool profiles
-
-Replace the `control bool` in `AllowedTools` and `build` with a profile:
-
-| Profile | What it holds |
-|---|---|
-| `minimal` | The read tools, and `get_api_docs` |
-| `standard` | `minimal`, plus config, layout, schedule, and share |
-| `control` | `standard`, plus the control, credential, and peer tools |
-
-A new setting `defaultToolProfile` picks the default, and the create-session
-form and `create_session` take an override. A control session keeps its grant,
-so the profile never widens what a session may do.
-
-### 4c — search and dispatch
-
-Replace the 40 open schemas with two: `find_tools(query)` returns the matching
-names and their schemas, and `call_tool(name, args)` runs one. The prefix then
-holds two schemas rather than 40, at the cost of one extra turn the first time
-a session needs a tool.
-
-**Resolve open question 6 first.** Measure the call rate before and after. A
-model that no longer finds `rename_session` has cost more than it saved.
-
-### How it is verified
-
-Record the reported context size of the first `assistant` event of a fresh
-session, before and after each option. That number is the prefix size, and it
-should fall at each step.
-
----
-
 ## Effort 5 — the context-fill governor
 
 **Worktree:** `just worktree context-governor`.
@@ -205,14 +128,37 @@ crossing, and asserts that `Send` fails while the hold is set.
 
 ---
 
+## What is left of effort 4
+
+Two parts of the tool schema diet did not ship, and one of them never will.
+
+**4a, trimming the descriptions, is rejected.** An audit of all 93 descriptions
+found no cruft: no steering language, no worked examples, no cross-references,
+and 80 of them are one or two sentences. The reference on tool use names
+under-description as the common failure, so a blanket trim would cost more in
+tool selection than it saves in tokens. The descriptions stay as they are.
+
+**4c, search and dispatch, is not built.** It replaces the open schemas with a
+`find_tools` and a `call_tool`, and it still waits on open question 6. The
+minimal profile now covers the same ground for a session that needs few tools,
+so measure the profile in use before you build the harder thing.
+
+**A measurement note.** The `cmux run` command starts a bare child and attaches
+no MCP server, so a transcript from it holds no `mcp__cmux__` tool. Measure the
+tool surface from a session the manager spawns, and not from `cmux run`.
+
+---
+
 ## When this lands
 
 Each effort moves its durable part into `docs/` in the same change:
 
 | Effort | Where the content goes |
 |---|---|
-| 4 | [../mcp/tools.md](../mcp/tools.md), [../config.md](../config.md) |
 | 5 | [../sessions.md](../sessions.md), [../config.md](../config.md) |
 
 Strike each effort from this file as it lands. Delete the file when the last
 one is in. See [../../.claude/rules/plans.md](../../.claude/rules/plans.md).
+
+---
+
