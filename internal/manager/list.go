@@ -23,7 +23,7 @@ func (m *Manager) List() []mcp.Session {
 	watched := m.Watched()
 	out := make([]mcp.Session, 0, len(items)+len(remotes))
 	for _, item := range items {
-		snap := item.sess.Snapshot()
+		snap := item.view()
 		meta := item.metaCopy()
 		out = append(out, mcp.Session{
 			Name:    snap.Name,

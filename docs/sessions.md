@@ -203,6 +203,11 @@ The counters are derived, and not stored. `Snapshot` reports the state, the
 Claude session identifier, the accumulated cost, the number of turns, the
 duration of the last turn, the accumulated tokens, and the queue length.
 
+A turn is a turn of the agent loop, and not a prompt. Claude Code reports
+`num_turns` for each prompt it answers, and one prompt that reads files and
+calls tools reports many. So the count measures the work of the session, and it
+is larger than the number of prompts you sent.
+
 `Snapshot.Model` and `Snapshot.PermissionMode` report what the child confirms.
 They start as the flag values, and the `init` event replaces them. So an empty
 `--model` becomes the model Claude Code chose, and a mode the child changes is

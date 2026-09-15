@@ -90,6 +90,19 @@ func (e *entry) view() session.Snapshot {
 	return live
 }
 
+// total adds the counters of the earlier runs to the counters of the running
+// child, so every reader sees the lifetime figures. The pump is the one place
+// that calls it. See docs/manager.md.
+func (e *entry) total(snap session.Snapshot) session.Snapshot {
+	snap.Turns += e.base.turns
+	snap.Cost += e.base.cost
+	snap.InputTokens += e.base.input
+	snap.CacheReadTokens += e.base.cacheRead
+	snap.CacheWriteTokens += e.base.cacheWrite
+	snap.OutputTokens += e.base.output
+	return snap
+}
+
 func (e *entry) todoList() []protocol.Todo {
 	e.todoMu.Lock()
 	defer e.todoMu.Unlock()

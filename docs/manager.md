@@ -132,8 +132,13 @@ ring buffer in memory stays complete up to its 5000 lines.
 ## The snapshot stays with the lines
 
 `Snapshot(name)` reports the state of a session. The turn count, the cost, the
-duration, and the token totals come from the stream. The pump adds each of these
-only after it appends that event's lines. So the count never leads the buffer:
+duration, and the token totals come from the stream, and every one of them is a
+lifetime figure. A resumed child starts its counters at zero, so the pump calls
+`entry.total` on each snapshot, which adds the totals of the earlier runs from
+the meta file. The pump is the one place that does this, so the interface, the
+tools, and a peer all read the same figures. The context fill is not one of
+them, because it describes the window now. The pump adds each of these only
+after it appends that event's lines. So the count never leads the buffer:
 when `Snapshot` shows five turns, `Lines` already holds those five turns.
 
 Each session event carries the snapshot as of that event, because the session
