@@ -27,7 +27,28 @@ type renameIn struct {
 }
 
 type listIn struct {
-	LiveOnly bool `json:"live_only,omitempty" jsonschema:"true to leave out the sessions that are not running now"`
+	Stopped  bool `json:"stopped,omitempty" jsonschema:"true to also return the sessions that are stored and not running now"`
+	Archived bool `json:"archived,omitempty" jsonschema:"true to also return the archived sessions"`
+}
+
+func (in listIn) keep(item Session) bool {
+	if item.Archived {
+		return in.Archived
+	}
+	if !item.Live {
+		return in.Stopped
+	}
+	return true
+}
+
+func (in listIn) filter(all []Session) []Session {
+	out := make([]Session, 0, len(all))
+	for _, item := range all {
+		if in.keep(item) {
+			out = append(out, item)
+		}
+	}
+	return out
 }
 
 type messagesIn struct {

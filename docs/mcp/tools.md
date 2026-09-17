@@ -7,7 +7,7 @@ grant. See [grant.md](grant.md).
 | Tool | Arguments | What it does | Grant |
 |---|---|---|---|
 | `rename_session` | `title` | Sets the title of the calling session. An empty title clears it. | open |
-| `list_sessions` | `live_only` | Every session, running and stored: name, title, directory, state, model, turns, cost, and the archive flag. | open |
+| `list_sessions` | `stopped`, `archived` | The sessions that run now: name, title, directory, state, model, turns, cost, and the archive flag. `stopped` adds the stored sessions, and `archived` adds the archived ones. | open |
 | `get_messages` | `session`, `limit` | The recent messages of a session, oldest last. 20 by default, 200 at most. | open |
 | `list_jobs` | `session` | The background jobs of a session: id, description, task type, and status. An empty session means the caller. | open |
 | `get_config_path` | — | The settings files, in the order they are read, the one that is read now, and the one a write goes to. | open |
