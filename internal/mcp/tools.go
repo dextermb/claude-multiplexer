@@ -18,6 +18,7 @@ func (s *Server) build(caller string, profile Profile, control bool) *sdk.Server
 	if profile != ProfileMinimal {
 		s.addUsageTools(server)
 		s.addConfigTools(server, caller)
+		s.addLockTools(server, caller)
 		s.addLayoutTools(server, caller)
 		s.addScheduleTools(server, caller, control)
 		s.addShareSessionTool(server, caller, control)

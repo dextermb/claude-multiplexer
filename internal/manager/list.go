@@ -39,6 +39,7 @@ func (m *Manager) List() []mcp.Session {
 			Cost:    snap.Cost,
 			Hosted:  meta.Hosted,
 			Lender:  meta.Lender,
+			Locks:   meta.Locks,
 			Watched: watched[snap.Name],
 		})
 	}
@@ -76,6 +77,7 @@ func (m *Manager) List() []mcp.Session {
 			Cost:     meta.Cost,
 			Hosted:   meta.Hosted,
 			Lender:   meta.Lender,
+			Locks:    meta.Locks,
 		})
 	}
 	return out

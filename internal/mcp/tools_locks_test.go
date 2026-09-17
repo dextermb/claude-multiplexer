@@ -1,0 +1,152 @@
+package mcp_test
+
+import (
+	"context"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/dextermb/claude-multiplexer/internal/mcp"
+)
+
+func TestLockToolsTakeAndRelease(t *testing.T) {
+	sessions := newFakeSessions()
+	client := workingDirClient(t, sessions)
+
+	if result := call(t, client, mcp.ToolAddLock, map[string]any{"lock": "deploy"}); result.IsError {
+		t.Fatalf("add_lock failed: %s", resultText(result))
+	}
+	again := call(t, client, mcp.ToolAddLock, map[string]any{"lock": "deploy"})
+	if again.IsError {
+		t.Fatalf("a repeat add_lock failed: %s", resultText(again))
+	}
+	if len(sessions.locks["docs"]) != 1 {
+		t.Fatalf("locks = %v, want one", sessions.locks["docs"])
+	}
+
+	if result := call(t, client, mcp.ToolAddLock, map[string]any{"lock": "repo:cmux"}); result.IsError {
+		t.Fatalf("add_lock failed: %s", resultText(result))
+	}
+	list := call(t, client, mcp.ToolListLocks, map[string]any{})
+	if !strings.Contains(resultText(list), "holds 2 locks") {
+		t.Fatalf("list_locks does not report the count:\n%s", resultText(list))
+	}
+
+	if result := call(t, client, mcp.ToolRemoveLock, map[string]any{"lock": "deploy"}); result.IsError {
+		t.Fatalf("remove_lock failed: %s", resultText(result))
+	}
+	if len(sessions.locks["docs"]) != 1 || sessions.locks["docs"][0] != "repo:cmux" {
+		t.Fatalf("locks = %v, want [repo:cmux]", sessions.locks["docs"])
+	}
+
+	if result := call(t, client, mcp.ToolClearLocks, map[string]any{}); result.IsError {
+		t.Fatalf("clear_locks failed: %s", resultText(result))
+	}
+	empty := call(t, client, mcp.ToolClearLocks, map[string]any{})
+	if !strings.Contains(resultText(empty), "held no lock") {
+		t.Fatalf("a second clear must say there was none:\n%s", resultText(empty))
+	}
+}
+
+func TestSetLocksToolReplacesTheSet(t *testing.T) {
+	sessions := newFakeSessions()
+	client := workingDirClient(t, sessions)
+
+	result := call(t, client, mcp.ToolSetLocks, map[string]any{"locks": []any{"one", "two"}})
+	if result.IsError {
+		t.Fatalf("set_locks failed: %s", resultText(result))
+	}
+	if len(sessions.locks["docs"]) != 2 || sessions.locks["docs"][0] != "one" {
+		t.Fatalf("locks = %v, want [one two]", sessions.locks["docs"])
+	}
+}
+
+func TestAddLockToolNeedsALabel(t *testing.T) {
+	sessions := newFakeSessions()
+	client := workingDirClient(t, sessions)
+
+	if result := call(t, client, mcp.ToolAddLock, map[string]any{"lock": "  "}); !result.IsError {
+		t.Fatal("an empty label must be an error")
+	}
+	if len(sessions.locks["docs"]) != 0 {
+		t.Fatalf("locks = %v, want none", sessions.locks["docs"])
+	}
+}
+
+func TestAddLockToolNamesTheOtherHolders(t *testing.T) {
+	sessions := newFakeSessions()
+	sessions.list = []mcp.Session{
+		{Name: "api", Live: true, Locks: []string{"deploy"}},
+		{Name: "docs", Live: true},
+	}
+	client := workingDirClient(t, sessions)
+
+	result := call(t, client, mcp.ToolAddLock, map[string]any{"lock": "deploy"})
+	if result.IsError {
+		t.Fatalf("add_lock failed: %s", resultText(result))
+	}
+	text := resultText(result)
+	if !strings.Contains(text, "api") {
+		t.Fatalf("add_lock does not name the other holder:\n%s", text)
+	}
+	if strings.Contains(text, "no other session") {
+		t.Fatalf("add_lock says nobody else holds it, but api does:\n%s", text)
+	}
+}
+
+func TestFindLockedSessionsToolMatchesEveryLabel(t *testing.T) {
+	sessions := newFakeSessions()
+	sessions.list = []mcp.Session{
+		{Name: "api", Live: true, Locks: []string{"deploy", "repo:cmux"}},
+		{Name: "docs", Live: true, Locks: []string{"deploy"}},
+		{Name: "old", Locks: []string{"deploy"}},
+	}
+	client := workingDirClient(t, sessions)
+
+	one := resultText(call(t, client, mcp.ToolFindLocked, map[string]any{"locks": []any{"deploy"}}))
+	for _, name := range []string{"api", "docs", "old"} {
+		if !strings.Contains(one, name) {
+			t.Fatalf("find_locked_sessions does not name %q:\n%s", name, one)
+		}
+	}
+
+	both := resultText(call(t, client, mcp.ToolFindLocked, map[string]any{"locks": []any{"deploy", "repo:cmux"}}))
+	if !strings.Contains(both, "api") || strings.Contains(both, "docs") {
+		t.Fatalf("find_locked_sessions must return only the session holding both:\n%s", both)
+	}
+
+	live := resultText(call(t, client, mcp.ToolFindLocked,
+		map[string]any{"locks": []any{"deploy"}, "live": true}))
+	if strings.Contains(live, "old") {
+		t.Fatalf("live true must drop the stopped session:\n%s", live)
+	}
+
+	if result := call(t, client, mcp.ToolFindLocked, map[string]any{"locks": []any{}}); !result.IsError {
+		t.Fatal("a search with no label must be an error")
+	}
+}
+
+func TestEverySessionGetsTheLockTools(t *testing.T) {
+	client := workingDirClient(t, newFakeSessions())
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	tools, err := client.ListTools(ctx, nil)
+	if err != nil {
+		t.Fatalf("list tools: %v", err)
+	}
+
+	want := map[string]bool{
+		mcp.ToolListLocks: false, mcp.ToolAddLock: false, mcp.ToolRemoveLock: false,
+		mcp.ToolSetLocks: false, mcp.ToolClearLocks: false, mcp.ToolFindLocked: false,
+	}
+	for _, tool := range tools.Tools {
+		if _, ok := want[tool.Name]; ok {
+			want[tool.Name] = true
+		}
+	}
+	for name, found := range want {
+		if !found {
+			t.Errorf("a session without the grant must still see %s", name)
+		}
+	}
+}

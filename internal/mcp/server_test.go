@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -39,6 +40,7 @@ type fakeSessions struct {
 	autoArchive   *int
 	workingDir    string
 	project       []string
+	locks         map[string][]string
 	layouts       map[string]mcp.LayoutDims
 	activeLayout  string
 	sessionLayout map[string]string
@@ -71,6 +73,7 @@ func newFakeSessions() *fakeSessions {
 		layouts:       make(map[string]mcp.LayoutDims),
 		sessionLayout: make(map[string]string),
 		schedules:     make(map[string]mcp.Schedule),
+		locks:         make(map[string][]string),
 	}
 }
 
@@ -271,6 +274,70 @@ func (f *fakeSessions) ClearProject(by string) (bool, error) {
 	}
 	f.project = nil
 	return true, nil
+}
+
+func (f *fakeSessions) Locks(session string) ([]string, error) {
+	return f.locks[session], nil
+}
+
+func (f *fakeSessions) SetLocks(labels []string, by string) ([]string, error) {
+	f.locks[by] = slices.Clone(labels)
+	return f.locks[by], nil
+}
+
+func (f *fakeSessions) AddLock(label, by string) ([]string, error) {
+	if !slices.Contains(f.locks[by], label) {
+		f.locks[by] = append(f.locks[by], label)
+	}
+	return f.locks[by], nil
+}
+
+func (f *fakeSessions) RemoveLock(label, by string) ([]string, error) {
+	var kept []string
+	for _, held := range f.locks[by] {
+		if held != label {
+			kept = append(kept, held)
+		}
+	}
+	f.locks[by] = kept
+	return kept, nil
+}
+
+func (f *fakeSessions) ClearLocks(by string) (bool, error) {
+	if len(f.locks[by]) == 0 {
+		return false, nil
+	}
+	delete(f.locks, by)
+	return true, nil
+}
+
+func (f *fakeSessions) FindLocked(labels []string, live bool) ([]mcp.Session, error) {
+	if len(labels) == 0 {
+		return nil, mcp.ErrNoLock
+	}
+	var out []mcp.Session
+	for _, item := range f.list {
+		if live && !item.Live {
+			continue
+		}
+		held := item.Locks
+		if extra, ok := f.locks[item.Name]; ok {
+			held = extra
+		}
+		if holdsEvery(held, labels) {
+			out = append(out, item)
+		}
+	}
+	return out, nil
+}
+
+func holdsEvery(held, wanted []string) bool {
+	for _, label := range wanted {
+		if !slices.Contains(held, label) {
+			return false
+		}
+	}
+	return true
 }
 
 func (f *fakeSessions) SetTitle(name, title string) error {
