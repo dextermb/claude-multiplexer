@@ -14,17 +14,9 @@ func buildAPI(clientName string, sess APISessions) *sdk.Server {
 
 	sdk.AddTool(server, &sdk.Tool{
 		Name:        ToolList,
-		Description: "List every session this client owns, running and stored.",
+		Description: "List the sessions this client owns that run now. Set stopped true to add the stored sessions, and archived true to add the archived ones.",
 	}, func(_ context.Context, _ *sdk.CallToolRequest, in listIn) (*sdk.CallToolResult, listOut, error) {
-		all := sess.List()
-		out := make([]Session, 0, len(all))
-		for _, item := range all {
-			if in.LiveOnly && !item.Live {
-				continue
-			}
-			out = append(out, item)
-		}
-		return nil, listOut{Sessions: out}, nil
+		return nil, listOut{Sessions: in.filter(sess.List())}, nil
 	})
 
 	sdk.AddTool(server, &sdk.Tool{

@@ -21,7 +21,7 @@ import (
 type fakeAPI struct{}
 
 func (fakeAPI) List() []mcp.Session {
-	return []mcp.Session{{Name: "mine", State: "idle", Owner: "c1"}}
+	return []mcp.Session{{Name: "mine", State: "idle", Live: true, Owner: "c1"}}
 }
 
 func (fakeAPI) Messages(name string, _ int) ([]mcp.Message, error) {

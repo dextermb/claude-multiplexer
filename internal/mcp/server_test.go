@@ -798,6 +798,7 @@ func TestListAndMessagesReadTheOtherSessions(t *testing.T) {
 	sessions.list = []mcp.Session{
 		{Name: "api", Live: true, State: "busy"},
 		{Name: "landing", State: "stored"},
+		{Name: "attic", State: "stored", Archived: true},
 	}
 	sessions.messages["api"] = []mcp.Message{
 		{Role: "user", Text: "one"},
@@ -811,19 +812,32 @@ func TestListAndMessagesReadTheOtherSessions(t *testing.T) {
 	}
 	client := connect(t, server, token)
 
-	result := call(t, client, mcp.ToolList, map[string]any{"live_only": true})
-	text := resultText(result)
-	if !strings.Contains(text, "api") || strings.Contains(text, "landing") {
-		t.Fatalf("live_only list = %s", text)
+	text := resultText(call(t, client, mcp.ToolList, map[string]any{}))
+	if !strings.Contains(text, "api") || strings.Contains(text, "landing") || strings.Contains(text, "attic") {
+		t.Fatalf("default list = %s", text)
 	}
 
-	result = call(t, client, mcp.ToolMessages, map[string]any{"session": "api", "limit": 2})
-	text = resultText(result)
+	text = resultText(call(t, client, mcp.ToolList, map[string]any{"stopped": true}))
+	if !strings.Contains(text, "api") || !strings.Contains(text, "landing") || strings.Contains(text, "attic") {
+		t.Fatalf("stopped list = %s", text)
+	}
+
+	text = resultText(call(t, client, mcp.ToolList, map[string]any{"archived": true}))
+	if !strings.Contains(text, "api") || strings.Contains(text, "landing") || !strings.Contains(text, "attic") {
+		t.Fatalf("archived list = %s", text)
+	}
+
+	text = resultText(call(t, client, mcp.ToolList, map[string]any{"stopped": true, "archived": true}))
+	if !strings.Contains(text, "api") || !strings.Contains(text, "landing") || !strings.Contains(text, "attic") {
+		t.Fatalf("stopped and archived list = %s", text)
+	}
+
+	text = resultText(call(t, client, mcp.ToolMessages, map[string]any{"session": "api", "limit": 2}))
 	if strings.Contains(text, "one") || !strings.Contains(text, "three") {
 		t.Fatalf("messages = %s", text)
 	}
 
-	result = call(t, client, mcp.ToolMessages, map[string]any{"session": "gone"})
+	result := call(t, client, mcp.ToolMessages, map[string]any{"session": "gone"})
 	if !result.IsError {
 		t.Fatal("an unknown session returned messages")
 	}

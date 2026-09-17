@@ -46,13 +46,15 @@ which is the `client_id` that created it. A session a human, a schedule, or a
 control session starts has no owner, so no client sees it. The human interface
 still shows every session, because the human owns the host.
 
-- A client's `list_sessions` returns only its own sessions.
+- A client's `list_sessions` returns only its own sessions, and only the ones
+  that run now. The `stopped` and `archived` flags add the other two
+  categories.
 - A client call on a session it does not own answers as if the session is not
   there: `404` on REST, and a not-found error on MCP. So the API leaks no
   session name across a client boundary.
 - Ownership is set once, at create, and it lives in the session record
   (`sessions/<name>/meta.json`, the `owner` field). It survives a restart, so a
-  client still sees its stored and archived sessions.
+  client still sees its stored and archived sessions when it asks for them.
 
 ## Where the credentials live
 

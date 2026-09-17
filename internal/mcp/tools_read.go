@@ -22,17 +22,9 @@ func (s *Server) addReadTools(server *sdk.Server, caller string) {
 
 	sdk.AddTool(server, &sdk.Tool{
 		Name:        ToolList,
-		Description: "List every session the multiplexer knows, running and stored.",
+		Description: "List the sessions the multiplexer runs now. Set stopped true to add the stored sessions, and archived true to add the archived ones.",
 	}, func(_ context.Context, _ *sdk.CallToolRequest, in listIn) (*sdk.CallToolResult, listOut, error) {
-		all := s.sessions.List()
-		out := make([]Session, 0, len(all))
-		for _, item := range all {
-			if in.LiveOnly && !item.Live {
-				continue
-			}
-			out = append(out, item)
-		}
-		return nil, listOut{Sessions: out}, nil
+		return nil, listOut{Sessions: in.filter(s.sessions.List())}, nil
 	})
 
 	sdk.AddTool(server, &sdk.Tool{
