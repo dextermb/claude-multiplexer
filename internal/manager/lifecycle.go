@@ -223,7 +223,8 @@ func (m *Manager) SetPermissionMode(name, mode string) error {
 
 // SetWorkingDir points a session at the directory a tool of that session names,
 // so the interface opens it instead of the directory the session started in. A
-// relative path is resolved against that directory. See docs/mcp/tools.md.
+// relative path is resolved against that directory. See
+// docs/mcp/tools/directories.md.
 func (m *Manager) SetWorkingDir(name, path string) (string, error) {
 	item, err := m.entry(name)
 	if err != nil {
@@ -280,7 +281,7 @@ func resolveDir(base, path string) (string, error) {
 }
 
 // Project reads the directories of a session's project, in order. The list is
-// empty when the session has no project. See docs/mcp/tools.md.
+// empty when the session has no project. See docs/mcp/tools/directories.md.
 func (m *Manager) Project(name string) ([]string, error) {
 	item, err := m.entry(name)
 	if err != nil {

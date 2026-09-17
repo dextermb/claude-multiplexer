@@ -34,7 +34,8 @@ func TestExitWorktreeMatchesTheTool(t *testing.T) {
 	}
 }
 
-// The text is the one the EnterWorktree tool returns; see docs/mcp/tools.md.
+// The text is the one the EnterWorktree tool returns; see
+// docs/mcp/tools/directories.md.
 func TestWorktreePathReadsTheRealResult(t *testing.T) {
 	const text = "Created worktree at /Users/x/repo/.claude/worktrees/keen-squishing-marshmallow " +
 		"on branch worktree-keen-squishing-marshmallow. The session is now working in the worktree."
@@ -45,7 +46,7 @@ func TestWorktreePathReadsTheRealResult(t *testing.T) {
 }
 
 // The text is the one EnterWorktree returns for a worktree it enters by path;
-// see docs/mcp/tools.md.
+// see docs/mcp/tools/directories.md.
 func TestWorktreePathReadsAnEnteredWorktree(t *testing.T) {
 	const text = "Entered worktree at /Users/x/repo/.claude/worktrees/probe on branch worktree-probe. " +
 		"The session is now working in the worktree."

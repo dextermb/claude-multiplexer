@@ -83,4 +83,4 @@ A session can write the cap itself, with the `set_block_cap` tool, and take it
 out again with `unset_block_cap`. Both tools take an optional `type`, so a
 session sets or clears one bucket, or the default. The interface reads the file
 again at each notice, so a new cap reaches the pane at once, and the pane draws
-itself again. See [../mcp/tools.md](../mcp/tools.md).
+itself again. See [../mcp/tools/settings.md](../mcp/tools/settings.md).

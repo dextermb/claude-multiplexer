@@ -93,7 +93,7 @@ take any key. So `blockCaps.tol` writes a key the program never reads. Read the
 key back with `get_config_path` and the file to confirm it.
 
 The interface reads the file again after each write, so a change takes effect at
-once. See [mcp/tools.md](mcp/tools.md).
+once. See [mcp/tools/settings.md](mcp/tools/settings.md).
 
 ## The pages
 

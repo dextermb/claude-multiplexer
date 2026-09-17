@@ -125,7 +125,7 @@ A session arms a deferred action on itself with the `stop_when_idle` tool. The
 action is a stop, and an archive after the stop when the caller asks for it. A
 scheduled run is the main user: a prompt does its work, then arms the action, so
 a spawn-mode run leaves no exited session behind. See
-[mcp/tools.md](./mcp/tools.md) and [scheduler.md](./scheduler.md).
+[mcp/tools/sessions.md](./mcp/tools/sessions.md) and [scheduler.md](./scheduler.md).
 
 The tool cannot stop the session in the same turn, because the stop kills the
 process that runs the tool call. So the manager defers the action. The
@@ -164,7 +164,7 @@ The sweep archives a session only when three conditions hold:
 
 A session sets the value with the `set_auto_archive` tool, and clears it with
 `unset_auto_archive`. The `set_config` tool reaches the same field by the path
-`autoArchiveDays`. See [mcp/tools.md](./mcp/tools.md).
+`autoArchiveDays`. See [mcp/tools/settings.md](./mcp/tools/settings.md).
 
 A raised value does not bring a session back: an archived session stays
 archived, the same as a manual archive. The human clears the archive by hand.

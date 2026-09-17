@@ -16,7 +16,7 @@ type enterWorktreeInput struct {
 
 // EnterWorktree reads the optional path from an EnterWorktree tool_use block.
 // The second result is false for another tool. The path is empty when the agent
-// makes a new worktree without one. See docs/mcp/tools.md.
+// makes a new worktree without one. See docs/mcp/tools/directories.md.
 func (b Block) EnterWorktree() (string, bool) {
 	if b.Type != "tool_use" || b.Name != ToolEnterWorktree {
 		return "", false
@@ -27,7 +27,7 @@ func (b Block) EnterWorktree() (string, bool) {
 }
 
 // ExitWorktree reports whether the block is an ExitWorktree tool_use block.
-// See docs/mcp/tools.md.
+// See docs/mcp/tools/directories.md.
 func (b Block) ExitWorktree() bool {
 	return b.Type == "tool_use" && b.Name == ToolExitWorktree
 }
@@ -35,7 +35,7 @@ func (b Block) ExitWorktree() bool {
 // WorktreePath reads the worktree directory out of the tool_result that
 // EnterWorktree returns. The text names the directory as `worktree at <path> on
 // branch <branch>`. It returns an empty string when the text carries none. See
-// docs/mcp/tools.md.
+// docs/mcp/tools/directories.md.
 func WorktreePath(text string) string {
 	const marker = "worktree at "
 	start := strings.Index(text, marker)

@@ -99,13 +99,14 @@ move into a worktree. The pump reads the worktree tools the agent runs, and sets
 `working_dir` from `EnterWorktree` and clears it on `ExitWorktree`. The agent can
 also name a directory with a tool. The record keeps the answer in `working_dir`,
 so the interface opens the right place and a resumed session keeps it. The
-directory a session started in never changes. See [mcp/tools.md](./mcp/tools.md).
+directory a session started in never changes. See
+[mcp/tools/directories.md](./mcp/tools/directories.md).
 
 A project is a set of directories one session works in at once, kept in
 `working_dirs`. It lets one change span several code bases, and the diff panel
 groups the changes by directory. The set is separate from `working_dir`: a
 project widens what the diff reads, and `working_dir` says which one directory
-the human opens. See [mcp/tools.md](./mcp/tools.md) and
+the human opens. See [mcp/tools/directories.md](./mcp/tools/directories.md) and
 [tui/diff.md](./tui/diff.md).
 
 The state of each session lives under `<root>/sessions/<name>/`, which holds

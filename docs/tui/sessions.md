@@ -56,7 +56,8 @@ grow one element to the left, so `~/a/api` and `~/b/api` read `a/api` and
 ### A creator group
 
 A control session can start another session with the `create_session` tool. See
-[../mcp/tools.md](../mcp/tools.md). The multiplexer records the caller, and the
+[../mcp/tools/sessions.md](../mcp/tools/sessions.md). The multiplexer records the
+caller, and the
 session it made joins the group of that control session, and not the group of its
 repository. So one group holds the work of one agent, whatever repository each
 member runs in.

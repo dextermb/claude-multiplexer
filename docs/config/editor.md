@@ -46,7 +46,7 @@ A session can write these two fields itself, with the `set_editor` tool, and
 take them out again with `unset_editor`. `set_editor` makes the file when there
 is none, and `unset_editor` makes none. The interface reads the file at each
 `s E`, so the next one opens the new editor. A flag still wins, because the
-flag sits above the file. See [../mcp/tools.md](../mcp/tools.md).
+flag sits above the file. See [../mcp/tools/settings.md](../mcp/tools/settings.md).
 
 ## The terminal editor, and the window editor
 

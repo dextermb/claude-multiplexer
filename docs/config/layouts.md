@@ -29,4 +29,5 @@ switcher, see [../tui/layouts.md](../tui/layouts.md) and [../manager.md](../mana
 A layout sets only the fields it holds, and the rest take the built-in default.
 The multiplexer resolves the dimensions in three steps: the session layout, then
 `activeLayout`, then the built-in defaults. The `save_layout`, `set_layout`, and
-other tools write these fields. See [../mcp/tools.md](../mcp/tools.md).
+other tools write these fields. See
+[../mcp/tools/layouts.md](../mcp/tools/layouts.md).

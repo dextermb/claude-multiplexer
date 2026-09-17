@@ -43,7 +43,7 @@ func (m *Manager) sessionLayout(name string) string {
 }
 
 // LayoutList describes the named layouts, the global active layout, and the
-// layout of one session. See docs/mcp/tools.md.
+// layout of one session. See docs/mcp/tools/layouts.md.
 func (m *Manager) LayoutList(session string) (mcp.LayoutList, error) {
 	cfg, err := config.Load(m.opts.ConfigPaths...)
 	if err != nil {
