@@ -42,14 +42,22 @@ func (in listIn) keep(item Session) bool {
 }
 
 func (in listIn) filter(all []Session) []Session {
+	return selectSessions(all, in.keep)
+}
+
+func selectSessions(all []Session, keep func(Session) bool) []Session {
 	out := make([]Session, 0, len(all))
 	for _, item := range all {
-		if in.keep(item) {
+		if keep(item) {
 			out = append(out, item)
 		}
 	}
 	return out
 }
+
+func isInactive(item Session) bool { return !item.Live && !item.Archived }
+
+func isArchived(item Session) bool { return item.Archived }
 
 type messagesIn struct {
 	Session string `json:"session" jsonschema:"the name of the session to read"`

@@ -22,6 +22,8 @@ const ServerName = "cmux"
 const (
 	ToolRename        = "rename_session"
 	ToolList          = "list_sessions"
+	ToolListInactive  = "list_inactive_sessions"
+	ToolListArchived  = "list_archived_sessions"
 	ToolMessages      = "get_messages"
 	ToolListJobs      = "list_jobs"
 	ToolConfigPath    = "get_config_path"
@@ -127,7 +129,7 @@ func ParseProfile(name string) (Profile, error) {
 
 // MinimalTools are the open tools of the minimal profile: the session reads, and
 // the description of the REST API.
-var MinimalTools = []string{ToolRename, ToolList, ToolMessages, ToolListJobs,
+var MinimalTools = []string{ToolRename, ToolList, ToolListInactive, ToolListArchived, ToolMessages, ToolListJobs,
 	ToolConfigPath, ToolTemplatePath, ToolAPIDocs}
 
 // OpenToolsFor names the open tools of a profile.
@@ -141,7 +143,7 @@ func OpenToolsFor(profile Profile) []string {
 // OpenTools go to every session on the standard profile. ControlTools go only to
 // a session that holds the control grant.
 var (
-	OpenTools = []string{ToolRename, ToolList, ToolMessages, ToolListJobs, ToolConfigPath, ToolTemplatePath,
+	OpenTools = []string{ToolRename, ToolList, ToolListInactive, ToolListArchived, ToolMessages, ToolListJobs, ToolConfigPath, ToolTemplatePath,
 		ToolSetConfig, ToolUnsetConfig,
 		ToolSetEditor, ToolUnsetEditor, ToolSetBlockCap, ToolUnsetBlockCap,
 		ToolSetAutoArchive, ToolUnsetAutoArchive, ToolSetWorkingDir, ToolUnsetWorkingDir,
@@ -160,7 +162,7 @@ var (
 	// APITools go to an external client that reaches the session API. The set is
 	// session-only, so no config, layout, or schedule tool is ever exposed. See
 	// docs/mcp/api.md.
-	APITools = []string{ToolRename, ToolList, ToolMessages, ToolListJobs,
+	APITools = []string{ToolRename, ToolList, ToolListInactive, ToolListArchived, ToolMessages, ToolListJobs,
 		ToolSend, ToolStop, ToolArchive, ToolCreate, ToolStopJob}
 )
 

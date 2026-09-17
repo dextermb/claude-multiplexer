@@ -31,7 +31,8 @@ A client reaches the session tools only, never the local configuration. The API
 never exposes the config, editor, block-cap, working-directory, project, layout,
 or schedule tools. The client tools are:
 
-- Read: `list_sessions`, `get_messages`, `list_jobs`.
+- Read: `list_sessions`, `list_inactive_sessions`, `list_archived_sessions`,
+  `get_messages`, `list_jobs`.
 - Title: `rename_session`.
 - Drive: `send_message`, `stop_session`, `archive_session`, `create_session`,
   `stop_job`.
