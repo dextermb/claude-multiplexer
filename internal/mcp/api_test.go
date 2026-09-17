@@ -16,12 +16,17 @@ import (
 	"github.com/dextermb/claude-multiplexer/internal/wire"
 )
 
-// fakeAPI is a canned owner-scoped view. It owns one session, "mine", and it
-// answers ErrNotFound for any other session, the way the real view does.
+// fakeAPI is a canned owner-scoped view. It owns one running session, "mine",
+// one stored session, and one archived session, and it answers ErrNotFound for
+// any other session, the way the real view does.
 type fakeAPI struct{}
 
 func (fakeAPI) List() []mcp.Session {
-	return []mcp.Session{{Name: "mine", State: "idle", Live: true, Owner: "c1"}}
+	return []mcp.Session{
+		{Name: "mine", State: "idle", Live: true, Owner: "c1"},
+		{Name: "kept", State: "stored", Owner: "c1"},
+		{Name: "attic", State: "stored", Archived: true, Owner: "c1"},
+	}
 }
 
 func (fakeAPI) Messages(name string, _ int) ([]mcp.Message, error) {
@@ -397,8 +402,14 @@ func TestAPIToolCall(t *testing.T) {
 	token := grant(t, server.BaseURL(), client.ClientID, secret)
 
 	session := connect(t, server, token)
-	if out := resultText(call(t, session, mcp.ToolList, map[string]any{})); !strings.Contains(out, "mine") {
-		t.Fatalf("list_sessions did not return the owned session: %s", out)
+	if out := resultText(call(t, session, mcp.ToolList, map[string]any{})); !strings.Contains(out, "mine") || strings.Contains(out, "kept") || strings.Contains(out, "attic") {
+		t.Fatalf("list_sessions did not return the running owned session alone: %s", out)
+	}
+	if out := resultText(call(t, session, mcp.ToolListInactive, map[string]any{})); !strings.Contains(out, "kept") || strings.Contains(out, "attic") {
+		t.Fatalf("list_inactive_sessions did not return the inactive owned session alone: %s", out)
+	}
+	if out := resultText(call(t, session, mcp.ToolListArchived, map[string]any{})); !strings.Contains(out, "attic") || strings.Contains(out, "kept") {
+		t.Fatalf("list_archived_sessions did not return the archived owned session alone: %s", out)
 	}
 	if out := resultText(call(t, session, mcp.ToolCreate, map[string]any{"path": "/tmp"})); !strings.Contains(out, "new") {
 		t.Fatalf("create_session did not return the new name: %s", out)

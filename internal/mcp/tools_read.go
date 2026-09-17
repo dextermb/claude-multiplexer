@@ -28,6 +28,20 @@ func (s *Server) addReadTools(server *sdk.Server, caller string) {
 	})
 
 	sdk.AddTool(server, &sdk.Tool{
+		Name:        ToolListInactive,
+		Description: "List the stored sessions that do not run now and are not archived.",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, _ struct{}) (*sdk.CallToolResult, listOut, error) {
+		return nil, listOut{Sessions: selectSessions(s.sessions.List(), isInactive)}, nil
+	})
+
+	sdk.AddTool(server, &sdk.Tool{
+		Name:        ToolListArchived,
+		Description: "List the archived sessions.",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, _ struct{}) (*sdk.CallToolResult, listOut, error) {
+		return nil, listOut{Sessions: selectSessions(s.sessions.List(), isArchived)}, nil
+	})
+
+	sdk.AddTool(server, &sdk.Tool{
 		Name:        ToolMessages,
 		Description: "Read the recent messages of a session, oldest first.",
 	}, func(_ context.Context, _ *sdk.CallToolRequest, in messagesIn) (*sdk.CallToolResult, messagesOut, error) {

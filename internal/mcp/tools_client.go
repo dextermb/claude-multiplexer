@@ -20,6 +20,20 @@ func buildAPI(clientName string, sess APISessions) *sdk.Server {
 	})
 
 	sdk.AddTool(server, &sdk.Tool{
+		Name:        ToolListInactive,
+		Description: "List the sessions this client owns that are stored, do not run now, and are not archived.",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, _ struct{}) (*sdk.CallToolResult, listOut, error) {
+		return nil, listOut{Sessions: selectSessions(sess.List(), isInactive)}, nil
+	})
+
+	sdk.AddTool(server, &sdk.Tool{
+		Name:        ToolListArchived,
+		Description: "List the archived sessions this client owns.",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, _ struct{}) (*sdk.CallToolResult, listOut, error) {
+		return nil, listOut{Sessions: selectSessions(sess.List(), isArchived)}, nil
+	})
+
+	sdk.AddTool(server, &sdk.Tool{
 		Name:        ToolMessages,
 		Description: "Read the recent messages of a session this client owns, oldest first.",
 	}, func(_ context.Context, _ *sdk.CallToolRequest, in messagesIn) (*sdk.CallToolResult, messagesOut, error) {

@@ -1,6 +1,7 @@
 # The grant, and what a tool refuses
 
-A session gets `rename_session`, `list_sessions`, `get_messages`, `list_jobs`,
+A session gets `rename_session`, `list_sessions`, `list_inactive_sessions`,
+`list_archived_sessions`, `get_messages`, `list_jobs`,
 `get_config_path`, `get_template_path`, `get_api_url`, `get_peer_url`, `get_api_docs`, `set_editor`, `unset_editor`,
 `set_block_cap`, `unset_block_cap`, `set_working_dir`, and `unset_working_dir`
 always. It gets the five control tools, and the tools that manage the external

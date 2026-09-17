@@ -832,6 +832,16 @@ func TestListAndMessagesReadTheOtherSessions(t *testing.T) {
 		t.Fatalf("stopped and archived list = %s", text)
 	}
 
+	text = resultText(call(t, client, mcp.ToolListInactive, map[string]any{}))
+	if strings.Contains(text, "api") || !strings.Contains(text, "landing") || strings.Contains(text, "attic") {
+		t.Fatalf("inactive list = %s", text)
+	}
+
+	text = resultText(call(t, client, mcp.ToolListArchived, map[string]any{}))
+	if strings.Contains(text, "api") || strings.Contains(text, "landing") || !strings.Contains(text, "attic") {
+		t.Fatalf("archived-only list = %s", text)
+	}
+
 	text = resultText(call(t, client, mcp.ToolMessages, map[string]any{"session": "api", "limit": 2}))
 	if strings.Contains(text, "one") || !strings.Contains(text, "three") {
 		t.Fatalf("messages = %s", text)
