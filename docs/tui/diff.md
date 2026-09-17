@@ -17,7 +17,7 @@ the session set, or the directory the session started in. A session with a
 project reads every directory of the project, one diff for each. `row.diffDirs`
 gives the set: the project directories when there is a project, else the one
 open directory. See [sessions.md](sessions.md) and
-[../mcp/tools.md](../mcp/tools.md).
+[../mcp/tools/directories.md](../mcp/tools/directories.md).
 
 ## The count in the bar
 

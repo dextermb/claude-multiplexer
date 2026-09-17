@@ -5,7 +5,7 @@ clock. A schedule survives a restart, because it lives on disk, not in a session
 
 The example is a session that polls a website every few minutes. Any session
 creates the schedule with `create_schedule`, and the manager runs it from then
-on. See [mcp/tools.md](mcp/tools.md) for the five tools.
+on. See [mcp/tools/schedules.md](mcp/tools/schedules.md) for the tools.
 
 ## Why the manager owns the clock
 
@@ -74,7 +74,8 @@ into the record, so a later change to the setting leaves an existing schedule as
 it is. To change the model of a schedule that exists, call `update_schedule`.
 
 `list_schedules` reports the model of every schedule, so a costly schedule is
-visible without a read of the files. See [mcp/tools.md](mcp/tools.md).
+visible without a read of the files. See
+[mcp/tools/schedules.md](mcp/tools/schedules.md).
 
 ## The two run modes
 

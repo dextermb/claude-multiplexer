@@ -216,7 +216,8 @@ func (m *Manager) pump(item *entry) {
 // trackWorktree sets the working directory of a session from the EnterWorktree
 // tool it runs, and clears it on ExitWorktree. The path comes from the
 // tool_result, and falls back to the tool input. The two maps hold the pending
-// tool ids, and belong to one pump goroutine. See docs/mcp/tools.md.
+// tool ids, and belong to one pump goroutine. See
+// docs/mcp/tools/directories.md.
 func (m *Manager) trackWorktree(ev session.Event, enter map[string]string, exit map[string]bool) {
 	if ev.Kind != session.KindProtocol || ev.Protocol.Message == nil {
 		return

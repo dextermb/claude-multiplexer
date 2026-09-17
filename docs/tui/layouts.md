@@ -66,7 +66,7 @@ interface.
 ## Create and edit a layout
 
 The interface has no key that creates or edits a layout. Use the MCP tools, or
-edit the settings file. See [../mcp/tools.md](../mcp/tools.md) for `list_layouts`,
+edit the settings file. See [../mcp/tools/layouts.md](../mcp/tools/layouts.md) for `list_layouts`,
 `save_layout`, `delete_layout`, `set_layout`, and `unset_layout`.
 
 `save_layout` captures the current dimensions of the calling session, so a call

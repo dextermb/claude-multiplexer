@@ -10,7 +10,7 @@ import (
 )
 
 // Jobs reports the background jobs of a live session. A stored session has no
-// running jobs, so it returns an empty list. See docs/mcp/tools.md.
+// running jobs, so it returns an empty list. See docs/mcp/tools/sessions.md.
 func (m *Manager) Jobs(name string) ([]mcp.Job, error) {
 	item, err := m.entry(name)
 	if err != nil {
@@ -35,7 +35,8 @@ func (m *Manager) Jobs(name string) ([]mcp.Job, error) {
 
 // StopJobFrom interrupts a session and queues an instruction to kill one
 // background job, so the agent runs KillShell on the exact shell. The interrupt
-// ends the turn at once, so the instruction runs next. See docs/mcp/tools.md.
+// ends the turn at once, so the instruction runs next. See
+// docs/mcp/tools/sessions.md.
 func (m *Manager) StopJobFrom(target, from, jobID string) (int, error) {
 	item, err := m.entry(target)
 	if err != nil {

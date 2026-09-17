@@ -199,7 +199,7 @@ var (
 )
 
 // The scopes a layout tool takes. ScopeSession sets the calling session; ScopeAll
-// sets the global default. See docs/mcp/tools.md.
+// sets the global default. See docs/mcp/tools/layouts.md.
 const (
 	ScopeSession = "session"
 	ScopeAll     = "all"
@@ -263,7 +263,7 @@ type Message struct {
 }
 
 // Job is one row of list_jobs. It repeats what the session holds, so this
-// package needs nothing from the session package. See docs/mcp/tools.md.
+// package needs nothing from the session package. See docs/mcp/tools/sessions.md.
 type Job struct {
 	ID          string `json:"id"`
 	Description string `json:"description,omitempty"`
@@ -318,7 +318,7 @@ type ScheduleEdit struct {
 }
 
 // ConfigPath names the settings files, in the order they are read. See
-// docs/mcp/tools.md.
+// docs/mcp/tools/settings.md.
 type ConfigPath struct {
 	Paths  []string `json:"paths"`
 	Active string   `json:"active,omitempty"`
@@ -326,7 +326,8 @@ type ConfigPath struct {
 }
 
 // LayoutDims are the interface dimensions a layout sets. A nil field takes the
-// built-in default, so a layout may set only some of them. See docs/mcp/tools.md.
+// built-in default, so a layout may set only some of them. See
+// docs/mcp/tools/layouts.md.
 type LayoutDims struct {
 	PromptMin    *int    `json:"promptMin,omitempty"`
 	PromptMax    *int    `json:"promptMax,omitempty"`
@@ -343,7 +344,7 @@ type LayoutInfo struct {
 }
 
 // LayoutList is the output of list_layouts: the named layouts, the global active
-// layout, and the layout of the calling session. See docs/mcp/tools.md.
+// layout, and the layout of the calling session. See docs/mcp/tools/layouts.md.
 type LayoutList struct {
 	Session       string       `json:"session"`
 	ActiveGlobal  string       `json:"active_global,omitempty"`
@@ -358,7 +359,7 @@ type SchedulePath struct {
 }
 
 // TemplatePath names the directories one session reads a preset prompt from,
-// in the order they are read. See docs/mcp/tools.md.
+// in the order they are read. See docs/mcp/tools/settings.md.
 type TemplatePath struct {
 	Session string   `json:"session"`
 	Root    string   `json:"root"`
