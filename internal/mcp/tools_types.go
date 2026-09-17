@@ -199,6 +199,31 @@ type projectOut struct {
 	Message string   `json:"message"`
 }
 
+type listLocksIn struct {
+	Session string `json:"session,omitempty" jsonschema:"the session to read the locks of; empty means this session"`
+}
+
+type lockIn struct {
+	Lock string `json:"lock" jsonschema:"the label to take or release, such as 'repo:claude-multiplexer' or 'file:internal/manager/meta.go'"`
+}
+
+type setLocksIn struct {
+	Locks []string `json:"locks" jsonschema:"the whole set of labels this session holds; an empty list releases every lock"`
+}
+
+type findLockedIn struct {
+	Locks []string `json:"locks" jsonschema:"the labels to search for; a session matches only when it holds every one of them"`
+	Live  bool     `json:"live,omitempty" jsonschema:"true to return only the sessions that run now"`
+}
+
+type lockOut struct {
+	OK      bool     `json:"ok"`
+	Locks   []string `json:"locks"`
+	Changed bool     `json:"changed"`
+	Holders []string `json:"holders,omitempty"`
+	Message string   `json:"message"`
+}
+
 type listLayoutsIn struct {
 	Session string `json:"session,omitempty" jsonschema:"the session to read the active layout of; empty means this session"`
 }

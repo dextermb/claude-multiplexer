@@ -26,6 +26,7 @@ type Meta struct {
 	OutputTokens     int       `json:"output_tokens"`
 	WorkingDir       string    `json:"working_dir,omitempty"`
 	WorkingDirs      []string  `json:"working_dirs,omitempty"`
+	Locks            []string  `json:"locks,omitempty"`
 	Layout           string    `json:"layout,omitempty"`
 	Control          bool      `json:"control,omitempty"`
 	Parent           string    `json:"parent,omitempty"`
@@ -46,6 +47,7 @@ func (m Meta) sameAs(other Meta) bool {
 		m.Effort == other.Effort &&
 		m.WorkingDir == other.WorkingDir &&
 		sameStrings(m.WorkingDirs, other.WorkingDirs) &&
+		sameStrings(m.Locks, other.Locks) &&
 		m.Layout == other.Layout &&
 		m.Control == other.Control &&
 		m.Turns == other.Turns &&

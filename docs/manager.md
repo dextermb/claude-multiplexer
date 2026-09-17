@@ -48,6 +48,10 @@ session adds to them, and does not restart them.
 | `SetWorkingDir(name, path)` | Point a session at the directory it works in now. A relative path resolves against the directory it started in. |
 | `UnsetWorkingDir(name)` | Take that directory off again, and report whether it had one. |
 | `WorkingDirs()` | The working directory of each live session that set one. |
+| `Locks(name)` | The locks a session holds. It answers for a stopped session too. |
+| `AddLock(name, label)` / `RemoveLock(name, label)` | Take one lock, or release one. |
+| `SetLocks(name, labels)` / `ClearLocks(name)` | Replace the whole set, or release every lock. |
+| `FindLocked(labels, live)` | The sessions that hold every named label. |
 | `Project(name)` / `SetProject(name, paths)` | Read, or replace, the ordered set of project directories of a session. |
 | `AddProjectDir(name, path)` / `RemoveProjectDir(name, path)` | Add or take one directory of a session's project. |
 | `ClearProject(name)` | Empty a session's project, and report whether it had one. |
@@ -109,6 +113,12 @@ project widens what the diff reads, and `working_dir` says which one directory
 the human opens. See [mcp/tools/directories.md](./mcp/tools/directories.md) and
 [tui/diff.md](./tui/diff.md).
 
+A lock is a label a session holds, to say it works on something and another
+session must keep away, kept in `locks`. The multiplexer does not read the
+label, and it never stops the work: a lock is advisory, and a session releases
+it with a tool. A stopped session keeps every lock it held. See
+[mcp/tools/locks.md](./mcp/tools/locks.md).
+
 The state of each session lives under `<root>/sessions/<name>/`, which holds
 `transcript.jsonl` and `meta.json`. With no `--root`, the root is
 `~/.claude-multiplexer`, and it is `~/.multiplexier` when that older directory
@@ -155,17 +165,20 @@ The title, the queue length, and the state come live from the session, because a
 direct action changes them with no stream event behind it. So a new title or a
 queued prompt shows at once, and does not wait for the next turn.
 
-## Two locks, for two things
+## Two mutexes, for two things
 
-The lock of the manager guards the map of live sessions and their order. It is
+This section is about the mutexes of the code. For the lock a session holds on
+its work, see [mcp/tools/locks.md](./mcp/tools/locks.md).
+
+The mutex of the manager guards the map of live sessions and their order. It is
 held to find a session, and released before any work on that session, so one
 slow session never blocks the rest.
 
-Each live session carries its own locks, for the fields two goroutines touch:
+Each live session carries its own mutexes, for the fields two goroutines touch:
 the record (`meta`), the partial text, the task list, and the cached snapshot.
 The pump writes the record after each turn, while the interface and the tools
-read it, so a reader takes a copy under the lock of that session rather than
-reading the field. The lock of a session is never taken before the lock of the
+read it, so a reader takes a copy under the mutex of that session rather than
+reading the field. The mutex of a session is never taken before the mutex of the
 manager, so the two never deadlock.
 
 ## The tools a session can call

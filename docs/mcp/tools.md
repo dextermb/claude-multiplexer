@@ -12,6 +12,7 @@ tool does, and the grant it needs.
 | [tools/sessions.md](tools/sessions.md) | Naming, listing, and reading a session, and the tools that start, stop, and prompt one |
 | [tools/settings.md](tools/settings.md) | The settings file: the editor, the block cap, auto-archive, a key by a dot path, and the paths a session reads |
 | [tools/directories.md](tools/directories.md) | The working directory of a session, and the project that spans several code bases |
+| [tools/locks.md](tools/locks.md) | The locks a session holds, so two sessions do not work on the same thing |
 | [tools/layouts.md](tools/layouts.md) | The named interface dimensions, and the scope a layout is active in |
 | [tools/schedules.md](tools/schedules.md) | The durable, recurring tasks, and the one field that needs the control grant |
 

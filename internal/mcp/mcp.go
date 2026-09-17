@@ -45,17 +45,25 @@ const (
 	ToolRemoveProject   = "remove_project_dir"
 	ToolSetProject      = "set_project"
 	ToolClearProject    = "clear_project"
-	ToolListLayouts     = "list_layouts"
-	ToolSaveLayout      = "save_layout"
-	ToolDeleteLayout    = "delete_layout"
-	ToolSetLayout       = "set_layout"
-	ToolUnsetLayout     = "unset_layout"
-	ToolSend            = "send_message"
-	ToolStop            = "stop_session"
-	ToolArchive         = "archive_session"
-	ToolStopWhenIdle    = "stop_when_idle"
-	ToolCreate          = "create_session"
-	ToolStopJob         = "stop_job"
+
+	ToolListLocks  = "list_locks"
+	ToolAddLock    = "add_lock"
+	ToolRemoveLock = "remove_lock"
+	ToolSetLocks   = "set_locks"
+	ToolClearLocks = "clear_locks"
+	ToolFindLocked = "find_locked_sessions"
+
+	ToolListLayouts  = "list_layouts"
+	ToolSaveLayout   = "save_layout"
+	ToolDeleteLayout = "delete_layout"
+	ToolSetLayout    = "set_layout"
+	ToolUnsetLayout  = "unset_layout"
+	ToolSend         = "send_message"
+	ToolStop         = "stop_session"
+	ToolArchive      = "archive_session"
+	ToolStopWhenIdle = "stop_when_idle"
+	ToolCreate       = "create_session"
+	ToolStopJob      = "stop_job"
 
 	ToolCreateSchedule     = "create_schedule"
 	ToolUpdateSchedule     = "update_schedule"
@@ -148,6 +156,7 @@ var (
 		ToolSetEditor, ToolUnsetEditor, ToolSetBlockCap, ToolUnsetBlockCap,
 		ToolSetAutoArchive, ToolUnsetAutoArchive, ToolSetWorkingDir, ToolUnsetWorkingDir,
 		ToolListProject, ToolAddProjectDir, ToolRemoveProject, ToolSetProject, ToolClearProject,
+		ToolListLocks, ToolAddLock, ToolRemoveLock, ToolSetLocks, ToolClearLocks, ToolFindLocked,
 		ToolListLayouts, ToolSaveLayout, ToolDeleteLayout, ToolSetLayout, ToolUnsetLayout,
 		ToolCreateSchedule, ToolUpdateSchedule, ToolListSchedules, ToolDeleteSchedule, ToolSetScheduleEnabled, ToolRunSchedule,
 		ToolSchedulePath, ToolAPIURL, ToolAPIDocs, ToolGetUsage, ToolPeerUsage, ToolPeerURL,
@@ -181,6 +190,7 @@ var (
 	ErrNoConfigPath = errors.New("mcp: this tool needs a settings path")
 	ErrNoEditor     = errors.New("mcp: this tool needs an editor, a terminal flag, or both")
 	ErrNoDir        = errors.New("mcp: this tool needs a directory path")
+	ErrNoLock       = errors.New("mcp: this tool needs a lock label")
 	ErrBadCap       = errors.New("mcp: the block cap must be zero or more rows")
 	ErrBadDays      = errors.New("mcp: the auto-archive days must be one or more")
 	ErrCapBoth      = errors.New("mcp: give rows or unlimited, not both")
@@ -253,6 +263,10 @@ type Session struct {
 	// A hoisted session runs locally, so Host is empty and Hosted is false. See
 	// docs/peers/hoisted.md.
 	Lender string `json:"lender,omitempty"`
+	// Locks are the labels a session holds, to say it works on something and
+	// another session must keep away. They are advisory. See
+	// docs/mcp/tools/locks.md.
+	Locks []string `json:"locks,omitempty"`
 }
 
 // Message is one entry of get_messages. The transcript carries no timestamp for
@@ -397,6 +411,12 @@ type Sessions interface {
 	AddProjectDir(path, by string) ([]string, error)
 	RemoveProjectDir(path, by string) ([]string, error)
 	ClearProject(by string) (bool, error)
+	Locks(session string) ([]string, error)
+	SetLocks(labels []string, by string) ([]string, error)
+	AddLock(label, by string) ([]string, error)
+	RemoveLock(label, by string) ([]string, error)
+	ClearLocks(by string) (bool, error)
+	FindLocked(labels []string, live bool) ([]Session, error)
 	Layouts(session string) (LayoutList, error)
 	SaveLayout(name string, dims LayoutDims, by string) (string, error)
 	DeleteLayout(name, by string) (string, bool, error)
