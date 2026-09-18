@@ -61,6 +61,23 @@ func (e *entry) setMeta(meta Meta) {
 	e.meta = meta
 }
 
+// mutateMeta applies fn to the record under metaMu, persists it once, and
+// returns the new copy. It holds metaMu across the write, so the change is
+// atomic against the pump. See docs/manager.md.
+func (e *entry) mutateMeta(fn func(*Meta) error) (Meta, error) {
+	e.metaMu.Lock()
+	defer e.metaMu.Unlock()
+	next := e.meta
+	if err := fn(&next); err != nil {
+		return Meta{}, err
+	}
+	if err := writeMeta(e.path, next); err != nil {
+		return Meta{}, err
+	}
+	e.meta = next
+	return next, nil
+}
+
 func (e *entry) partialText() string {
 	e.partialMu.Lock()
 	defer e.partialMu.Unlock()

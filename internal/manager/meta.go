@@ -82,6 +82,20 @@ func writeMeta(path string, meta Meta) error {
 	return os.WriteFile(path, append(data, '\n'), 0o644)
 }
 
+// mutateStoredMeta reads the record at path, applies fn, and writes it back. A
+// stored session has no entry and no pump, so no lock is needed. See
+// docs/manager.md.
+func mutateStoredMeta(path string, fn func(*Meta) error) error {
+	meta, err := ReadMeta(path)
+	if err != nil {
+		return err
+	}
+	if err := fn(&meta); err != nil {
+		return err
+	}
+	return writeMeta(path, meta)
+}
+
 func ReadMeta(path string) (Meta, error) {
 	var meta Meta
 	data, err := os.ReadFile(path)
