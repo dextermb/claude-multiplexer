@@ -35,7 +35,7 @@ func (m *Manager) SetLocks(name string, labels []string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	return m.writeLocks(item, locks)
+	return m.writeLocks(item, func([]string) []string { return locks })
 }
 
 // AddLock takes one lock. A label the session already holds is left as it is.
@@ -48,7 +48,9 @@ func (m *Manager) AddLock(name, label string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	return m.writeLocks(item, appendUnique(item.metaCopy().Locks, lock))
+	return m.writeLocks(item, func(held []string) []string {
+		return appendUnique(held, lock)
+	})
 }
 
 // RemoveLock releases one lock, and returns the labels the session still holds.
@@ -61,13 +63,15 @@ func (m *Manager) RemoveLock(name, label string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	var kept []string
-	for _, held := range item.metaCopy().Locks {
-		if held != lock {
-			kept = append(kept, held)
+	return m.writeLocks(item, func(held []string) []string {
+		var kept []string
+		for _, label := range held {
+			if label != lock {
+				kept = append(kept, label)
+			}
 		}
-	}
-	return m.writeLocks(item, kept)
+		return kept
+	})
 }
 
 // ClearLocks releases every lock of a session, and reports whether it held any.
@@ -79,7 +83,7 @@ func (m *Manager) ClearLocks(name string) (bool, error) {
 	if len(item.metaCopy().Locks) == 0 {
 		return false, nil
 	}
-	if _, err := m.writeLocks(item, nil); err != nil {
+	if _, err := m.writeLocks(item, func([]string) []string { return nil }); err != nil {
 		return false, err
 	}
 	return true, nil
@@ -114,11 +118,13 @@ func running(item mcp.Session) bool {
 	return item.Live && session.ParseState(item.State).Live()
 }
 
-func (m *Manager) writeLocks(item *entry, locks []string) ([]string, error) {
-	meta := item.metaCopy()
-	meta.Locks = locks
-	item.setMeta(meta)
-	if err := writeMeta(item.path, meta); err != nil {
+func (m *Manager) writeLocks(item *entry, next func(held []string) []string) ([]string, error) {
+	var locks []string
+	if _, err := item.mutateMeta(func(meta *Meta) error {
+		locks = next(meta.Locks)
+		meta.Locks = locks
+		return nil
+	}); err != nil {
 		return nil, err
 	}
 	return locks, nil

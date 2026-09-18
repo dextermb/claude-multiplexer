@@ -181,6 +181,21 @@ read it, so a reader takes a copy under the mutex of that session rather than
 reading the field. The mutex of a session is never taken before the mutex of the
 manager, so the two never deadlock.
 
+Every change to the record of a live session goes through one method,
+`entry.mutateMeta`. It holds the record mutex across the read, the write to disk,
+and the commit to memory, in that order. So two writers never lose each other's
+change, and the file never falls behind memory: a change reaches disk before it
+reaches the field, and a failed disk write leaves both untouched. A read of a
+field that a change needs (the current locks, the current project) happens inside
+the same locked section, so the read-modify-write is atomic. The one read that
+stays outside the lock is the start directory, because it is fixed once a session
+starts, so a path resolves without the lock held.
+
+A stored session has no entry and no pump, so no writer competes for its record.
+A change to a stored session (a title, an archive, a layout) goes through
+`mutateStoredMeta`, which reads the file, applies the change, and writes it back,
+with no lock.
+
 ## The tools a session can call
 
 The manager runs one MCP server for every session, and `StartMCP` starts it.

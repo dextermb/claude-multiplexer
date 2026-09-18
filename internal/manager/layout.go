@@ -199,19 +199,15 @@ func (m *Manager) mutateSessionLayout(name, layout string) error {
 	m.mu.Lock()
 	item, live := m.entries[name]
 	m.mu.Unlock()
-	if live {
-		meta := item.metaCopy()
+	set := func(meta *Meta) error {
 		meta.Layout = layout
-		item.setMeta(meta)
-		return writeMeta(item.path, meta)
+		return nil
 	}
-	path := metaPath(m.opts.Root, name)
-	meta, err := ReadMeta(path)
-	if err != nil {
+	if live {
+		_, err := item.mutateMeta(set)
 		return err
 	}
-	meta.Layout = layout
-	return writeMeta(path, meta)
+	return mutateStoredMeta(metaPath(m.opts.Root, name), set)
 }
 
 func dimsOf(layout config.Layout) mcp.LayoutDims {

@@ -16,6 +16,7 @@ func (m *Manager) rememberSession(item *entry, snap session.Snapshot) {
 		return
 	}
 	item.metaMu.Lock()
+	defer item.metaMu.Unlock()
 	next := item.meta
 	next.ClaudeSessionID = snap.ClaudeSessionID
 	next.Title = snap.Title
@@ -30,14 +31,13 @@ func (m *Manager) rememberSession(item *entry, snap session.Snapshot) {
 	next.CacheWriteTokens = snap.CacheWriteTokens
 	next.OutputTokens = snap.OutputTokens
 	if next.sameAs(item.meta) && !item.meta.LastActiveAt.IsZero() {
-		item.metaMu.Unlock()
 		return
 	}
 	next.LastActiveAt = time.Now()
+	if err := writeMeta(item.path, next); err != nil {
+		return
+	}
 	item.meta = next
-	item.metaMu.Unlock()
-
-	_ = writeMeta(item.path, next)
 }
 
 func (m *Manager) Stored() []Meta {
@@ -131,18 +131,16 @@ func (m *Manager) Archive(name string, archived bool) error {
 		return fmt.Errorf("%w: %s", ErrStillLive, name)
 	}
 
-	path := metaPath(m.opts.Root, name)
-	meta, err := ReadMeta(path)
+	err := mutateStoredMeta(metaPath(m.opts.Root, name), func(meta *Meta) error {
+		meta.Archived = archived
+		if archived {
+			meta.ArchivedAt = time.Now()
+		} else {
+			meta.ArchivedAt = time.Time{}
+		}
+		return nil
+	})
 	if err != nil {
-		return err
-	}
-	meta.Archived = archived
-	if archived {
-		meta.ArchivedAt = time.Now()
-	} else {
-		meta.ArchivedAt = time.Time{}
-	}
-	if err := writeMeta(path, meta); err != nil {
 		return err
 	}
 

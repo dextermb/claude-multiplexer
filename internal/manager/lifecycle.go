@@ -230,14 +230,14 @@ func (m *Manager) SetWorkingDir(name, path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	meta := item.metaCopy()
-	full, err := resolveDir(meta.Dir, path)
+	full, err := resolveDir(item.metaCopy().Dir, path)
 	if err != nil {
 		return "", err
 	}
-	meta.WorkingDir = full
-	item.setMeta(meta)
-	if err := writeMeta(item.path, meta); err != nil {
+	if _, err := item.mutateMeta(func(meta *Meta) error {
+		meta.WorkingDir = full
+		return nil
+	}); err != nil {
 		return "", err
 	}
 	return full, nil
@@ -250,13 +250,13 @@ func (m *Manager) UnsetWorkingDir(name string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	meta := item.metaCopy()
-	if meta.WorkingDir == "" {
+	if item.metaCopy().WorkingDir == "" {
 		return false, nil
 	}
-	meta.WorkingDir = ""
-	item.setMeta(meta)
-	if err := writeMeta(item.path, meta); err != nil {
+	if _, err := item.mutateMeta(func(meta *Meta) error {
+		meta.WorkingDir = ""
+		return nil
+	}); err != nil {
 		return false, err
 	}
 	return true, nil
@@ -297,12 +297,17 @@ func (m *Manager) SetProject(name string, paths []string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	meta := item.metaCopy()
-	dirs, err := resolveDirs(meta.Dir, paths)
+	dirs, err := resolveDirs(item.metaCopy().Dir, paths)
 	if err != nil {
 		return nil, err
 	}
-	return m.writeProject(item, meta, dirs)
+	if _, err := item.mutateMeta(func(meta *Meta) error {
+		meta.WorkingDirs = dirs
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	return dirs, nil
 }
 
 // AddProjectDir adds one directory to a session's project, and returns the new
@@ -312,12 +317,19 @@ func (m *Manager) AddProjectDir(name, path string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	meta := item.metaCopy()
-	full, err := resolveDir(meta.Dir, path)
+	full, err := resolveDir(item.metaCopy().Dir, path)
 	if err != nil {
 		return nil, err
 	}
-	return m.writeProject(item, meta, appendUnique(meta.WorkingDirs, full))
+	var dirs []string
+	if _, err := item.mutateMeta(func(meta *Meta) error {
+		meta.WorkingDirs = appendUnique(meta.WorkingDirs, full)
+		dirs = meta.WorkingDirs
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	return dirs, nil
 }
 
 // RemoveProjectDir takes one directory out of a session's project, and returns
@@ -327,18 +339,25 @@ func (m *Manager) RemoveProjectDir(name, path string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	meta := item.metaCopy()
-	full, err := resolveDir(meta.Dir, path)
+	full, err := resolveDir(item.metaCopy().Dir, path)
 	if err != nil {
 		return nil, err
 	}
-	var kept []string
-	for _, dir := range meta.WorkingDirs {
-		if dir != full {
-			kept = append(kept, dir)
+	var dirs []string
+	if _, err := item.mutateMeta(func(meta *Meta) error {
+		var kept []string
+		for _, dir := range meta.WorkingDirs {
+			if dir != full {
+				kept = append(kept, dir)
+			}
 		}
+		meta.WorkingDirs = kept
+		dirs = kept
+		return nil
+	}); err != nil {
+		return nil, err
 	}
-	return m.writeProject(item, meta, kept)
+	return dirs, nil
 }
 
 // ClearProject empties a session's project, and reports whether it had one.
@@ -347,23 +366,16 @@ func (m *Manager) ClearProject(name string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	meta := item.metaCopy()
-	if len(meta.WorkingDirs) == 0 {
+	if len(item.metaCopy().WorkingDirs) == 0 {
 		return false, nil
 	}
-	if _, err := m.writeProject(item, meta, nil); err != nil {
+	if _, err := item.mutateMeta(func(meta *Meta) error {
+		meta.WorkingDirs = nil
+		return nil
+	}); err != nil {
 		return false, err
 	}
 	return true, nil
-}
-
-func (m *Manager) writeProject(item *entry, meta Meta, dirs []string) ([]string, error) {
-	meta.WorkingDirs = dirs
-	item.setMeta(meta)
-	if err := writeMeta(item.path, meta); err != nil {
-		return nil, err
-	}
-	return dirs, nil
 }
 
 func resolveDirs(base string, paths []string) ([]string, error) {
@@ -395,13 +407,10 @@ func (m *Manager) SetTitle(name, title string) error {
 		item.sess.SetTitle(title)
 		return nil
 	}
-	path := metaPath(m.opts.Root, name)
-	meta, err := ReadMeta(path)
-	if err != nil {
-		return err
-	}
-	meta.Title = title
-	return writeMeta(path, meta)
+	return mutateStoredMeta(metaPath(m.opts.Root, name), func(meta *Meta) error {
+		meta.Title = title
+		return nil
+	})
 }
 
 // ResumeWithEffort stops a running session and resumes it with a new effort
