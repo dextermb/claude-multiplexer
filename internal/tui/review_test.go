@@ -5,8 +5,6 @@ import (
 	"testing"
 
 	"github.com/dextermb/claude-multiplexer/internal/git"
-	"github.com/dextermb/claude-multiplexer/internal/manager"
-	"github.com/dextermb/claude-multiplexer/internal/render"
 )
 
 const twoHunks = `diff --git a/a.go b/a.go
@@ -26,7 +24,6 @@ const oneHunk = "@@ -0,0 +1,2 @@\n+alpha\n+beta\n"
 func reviewModel() Model {
 	m := diffModel()
 	m.reviewMode = true
-	m.explain = make(map[string]explainState)
 	m.width = 160
 	m.height = 40
 	m.diffs["a"] = oneGroup(
@@ -60,10 +57,7 @@ func TestReviewNavigatesHunksThenRollsToNextFile(t *testing.T) {
 }
 
 func TestReviewHunkPromptNamesTheLineRange(t *testing.T) {
-	ask, prompt := hunkExplainPrompt("a.go", git.Hunks(twoHunks)[1])
-	if ask != "explain a.go:21-23" {
-		t.Errorf("ask = %q, want the line range a.go:21-23", ask)
-	}
+	prompt := hunkExplainPrompt("a.go", git.Hunks(twoHunks)[1])
 	if !strings.Contains(prompt, "a.go:21-23") {
 		t.Errorf("prompt must name the location:\n%s", prompt)
 	}
@@ -72,41 +66,6 @@ func TestReviewHunkPromptNamesTheLineRange(t *testing.T) {
 	}
 	if !strings.Contains(prompt, "origin/HEAD") {
 		t.Errorf("prompt must name the base ref:\n%s", prompt)
-	}
-}
-
-func TestReviewCaptureMirrorsTheReplyThenEndsTheTurn(t *testing.T) {
-	m := reviewModel()
-	m.explain["a"] = explainState{pending: true, thread: []explainTurn{{ask: "explain a.go:21-23"}}}
-
-	m.captureExplain(manager.Event{
-		Session: "a",
-		Lines:   []render.Line{{Class: render.ClassText, Text: "It adds five."}},
-	}, false)
-	st := m.explain["a"]
-	if st.thread[0].text != "It adds five." {
-		t.Fatalf("capture must mirror the assistant text, got %q", st.thread[0].text)
-	}
-	if !st.pending {
-		t.Fatal("the turn must stay pending until the result")
-	}
-
-	m.captureExplain(manager.Event{Session: "a"}, true)
-	if m.explain["a"].pending {
-		t.Fatal("the end of the turn must clear pending")
-	}
-}
-
-func TestReviewCaptureIgnoresAnotherSession(t *testing.T) {
-	m := reviewModel()
-	m.explain["a"] = explainState{pending: true, thread: []explainTurn{{ask: "explain a.go"}}}
-
-	m.captureExplain(manager.Event{
-		Session: "other",
-		Lines:   []render.Line{{Class: render.ClassText, Text: "unrelated"}},
-	}, false)
-	if m.explain["a"].thread[0].text != "" {
-		t.Fatal("capture must ignore an event for another session")
 	}
 }
 
@@ -128,6 +87,9 @@ func TestReviewEnterHidesSidebarAndLeaveRestores(t *testing.T) {
 	}
 	if m.focus != focusReview {
 		t.Fatalf("the focus must move to the review screen, got %v", m.focus)
+	}
+	if m.output.Width != m.reviewExplainWidth() {
+		t.Fatalf("the output pane must size to the explain width %d, got %d", m.reviewExplainWidth(), m.output.Width)
 	}
 	if view := visible(m.View()); !strings.Contains(view, "Explanation") {
 		t.Fatalf("the review view must show the explanation pane:\n%s", view)

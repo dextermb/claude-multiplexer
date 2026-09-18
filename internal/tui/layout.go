@@ -20,6 +20,12 @@ func (m Model) bodyHeight() int {
 }
 
 func (m Model) outputHeight() int {
+	if m.reviewMode {
+		if h := m.reviewHeight() - 1; h >= 1 {
+			return h
+		}
+		return 1
+	}
 	height := m.bodyHeight() - barHeight
 	if m.showSidePanel() && m.sidePanelHorizontal() {
 		height -= m.sidePanelHeight()
@@ -119,6 +125,9 @@ func (m Model) baseOutputWidth() int {
 }
 
 func (m Model) outputWidth() int {
+	if m.reviewMode {
+		return m.reviewExplainWidth()
+	}
 	if m.showSidePanel() && !m.sidePanelHorizontal() {
 		return m.baseOutputWidth() - m.sidePanelWidth()
 	}
@@ -492,7 +501,10 @@ func (m Model) taskRow(todo protocol.Todo, busy bool) string {
 }
 
 func (m Model) barView() string {
-	width := m.outputWidth()
+	return m.barViewWidth(m.outputWidth())
+}
+
+func (m Model) barViewWidth(width int) string {
 	item, ok := m.selectedRow()
 	if !ok {
 		return barStyle.Width(width).Render(barMutedStyle.Render(" no session"))

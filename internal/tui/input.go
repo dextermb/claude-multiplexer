@@ -150,7 +150,7 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.searchKey(msg)
 	}
 
-	if m.inBurst && msg.Type == tea.KeyRunes && m.focus != focusPrompt {
+	if m.inBurst && msg.Type == tea.KeyRunes && m.focus != focusPrompt && !m.reviewMode {
 		m.focus = focusPrompt
 		m.prompt.Focus()
 		return m.promptKey(msg)

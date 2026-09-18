@@ -66,6 +66,7 @@ var bindings = []binding{
 	{"The review screen (s R)", "", "}  {", "Jump to the next or previous file", ""},
 	{"The review screen (s R)", "", "e  E", "Explain the selected hunk, or the whole file", ""},
 	{"The review screen (s R)", "", "tab", "Move between the diff, the explanation, and the prompt", ""},
+	{"The review screen (s R)", "", "[  ]  enter", "In the explanation, move the block cursor and open a block", ""},
 
 	{"The task panel", "", "j  k  up  down", "Scroll the task and job panel one line", ""},
 	{"The task panel", "", "u  d", "Scroll half a panel", ""},

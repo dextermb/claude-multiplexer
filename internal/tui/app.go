@@ -207,10 +207,8 @@ type Model struct {
 	reviewFile    int
 	reviewHunk    int
 	reviewScroll  int
-	explainScroll int
 	reviewFocus   reviewSide
 	reviewSidebar bool
-	explain       map[string]explainState
 
 	sidebarHidden bool
 	taskScroll    int
@@ -254,7 +252,6 @@ func New(opts Options) Model {
 		diffs:           make(map[string]projectDiff),
 		fileDiffs:       make(map[string]map[fileKey]string),
 		diffOpen:        make(map[string]map[fileKey]bool),
-		explain:         make(map[string]explainState),
 		folded:          make(map[string]bool),
 		roots:           make(map[string]string),
 		expanded:        make(map[int]bool),

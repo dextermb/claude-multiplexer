@@ -101,7 +101,9 @@ not the panes below it:
 | `tab` | Move between the diff, the explanation, and the prompt |
 | `esc` | Close the review screen |
 
-See [review.md](review.md) for the screen and the explanation thread.
+On the explanation side, the keys of the output pane work: `[` and `]` move the
+block cursor, `Enter` opens the block, and `j`/`k`/`u`/`d`/`g`/`G` scroll. See
+[review.md](review.md) for the screen and the explanation.
 
 ## The keys that work on their own
 

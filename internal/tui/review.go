@@ -7,13 +7,11 @@ import (
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/dextermb/claude-multiplexer/internal/git"
-	"github.com/dextermb/claude-multiplexer/internal/manager"
-	"github.com/dextermb/claude-multiplexer/internal/render"
 )
 
 // reviewSide is the pane the focus sits in while the review screen is open: the
-// diff, the explanation thread, or the prompt for a follow-up. See
-// docs/tui/review.md.
+// diff, the explanation, or the prompt for a follow-up. The explanation is the
+// session output pane, so it carries the block cursor. See docs/tui/review.md.
 type reviewSide int
 
 const (
@@ -21,21 +19,6 @@ const (
 	reviewExplain
 	reviewPrompt
 )
-
-// explainState is the running thread of one session's review, and whether a
-// turn is in flight. See docs/tui/review.md.
-type explainState struct {
-	pending bool
-	thread  []explainTurn
-}
-
-// explainTurn is one exchange of the thread: the ask the review sent, the
-// committed reply text, and the streaming tail before the turn ends.
-type explainTurn struct {
-	ask     string
-	text    string
-	partial string
-}
 
 // reviewSelected is the s R action. It opens the review screen for the selected
 // session, hides the sidebar, and reads the diff. See docs/tui/review.md.
@@ -47,13 +30,15 @@ func (m Model) reviewSelected() (tea.Model, tea.Cmd) {
 	m.reviewFile = 0
 	m.reviewHunk = 0
 	m.reviewScroll = 0
-	m.explainScroll = 0
 	m.reviewFocus = reviewDiff
 	m.reviewSidebar = !m.sidebarHidden
 	m.sidebarHidden = true
 	m.focus = focusReview
 	m.prompt.Blur()
 	m.status = "review — j/k hunk · }/{ file · e explain · E file · tab pane · esc close"
+	m.output.Width = m.outputWidth()
+	m.output.Height = m.outputHeight()
+	m.rebuildOutput()
 	cmds := []tea.Cmd{m.diffRefreshCmd()}
 	if !m.diffTicking {
 		m.diffTicking = true
@@ -124,7 +109,7 @@ func (m Model) reviewKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.reviewExplainFile()
 	}
 	if m.reviewFocus == reviewExplain {
-		return m.reviewExplainScrollKey(msg)
+		return m.reviewExplainKey(msg)
 	}
 	return m.reviewDiffKey(msg)
 }
@@ -155,22 +140,36 @@ func (m Model) reviewDiffKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m Model) reviewExplainScrollKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+// reviewExplainKey drives the explanation, which is the session output pane. It
+// scrolls the pane and moves the block cursor to open a capped block. See
+// docs/tui/output.md and docs/tui/review.md.
+func (m Model) reviewExplainKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
+	case "enter", " ":
+		if m.blockCursor >= 0 {
+			m.toggleBlock(m.blockCursor)
+		}
+	case "]":
+		m.moveBlockCursor(1)
+	case "[":
+		m.moveBlockCursor(-1)
 	case "j", "down":
-		m.explainScroll++
+		m.output.ScrollDown(1)
 	case "k", "up":
-		m.explainScroll--
-	case "g", "home":
-		m.explainScroll = 0
-	case "G", "end":
-		m.explainScroll = len(m.reviewExplainContent(m.reviewExplainWidth()))
+		m.output.ScrollUp(1)
+	case "u", "ctrl+u":
+		m.output.HalfPageUp()
+	case "d", "ctrl+d":
+		m.output.HalfPageDown()
 	case "pgup":
-		m.explainScroll -= m.reviewPage()
+		m.output.PageUp()
 	case "pgdown":
-		m.explainScroll += m.reviewPage()
+		m.output.PageDown()
+	case "g", "home":
+		m.output.GotoTop()
+	case "G", "end":
+		m.output.GotoBottom()
 	}
-	m.clampExplainScroll()
 	return m, nil
 }
 
@@ -186,7 +185,7 @@ func (m Model) reviewPromptKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		m.prompt.Reset()
-		return m.reviewSend(text, text)
+		return m.reviewSend(text)
 	}
 	var cmd tea.Cmd
 	m.prompt, cmd = m.prompt.Update(msg)
@@ -251,9 +250,6 @@ func (m Model) enterFile(index int, last bool) (tea.Model, tea.Cmd) {
 	m.reviewFile = index
 	m.reviewHunk = 0
 	if load := m.reviewLoadCmd(); load != nil {
-		if last {
-			m.reviewHunk = 0
-		}
 		m.ensureReviewHunkVisible()
 		return m, load
 	}
@@ -278,20 +274,7 @@ func (m Model) reviewExplainHunk() (tea.Model, tea.Cmd) {
 	if m.reviewHunk < 0 || m.reviewHunk >= len(hunks) {
 		return m.reviewExplainFile()
 	}
-	ask, prompt := hunkExplainPrompt(path, hunks[m.reviewHunk])
-	return m.reviewSend(ask, prompt)
-}
-
-// hunkExplainPrompt names the hunk as path:start-end and asks the session to
-// read the file for the context, so the prompt carries no diff text. See
-// docs/tui/review.md.
-func hunkExplainPrompt(path string, h git.Hunk) (ask, prompt string) {
-	loc := fmt.Sprintf("%s:%d-%d", path, h.NewStart, h.NewEnd())
-	ask = "explain " + loc
-	prompt = fmt.Sprintf("Explain the change at %s. Keep the explanation short. "+
-		"The change is against origin/HEAD. Read the file, or run `git diff origin/HEAD -- %s`, "+
-		"for the surrounding context.", loc, path)
-	return ask, prompt
+	return m.reviewSend(hunkExplainPrompt(path, hunks[m.reviewHunk]))
 }
 
 // reviewExplainFile is the E action. It asks the live session to explain the
@@ -301,24 +284,30 @@ func (m Model) reviewExplainFile() (tea.Model, tea.Cmd) {
 	if m.reviewFile < 0 || m.reviewFile >= len(entries) {
 		return m, nil
 	}
-	path := entries[m.reviewFile].file.Path
-	ask, prompt := fileExplainPrompt(path)
-	return m.reviewSend(ask, prompt)
+	return m.reviewSend(fileExplainPrompt(entries[m.reviewFile].file.Path))
+}
+
+// hunkExplainPrompt names the hunk as path:start-end and asks the session to
+// read the file for the context, so the prompt carries no diff text. See
+// docs/tui/review.md.
+func hunkExplainPrompt(path string, h git.Hunk) string {
+	loc := fmt.Sprintf("%s:%d-%d", path, h.NewStart, h.NewEnd())
+	return fmt.Sprintf("Explain the change at %s. Keep the explanation short. "+
+		"The change is against origin/HEAD. Read the file, or run `git diff origin/HEAD -- %s`, "+
+		"for the surrounding context.", loc, path)
 }
 
 // fileExplainPrompt names the whole file, with no line range.
-func fileExplainPrompt(path string) (ask, prompt string) {
-	ask = "explain " + path
-	prompt = fmt.Sprintf("Explain the change to %s. Keep the explanation short. "+
+func fileExplainPrompt(path string) string {
+	return fmt.Sprintf("Explain the change to %s. Keep the explanation short. "+
 		"The change is against origin/HEAD. Read the file, or run `git diff origin/HEAD -- %s`, "+
 		"for the surrounding context.", path, path)
-	return ask, prompt
 }
 
-// reviewSend appends a turn to the thread and sends the prompt to the live
-// session. A busy session queues the prompt, the same as any prompt. See
-// docs/tui/review.md.
-func (m Model) reviewSend(ask, prompt string) (tea.Model, tea.Cmd) {
+// reviewSend sends the prompt to the live session, and moves the explanation to
+// the newest line so the reply shows. A busy session queues the prompt, the same
+// as any prompt. See docs/tui/review.md.
+func (m Model) reviewSend(prompt string) (tea.Model, tea.Cmd) {
 	item, ok := m.selectedRow()
 	if !ok {
 		return m, nil
@@ -331,50 +320,10 @@ func (m Model) reviewSend(ask, prompt string) (tea.Model, tea.Cmd) {
 		m.errText = "this session is not running — press Enter to resume it"
 		return m, nil
 	}
-	st := m.explain[m.sel]
-	st.thread = append(st.thread, explainTurn{ask: ask})
-	st.pending = true
-	m.explain[m.sel] = st
-	if err := m.mgr.Send(m.sel, prompt); err != nil {
-		m.errText = err.Error()
-		st.pending = false
-		m.explain[m.sel] = st
-		return m, nil
-	}
-	m.errText = ""
-	m.queued[m.sel] = append(m.queued[m.sel], prompt)
-	m.explainScroll = len(m.reviewExplainContent(m.reviewExplainWidth()))
-	m.clampExplainScroll()
-	m.refresh()
-	return m, m.ensureAnimating()
-}
-
-// captureExplain mirrors the reply of the reviewed session into the last thread
-// turn while a turn is pending. It runs only while the review screen is open.
-// See docs/tui/review.md.
-func (m *Model) captureExplain(ev manager.Event, turnEnded bool) {
-	if !m.reviewMode || ev.Session != m.sel {
-		return
-	}
-	st, ok := m.explain[ev.Session]
-	if !ok || len(st.thread) == 0 || !st.pending {
-		return
-	}
-	last := len(st.thread) - 1
-	for _, line := range ev.Lines {
-		if line.Class != render.ClassText || line.Text == "" {
-			continue
-		}
-		if st.thread[last].text != "" {
-			st.thread[last].text += "\n"
-		}
-		st.thread[last].text += line.Text
-	}
-	st.thread[last].partial = ev.Partial
-	if turnEnded {
-		st.pending = false
-	}
-	m.explain[ev.Session] = st
+	next, cmd := m.dispatch(prompt)
+	model := next.(Model)
+	model.output.GotoBottom()
+	return model, cmd
 }
 
 func (m *Model) ensureReviewHunkVisible() {
@@ -396,10 +345,6 @@ func (m *Model) ensureReviewHunkVisible() {
 func (m *Model) clampReviewScroll() {
 	lines, _ := m.reviewDiffContent(m.reviewDiffWidth())
 	m.reviewScroll = clampScroll(m.reviewScroll, len(lines), m.reviewHeight())
-}
-
-func (m *Model) clampExplainScroll() {
-	m.explainScroll = clampScroll(m.explainScroll, len(m.reviewExplainContent(m.reviewExplainWidth())), m.reviewHeight())
 }
 
 func (m Model) reviewPage() int {

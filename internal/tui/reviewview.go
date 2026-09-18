@@ -16,7 +16,7 @@ var reviewSelBg = lipgloss.Color("237")
 // reviewView draws the review screen: the session bar, then the split of the
 // diff and the explanation thread. See docs/tui/review.md.
 func (m Model) reviewView() string {
-	return lipgloss.JoinVertical(lipgloss.Left, m.barView(), m.reviewSplit())
+	return lipgloss.JoinVertical(lipgloss.Left, m.barViewWidth(m.baseOutputWidth()), m.reviewSplit())
 }
 
 func (m Model) reviewHeight() int {
@@ -52,12 +52,25 @@ func (m Model) reviewDiffWidth() int {
 }
 
 func (m Model) reviewSplit() string {
-	diffW, explainW, height := m.reviewDiffWidth(), m.reviewExplainWidth(), m.reviewHeight()
+	diffW, height := m.reviewDiffWidth(), m.reviewHeight()
 	diffLines, _ := m.reviewDiffContent(diffW)
 	left := reviewBlock(diffLines, m.reviewScroll, diffW, height)
-	right := reviewBlock(m.reviewExplainContent(explainW), m.explainScroll, explainW, height)
+	right := m.reviewExplainPane()
 	sep := reviewRule(height)
 	return lipgloss.JoinHorizontal(lipgloss.Top, left, sep, right)
+}
+
+// reviewExplainPane is the explanation side: a header, then the session output
+// pane, so the reply carries the block cursor and its capped blocks. See
+// docs/tui/review.md.
+func (m Model) reviewExplainPane() string {
+	width := m.reviewExplainWidth()
+	head := " " + taskHeaderStyle.Render("Explanation")
+	if m.reviewFocus != reviewDiff {
+		head = focusEdgeStyle.Render("▌") + taskHeaderStyle.Render("Explanation")
+	}
+	head = lipgloss.NewStyle().Width(width).Render(head)
+	return lipgloss.JoinVertical(lipgloss.Left, head, m.output.View())
 }
 
 func reviewBlock(lines []string, scroll, width, height int) string {
@@ -182,49 +195,6 @@ func (m Model) reviewHunkLines(h git.Hunk, width int, marked bool) []string {
 			style = diffDelStyle
 		}
 		out = append(out, render(style, line)...)
-	}
-	return out
-}
-
-// reviewExplainContent builds the thread side: each turn's ask and its reply,
-// or a hint when the thread is empty. See docs/tui/review.md.
-func (m Model) reviewExplainContent(width int) []string {
-	head := "Explanation"
-	if m.reviewFocus != reviewDiff {
-		head = focusEdgeStyle.Render("▌") + taskHeaderStyle.Render(head)
-	} else {
-		head = " " + taskHeaderStyle.Render(head)
-	}
-	out := []string{head, ""}
-	st := m.explain[m.sel]
-	if len(st.thread) == 0 {
-		return append(out,
-			diffMetaStyle.Render("Press e to explain the hunk."),
-			diffMetaStyle.Render("Press E to explain the file."),
-			"",
-			diffMetaStyle.Render("Then tab to the prompt to ask more."))
-	}
-	for _, t := range st.thread {
-		for _, chunk := range wrapHard("› "+t.ask, width) {
-			out = append(out, diffHunkStyle.Render(chunk))
-		}
-		body := t.text
-		if t.partial != "" {
-			if body != "" {
-				body += "\n"
-			}
-			body += t.partial
-		}
-		if strings.TrimSpace(body) == "" {
-			out = append(out, diffMetaStyle.Render("⋯ waiting"))
-		} else {
-			for _, line := range strings.Split(body, "\n") {
-				for _, chunk := range wrapHard(line, width) {
-					out = append(out, rowStyle.Render(chunk))
-				}
-			}
-		}
-		out = append(out, "")
 	}
 	return out
 }
