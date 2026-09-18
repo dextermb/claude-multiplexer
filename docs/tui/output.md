@@ -153,6 +153,32 @@ block is rendered properly. See [markdown.md](../markdown.md).
 The pane follows the growing text only while you sit at the bottom, so a stream
 never drags you away from something you scrolled back to read.
 
+## Injected callbacks
+
+Claude Code injects some turns as a synthetic user message whose text is one XML
+wrapper. A background job that stops between sessions arrives as
+`<task-notification>`. A slash command arrives as `<command-name>`. A local
+command writes `<local-command-stdout>`, and the harness appends
+`<system-reminder>`. Without help, the pane draws the raw XML as a violet prompt,
+as though you typed it.
+
+So the renderer knows these wrappers and draws each as a muted `ClassMeta` line,
+like a tool line. It reads the fields inside the wrapper, and formats a short
+status line:
+
+| Wrapper | The line |
+|---|---|
+| `<task-notification>` | `⚙ <status> · <summary>`, the job vocabulary (see [sessions/jobs.md](sessions/jobs.md)) |
+| `<command-name>` | `» /name args` |
+| `<local-command-stdout>` | `← <output>` |
+| `<local-command-caveat>` | dropped |
+| `<system-reminder>` | `· system reminder`, one faint marker for each |
+
+The renderer reads each text block on its own. So a real prompt keeps its violet
+line, and a `<system-reminder>` appended after it collapses to the marker. A
+live `task_notification` system event stays silent, because the sidebar and the
+job list already show the job; see [sessions/jobs.md](sessions/jobs.md).
+
 ## How the output stays correct
 
 The interface subscribes to the manager bus and appends the lines of each event
