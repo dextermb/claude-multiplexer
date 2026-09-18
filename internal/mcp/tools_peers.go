@@ -59,107 +59,142 @@ func (s *Server) addPeerTools(server *sdk.Server, _ string) {
 		Name:        ToolEnablePeering,
 		Description: "Turn the peer listener on. It binds 0.0.0.0 so peers on the network reach this host. Give a port to override the default 51900. It takes effect on the next restart.",
 	}, func(_ context.Context, _ *sdk.CallToolRequest, in enablePeeringIn) (*sdk.CallToolResult, peerOut, error) {
-		path, err := s.sessions.EnablePeering(in.Port)
-		if err != nil {
-			return nil, peerOut{}, err
-		}
-		message := "peering is on for the next restart"
-		if in.Port > 0 {
-			message = fmt.Sprintf("peering is on, on port %d, for the next restart", in.Port)
-		}
-		return nil, peerOut{OK: true, Path: path, Message: message}, nil
+		out, err := enablePeering(s.sessions, in)
+		return nil, out, err
 	})
 
 	sdk.AddTool(server, &sdk.Tool{
 		Name:        ToolDisablePeering,
 		Description: "Turn the peer listener off, so the peering surface stays loopback-only.",
 	}, func(_ context.Context, _ *sdk.CallToolRequest, _ struct{}) (*sdk.CallToolResult, peerOut, error) {
-		path, had, err := s.sessions.DisablePeering()
-		if err != nil {
-			return nil, peerOut{}, err
-		}
-		if !had {
-			return nil, peerOut{OK: true, Path: path, Message: "peering was already off"}, nil
-		}
-		return nil, peerOut{OK: true, Path: path, Message: "peering is off on the next restart"}, nil
+		out, err := disablePeering(s.sessions)
+		return nil, out, err
 	})
 
 	sdk.AddTool(server, &sdk.Tool{
 		Name:        ToolAddPeer,
 		Description: "Add a peer host this host reaches, with the credentials the peer provisioned, and an optional lent Claude credential to hoist. It takes effect on the next restart.",
 	}, func(_ context.Context, _ *sdk.CallToolRequest, in addPeerIn) (*sdk.CallToolResult, peerOut, error) {
-		if strings.TrimSpace(in.Name) == "" {
-			return nil, peerOut{}, ErrNoPeer
-		}
-		if strings.TrimSpace(in.URL) == "" && strings.TrimSpace(in.Credential) == "" {
-			return nil, peerOut{}, ErrNoPeer
-		}
-		path, err := s.sessions.AddPeer(PeerHostInput{
-			Name: in.Name, URL: in.URL, ClientID: in.ClientID, ClientSecret: in.ClientSecret,
-			CredentialType: in.CredentialType, Credential: in.Credential,
-		})
-		if err != nil {
-			return nil, peerOut{}, err
-		}
-		return nil, peerOut{OK: true, Path: path, Message: "added the peer " + in.Name}, nil
+		out, err := addPeer(s.sessions, in)
+		return nil, out, err
 	})
 
 	sdk.AddTool(server, &sdk.Tool{
 		Name:        ToolUpdatePeer,
 		Description: "Update a peer host found by name, for example when its client secret is regenerated or its url changes. Give only the fields to change; omit the rest to keep them. It takes effect on the next restart.",
 	}, func(_ context.Context, _ *sdk.CallToolRequest, in updatePeerIn) (*sdk.CallToolResult, peerOut, error) {
-		if strings.TrimSpace(in.Name) == "" {
-			return nil, peerOut{}, ErrNoPeer
-		}
-		path, err := s.sessions.UpdatePeer(PeerHostUpdate{
-			Name: in.Name, URL: in.URL, ClientID: in.ClientID, ClientSecret: in.ClientSecret,
-			CredentialType: in.CredentialType, Credential: in.Credential, ClearCredential: in.ClearCredential,
-		})
-		if err != nil {
-			return nil, peerOut{}, err
-		}
-		return nil, peerOut{OK: true, Path: path, Message: "updated the peer " + in.Name}, nil
+		out, err := updatePeer(s.sessions, in)
+		return nil, out, err
 	})
 
 	sdk.AddTool(server, &sdk.Tool{
 		Name:        ToolRemovePeer,
 		Description: "Remove a peer host by name.",
 	}, func(_ context.Context, _ *sdk.CallToolRequest, in removePeerIn) (*sdk.CallToolResult, peerOut, error) {
-		if strings.TrimSpace(in.Name) == "" {
-			return nil, peerOut{}, ErrNoPeer
-		}
-		path, had, err := s.sessions.RemovePeer(in.Name)
-		if err != nil {
-			return nil, peerOut{}, err
-		}
-		if !had {
-			return nil, peerOut{OK: true, Path: path, Message: "no peer named " + in.Name}, nil
-		}
-		return nil, peerOut{OK: true, Path: path, Message: "removed the peer " + in.Name}, nil
+		out, err := removePeer(s.sessions, in)
+		return nil, out, err
 	})
 
 	sdk.AddTool(server, &sdk.Tool{
 		Name:        ToolSetReserve,
 		Description: "Set the usage reserve: the window (5h or 7d) and the percent-remaining floor. Below the floor, this host pauses its hosted sessions after their turn and refuses a new peer session. It takes effect on the next poll.",
 	}, func(_ context.Context, _ *sdk.CallToolRequest, in setReserveIn) (*sdk.CallToolResult, peerOut, error) {
-		path, err := s.sessions.SetReserve(in.Window, in.MinPercent)
-		if err != nil {
-			return nil, peerOut{}, err
-		}
-		return nil, peerOut{OK: true, Path: path, Message: "the reserve guards the " + in.Window + " window"}, nil
+		out, err := setReserve(s.sessions, in)
+		return nil, out, err
 	})
 
 	sdk.AddTool(server, &sdk.Tool{
 		Name:        ToolUnsetReserve,
 		Description: "Clear the usage reserve, so this host hosts with no floor.",
 	}, func(_ context.Context, _ *sdk.CallToolRequest, _ struct{}) (*sdk.CallToolResult, peerOut, error) {
-		path, had, err := s.sessions.UnsetReserve()
-		if err != nil {
-			return nil, peerOut{}, err
-		}
-		if !had {
-			return nil, peerOut{OK: true, Path: path, Message: "there was no reserve"}, nil
-		}
-		return nil, peerOut{OK: true, Path: path, Message: "the reserve is cleared"}, nil
+		out, err := unsetReserve(s.sessions)
+		return nil, out, err
 	})
+}
+
+func enablePeering(peers PeerPort, in enablePeeringIn) (peerOut, error) {
+	path, err := peers.EnablePeering(in.Port)
+	if err != nil {
+		return peerOut{}, err
+	}
+	message := "peering is on for the next restart"
+	if in.Port > 0 {
+		message = fmt.Sprintf("peering is on, on port %d, for the next restart", in.Port)
+	}
+	return peerOut{OK: true, Path: path, Message: message}, nil
+}
+
+func disablePeering(peers PeerPort) (peerOut, error) {
+	path, had, err := peers.DisablePeering()
+	if err != nil {
+		return peerOut{}, err
+	}
+	if !had {
+		return peerOut{OK: true, Path: path, Message: "peering was already off"}, nil
+	}
+	return peerOut{OK: true, Path: path, Message: "peering is off on the next restart"}, nil
+}
+
+func addPeer(peers PeerPort, in addPeerIn) (peerOut, error) {
+	if strings.TrimSpace(in.Name) == "" {
+		return peerOut{}, ErrNoPeer
+	}
+	if strings.TrimSpace(in.URL) == "" && strings.TrimSpace(in.Credential) == "" {
+		return peerOut{}, ErrNoPeer
+	}
+	path, err := peers.AddPeer(PeerHostInput{
+		Name: in.Name, URL: in.URL, ClientID: in.ClientID, ClientSecret: in.ClientSecret,
+		CredentialType: in.CredentialType, Credential: in.Credential,
+	})
+	if err != nil {
+		return peerOut{}, err
+	}
+	return peerOut{OK: true, Path: path, Message: "added the peer " + in.Name}, nil
+}
+
+func updatePeer(peers PeerPort, in updatePeerIn) (peerOut, error) {
+	if strings.TrimSpace(in.Name) == "" {
+		return peerOut{}, ErrNoPeer
+	}
+	path, err := peers.UpdatePeer(PeerHostUpdate{
+		Name: in.Name, URL: in.URL, ClientID: in.ClientID, ClientSecret: in.ClientSecret,
+		CredentialType: in.CredentialType, Credential: in.Credential, ClearCredential: in.ClearCredential,
+	})
+	if err != nil {
+		return peerOut{}, err
+	}
+	return peerOut{OK: true, Path: path, Message: "updated the peer " + in.Name}, nil
+}
+
+func removePeer(peers PeerPort, in removePeerIn) (peerOut, error) {
+	if strings.TrimSpace(in.Name) == "" {
+		return peerOut{}, ErrNoPeer
+	}
+	path, had, err := peers.RemovePeer(in.Name)
+	if err != nil {
+		return peerOut{}, err
+	}
+	if !had {
+		return peerOut{OK: true, Path: path, Message: "no peer named " + in.Name}, nil
+	}
+	return peerOut{OK: true, Path: path, Message: "removed the peer " + in.Name}, nil
+}
+
+func setReserve(peers PeerPort, in setReserveIn) (peerOut, error) {
+	path, err := peers.SetReserve(in.Window, in.MinPercent)
+	if err != nil {
+		return peerOut{}, err
+	}
+	return peerOut{OK: true, Path: path, Message: "the reserve guards the " + in.Window + " window"}, nil
+}
+
+func unsetReserve(peers PeerPort) (peerOut, error) {
+	path, had, err := peers.UnsetReserve()
+	if err != nil {
+		return peerOut{}, err
+	}
+	if !had {
+		return peerOut{OK: true, Path: path, Message: "there was no reserve"}, nil
+	}
+	return peerOut{OK: true, Path: path, Message: "the reserve is cleared"}, nil
 }
