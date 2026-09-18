@@ -2,6 +2,7 @@ package mcp
 
 import (
 	"context"
+	"time"
 
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -22,9 +23,13 @@ func (s *Server) addReadTools(server *sdk.Server, caller string) {
 
 	sdk.AddTool(server, &sdk.Tool{
 		Name:        ToolList,
-		Description: "List the sessions the multiplexer runs now. Set stopped true to add the stored sessions, and archived true to add the archived ones.",
+		Description: "List the sessions the multiplexer runs now. Set stopped true to add the stored sessions, and archived true to add the archived ones. last_active drops a stored or archived session older than its window (1d, 1w, 1m, 1y, or unset; 1d by default).",
 	}, func(_ context.Context, _ *sdk.CallToolRequest, in listIn) (*sdk.CallToolResult, listOut, error) {
-		return nil, listOut{Sessions: in.filter(s.sessions.List())}, nil
+		kept, err := in.filter(s.sessions.List(), time.Now())
+		if err != nil {
+			return nil, listOut{}, err
+		}
+		return nil, listOut{Sessions: kept}, nil
 	})
 
 	sdk.AddTool(server, &sdk.Tool{

@@ -41,6 +41,8 @@ func (m *Manager) List() []mcp.Session {
 			Lender:  meta.Lender,
 			Locks:   meta.Locks,
 			Watched: watched[snap.Name],
+
+			LastActiveAt: meta.LastActiveAt,
 		})
 	}
 	for _, re := range remotes {
@@ -78,6 +80,8 @@ func (m *Manager) List() []mcp.Session {
 			Hosted:   meta.Hosted,
 			Lender:   meta.Lender,
 			Locks:    meta.Locks,
+
+			LastActiveAt: meta.LastActiveAt,
 		})
 	}
 	return out

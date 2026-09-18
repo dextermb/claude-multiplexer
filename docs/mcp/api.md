@@ -49,7 +49,8 @@ still shows every session, because the human owns the host.
 
 - A client's `list_sessions` returns only its own sessions, and only the ones
   that run now. The `stopped` and `archived` flags add the other two
-  categories.
+  categories, and the `last_active` window drops a stored or archived session
+  older than it (`1d` by default; `unset` for no limit).
 - A client call on a session it does not own answers as if the session is not
   there: `404` on REST, and a not-found error on MCP. So the API leaks no
   session name across a client boundary.
