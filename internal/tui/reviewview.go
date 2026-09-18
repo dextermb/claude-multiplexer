@@ -13,6 +13,22 @@ const reviewMinExplain = 24
 // reviewSelBg is the subtle band behind the selected hunk on the diff side.
 var reviewSelBg = lipgloss.Color("237")
 
+// reviewHeadOn is the header of the focused pane, and reviewHeadOff the header
+// of an unfocused pane, so the split shows which side takes the keys.
+var (
+	reviewHeadOn  = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("231")).Background(lipgloss.Color("62"))
+	reviewHeadOff = diffMetaStyle
+)
+
+// reviewHeader draws a pane header that shows the focus: a blue bar and a filled
+// label when focused, a muted label otherwise. See docs/tui/review.md.
+func reviewHeader(title string, width int, focused bool) string {
+	if focused {
+		return lipgloss.NewStyle().Width(width).Render(focusEdgeStyle.Render("▌") + reviewHeadOn.Render(" "+title+" "))
+	}
+	return lipgloss.NewStyle().Width(width).Render("  " + reviewHeadOff.Render(title))
+}
+
 // reviewView draws the review screen: the session bar, then the split of the
 // diff and the explanation thread. See docs/tui/review.md.
 func (m Model) reviewView() string {
@@ -64,12 +80,7 @@ func (m Model) reviewSplit() string {
 // pane, so the reply carries the block cursor and its capped blocks. See
 // docs/tui/review.md.
 func (m Model) reviewExplainPane() string {
-	width := m.reviewExplainWidth()
-	head := " " + taskHeaderStyle.Render("Explanation")
-	if m.reviewFocus != reviewDiff {
-		head = focusEdgeStyle.Render("▌") + taskHeaderStyle.Render("Explanation")
-	}
-	head = lipgloss.NewStyle().Width(width).Render(head)
+	head := reviewHeader("Explanation", m.reviewExplainWidth(), m.reviewFocus == reviewExplain)
 	return lipgloss.JoinVertical(lipgloss.Left, head, m.output.View())
 }
 
@@ -104,12 +115,7 @@ func (m Model) reviewDiffContent(width int) (lines []string, selLine int) {
 		return []string{diffMetaStyle.Render("not a git repository")}, -1
 	}
 	entries := m.diffEntries()
-	label := "Review · " + m.sel
-	if m.reviewFocus == reviewDiff {
-		label = focusEdgeStyle.Render("▌") + taskHeaderStyle.Render(label)
-	} else {
-		label = " " + taskHeaderStyle.Render(label)
-	}
+	label := reviewHeader("Review · "+m.sel, width, m.reviewFocus == reviewDiff)
 	stat := p.stat()
 	counts := diffAddStyle.Render("+"+strconv.Itoa(stat.Insertions)) + " " +
 		diffDelStyle.Render("−"+strconv.Itoa(stat.Deletions)) + "  " +

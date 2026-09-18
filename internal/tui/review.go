@@ -179,6 +179,8 @@ func (m Model) reviewPromptKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.reviewFocus = reviewDiff
 		m.prompt.Blur()
 		return m, nil
+	case "tab":
+		return m.reviewCycleFocus()
 	case "enter":
 		text := strings.TrimSpace(m.prompt.Value())
 		if text == "" {
@@ -291,7 +293,7 @@ func (m Model) reviewExplainFile() (tea.Model, tea.Cmd) {
 // read the file for the context, so the prompt carries no diff text. See
 // docs/tui/review.md.
 func hunkExplainPrompt(path string, h git.Hunk) string {
-	loc := fmt.Sprintf("%s:%d-%d", path, h.NewStart, h.NewEnd())
+	loc := fmt.Sprintf("`%s:%d-%d`", path, h.NewStart, h.NewEnd())
 	return fmt.Sprintf("Explain the change at %s. Keep the explanation short. "+
 		"The change is against origin/HEAD. Read the file, or run `git diff origin/HEAD -- %s`, "+
 		"for the surrounding context.", loc, path)
@@ -299,7 +301,7 @@ func hunkExplainPrompt(path string, h git.Hunk) string {
 
 // fileExplainPrompt names the whole file, with no line range.
 func fileExplainPrompt(path string) string {
-	return fmt.Sprintf("Explain the change to %s. Keep the explanation short. "+
+	return fmt.Sprintf("Explain the change to `%s`. Keep the explanation short. "+
 		"The change is against origin/HEAD. Read the file, or run `git diff origin/HEAD -- %s`, "+
 		"for the surrounding context.", path, path)
 }

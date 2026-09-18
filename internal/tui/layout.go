@@ -666,6 +666,12 @@ func (m Model) promptView() string {
 	if m.sel != "" {
 		label = m.sel
 	}
+	if m.reviewMode {
+		if m.reviewFocus == reviewPrompt {
+			return promptLabelStyle.Render(label+" — follow-up ⌁ ") + "\n" + m.prompt.View()
+		}
+		return hintStyle.Render(label+" — tab to the prompt to ask a follow-up") + "\n" + m.prompt.View()
+	}
 	if hint, ok := m.mentionHint(); ok {
 		return hint + "\n" + m.prompt.View()
 	}

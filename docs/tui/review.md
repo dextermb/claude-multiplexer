@@ -49,10 +49,13 @@ grey band, and its header is bold. The diff side scrolls to keep the selected
 hunk in view.
 
 `tab` moves the focus across the split: the diff, then the explanation, then the
-prompt, then back to the diff.
+prompt, then back to the diff. The focused pane has a blue header, so it is clear
+which side takes the keys. The prompt bar shows "follow-up" when the prompt has
+the focus.
 
-`esc` closes the screen. The sidebar hides while the screen is open, for the
-full width, and returns when the screen closes.
+`esc` closes the screen. In the prompt, `esc` returns the focus to the diff. The
+sidebar hides while the screen is open, for the full width, and returns when the
+screen closes.
 
 ## The explanation
 

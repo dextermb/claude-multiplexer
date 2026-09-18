@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/dextermb/claude-multiplexer/internal/git"
 )
 
@@ -24,6 +25,7 @@ const oneHunk = "@@ -0,0 +1,2 @@\n+alpha\n+beta\n"
 func reviewModel() Model {
 	m := diffModel()
 	m.reviewMode = true
+	m.prompt = textarea.New()
 	m.width = 160
 	m.height = 40
 	m.diffs["a"] = oneGroup(
@@ -66,6 +68,18 @@ func TestReviewHunkPromptNamesTheLineRange(t *testing.T) {
 	}
 	if !strings.Contains(prompt, "origin/HEAD") {
 		t.Errorf("prompt must name the base ref:\n%s", prompt)
+	}
+}
+
+func TestReviewTabCyclesFocus(t *testing.T) {
+	m := reviewModel()
+	m.reviewFocus = reviewDiff
+	for _, want := range []reviewSide{reviewExplain, reviewPrompt, reviewDiff} {
+		next, _ := m.reviewCycleFocus()
+		m = next.(Model)
+		if m.reviewFocus != want {
+			t.Fatalf("tab moved focus to %v, want %v", m.reviewFocus, want)
+		}
 	}
 }
 
