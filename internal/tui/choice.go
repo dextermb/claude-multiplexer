@@ -70,6 +70,54 @@ func (d *choiceDialog) Update(msg tea.Msg) (formResult, tea.Cmd) {
 
 func (d *choiceDialog) chosen() string { return d.options[d.cursor] }
 
+func (d *choiceDialog) region() modalRegion      { return modalPane }
+func (d *choiceDialog) view(width, _ int) string { return d.View(width) }
+
+func (d *choiceDialog) update(m *Model, msg tea.Msg) (modal, tea.Cmd) {
+	result, cmd := d.Update(msg)
+	return applyForm(d, m, result, cmd, d.submit)
+}
+
+func (d *choiceDialog) submit(m *Model) (modal, tea.Cmd) {
+	name, value := d.session, d.chosen()
+	switch d.kind {
+	case settingModel:
+		return nil, m.applySetting(m.mgr.SetModel(name, value), "model", value)
+	case settingMode:
+		return nil, m.applySetting(m.mgr.SetPermissionMode(name, value), "mode", value)
+	case settingEffort:
+		m.errText = ""
+		m.status = "resuming " + name + " with " + value + " effort"
+		return nil, resumeEffortCmd(m.mgr, name, value)
+	}
+	return nil, nil
+}
+
+func (m Model) openChoice(kind settingKind) (tea.Model, tea.Cmd) {
+	item, ok := m.selectedRow()
+	if !ok {
+		return m, nil
+	}
+	if item.readOnly {
+		m.errText = readOnlyStatus
+		return m, nil
+	}
+	if !item.running() {
+		m.errText = "start the session before you change it"
+		return m, nil
+	}
+	current := item.model
+	switch kind {
+	case settingMode:
+		current = item.mode
+	case settingEffort:
+		current = item.effort
+	}
+	m.modal = newChoiceDialog(kind, item.name, current)
+	m.errText = ""
+	return m, nil
+}
+
 func (d *choiceDialog) View(width int) string {
 	inner := modalInner(width)
 

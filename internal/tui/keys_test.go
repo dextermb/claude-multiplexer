@@ -37,7 +37,7 @@ func TestATargetKeyWaitsForTheActionKey(t *testing.T) {
 	if cmd == nil {
 		t.Fatal("a target key must return the timeout command")
 	}
-	if m.jobsModal != nil || m.form != nil || m.choice != nil {
+	if jobsOf(m) != nil || m.form != nil || choiceOf(m) != nil {
 		t.Fatal("a target key alone must open nothing")
 	}
 }
@@ -49,7 +49,7 @@ func TestTheSequenceOpensTheJobsDialog(t *testing.T) {
 	if m.seq != nil {
 		t.Fatal("the action key must end the sequence")
 	}
-	if m.jobsModal == nil {
+	if jobsOf(m) == nil {
 		t.Fatal("s j must open the jobs dialog")
 	}
 	if !strings.Contains(m.View(), name) {
@@ -62,7 +62,7 @@ func TestTheOldSingleKeysDoNothing(t *testing.T) {
 		m, _ := sequenceModel(t)
 		before := m.View()
 		m, _ = step(t, m, key(name))
-		if m.jobsModal != nil || m.choice != nil || m.rename != nil || m.confirm != "" {
+		if jobsOf(m) != nil || choiceOf(m) != nil || renameOf(m) != nil || m.confirm != "" {
 			t.Errorf("%q must no longer open a dialog", name)
 		}
 		if got := m.View(); got != before {
@@ -81,7 +81,7 @@ func TestEscCancelsTheSequence(t *testing.T) {
 	if m.seq != nil {
 		t.Fatal("esc must cancel the sequence")
 	}
-	if m.jobsModal != nil {
+	if jobsOf(m) != nil {
 		t.Fatal("esc must not run an action")
 	}
 
@@ -148,7 +148,7 @@ func TestTheControlFormWorksInThePrompt(t *testing.T) {
 	}
 
 	m, _ = chord(t, m, "ctrl+s", "j")
-	if m.jobsModal == nil {
+	if jobsOf(m) == nil {
 		t.Fatal("ctrl+s j must open the jobs dialog from the prompt")
 	}
 	if m.prompt.Value() != "hellos" {

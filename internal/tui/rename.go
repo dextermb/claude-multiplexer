@@ -39,6 +39,47 @@ func (d *renameDialog) Update(msg tea.Msg) (formResult, tea.Cmd) {
 
 func (d *renameDialog) value() string { return strings.TrimSpace(d.input.Value()) }
 
+func (d *renameDialog) region() modalRegion      { return modalPane }
+func (d *renameDialog) view(width, _ int) string { return d.View(width) }
+
+func (d *renameDialog) update(m *Model, msg tea.Msg) (modal, tea.Cmd) {
+	result, cmd := d.Update(msg)
+	return applyForm(d, m, result, cmd, d.submit)
+}
+
+func (d *renameDialog) submit(m *Model) (modal, tea.Cmd) {
+	name, title := d.session, d.value()
+	if err := m.mgr.SetTitle(name, title); err != nil {
+		m.errText = err.Error()
+		return nil, nil
+	}
+	for i := range m.stored {
+		if m.stored[i].Name == name {
+			m.stored[i].Title = title
+		}
+	}
+	m.errText = ""
+	m.status = "renamed " + name
+	m.refresh()
+	m.rebuildOutput()
+	return nil, nil
+}
+
+func (m Model) openRename() (tea.Model, tea.Cmd) {
+	item, ok := m.selectedRow()
+	if !ok {
+		m.errText = "no session is selected"
+		return m, nil
+	}
+	if item.readOnly {
+		m.errText = readOnlyStatus
+		return m, nil
+	}
+	m.modal = newRenameDialog(item.name, item.title)
+	m.errText = ""
+	return m, textinput.Blink
+}
+
 func (d *renameDialog) View(width int) string {
 	inner := modalInner(width)
 

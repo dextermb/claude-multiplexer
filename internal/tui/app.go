@@ -75,13 +75,8 @@ type Model struct {
 	ageTicking   bool
 	templates    []template.Template
 	help         *help
-	picker       *picker
-	fields       *fieldForm
+	modal        modal
 	questions    map[string]*questionDialog
-	choice       *choiceDialog
-	rename       *renameDialog
-	layoutSwitch *layoutSwitch
-	jobsModal    *jobsModal
 	pending      string
 	seq          *sequence
 	seqGen       int
@@ -284,11 +279,10 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case sequenceTimeoutMsg:
 		return m.handleSequenceTimeout(msg)
 	case jobTickMsg:
-		if m.jobsModal == nil {
+		if m.modal == nil {
 			return m, nil
 		}
-		_, cmd := m.jobsModal.Update(msg)
-		return m, cmd
+		return m.routeModal(msg)
 	case bashResultMsg:
 		return m.handleBash(msg)
 	case openedMsg:

@@ -26,7 +26,7 @@ func jobsOpen(t *testing.T, width, height int) Model {
 	m = withJobs(m)
 	m.focus = focusSidebar
 	m, _ = chord(t, m, "s", "j")
-	if m.jobsModal == nil {
+	if jobsOf(m) == nil {
 		t.Fatal("J must open the jobs dialog")
 	}
 	return m

@@ -38,10 +38,10 @@ func TestReadOnlySessionRefusesWriteActions(t *testing.T) {
 	}
 	next, _ := base.openChoice(settingModel)
 	nm := next.(Model)
-	if nm.errText != readOnlyStatus || nm.choice != nil {
-		t.Errorf("openChoice opened a dialog for a read-only session: err=%q choice=%v", nm.errText, nm.choice)
+	if nm.errText != readOnlyStatus || nm.modal != nil {
+		t.Errorf("openChoice opened a dialog for a read-only session: err=%q modal=%v", nm.errText, nm.modal)
 	}
-	if next, _ := base.openRename(); next.(Model).rename != nil {
+	if next, _ := base.openRename(); next.(Model).modal != nil {
 		t.Error("openRename opened a dialog for a read-only session")
 	}
 }

@@ -71,6 +71,22 @@ the key list draw here.
 A dialog is at most two columns narrower than its region, so a narrow terminal
 never pushes the sidebar out of line.
 
+## The modal seam
+
+Most dialogs share one seam. The model, effort and mode dialogs, the rename
+dialog, the jobs list, the preset picker, the preset field form, and the layout
+switcher each satisfy the `modal` interface (`internal/tui/modal.go`), and the
+Model holds one `modal` field for the active dialog. The key router hands a key
+to that one field, the view draws it in the region its `region()` names, and the
+mouse guard blocks the wheel for a pane modal. So a new dialog is one adapter in
+its own file, not a branch in the router, the view, and the mouse guard.
+
+Three dialogs stay outside the seam, because each has couplings beyond the
+router. The question dialog is a per-session map, arrives from a manager event,
+and keeps the side panel beside it. The new session form takes a dropped path
+and suppresses the prompt while it is open. The stop confirmation guards the
+paste and the mouse as a bare string.
+
 ## The pages
 
 | Page | Read it for |

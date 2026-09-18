@@ -35,6 +35,27 @@ func newJobsModal(name string, jobs []session.Job, width, height int) *jobsModal
 	return &jobsModal{name: name, jobs: orderJobs(jobs), width: width, height: height}
 }
 
+func (m *jobsModal) region() modalRegion { return modalPane }
+
+func (m *jobsModal) view(width, height int) string { return m.View(width, height) }
+
+func (m *jobsModal) update(app *Model, msg tea.Msg) (modal, tea.Cmd) {
+	open, cmd := m.Update(msg)
+	if !open {
+		return nil, cmd
+	}
+	return m, cmd
+}
+
+func (m Model) openJobs() (tea.Model, tea.Cmd) {
+	item, ok := m.selectedRow()
+	if !ok {
+		return m, nil
+	}
+	m.modal = newJobsModal(item.displayName(), item.jobList, m.baseOutputWidth(), m.outputHeight())
+	return m, nil
+}
+
 func orderJobs(jobs []session.Job) []session.Job {
 	out := make([]session.Job, 0, len(jobs))
 	for _, job := range jobs {

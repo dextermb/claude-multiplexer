@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"sort"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -81,6 +82,62 @@ func (d *layoutSwitch) scopeLabel() string {
 		return "all sessions"
 	}
 	return "this session"
+}
+
+func (d *layoutSwitch) region() modalRegion      { return modalBody }
+func (d *layoutSwitch) view(width, _ int) string { return d.View(width) }
+
+func (d *layoutSwitch) update(m *Model, msg tea.Msg) (modal, tea.Cmd) {
+	result, cmd := d.Update(msg)
+	return applyForm(d, m, result, cmd, d.submit)
+}
+
+func (d *layoutSwitch) submit(m *Model) (modal, tea.Cmd) {
+	name, isDefault := d.choice()
+	if !d.allSessions && m.sel == "" {
+		m.errText = "no session is selected"
+		return nil, nil
+	}
+	var err error
+	switch {
+	case d.allSessions && isDefault:
+		_, _, err = m.mgr.UnsetActiveLayout()
+	case d.allSessions:
+		_, err = m.mgr.SetActiveLayout(name)
+	case isDefault:
+		_, err = m.mgr.UnsetSessionLayout(m.sel)
+	default:
+		err = m.mgr.SetSessionLayout(m.sel, name)
+	}
+	if err != nil {
+		m.errText = err.Error()
+		return nil, nil
+	}
+	m.diffSize = 0
+	label := name
+	if isDefault {
+		label = "default"
+	}
+	m.status = "layout " + label + " for " + d.scopeLabel()
+	m.refresh()
+	m.rebuildOutput()
+	return nil, tea.Batch(m.readSettings(), reloadStored(m.mgr))
+}
+
+func (m Model) openLayoutSwitcher() (tea.Model, tea.Cmd) {
+	m.reloadLayouts()
+	names := make([]string, 0, len(m.layouts))
+	for name := range m.layouts {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	activeSession := ""
+	if item, ok := m.selectedRow(); ok {
+		activeSession = item.layout
+	}
+	m.modal = newLayoutSwitch(m.sel, names, activeSession, m.activeLayout)
+	m.errText = ""
+	return m, nil
 }
 
 func (d *layoutSwitch) View(width int) string {

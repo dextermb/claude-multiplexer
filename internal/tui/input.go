@@ -95,23 +95,8 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if q := m.questions[m.sel]; q != nil && m.focus == focusOutput {
 		return m.questionKey(msg)
 	}
-	if m.choice != nil {
-		return m.choiceKey(msg)
-	}
-	if m.rename != nil {
-		return m.renameKey(msg)
-	}
-	if m.layoutSwitch != nil {
-		return m.layoutSwitchKey(msg)
-	}
-	if m.jobsModal != nil {
-		return m.jobsModalKey(msg)
-	}
-	if m.picker != nil {
-		return m.pickerKey(msg)
-	}
-	if m.fields != nil {
-		return m.fieldsKey(msg)
+	if m.modal != nil {
+		return m.routeModal(msg)
 	}
 	if m.form != nil {
 		result, cmd := m.form.Update(msg)
@@ -300,14 +285,6 @@ func (m *Model) recordHistory(text string) {
 	m.histDraft = ""
 }
 
-func (m Model) jobsModalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	open, cmd := m.jobsModal.Update(msg)
-	if !open {
-		m.jobsModal = nil
-	}
-	return m, cmd
-}
-
 func (m Model) outputKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	m.clearSelection()
 	switch msg.String() {
@@ -416,71 +393,4 @@ func (m Model) sidebarKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, textarea.Blink
 	}
 	return m, nil
-}
-
-func (m Model) choiceKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	result, cmd := m.choice.Update(msg)
-	switch result {
-	case formCancelled:
-		m.choice = nil
-		return m, nil
-	case formSubmitted:
-		return m.submitChoice()
-	}
-	return m, cmd
-}
-
-func (m Model) renameKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	result, cmd := m.rename.Update(msg)
-	switch result {
-	case formCancelled:
-		m.rename = nil
-		return m, nil
-	case formSubmitted:
-		return m.submitRename()
-	}
-	return m, cmd
-}
-
-func (m Model) layoutSwitchKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	result, cmd := m.layoutSwitch.Update(msg)
-	switch result {
-	case formCancelled:
-		m.layoutSwitch = nil
-		return m, nil
-	case formSubmitted:
-		return m.submitLayoutSwitch()
-	}
-	return m, cmd
-}
-
-func (m Model) pickerKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	result, cmd := m.picker.Update(msg)
-	switch result {
-	case pickerCancelled:
-		m.picker = nil
-		return m, nil
-	case pickerChosen:
-		tpl, ok := m.picker.selected()
-		m.picker = nil
-		if !ok {
-			return m, nil
-		}
-		return m.openFields(tpl, nil)
-	}
-	return m, cmd
-}
-
-func (m Model) fieldsKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	result, cmd := m.fields.Update(msg)
-	switch result {
-	case formCancelled:
-		m.fields = nil
-		return m, nil
-	case formSubmitted:
-		text := m.fields.prompt()
-		m.fields = nil
-		return m.fillPrompt(text)
-	}
-	return m, cmd
 }
