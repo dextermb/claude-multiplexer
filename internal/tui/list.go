@@ -79,73 +79,15 @@ func (m Model) setAllFolds(unfold bool) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+// refresh reads the manager, derives the sidebar view, then repairs the state
+// the fold does not own: the selection, the scroll offset, and the layout. The
+// derivation is pure and lives in sidebar.go.
 func (m *Model) refresh() {
-	rows := make([]row, 0, len(m.stored)+4)
-	grants := m.mgr.Grants()
-	parents := m.mgr.Parents()
-	schedules := m.mgr.Schedules()
-	workDirs := m.mgr.WorkingDirs()
-	projects := m.mgr.Projects()
-	layouts := m.mgr.SessionLayouts()
-	hosted := m.mgr.Hosted()
-	lenders := m.mgr.Lenders()
-	owners := m.mgr.Owners()
-	watched := m.mgr.Watched()
-	held := m.mgr.HeldSessions()
-	for _, snap := range m.mgr.Snapshots() {
-		item := rowFromSnapshot(snap)
-		item.control = grants[snap.Name]
-		item.parent = parents[snap.Name]
-		item.scheduled = schedules[snap.Name]
-		item.workDir = workDirs[snap.Name]
-		item.projectDirs = projects[snap.Name]
-		item.layout = layouts[snap.Name]
-		item.hosted = hosted[snap.Name]
-		item.lender = lenders[snap.Name]
-		item.owner = owners[snap.Name]
-		item.watched = watched[snap.Name]
-		item.held = held[snap.Name]
-		rows = append(rows, item)
+	if m.roots == nil {
+		m.roots = make(map[string]string)
 	}
-	hosts := m.mgr.Hosts()
-	readOnlys := m.mgr.ReadOnly()
-	for _, snap := range m.mgr.RemoteSnapshots() {
-		item := rowFromSnapshot(snap)
-		item.host = hosts[snap.Name]
-		item.readOnly = readOnlys[snap.Name]
-		rows = append(rows, item)
-	}
-	for _, meta := range m.stored {
-		if meta.Archived && !m.showArchived {
-			continue
-		}
-		rows = append(rows, rowFromMeta(meta))
-	}
-	children := make(map[string]bool, len(rows))
-	for _, item := range rows {
-		if item.parent != "" {
-			children[item.parent] = true
-		}
-	}
-	names := clientNames(m.mgr.ListAPIClients())
-	for i := range rows {
-		if name := names[rows[i].owner]; name != "" {
-			rows[i].owner = name
-		}
-		rows[i].group = m.rowGroup(rows[i], children)
-		rows[i].section = sectionOf(rows[i])
-	}
-	if needle := m.searchNeedle(); needle != "" {
-		kept := rows[:0]
-		for _, item := range rows {
-			if rowMatches(item, needle) {
-				kept = append(kept, item)
-			}
-		}
-		rows = kept
-	}
-	m.rows, m.groups = groupRows(rows, m.folded)
-	m.buildLines()
+	view := deriveSidebar(m.gatherSidebarInputs())
+	m.rows, m.groups, m.lines = view.rows, view.groups, view.lines
 	m.syncJobsModal()
 
 	if m.selLine() < 0 {
@@ -181,56 +123,21 @@ func clientNames(clients []mcp.APIClient) map[string]string {
 	return names
 }
 
-// rowGroup keys a row on the control session that created it, or that it created
-// rows for, then on the peer a remote session involves, and on its repository
-// when none of those holds.
+// rowGroup keys a row through the fold, filling the repo-root cache on a miss.
 func (m *Model) rowGroup(item row, children map[string]bool) string {
-	if item.parent != "" {
-		return byPrefix + item.parent
-	}
-	if children[item.name] {
-		return byPrefix + item.name
-	}
-	if remote := item.remoteHost(); remote != "" {
-		return hostPrefix + remote
-	}
-	return dirPrefix + m.groupKey(item.dir)
-}
-
-// groupKey caches the walk to the repository, because refresh runs on every
-// event and a session directory never changes.
-func (m *Model) groupKey(dir string) string {
-	if dir == "" {
-		return ""
-	}
-	if root, ok := m.roots[dir]; ok {
-		return root
-	}
-	root := repoRoot(dir)
 	if m.roots == nil {
 		m.roots = make(map[string]string)
 	}
-	m.roots[dir] = root
-	return root
+	return rowGroup(item, children, m.roots)
 }
 
 func (m *Model) buildLines() {
 	m.lines = listLines(m.rows, m.groups, m.sectioned())
 }
 
-// sectioned reports whether the sidebar draws section dividers: when this host
-// has peers configured, or a hosted or streamed session is present. See
-// docs/peers.md.
+// sectioned reports whether the sidebar draws section dividers for this Model.
 func (m Model) sectioned() bool {
-	if m.peering {
-		return true
-	}
-	for _, item := range m.rows {
-		if item.section != sectionLocal {
-			return true
-		}
-	}
-	return false
+	return sectionedRows(m.peering, m.rows)
 }
 
 // sectionOf sorts a row into its band from its host and hosted fields.

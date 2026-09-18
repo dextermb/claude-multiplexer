@@ -187,6 +187,25 @@ it back the same way.
 Only a session that finished at least one turn is remembered. See
 [manager.md](../manager.md).
 
+## How the list is built
+
+The interface builds the list in two steps, so the fold is pure and the state
+repair is separate.
+
+1. **Read, then derive.** `refresh` reads the manager once into a plain-data
+   `sidebarInputs` (the snapshots, the stored metas, and the maps for grants,
+   parents, layouts, and the rest). A pure fold, `deriveSidebar`, folds those
+   inputs into the rows, the groups, and the lines. It takes no manager, so a
+   test derives the list from fixed snapshots. See `internal/tui/sidebar.go`.
+2. **Repair the state.** After the fold, `refresh` fixes the state the fold does
+   not own: the selection when a fold hides it, the scroll offset, and the
+   layout of the selected session.
+
+The fold runs the same order every time: build the rows from the snapshots and
+the metas, key each row's group and section, drop the rows the search needle
+misses, then group and lay them out. A directory group keys on the repository,
+and the walk is cached, because the fold runs on every event.
+
 ## Archived rows
 
 Press `s a` to archive the selected session. The row leaves the list, and
