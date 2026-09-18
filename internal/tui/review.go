@@ -23,8 +23,20 @@ const (
 // reviewSelected is the s R action. It opens the review screen for the selected
 // session, hides the sidebar, and reads the diff. See docs/tui/review.md.
 func (m Model) reviewSelected() (tea.Model, tea.Cmd) {
-	if _, ok := m.selectedRow(); !ok {
+	item, ok := m.selectedRow()
+	if !ok {
 		return m, nil
+	}
+	// A stopped, paused, or archived session starts first, and the review opens
+	// when it is running. See handleSpawned and docs/tui/review.md.
+	if !item.running() {
+		next, cmd := m.resumeSelected()
+		model := next.(Model)
+		if cmd == nil {
+			return model, nil
+		}
+		model.reviewPending = true
+		return model, cmd
 	}
 	m.reviewMode = true
 	m.reviewFile = 0

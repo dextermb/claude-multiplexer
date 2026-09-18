@@ -6,6 +6,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/dextermb/claude-multiplexer/internal/git"
+	"github.com/dextermb/claude-multiplexer/internal/manager"
 )
 
 const twoHunks = `diff --git a/a.go b/a.go
@@ -80,6 +81,26 @@ func TestReviewTabCyclesFocus(t *testing.T) {
 		if m.reviewFocus != want {
 			t.Fatalf("tab moved focus to %v, want %v", m.reviewFocus, want)
 		}
+	}
+}
+
+func TestReviewResumesANonRunningSession(t *testing.T) {
+	m, _ := newTestModel(t, "")
+	m = start(t, m, 160, 30)
+	m, _ = step(t, m, key("esc"))
+	m.rows = []row{{name: "old", meta: manager.Meta{Name: "old", ClaudeSessionID: "abc"}}}
+	m.sel = "old"
+
+	next, cmd := m.reviewSelected()
+	m = next.(Model)
+	if m.reviewMode {
+		t.Fatal("a non-running session must not open the review before it starts")
+	}
+	if !m.reviewPending {
+		t.Fatal("s R on a non-running session must mark the review pending the resume")
+	}
+	if cmd == nil {
+		t.Fatal("s R on a non-running session must return the resume command")
 	}
 }
 

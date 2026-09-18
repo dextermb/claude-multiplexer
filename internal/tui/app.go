@@ -204,6 +204,7 @@ type Model struct {
 	diffTicking     bool
 
 	reviewMode    bool
+	reviewPending bool
 	reviewFile    int
 	reviewHunk    int
 	reviewScroll  int

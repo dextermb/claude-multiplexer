@@ -33,6 +33,10 @@ it.
 While the screen is open, the diff refreshes on the same 800 ms tick as the diff
 panel, so the changes of a running agent show while it works.
 
+If the selected session is not running — stopped, paused, or archived — `s R`
+starts it first, and opens the review when it is running. See `reviewSelected`
+and `handleSpawned` in the code.
+
 ## Navigation
 
 The diff side holds the focus first. The keys move a selection through the files

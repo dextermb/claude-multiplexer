@@ -164,6 +164,11 @@ func (m Model) handleSpawned(msg spawnedMsg) (tea.Model, tea.Cmd) {
 	m.focus = focusPrompt
 	m.prompt.Focus()
 
+	if m.reviewPending {
+		m.reviewPending = false
+		next, cmd := m.reviewSelected()
+		return next, tea.Batch(cmd, reloadStored(m.mgr))
+	}
 	if m.pending != "" {
 		text := m.pending
 		m.pending = ""
