@@ -1,5 +1,11 @@
 package mcp
 
+import (
+	"errors"
+	"strings"
+	"time"
+)
+
 type setConfigIn struct {
 	Path  string `json:"path" jsonschema:"the settings key to set, as a dot path, such as 'editor', 'blockCap', 'blockCaps.tool', or 'layouts.wide.sidebarSize'"`
 	Value any    `json:"value" jsonschema:"the JSON value to write, such as \"nvim\", 40, true, or null"`
@@ -27,22 +33,76 @@ type renameIn struct {
 }
 
 type listIn struct {
-	Stopped  bool `json:"stopped,omitempty" jsonschema:"true to also return the sessions that are stored and not running now"`
-	Archived bool `json:"archived,omitempty" jsonschema:"true to also return the archived sessions"`
+	Stopped    bool   `json:"stopped,omitempty" jsonschema:"true to also return the sessions that are stored and not running now"`
+	Archived   bool   `json:"archived,omitempty" jsonschema:"true to also return the archived sessions"`
+	LastActive string `json:"last_active,omitempty" jsonschema:"how recently a stored or archived session was last active to still return it: 1d, 1w, 1m, 1y, or unset for no limit; 1d by default; running sessions are always returned"`
 }
 
-func (in listIn) keep(item Session) bool {
+// The windows last_active accepts. LastActiveUnset removes the limit.
+const (
+	LastActiveDay   = "1d"
+	LastActiveWeek  = "1w"
+	LastActiveMonth = "1m"
+	LastActiveYear  = "1y"
+	LastActiveUnset = "unset"
+)
+
+// DefaultLastActive is the window a call takes when it names none.
+const DefaultLastActive = LastActiveDay
+
+// ErrBadLastActive is the failure when last_active is not a known window.
+var ErrBadLastActive = errors.New("mcp: last_active must be 1d, 1w, 1m, 1y, or unset")
+
+// ParseLastActive turns a window into a lookback duration. An empty window takes
+// the default of one day, and "unset" returns zero, which means no limit.
+func ParseLastActive(window string) (time.Duration, error) {
+	switch strings.TrimSpace(window) {
+	case "", LastActiveDay:
+		return 24 * time.Hour, nil
+	case LastActiveWeek:
+		return 7 * 24 * time.Hour, nil
+	case LastActiveMonth:
+		return 30 * 24 * time.Hour, nil
+	case LastActiveYear:
+		return 365 * 24 * time.Hour, nil
+	case LastActiveUnset:
+		return 0, nil
+	}
+	return 0, ErrBadLastActive
+}
+
+// keep decides one session. A running session always stays. A stored or archived
+// session stays only when its category is asked for and it was active since the
+// cutoff. A zero cutoff, or a session with no last-active time, passes the cutoff.
+func (in listIn) keep(item Session, cutoff time.Time) bool {
 	if item.Archived {
-		return in.Archived
+		return in.Archived && activeSince(item, cutoff)
 	}
 	if !item.Live {
-		return in.Stopped
+		return in.Stopped && activeSince(item, cutoff)
 	}
 	return true
 }
 
-func (in listIn) filter(all []Session) []Session {
-	return selectSessions(all, in.keep)
+func activeSince(item Session, cutoff time.Time) bool {
+	if cutoff.IsZero() || item.LastActiveAt.IsZero() {
+		return true
+	}
+	return !item.LastActiveAt.Before(cutoff)
+}
+
+func (in listIn) filter(all []Session, now time.Time) ([]Session, error) {
+	window, err := ParseLastActive(in.LastActive)
+	if err != nil {
+		return nil, err
+	}
+	var cutoff time.Time
+	if window > 0 {
+		cutoff = now.Add(-window)
+	}
+	return selectSessions(all, func(item Session) bool {
+		return in.keep(item, cutoff)
+	}), nil
 }
 
 func selectSessions(all []Session, keep func(Session) bool) []Session {

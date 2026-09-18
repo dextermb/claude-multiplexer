@@ -7,7 +7,7 @@ to a session that holds the grant. See [../grant.md](../grant.md).
 | Tool | Arguments | What it does | Grant |
 |---|---|---|---|
 | `rename_session` | `title` | Sets the title of the calling session. An empty title clears it. | open |
-| `list_sessions` | `stopped`, `archived` | The sessions that run now: name, title, directory, state, model, turns, cost, and the archive flag. `stopped` adds the stored sessions, and `archived` adds the archived ones. | open |
+| `list_sessions` | `stopped`, `archived`, `last_active` | The sessions that run now: name, title, directory, state, model, turns, cost, last-active time, and the archive flag. `stopped` adds the stored sessions, and `archived` adds the archived ones. `last_active` drops a stored or archived session older than its window. | open |
 | `list_inactive_sessions` | — | The stored sessions that do not run now and are not archived. | open |
 | `list_archived_sessions` | — | The archived sessions. | open |
 | `get_messages` | `session`, `limit` | The recent messages of a session, oldest last. 20 by default, 200 at most. | open |
@@ -25,6 +25,13 @@ to a session that holds the grant. See [../grant.md](../grant.md).
 stored sessions that do not run, and the `archived` flag adds the archived ones,
 so one call reaches every category. `list_inactive_sessions` and
 `list_archived_sessions` name one category each, and take no argument.
+
+The `last_active` window keeps the list short. It drops a stored or archived
+session that took its last turn before the window: `1d`, `1w`, `1m`, `1y`, or
+`unset` for no limit. The default is `1d`. A running session is always returned,
+because it is active now, and a session that never took a turn is always
+returned, because it has no last-active time. The window has no effect until
+`stopped` or `archived` adds those categories.
 
 ### Reading a session
 

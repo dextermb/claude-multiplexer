@@ -248,6 +248,10 @@ type Session struct {
 	Queued   int     `json:"queued,omitempty"`
 	Turns    int     `json:"turns"`
 	Cost     float64 `json:"cost_usd"`
+	// LastActiveAt is when the session last took a turn. It is zero for a session
+	// that never took one, and for a streamed peer session. list_sessions filters
+	// the stored and archived rows by it. See docs/mcp/tools/sessions.md.
+	LastActiveAt time.Time `json:"last_active_at,omitempty"`
 	// Host names the peer a streamed session runs on, and is empty for a session
 	// this host runs. Hosted marks a session this host runs on behalf of a peer.
 	// The sidebar sorts a session into a section from these two. See docs/peers.md.
