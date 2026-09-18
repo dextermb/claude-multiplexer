@@ -134,10 +134,8 @@ func (r Renderer) protocolLines(ev protocol.Event) []Line {
 			ev.Init.SessionID, ev.Init.Model, len(ev.Init.Tools), ev.Init.PermissionMode)}}
 	case ev.Type == protocol.TypeAssistant && ev.Message != nil:
 		return r.messageLines(ev.Message)
-	case ev.Type == protocol.TypeUser && ev.IsReplay && ev.Message != nil:
-		return PromptLines(ev.Message.Content.Text())
 	case ev.Type == protocol.TypeUser && ev.Message != nil:
-		return r.messageLines(ev.Message)
+		return r.userLines(ev.Message, ev.IsReplay)
 	case ev.Type == protocol.TypeResult && ev.Result != nil:
 		return []Line{{Class: ClassMeta, Text: r.resultLine(ev.Result)}}
 	case ev.Type == protocol.TypeSystem && ev.Task != nil:
@@ -204,24 +202,60 @@ func PromptLines(text string) []Line {
 func (r Renderer) messageLines(msg *protocol.Message) []Line {
 	var out []Line
 	for _, block := range msg.Content {
-		switch block.Type {
-		case "text":
+		if block.Type == "text" {
 			if text := strings.TrimRight(block.Text, "\n"); text != "" {
 				out = append(out, Line{Class: ClassText, Text: text})
 			}
-		case "thinking":
-			if r.Verbose && block.Thinking != "" {
-				out = append(out, Line{Class: ClassThinking, Text: "  thinking: " + r.clip(block.Thinking)})
+			continue
+		}
+		out = append(out, r.nonTextLines(block)...)
+	}
+	return out
+}
+
+// userLines renders a user turn. A text block is the human's prompt, unless it
+// is a machine-injected XML wrapper, which renders as a gray status line. See
+// docs/tui/output.md. On replay a non-wrapper block keeps its purple prompt.
+func (r Renderer) userLines(msg *protocol.Message, replay bool) []Line {
+	var out []Line
+	for _, block := range msg.Content {
+		if block.Type != "text" {
+			if !replay {
+				out = append(out, r.nonTextLines(block)...)
 			}
-		case "tool_use":
-			out = append(out, Line{Class: ClassToolUse,
-				Text: fmt.Sprintf("→ %s %s", block.Name, r.clip(summariseInput(block.Input)))})
-		case "tool_result":
-			text, summary := r.toolResultLine(block)
-			out = append(out, Line{Class: ClassToolResult, Text: text, Summary: summary})
+			continue
+		}
+		if lines, ok := r.callbackLines(block.Text); ok {
+			out = append(out, lines...)
+			continue
+		}
+		prose, reminders := peelReminders(block.Text)
+		if replay {
+			out = append(out, PromptLines(prose)...)
+		} else if text := strings.TrimRight(prose, "\n"); text != "" {
+			out = append(out, Line{Class: ClassText, Text: text})
+		}
+		for range reminders {
+			out = append(out, reminderLine())
 		}
 	}
 	return out
+}
+
+func (r Renderer) nonTextLines(block protocol.Block) []Line {
+	switch block.Type {
+	case "thinking":
+		if r.Verbose && block.Thinking != "" {
+			return []Line{{Class: ClassThinking, Text: "  thinking: " + r.clip(block.Thinking)}}
+		}
+	case "tool_use":
+		return []Line{{Class: ClassToolUse,
+			Text: fmt.Sprintf("→ %s %s", block.Name, r.clip(summariseInput(block.Input)))}}
+	case "tool_result":
+		text, summary := r.toolResultLine(block)
+		return []Line{{Class: ClassToolResult, Text: text, Summary: summary}}
+	}
+	return nil
 }
 
 // toolResultLine returns the whole body, which the pane draws, and the one-line
