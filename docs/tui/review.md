@@ -61,6 +61,11 @@ the focus.
 sidebar hides while the screen is open, for the full width, and returns when the
 screen closes.
 
+The screen is modal, so it captures every key. The two-key sequences (`s`, `l`,
+`o`, `d`) do not start while it is open, because their actions would move the
+focus off the screen. So a review key never opens a panel or a dialog behind the
+screen.
+
 ## The explanation
 
 The explanation side is the session output pane, in the review layout. So it

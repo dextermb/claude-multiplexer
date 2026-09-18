@@ -138,3 +138,34 @@ func TestReviewEnterHidesSidebarAndLeaveRestores(t *testing.T) {
 		t.Fatal("leaving must restore the sidebar")
 	}
 }
+
+func TestReviewCapturesSequenceKeys(t *testing.T) {
+	m, mgr := newTestModel(t, "")
+	m = start(t, m, 160, 30)
+	m, _ = step(t, m, key("esc"))
+	m = spawn(t, m, mgr, "alpha", t.TempDir())
+	m, _ = step(t, m, key("esc"))
+	m, _ = step(t, m, key("s"))
+	m, _ = step(t, m, key("R"))
+	if !m.reviewMode {
+		t.Fatal("s R must open the review screen")
+	}
+
+	// s must not start a sequence in review, so it cannot open a panel or dialog
+	// that moves the focus off the screen.
+	m, _ = step(t, m, key("s"))
+	if m.seq != nil {
+		t.Fatal("the review screen must not start a key sequence")
+	}
+	m, _ = step(t, m, key("d"))
+	if m.diffPanel {
+		t.Fatal("s d must not open the diff panel from the review screen")
+	}
+	if m.focus != focusReview {
+		t.Fatalf("the focus must stay on the review screen, got %v", m.focus)
+	}
+	m, _ = step(t, m, key("esc"))
+	if m.reviewMode {
+		t.Fatal("esc must still close the review screen")
+	}
+}
