@@ -28,6 +28,7 @@ const (
 	focusOutput
 	focusDiff
 	focusTask
+	focusReview
 )
 
 type Options struct {
@@ -201,10 +202,20 @@ type Model struct {
 	diffHalf        bool
 	diffLineNumbers bool
 	diffTicking     bool
-	sidebarHidden   bool
-	taskScroll      int
-	taskFor         string
-	outputFor       string
+
+	reviewMode    bool
+	reviewFile    int
+	reviewHunk    int
+	reviewScroll  int
+	explainScroll int
+	reviewFocus   reviewSide
+	reviewSidebar bool
+	explain       map[string]explainState
+
+	sidebarHidden bool
+	taskScroll    int
+	taskFor       string
+	outputFor     string
 
 	width      int
 	height     int
@@ -243,6 +254,7 @@ func New(opts Options) Model {
 		diffs:           make(map[string]projectDiff),
 		fileDiffs:       make(map[string]map[fileKey]string),
 		diffOpen:        make(map[string]map[fileKey]bool),
+		explain:         make(map[string]explainState),
 		folded:          make(map[string]bool),
 		roots:           make(map[string]string),
 		expanded:        make(map[int]bool),
@@ -478,7 +490,8 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	var cmd tea.Cmd
-	if m.focus == focusPrompt && m.form == nil {
+	promptFocused := m.focus == focusPrompt || (m.reviewMode && m.reviewFocus == reviewPrompt)
+	if promptFocused && m.form == nil {
 		m.prompt, cmd = m.prompt.Update(msg)
 	}
 	return m, cmd

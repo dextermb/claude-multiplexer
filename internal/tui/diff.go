@@ -21,10 +21,10 @@ func diffTick() tea.Cmd {
 	return tea.Tick(diffRefreshInterval, func(time.Time) tea.Msg { return diffTickMsg{} })
 }
 
-// handleDiffTick re-reads the diff while the panel is open, then schedules the
-// next tick. It stops the loop when the panel closes.
+// handleDiffTick re-reads the diff while the panel or the review screen is open,
+// then schedules the next tick. It stops the loop when both close.
 func (m Model) handleDiffTick() (tea.Model, tea.Cmd) {
-	if !m.diffPanel {
+	if !m.diffPanel && !m.reviewMode {
 		m.diffTicking = false
 		return m, nil
 	}
@@ -164,6 +164,11 @@ func (m Model) handleDiff(msg diffMsg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 	for key := range m.diffOpen[msg.name] {
 		cmds = append(cmds, fileDiffCmd(msg.name, key.dir, key.path))
+	}
+	if m.reviewMode && msg.name == m.sel {
+		if load := m.reviewLoadCmd(); load != nil {
+			cmds = append(cmds, load)
+		}
 	}
 	return m, tea.Batch(cmds...)
 }

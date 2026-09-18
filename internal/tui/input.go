@@ -159,10 +159,14 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.seq != nil {
 		return m.resolveSequence(msg)
 	}
-	if target, ok := sequenceTarget(msg.String(), m.focus == focusPrompt, m.diffPanel); ok {
+	inPromptText := m.focus == focusPrompt || (m.reviewMode && m.reviewFocus == reviewPrompt)
+	if target, ok := sequenceTarget(msg.String(), inPromptText, m.diffPanel); ok {
 		return m.startSequence(target)
 	}
 
+	if m.focus == focusReview {
+		return m.reviewKey(msg)
+	}
 	if m.focus == focusDiff {
 		return m.diffKey(msg)
 	}

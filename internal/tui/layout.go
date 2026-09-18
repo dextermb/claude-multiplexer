@@ -182,6 +182,9 @@ func (m Model) paneView() string {
 	if dialog, ok := m.sessionDialogView(); ok {
 		return lipgloss.JoinVertical(lipgloss.Left, m.barView(), dialog)
 	}
+	if m.reviewMode {
+		return m.reviewView()
+	}
 	if !m.showSidePanel() {
 		return lipgloss.JoinVertical(lipgloss.Left, m.barView(), m.outputView())
 	}

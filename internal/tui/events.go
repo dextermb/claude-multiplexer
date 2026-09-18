@@ -78,6 +78,7 @@ func (m Model) handleEvent(ev manager.Event) (tea.Model, tea.Cmd) {
 	if turnEnded {
 		m.resetBlockCursor()
 	}
+	m.captureExplain(ev, turnEnded)
 	cmds := []tea.Cmd{waitEvent(m.sub)}
 	if turnEnded {
 		if refresh := m.diffRefreshCmd(); refresh != nil {

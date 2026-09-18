@@ -33,6 +33,7 @@ var bindings = []binding{
 	{"The session (s)", "s", "s k", "Move the focus to the task and job panel", "k tasks"},
 	{"The session (s)", "s", "s f", "Open the working directories in the file manager", "f folder"},
 	{"The session (s)", "s", "s d", "Show the working-tree diff of the selected session", "d diff"},
+	{"The session (s)", "s", "s R", "Open the code review screen for the selected session", "R review"},
 	{"The session (s)", "s", "s E", "Open the working directories in the editor", "E editor"},
 	{"The session (s)", "s", "s m", "Change the model", "m model"},
 	{"The session (s)", "s", "s e", "Change the effort (the thinking budget)", "e effort"},
@@ -60,6 +61,11 @@ var bindings = []binding{
 	{"The diff panel (d)", "", "j  k", "Step through an open diff, then to the next or previous file", ""},
 	{"The diff panel (d)", "", "g  G", "Go to the top or bottom of the open diff, or of the file list", ""},
 	{"The diff panel (d)", "", "}  {", "Jump to the next or previous empty line of an open diff", ""},
+
+	{"The review screen (s R)", "", "j  k", "Step through the hunks, and roll to the next or previous file", ""},
+	{"The review screen (s R)", "", "}  {", "Jump to the next or previous file", ""},
+	{"The review screen (s R)", "", "e  E", "Explain the selected hunk, or the whole file", ""},
+	{"The review screen (s R)", "", "tab", "Move between the diff, the explanation, and the prompt", ""},
 
 	{"The task panel", "", "j  k  up  down", "Scroll the task and job panel one line", ""},
 	{"The task panel", "", "u  d", "Scroll half a panel", ""},
