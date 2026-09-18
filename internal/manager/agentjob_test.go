@@ -55,6 +55,24 @@ func TestAgentTurnsGoToTheJobNotThePane(t *testing.T) {
 		}
 	}
 
+	messages, err := m.Messages(name, 20)
+	if err != nil {
+		t.Fatalf("Messages: %v", err)
+	}
+	var text []string
+	for _, msg := range messages {
+		text = append(text, msg.Text)
+	}
+	joined := strings.Join(text, "|")
+	if !strings.Contains(joined, "echo: agent") {
+		t.Fatalf("get_messages lost the parent turn: %v", messages)
+	}
+	for _, hidden := range []string{"used Read", "40 lines"} {
+		if strings.Contains(joined, hidden) {
+			t.Fatalf("get_messages shows an agent turn %q: %v", hidden, messages)
+		}
+	}
+
 	retire(t, m, name)
 	replay := strings.Join(render.Text(m.Replay(name)), "\n")
 	if !strings.Contains(replay, "⚙ started") || !strings.Contains(replay, "echo: agent") {

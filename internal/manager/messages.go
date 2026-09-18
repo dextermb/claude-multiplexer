@@ -45,6 +45,9 @@ func (m *Manager) Messages(name string, limit int) ([]mcp.Message, error) {
 }
 
 func messageOf(ev protocol.Event) (mcp.Message, bool) {
+	if ev.HasParent() {
+		return mcp.Message{}, false
+	}
 	switch ev.Type {
 	case protocol.TypeUser:
 		text := ev.Text()

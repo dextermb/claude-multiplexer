@@ -165,6 +165,10 @@ block is rendered properly. See [markdown.md](../markdown.md).
 The pane follows the growing text only while you sit at the bottom, so a stream
 never drags you away from something you scrolled back to read.
 
+The streaming text is the session's own. A local agent streams its turns on the
+same output, but that text does not enter the partial line, because it belongs to
+the agent's job. See [sessions/jobs.md](sessions/jobs.md).
+
 ## Injected callbacks
 
 Claude Code injects some turns as a synthetic user message whose text is one XML
