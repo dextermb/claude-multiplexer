@@ -94,6 +94,9 @@ type Event struct {
 	// its output instead of appending. A streamed session sets it on the first
 	// event of each connection. See docs/peers.md.
 	Replace bool
+	// PromptEcho says the event replays a turn the human sent, so a viewer drops
+	// the held copy of the prompt. See docs/tui/output.md.
+	PromptEcho bool
 }
 
 type Manager struct {
@@ -192,6 +195,7 @@ func (m *Manager) pump(item *entry) {
 			Questions:  questions,
 			QuestionID: qid,
 			Todos:      todos,
+			PromptEcho: render.IsPromptEcho(ev.Protocol),
 		})
 	}
 	m.releaseTools(item.token)

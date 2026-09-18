@@ -4,10 +4,33 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/dextermb/claude-multiplexer/internal/protocol"
 	"github.com/dextermb/claude-multiplexer/internal/session"
 )
 
 var leadingTag = regexp.MustCompile(`^<([a-z][a-z0-9-]+)>`)
+
+// IsPromptEcho reports whether the event replays a turn the human sent, a
+// prompt or a slash command, so the interface drops the held copy of the
+// prompt on it. See docs/tui/output.md.
+func IsPromptEcho(ev protocol.Event) bool {
+	if ev.Type != protocol.TypeUser || !ev.IsReplay || ev.Message == nil {
+		return false
+	}
+	trimmed := strings.TrimSpace(ev.Message.Content.Text())
+	if trimmed == "" {
+		return false
+	}
+	m := leadingTag.FindStringSubmatch(trimmed)
+	if m == nil {
+		return true
+	}
+	switch m[1] {
+	case "task-notification", "local-command-stdout", "local-command-caveat", "system-reminder":
+		return false
+	}
+	return true
+}
 
 // callbackLines formats a machine-injected XML wrapper turn as gray status
 // lines. Claude Code injects these as synthetic user messages, so the pane

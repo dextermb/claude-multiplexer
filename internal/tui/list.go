@@ -398,9 +398,6 @@ func (m Model) thinkingSelected() bool {
 	if m.sel == "" || m.partials[m.sel] != "" {
 		return false
 	}
-	if len(m.queued[m.sel]) > 0 {
-		return true
-	}
 	return m.selectedBusy()
 }
 

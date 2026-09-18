@@ -5,7 +5,6 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/dextermb/claude-multiplexer/internal/manager"
-	"github.com/dextermb/claude-multiplexer/internal/render"
 )
 
 func (m Model) handleSettings(msg settingsMsg) (tea.Model, tea.Cmd) {
@@ -58,7 +57,7 @@ func (m Model) handleEvent(ev manager.Event) (tea.Model, tea.Cmd) {
 	if !ev.Closed {
 		m.todos[ev.Session] = ev.Todos
 	}
-	if hasPrompt(ev.Lines) {
+	if ev.PromptEcho {
 		m.dropQueued(ev.Session)
 	}
 	wasBusy := m.selectedBusy()
@@ -112,15 +111,6 @@ func (m Model) handleNotice(ev manager.Event) (tea.Model, tea.Cmd) {
 		m.setContent()
 	}
 	return m, tea.Batch(cmds...)
-}
-
-func hasPrompt(lines []render.Line) bool {
-	for _, line := range lines {
-		if line.Class == render.ClassPrompt {
-			return true
-		}
-	}
-	return false
 }
 
 func (m *Model) dropQueued(name string) {

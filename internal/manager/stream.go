@@ -92,6 +92,7 @@ func wireEvent(ev Event) wire.Event {
 		Questions:  ev.Questions,
 		QuestionID: ev.QuestionID,
 		Todos:      ev.Todos,
+		PromptEcho: ev.PromptEcho,
 	}
 }
 

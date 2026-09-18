@@ -208,6 +208,7 @@ func (m *Manager) applyRemote(re *remoteEntry, ev wire.Event, replace bool) {
 		Questions:  ev.Questions,
 		QuestionID: ev.QuestionID,
 		Todos:      ev.Todos,
+		PromptEcho: ev.PromptEcho,
 		Replace:    replace,
 	}
 	if replace {
