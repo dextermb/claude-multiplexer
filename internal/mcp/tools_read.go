@@ -12,76 +12,48 @@ func (s *Server) addReadTools(server *sdk.Server, caller string) {
 		Name:        ToolRename,
 		Description: "Set the display title of this session, so the human sees what it works on.",
 	}, func(_ context.Context, _ *sdk.CallToolRequest, in renameIn) (*sdk.CallToolResult, okOut, error) {
-		if err := s.sessions.SetTitle(caller, in.Title); err != nil {
-			return nil, okOut{}, err
-		}
-		if in.Title == "" {
-			return nil, okOut{OK: true, Message: "the title of " + caller + " is cleared"}, nil
-		}
-		return nil, okOut{OK: true, Message: caller + " is now titled " + in.Title}, nil
+		out, err := rename(s.sessions, caller, in)
+		return nil, out, err
 	})
 
 	sdk.AddTool(server, &sdk.Tool{
 		Name:        ToolList,
 		Description: "List the sessions the multiplexer runs now. Set stopped true to add the stored sessions, and archived true to add the archived ones. last_active drops a stored or archived session older than its window (1d, 1w, 1m, 1y, or unset; 1d by default).",
 	}, func(_ context.Context, _ *sdk.CallToolRequest, in listIn) (*sdk.CallToolResult, listOut, error) {
-		kept, err := in.filter(s.sessions.List(), time.Now())
-		if err != nil {
-			return nil, listOut{}, err
-		}
-		return nil, listOut{Sessions: kept}, nil
+		out, err := listSessions(s.sessions, in, time.Now())
+		return nil, out, err
 	})
 
 	sdk.AddTool(server, &sdk.Tool{
 		Name:        ToolListInactive,
 		Description: "List the stored sessions that do not run now and are not archived. last_active drops a session older than its window (1d, 1w, 1m, 1y, or unset; 1d by default).",
 	}, func(_ context.Context, _ *sdk.CallToolRequest, in listCategoryIn) (*sdk.CallToolResult, listOut, error) {
-		kept, err := in.filter(s.sessions.List(), time.Now(), isInactive)
-		if err != nil {
-			return nil, listOut{}, err
-		}
-		return nil, listOut{Sessions: kept}, nil
+		out, err := listCategory(s.sessions, in, time.Now(), isInactive)
+		return nil, out, err
 	})
 
 	sdk.AddTool(server, &sdk.Tool{
 		Name:        ToolListArchived,
 		Description: "List the archived sessions. last_active drops a session older than its window (1d, 1w, 1m, 1y, or unset; 1d by default).",
 	}, func(_ context.Context, _ *sdk.CallToolRequest, in listCategoryIn) (*sdk.CallToolResult, listOut, error) {
-		kept, err := in.filter(s.sessions.List(), time.Now(), isArchived)
-		if err != nil {
-			return nil, listOut{}, err
-		}
-		return nil, listOut{Sessions: kept}, nil
+		out, err := listCategory(s.sessions, in, time.Now(), isArchived)
+		return nil, out, err
 	})
 
 	sdk.AddTool(server, &sdk.Tool{
 		Name:        ToolMessages,
 		Description: "Read the recent messages of a session, oldest first.",
 	}, func(_ context.Context, _ *sdk.CallToolRequest, in messagesIn) (*sdk.CallToolResult, messagesOut, error) {
-		target, err := cleanTarget(in.Session)
-		if err != nil {
-			return nil, messagesOut{}, err
-		}
-		messages, err := s.sessions.Messages(target, clampLimit(in.Limit))
-		if err != nil {
-			return nil, messagesOut{}, err
-		}
-		return nil, messagesOut{Session: target, Messages: messages}, nil
+		out, err := messages(s.sessions, in)
+		return nil, out, err
 	})
 
 	sdk.AddTool(server, &sdk.Tool{
 		Name:        ToolListJobs,
 		Description: "List the background jobs of a session: id, description, task type, and status (running, done, failed, or killed). Give a session name, or leave it empty for this session.",
 	}, func(_ context.Context, _ *sdk.CallToolRequest, in listJobsIn) (*sdk.CallToolResult, listJobsOut, error) {
-		target, err := targetOrSelf(in.Session, caller)
-		if err != nil {
-			return nil, listJobsOut{}, err
-		}
-		jobs, err := s.sessions.Jobs(target)
-		if err != nil {
-			return nil, listJobsOut{}, err
-		}
-		return nil, listJobsOut{Session: target, Jobs: jobs}, nil
+		out, err := listJobs(s.sessions, caller, in)
+		return nil, out, err
 	})
 
 	sdk.AddTool(server, &sdk.Tool{
@@ -98,4 +70,54 @@ func (s *Server) addReadTools(server *sdk.Server, caller string) {
 		e := s.sessions.PeerEndpoint()
 		return nil, peerURLOut{URL: e.URL, Host: e.Host, Port: e.Port, Enabled: e.Enabled}, nil
 	})
+}
+
+func rename(ctrl ControlPort, caller string, in renameIn) (okOut, error) {
+	if err := ctrl.SetTitle(caller, in.Title); err != nil {
+		return okOut{}, err
+	}
+	if in.Title == "" {
+		return okOut{OK: true, Message: "the title of " + caller + " is cleared"}, nil
+	}
+	return okOut{OK: true, Message: caller + " is now titled " + in.Title}, nil
+}
+
+func listSessions(r SessionReader, in listIn, now time.Time) (listOut, error) {
+	kept, err := in.filter(r.List(), now)
+	if err != nil {
+		return listOut{}, err
+	}
+	return listOut{Sessions: kept}, nil
+}
+
+func listCategory(r SessionReader, in listCategoryIn, now time.Time, keep func(Session) bool) (listOut, error) {
+	kept, err := in.filter(r.List(), now, keep)
+	if err != nil {
+		return listOut{}, err
+	}
+	return listOut{Sessions: kept}, nil
+}
+
+func messages(r SessionReader, in messagesIn) (messagesOut, error) {
+	target, err := cleanTarget(in.Session)
+	if err != nil {
+		return messagesOut{}, err
+	}
+	msgs, err := r.Messages(target, clampLimit(in.Limit))
+	if err != nil {
+		return messagesOut{}, err
+	}
+	return messagesOut{Session: target, Messages: msgs}, nil
+}
+
+func listJobs(r SessionReader, caller string, in listJobsIn) (listJobsOut, error) {
+	target, err := targetOrSelf(in.Session, caller)
+	if err != nil {
+		return listJobsOut{}, err
+	}
+	jobs, err := r.Jobs(target)
+	if err != nil {
+		return listJobsOut{}, err
+	}
+	return listJobsOut{Session: target, Jobs: jobs}, nil
 }

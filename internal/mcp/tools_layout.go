@@ -15,15 +15,8 @@ func (s *Server) addLayoutTools(server *sdk.Server, caller string) {
 			"A layout sets the prompt bar height, the session list width, the task panel width, the diff panel position, and the diff panel size. " +
 			"Give a session name, or leave it empty for this session.",
 	}, func(_ context.Context, _ *sdk.CallToolRequest, in listLayoutsIn) (*sdk.CallToolResult, LayoutList, error) {
-		target, err := targetOrSelf(in.Session, caller)
-		if err != nil {
-			return nil, LayoutList{}, err
-		}
-		out, err := s.sessions.Layouts(target)
-		if err != nil {
-			return nil, LayoutList{}, err
-		}
-		return nil, out, nil
+		out, err := listLayouts(s.sessions, caller, in)
+		return nil, out, err
 	})
 
 	sdk.AddTool(server, &sdk.Tool{
@@ -33,27 +26,8 @@ func (s *Server) addLayoutTools(server *sdk.Server, caller string) {
 			"Give a dimension to override the captured one, so the same call edits one field of an existing layout. " +
 			"It writes the settings file of the multiplexer.",
 	}, func(_ context.Context, _ *sdk.CallToolRequest, in saveLayoutIn) (*sdk.CallToolResult, saveLayoutOut, error) {
-		name := strings.TrimSpace(in.Name)
-		if name == "" {
-			return nil, saveLayoutOut{}, ErrNoLayout
-		}
-		dims := LayoutDims{
-			PromptMin:    in.PromptMin,
-			PromptMax:    in.PromptMax,
-			SidebarSize:  in.SidebarSize,
-			TaskSize:     in.TaskSize,
-			DiffSize:     in.DiffSize,
-			DiffPosition: in.DiffPosition,
-		}
-		if err := checkDims(dims); err != nil {
-			return nil, saveLayoutOut{}, err
-		}
-		path, err := s.sessions.SaveLayout(name, dims, caller)
-		if err != nil {
-			return nil, saveLayoutOut{}, err
-		}
-		return nil, saveLayoutOut{OK: true, Path: path, Name: name,
-			Message: "the layout " + name + " is saved, in " + path}, nil
+		out, err := saveLayout(s.sessions, caller, in)
+		return nil, out, err
 	})
 
 	sdk.AddTool(server, &sdk.Tool{
@@ -61,19 +35,8 @@ func (s *Server) addLayoutTools(server *sdk.Server, caller string) {
 		Description: "Remove a named layout from the settings file of the multiplexer. " +
 			"A session or the global default that named it takes the built-in defaults again.",
 	}, func(_ context.Context, _ *sdk.CallToolRequest, in deleteLayoutIn) (*sdk.CallToolResult, deleteLayoutOut, error) {
-		name := strings.TrimSpace(in.Name)
-		if name == "" {
-			return nil, deleteLayoutOut{}, ErrNoLayout
-		}
-		path, changed, err := s.sessions.DeleteLayout(name, caller)
-		if err != nil {
-			return nil, deleteLayoutOut{}, err
-		}
-		message := "the layout " + name + " was not there, in " + path
-		if changed {
-			message = "the layout " + name + " is deleted, in " + path
-		}
-		return nil, deleteLayoutOut{OK: true, Path: path, Changed: changed, Message: message}, nil
+		out, err := deleteLayout(s.sessions, caller, in)
+		return nil, out, err
 	})
 
 	sdk.AddTool(server, &sdk.Tool{
@@ -83,24 +46,8 @@ func (s *Server) addLayoutTools(server *sdk.Server, caller string) {
 			"The scope 'all' sets the global default for every session. " +
 			"The layout must exist.",
 	}, func(_ context.Context, _ *sdk.CallToolRequest, in setLayoutIn) (*sdk.CallToolResult, setLayoutOut, error) {
-		name := strings.TrimSpace(in.Name)
-		if name == "" {
-			return nil, setLayoutOut{}, ErrNoLayout
-		}
-		scope, err := scopeOrSession(in.Scope)
-		if err != nil {
-			return nil, setLayoutOut{}, err
-		}
-		path, err := s.sessions.SetLayout(name, scope, caller)
-		if err != nil {
-			return nil, setLayoutOut{}, err
-		}
-		where := caller
-		if scope == ScopeAll {
-			where = "every session"
-		}
-		return nil, setLayoutOut{OK: true, Path: path, Scope: scope,
-			Message: "the layout " + name + " is active for " + where}, nil
+		out, err := setLayout(s.sessions, caller, in)
+		return nil, out, err
 	})
 
 	sdk.AddTool(server, &sdk.Tool{
@@ -109,24 +56,98 @@ func (s *Server) addLayoutTools(server *sdk.Server, caller string) {
 			"The scope 'session' clears this session, so it takes the global default again. " +
 			"The scope 'all' clears the global default, so every session takes the built-in defaults.",
 	}, func(_ context.Context, _ *sdk.CallToolRequest, in unsetLayoutIn) (*sdk.CallToolResult, unsetLayoutOut, error) {
-		scope, err := scopeOrSession(in.Scope)
-		if err != nil {
-			return nil, unsetLayoutOut{}, err
-		}
-		path, changed, err := s.sessions.UnsetLayout(scope, caller)
-		if err != nil {
-			return nil, unsetLayoutOut{}, err
-		}
-		where := caller
-		if scope == ScopeAll {
-			where = "the global default"
-		}
-		message := where + " had no layout"
-		if changed {
-			message = where + " takes no layout now"
-		}
-		return nil, unsetLayoutOut{OK: true, Path: path, Scope: scope, Changed: changed, Message: message}, nil
+		out, err := unsetLayout(s.sessions, caller, in)
+		return nil, out, err
 	})
+}
+
+func listLayouts(lay LayoutPort, caller string, in listLayoutsIn) (LayoutList, error) {
+	target, err := targetOrSelf(in.Session, caller)
+	if err != nil {
+		return LayoutList{}, err
+	}
+	return lay.Layouts(target)
+}
+
+func saveLayout(lay LayoutPort, caller string, in saveLayoutIn) (saveLayoutOut, error) {
+	name := strings.TrimSpace(in.Name)
+	if name == "" {
+		return saveLayoutOut{}, ErrNoLayout
+	}
+	dims := LayoutDims{
+		PromptMin:    in.PromptMin,
+		PromptMax:    in.PromptMax,
+		SidebarSize:  in.SidebarSize,
+		TaskSize:     in.TaskSize,
+		DiffSize:     in.DiffSize,
+		DiffPosition: in.DiffPosition,
+	}
+	if err := checkDims(dims); err != nil {
+		return saveLayoutOut{}, err
+	}
+	path, err := lay.SaveLayout(name, dims, caller)
+	if err != nil {
+		return saveLayoutOut{}, err
+	}
+	return saveLayoutOut{OK: true, Path: path, Name: name,
+		Message: "the layout " + name + " is saved, in " + path}, nil
+}
+
+func deleteLayout(lay LayoutPort, caller string, in deleteLayoutIn) (deleteLayoutOut, error) {
+	name := strings.TrimSpace(in.Name)
+	if name == "" {
+		return deleteLayoutOut{}, ErrNoLayout
+	}
+	path, changed, err := lay.DeleteLayout(name, caller)
+	if err != nil {
+		return deleteLayoutOut{}, err
+	}
+	message := "the layout " + name + " was not there, in " + path
+	if changed {
+		message = "the layout " + name + " is deleted, in " + path
+	}
+	return deleteLayoutOut{OK: true, Path: path, Changed: changed, Message: message}, nil
+}
+
+func setLayout(lay LayoutPort, caller string, in setLayoutIn) (setLayoutOut, error) {
+	name := strings.TrimSpace(in.Name)
+	if name == "" {
+		return setLayoutOut{}, ErrNoLayout
+	}
+	scope, err := scopeOrSession(in.Scope)
+	if err != nil {
+		return setLayoutOut{}, err
+	}
+	path, err := lay.SetLayout(name, scope, caller)
+	if err != nil {
+		return setLayoutOut{}, err
+	}
+	where := caller
+	if scope == ScopeAll {
+		where = "every session"
+	}
+	return setLayoutOut{OK: true, Path: path, Scope: scope,
+		Message: "the layout " + name + " is active for " + where}, nil
+}
+
+func unsetLayout(lay LayoutPort, caller string, in unsetLayoutIn) (unsetLayoutOut, error) {
+	scope, err := scopeOrSession(in.Scope)
+	if err != nil {
+		return unsetLayoutOut{}, err
+	}
+	path, changed, err := lay.UnsetLayout(scope, caller)
+	if err != nil {
+		return unsetLayoutOut{}, err
+	}
+	where := caller
+	if scope == ScopeAll {
+		where = "the global default"
+	}
+	message := where + " had no layout"
+	if changed {
+		message = where + " takes no layout now"
+	}
+	return unsetLayoutOut{OK: true, Path: path, Scope: scope, Changed: changed, Message: message}, nil
 }
 
 func scopeOrSession(scope string) (string, error) {

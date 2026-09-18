@@ -26,3 +26,10 @@ satisfies every port. See `internal/mcp/sessions.go`.
 A tool test builds a fake of one port, and embeds `Sessions` for the rest, so it
 fills the six methods of its port rather than the whole surface. The lock tests
 show the pattern: see `lockPortFake` in `internal/mcp/tools_locks_test.go`.
+
+Each tool body is a pure function of its port, so a test calls it directly with a
+port fake, and never the HTTP server. The `sdk.AddTool` closure only unmarshals
+the input and calls the pure function. A handler with no logic to test — a single
+read that returns a port value — stays inline. The white-box tests in
+`internal/mcp/tools_locks_pure_test.go` and `tools_control_pure_test.go` call the
+pure handlers directly.

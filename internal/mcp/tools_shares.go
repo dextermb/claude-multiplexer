@@ -53,18 +53,8 @@ func (s *Server) addShareSessionTool(server *sdk.Server, caller string, control 
 		Name:        ToolShareSession,
 		Description: description,
 	}, func(_ context.Context, _ *sdk.CallToolRequest, in shareSessionIn) (*sdk.CallToolResult, ShareCreated, error) {
-		target := strings.TrimSpace(in.Session)
-		if target == "" {
-			target = caller
-		}
-		if !control && target != caller {
-			return nil, ShareCreated{}, ErrNotSelf
-		}
-		created, err := s.sessions.ShareSession(target, in.ExpiresHours)
-		if err != nil {
-			return nil, ShareCreated{}, err
-		}
-		return nil, created, nil
+		out, err := shareSession(s.sessions, caller, control, in)
+		return nil, out, err
 	})
 }
 
@@ -82,30 +72,51 @@ func (s *Server) addShareAdminTools(server *sdk.Server, _ string) {
 		Name:        ToolRevokeShare,
 		Description: "Revoke a read-only share by id, so its link stops working. A live viewer is dropped within a few seconds.",
 	}, func(_ context.Context, _ *sdk.CallToolRequest, in revokeShareIn) (*sdk.CallToolResult, revokeShareOut, error) {
-		if strings.TrimSpace(in.ID) == "" {
-			return nil, revokeShareOut{}, ErrNoShare
-		}
-		had, err := s.sessions.RevokeShare(in.ID)
-		if err != nil {
-			return nil, revokeShareOut{}, err
-		}
-		if !had {
-			return nil, revokeShareOut{OK: true, Message: "no share with id " + in.ID}, nil
-		}
-		return nil, revokeShareOut{OK: true, Message: "revoked the share " + in.ID}, nil
+		out, err := revokeShare(s.sessions, in)
+		return nil, out, err
 	})
 
 	sdk.AddTool(server, &sdk.Tool{
 		Name:        ToolWatchShare,
 		Description: "Watch a session another host shared, from its cmux://spectate/... link. The session appears read-only: you see it live, but you cannot type, stop, or interrupt it. Close it to stop watching; the session on the host is untouched.",
 	}, func(_ context.Context, _ *sdk.CallToolRequest, in watchShareIn) (*sdk.CallToolResult, watchShareOut, error) {
-		if strings.TrimSpace(in.Link) == "" {
-			return nil, watchShareOut{}, ErrNoShare
-		}
-		name, err := s.sessions.WatchShare(in.Link)
-		if err != nil {
-			return nil, watchShareOut{}, err
-		}
-		return nil, watchShareOut{OK: true, Name: name, Message: "watching " + name + " read-only"}, nil
+		out, err := watchShare(s.sessions, in)
+		return nil, out, err
 	})
+}
+
+func shareSession(share SharePort, caller string, control bool, in shareSessionIn) (ShareCreated, error) {
+	target := strings.TrimSpace(in.Session)
+	if target == "" {
+		target = caller
+	}
+	if !control && target != caller {
+		return ShareCreated{}, ErrNotSelf
+	}
+	return share.ShareSession(target, in.ExpiresHours)
+}
+
+func revokeShare(share SharePort, in revokeShareIn) (revokeShareOut, error) {
+	if strings.TrimSpace(in.ID) == "" {
+		return revokeShareOut{}, ErrNoShare
+	}
+	had, err := share.RevokeShare(in.ID)
+	if err != nil {
+		return revokeShareOut{}, err
+	}
+	if !had {
+		return revokeShareOut{OK: true, Message: "no share with id " + in.ID}, nil
+	}
+	return revokeShareOut{OK: true, Message: "revoked the share " + in.ID}, nil
+}
+
+func watchShare(share SharePort, in watchShareIn) (watchShareOut, error) {
+	if strings.TrimSpace(in.Link) == "" {
+		return watchShareOut{}, ErrNoShare
+	}
+	name, err := share.WatchShare(in.Link)
+	if err != nil {
+		return watchShareOut{}, err
+	}
+	return watchShareOut{OK: true, Name: name, Message: "watching " + name + " read-only"}, nil
 }
