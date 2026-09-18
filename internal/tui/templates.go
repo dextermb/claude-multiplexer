@@ -83,6 +83,31 @@ func (p *picker) selected() (template.Template, bool) {
 	return p.matches[p.index], true
 }
 
+func (p *picker) region() modalRegion      { return modalBody }
+func (p *picker) view(width, _ int) string { return p.View(width) }
+
+func (p *picker) update(m *Model, msg tea.Msg) (modal, tea.Cmd) {
+	result, cmd := p.Update(msg)
+	switch result {
+	case pickerCancelled:
+		return nil, nil
+	case pickerChosen:
+		tpl, ok := p.selected()
+		if !ok {
+			return nil, nil
+		}
+		return m.openFieldsModal(tpl, nil)
+	}
+	return p, cmd
+}
+
+func (m Model) openPicker() (tea.Model, tea.Cmd) {
+	m.reloadTemplates()
+	m.modal = newPicker(m.templates, m.templateDirs())
+	m.errText = ""
+	return m, textinput.Blink
+}
+
 func (p *picker) View(width int) string {
 	inner := modalInner(width)
 
@@ -215,6 +240,35 @@ func (f *fieldForm) values() map[string]string {
 
 func (f *fieldForm) prompt() string {
 	return f.tpl.Expand(f.values())
+}
+
+func (f *fieldForm) region() modalRegion      { return modalBody }
+func (f *fieldForm) view(width, _ int) string { return f.View(width) }
+
+func (f *fieldForm) update(m *Model, msg tea.Msg) (modal, tea.Cmd) {
+	result, cmd := f.Update(msg)
+	return applyForm(f, m, result, cmd, f.submit)
+}
+
+func (f *fieldForm) submit(m *Model) (modal, tea.Cmd) {
+	return nil, m.fillPrompt(f.prompt())
+}
+
+// openFieldsModal opens the field form for a preset, or fills the prompt at once
+// when the preset has no fields. See docs/templates.md.
+func (m *Model) openFieldsModal(tpl template.Template, values map[string]string) (modal, tea.Cmd) {
+	if len(tpl.Fields) == 0 {
+		return nil, m.fillPrompt(tpl.Expand(nil))
+	}
+	return newFieldForm(tpl, values), textinput.Blink
+}
+
+func (m *Model) fillPrompt(text string) tea.Cmd {
+	m.prompt.SetValue(text)
+	m.prompt.CursorEnd()
+	m.focus = focusPrompt
+	m.prompt.Focus()
+	return textinputBlink()
 }
 
 func (f *fieldForm) View(width int) string {

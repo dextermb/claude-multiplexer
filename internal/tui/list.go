@@ -161,14 +161,15 @@ func (m *Model) refresh() {
 // syncJobsModal gives the open jobs dialog the jobs of its session, so a
 // running job grows while you read it. See docs/tui/sessions/jobs.md.
 func (m *Model) syncJobsModal() {
-	if m.jobsModal == nil {
+	jobs, ok := m.modal.(*jobsModal)
+	if !ok {
 		return
 	}
 	item, ok := m.selectedRow()
 	if !ok {
 		return
 	}
-	m.jobsModal.setJobs(item.jobList)
+	jobs.setJobs(item.jobList)
 }
 
 // clientNames maps a client id to its name, so a hosted session groups under the

@@ -8,7 +8,7 @@ import (
 )
 
 func (m Model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
-	if m.form != nil || m.confirm != "" || m.quitting || m.questions[m.sel] != nil || m.choice != nil || m.rename != nil || m.jobsModal != nil {
+	if m.form != nil || m.confirm != "" || m.quitting || m.questions[m.sel] != nil || (m.modal != nil && m.modal.region() == modalPane) {
 		return m, nil
 	}
 

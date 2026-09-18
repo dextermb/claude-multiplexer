@@ -58,7 +58,7 @@ func TestThePickerFillsThePromptFromATemplate(t *testing.T) {
 	m.focus = focusSidebar
 	m.prompt.Blur()
 	m, _ = step(t, m, key("t"))
-	if m.picker == nil {
+	if pickerOf(m) == nil {
 		t.Fatal("t must open the picker")
 	}
 	view := visible(m.View())
@@ -69,7 +69,7 @@ func TestThePickerFillsThePromptFromATemplate(t *testing.T) {
 	}
 
 	m, _ = step(t, m, key("enter"))
-	if m.picker != nil || m.fields == nil {
+	if pickerOf(m) != nil || fieldsOf(m) == nil {
 		t.Fatal("choosing a template must open the field form")
 	}
 	if got := visible(m.View()); !strings.Contains(got, "issue") || !strings.Contains(got, "focus") {
@@ -78,7 +78,7 @@ func TestThePickerFillsThePromptFromATemplate(t *testing.T) {
 
 	m = typeInto(t, m, "ENG-123")
 	m, _ = step(t, m, key("enter"))
-	if m.fields != nil {
+	if fieldsOf(m) != nil {
 		t.Fatal("enter must close the form")
 	}
 	want := "Look up ENG-123 and focus on correctness."
@@ -107,15 +107,15 @@ func TestThePickerNarrowsAsYouType(t *testing.T) {
 	m, _ = step(t, m, key("t"))
 
 	m = typeInto(t, m, "lin")
-	if len(m.picker.matches) != 2 {
-		t.Fatalf("matches = %d, want linear and lint", len(m.picker.matches))
+	if len(pickerOf(m).matches) != 2 {
+		t.Fatalf("matches = %d, want linear and lint", len(pickerOf(m).matches))
 	}
 	m = typeInto(t, m, "t")
-	if len(m.picker.matches) != 1 || m.picker.matches[0].Name != "lint" {
-		t.Fatalf("matches = %+v, want only lint", m.picker.matches)
+	if len(pickerOf(m).matches) != 1 || pickerOf(m).matches[0].Name != "lint" {
+		t.Fatalf("matches = %+v, want only lint", pickerOf(m).matches)
 	}
 	m, _ = step(t, m, key("esc"))
-	if m.picker != nil {
+	if pickerOf(m) != nil {
 		t.Fatal("esc must close the picker")
 	}
 }
@@ -133,7 +133,7 @@ func TestASlashNameExpandsAndSends(t *testing.T) {
 	m.prompt.SetValue("/linear ENG-9 the retry path")
 	m, _ = step(t, m, key("enter"))
 
-	if m.fields != nil {
+	if fieldsOf(m) != nil {
 		t.Fatal("every field was given, so no form should open")
 	}
 	prompt := lastPrompt(t, mgr, "alpha")
@@ -155,10 +155,10 @@ func TestASlashNameWithAMissingFieldOpensTheForm(t *testing.T) {
 	m.prompt.SetValue("/linear ENG-9")
 	m, _ = step(t, m, key("enter"))
 
-	if m.fields == nil {
+	if fieldsOf(m) == nil {
 		t.Fatal("a missing field must open the form")
 	}
-	if got := m.fields.inputs[0].Value(); got != "ENG-9" {
+	if got := fieldsOf(m).inputs[0].Value(); got != "ENG-9" {
 		t.Fatalf("the form lost the argument you gave, issue = %q", got)
 	}
 	m = typeInto(t, m, "dexter")
@@ -181,7 +181,7 @@ func TestAnUnknownSlashNameGoesStraightToTheChild(t *testing.T) {
 	m.prompt.SetValue("/some-claude-code-command with args")
 	m, _ = step(t, m, key("enter"))
 
-	if m.fields != nil {
+	if fieldsOf(m) != nil {
 		t.Fatal("an unknown name must not open a form")
 	}
 	prompt := lastPrompt(t, mgr, "alpha")
@@ -299,7 +299,7 @@ func TestANamedArgumentFillsAFieldFromThePrompt(t *testing.T) {
 	m.prompt.SetValue(`/linear owner=dexter issue=ENG-4 focus="the retry path"`)
 	m, _ = step(t, m, key("enter"))
 
-	if m.fields != nil {
+	if fieldsOf(m) != nil {
 		t.Fatal("every field was named, so no form should open")
 	}
 	prompt := lastPrompt(t, mgr, "alpha")

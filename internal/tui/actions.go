@@ -2,11 +2,9 @@ package tui
 
 import (
 	"context"
-	"sort"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textarea"
-	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/session"
@@ -23,15 +21,6 @@ func (m *Model) maybeOpenForm() tea.Cmd {
 	}
 	m.form = newForm(m.opts.DefaultDir, m.sessionDefaults, m.mgr.PeerNames(), m.mgr.HoistPeers())
 	return textarea.Blink
-}
-
-func (m Model) openJobs() (tea.Model, tea.Cmd) {
-	item, ok := m.selectedRow()
-	if !ok {
-		return m, nil
-	}
-	m.jobsModal = newJobsModal(item.displayName(), item.jobList, m.baseOutputWidth(), m.outputHeight())
-	return m, nil
 }
 
 // focusTaskPanel is the s k action. It moves the focus to the task and job
@@ -283,7 +272,9 @@ func (m Model) dispatch(text string) (tea.Model, tea.Cmd) {
 			values, missing := tpl.Fill(args)
 			if len(missing) > 0 {
 				m.status = "fill in /" + tpl.Name
-				return m.openFields(tpl, values)
+				next, cmd := m.openFieldsModal(tpl, values)
+				m.modal = next
+				return m, cmd
 			}
 			text = tpl.Expand(values)
 		}
@@ -324,66 +315,6 @@ func (m Model) askToStop() (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m Model) openChoice(kind settingKind) (tea.Model, tea.Cmd) {
-	item, ok := m.selectedRow()
-	if !ok {
-		return m, nil
-	}
-	if item.readOnly {
-		m.errText = readOnlyStatus
-		return m, nil
-	}
-	if !item.running() {
-		m.errText = "start the session before you change it"
-		return m, nil
-	}
-	current := item.model
-	switch kind {
-	case settingMode:
-		current = item.mode
-	case settingEffort:
-		current = item.effort
-	}
-	m.choice = newChoiceDialog(kind, item.name, current)
-	m.errText = ""
-	return m, nil
-}
-
-func (m Model) submitChoice() (tea.Model, tea.Cmd) {
-	kind, name, value := m.choice.kind, m.choice.session, m.choice.chosen()
-	m.choice = nil
-	switch kind {
-	case settingModel:
-		return m.appliedSetting(m.mgr.SetModel(name, value), "model", value)
-	case settingMode:
-		return m.appliedSetting(m.mgr.SetPermissionMode(name, value), "mode", value)
-	case settingEffort:
-		m.errText = ""
-		m.status = "resuming " + name + " with " + value + " effort"
-		return m, resumeEffortCmd(m.mgr, name, value)
-	}
-	return m, nil
-}
-
-// openLayoutSwitcher opens the dialog that activates a saved layout. It re-reads
-// the settings file first, so a layout created or edited mid-session appears at
-// once. See docs/tui/layouts.md.
-func (m Model) openLayoutSwitcher() (tea.Model, tea.Cmd) {
-	m.reloadLayouts()
-	names := make([]string, 0, len(m.layouts))
-	for name := range m.layouts {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-	activeSession := ""
-	if item, ok := m.selectedRow(); ok {
-		activeSession = item.layout
-	}
-	m.layoutSwitch = newLayoutSwitch(m.sel, names, activeSession, m.activeLayout)
-	m.errText = ""
-	return m, nil
-}
-
 // reloadLayouts reads the named layouts and the global active layout from the
 // settings file, so the switcher lists what is on disk now. Layouts live only in
 // the file, so no flag or Claude Code setting is merged. See docs/config.md.
@@ -396,106 +327,15 @@ func (m *Model) reloadLayouts() {
 	m.activeLayout = file.ActiveLayout
 }
 
-func (m Model) submitLayoutSwitch() (tea.Model, tea.Cmd) {
-	d := m.layoutSwitch
-	m.layoutSwitch = nil
-	name, isDefault := d.choice()
-	if !d.allSessions && m.sel == "" {
-		m.errText = "no session is selected"
-		return m, nil
-	}
-	var err error
-	switch {
-	case d.allSessions && isDefault:
-		_, _, err = m.mgr.UnsetActiveLayout()
-	case d.allSessions:
-		_, err = m.mgr.SetActiveLayout(name)
-	case isDefault:
-		_, err = m.mgr.UnsetSessionLayout(m.sel)
-	default:
-		err = m.mgr.SetSessionLayout(m.sel, name)
-	}
+func (m *Model) applySetting(err error, label, value string) tea.Cmd {
 	if err != nil {
 		m.errText = err.Error()
-		return m, nil
-	}
-	m.diffSize = 0
-	label := name
-	if isDefault {
-		label = "default"
-	}
-	m.status = "layout " + label + " for " + d.scopeLabel()
-	m.refresh()
-	m.rebuildOutput()
-	return m, tea.Batch(m.readSettings(), reloadStored(m.mgr))
-}
-
-func (m Model) openRename() (tea.Model, tea.Cmd) {
-	item, ok := m.selectedRow()
-	if !ok {
-		m.errText = "no session is selected"
-		return m, nil
-	}
-	if item.readOnly {
-		m.errText = readOnlyStatus
-		return m, nil
-	}
-	m.rename = newRenameDialog(item.name, item.title)
-	m.errText = ""
-	return m, textinput.Blink
-}
-
-func (m Model) submitRename() (tea.Model, tea.Cmd) {
-	name, title := m.rename.session, m.rename.value()
-	m.rename = nil
-	if err := m.mgr.SetTitle(name, title); err != nil {
-		m.errText = err.Error()
-		return m, nil
-	}
-	for i := range m.stored {
-		if m.stored[i].Name == name {
-			m.stored[i].Title = title
-		}
-	}
-	m.errText = ""
-	m.status = "renamed " + name
-	m.refresh()
-	m.rebuildOutput()
-	return m, nil
-}
-
-func (m Model) appliedSetting(err error, label, value string) (tea.Model, tea.Cmd) {
-	if err != nil {
-		m.errText = err.Error()
-		return m, nil
+		return nil
 	}
 	m.errText = ""
 	m.status = label + " → " + value
 	m.refresh()
-	return m, nil
-}
-
-func (m Model) openPicker() (tea.Model, tea.Cmd) {
-	m.reloadTemplates()
-	m.picker = newPicker(m.templates, m.templateDirs())
-	m.errText = ""
-	return m, textinput.Blink
-}
-
-func (m Model) openFields(tpl template.Template, values map[string]string) (tea.Model, tea.Cmd) {
-	if len(tpl.Fields) == 0 {
-		return m.fillPrompt(tpl.Expand(nil))
-	}
-	m.fields = newFieldForm(tpl, values)
-	return m, textinput.Blink
-}
-
-func (m Model) fillPrompt(text string) (tea.Model, tea.Cmd) {
-	m.prompt.SetValue(text)
-	m.prompt.CursorEnd()
-	m.focus = focusPrompt
-	m.prompt.Focus()
-	return m, textarea.Blink
+	return nil
 }
 
 func (m Model) complete() (tea.Model, tea.Cmd) {
@@ -535,14 +375,9 @@ func (m Model) interrupt() (tea.Model, tea.Cmd) {
 	m.armedQuit = true
 	m.errText = ""
 	m.form = nil
-	m.fields = nil
-	m.picker = nil
+	m.modal = nil
 	m.help = nil
 	m.questions = map[string]*questionDialog{}
-	m.choice = nil
-	m.rename = nil
-	m.layoutSwitch = nil
-	m.jobsModal = nil
 	m.confirm = ""
 	m.prompt.Reset()
 	m.status = "press ctrl+c again to quit"

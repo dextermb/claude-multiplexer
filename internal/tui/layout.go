@@ -216,32 +216,25 @@ func (m Model) paneView() string {
 
 func (m Model) sessionDialogView() (string, bool) {
 	width, height := m.baseOutputWidth(), m.outputHeight()
-	switch {
-	case m.confirm != "":
+	if m.confirm != "" {
 		return centre(width, height, m.confirmView(width)), true
-	case m.jobsModal != nil:
-		return centre(width, height, m.jobsModal.View(width, height)), true
-	case m.rename != nil:
-		return centre(width, height, m.rename.View(width)), true
-	case m.choice != nil:
-		return centre(width, height, m.choice.View(width)), true
+	}
+	if m.modal != nil && m.modal.region() == modalPane {
+		return centre(width, height, m.modal.view(width, height)), true
 	}
 	return "", false
 }
 
 func (m Model) bodyDialogView() (string, bool) {
 	width, height := m.width, m.bodyHeight()
-	switch {
-	case m.help != nil:
+	if m.help != nil {
 		return centre(width, height, m.help.View(width, height)), true
-	case m.fields != nil:
-		return centre(width, height, m.fields.View(width)), true
-	case m.picker != nil:
-		return centre(width, height, m.picker.View(width)), true
-	case m.form != nil:
+	}
+	if m.form != nil {
 		return centre(width, height, m.form.View(width)), true
-	case m.layoutSwitch != nil:
-		return centre(width, height, m.layoutSwitch.View(width)), true
+	}
+	if m.modal != nil && m.modal.region() == modalBody {
+		return centre(width, height, m.modal.view(width, height)), true
 	}
 	return "", false
 }
