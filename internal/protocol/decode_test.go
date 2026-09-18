@@ -124,6 +124,35 @@ func TestDecodeTaskStarted(t *testing.T) {
 	}
 }
 
+func TestDecodeParentToolUseID(t *testing.T) {
+	agent := `{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"hi"}]},"parent_tool_use_id":"toolu_01","session_id":"abc"}`
+	ev, err := Decode([]byte(agent))
+	if err != nil {
+		t.Fatalf("Decode returned %v", err)
+	}
+	if ev.ParentToolUseID != "toolu_01" || !ev.HasParent() {
+		t.Fatalf("expected a parent, got %q (HasParent=%v)", ev.ParentToolUseID, ev.HasParent())
+	}
+
+	top := `{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"hi"}]},"parent_tool_use_id":null,"session_id":"abc"}`
+	ev, err = Decode([]byte(top))
+	if err != nil {
+		t.Fatalf("Decode returned %v", err)
+	}
+	if ev.HasParent() {
+		t.Fatalf("a null parent is no parent, got %q", ev.ParentToolUseID)
+	}
+
+	absent := `{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"hi"}]},"session_id":"abc"}`
+	ev, err = Decode([]byte(absent))
+	if err != nil {
+		t.Fatalf("Decode returned %v", err)
+	}
+	if ev.HasParent() {
+		t.Fatalf("an absent parent is no parent, got %q", ev.ParentToolUseID)
+	}
+}
+
 func TestDecodeTaskUpdated(t *testing.T) {
 	line := `{"type":"system","subtype":"task_updated","task_id":"b0zll5o88","patch":{"status":"completed","end_time":1788506380063},"session_id":"abc"}`
 	ev, err := Decode([]byte(line))

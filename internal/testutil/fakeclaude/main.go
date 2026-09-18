@@ -186,6 +186,9 @@ func main() {
 				},
 			})
 		}
+		if text == "agent" {
+			emitAgentJob(sessionID)
+		}
 		emit(map[string]any{
 			"type":       "assistant",
 			"session_id": sessionID,
@@ -415,6 +418,42 @@ const (
 	fakeJobDesc   = "sleep and echo"
 	fakeJobCmd    = "sh -c 'echo first; sleep 1; echo second'"
 )
+
+// emitAgentJob drives the local-agent path: a task_started, two turns that carry
+// a parent_tool_use_id, and a task_notification with an empty output_file, the
+// way Claude Code runs a local agent. See docs/protocol/jobs.md.
+func emitAgentJob(sessionID string) {
+	const agentTool = "toolu_agent"
+	emit(map[string]any{
+		"type": "system", "subtype": "task_started", "session_id": sessionID,
+		"task_id": "agent-1", "tool_use_id": agentTool,
+		"task_type": "local_agent", "description": "Find the thing",
+	})
+	emit(map[string]any{
+		"type": "assistant", "session_id": sessionID, "parent_tool_use_id": agentTool,
+		"message": map[string]any{
+			"role": "assistant", "model": "fake-model",
+			"content": []map[string]any{{
+				"type": "tool_use", "id": "toolu_inner", "name": "Read",
+				"input": map[string]any{"file_path": "render.go"},
+			}},
+		},
+	})
+	emit(map[string]any{
+		"type": "user", "session_id": sessionID, "parent_tool_use_id": agentTool,
+		"message": map[string]any{
+			"role": "user",
+			"content": []map[string]any{{
+				"type": "tool_result", "tool_use_id": "toolu_inner", "content": "40 lines",
+			}},
+		},
+	})
+	emit(map[string]any{
+		"type": "system", "subtype": "task_notification", "session_id": sessionID,
+		"task_id": "agent-1", "tool_use_id": agentTool,
+		"status": "completed", "output_file": "", "summary": "Find the thing",
+	})
+}
 
 // startFakeJob drives the whole background job path: the Bash call, the
 // task_started event, and the tool_result that names a real output file.

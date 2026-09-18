@@ -222,6 +222,7 @@ type Session struct {
 	pendingBash      map[string]string
 	pendingPath      map[string]string
 	jobByToolUse     map[string]string
+	pendingAgentOut  map[string][]string
 
 	idleSig chan struct{}
 }

@@ -75,6 +75,9 @@ func (m *Manager) Replay(name string) []render.Line {
 		if err != nil {
 			break
 		}
+		if ev.HasParent() {
+			continue
+		}
 		rendered := m.opts.Renderer.Lines(session.Event{
 			Kind:     session.KindProtocol,
 			Protocol: ev,

@@ -124,7 +124,7 @@ func (s *Session) applyTask(subtype string, task *protocol.Task) {
 		if _, ok := s.jobs[task.TaskID]; ok {
 			return
 		}
-		s.jobs[task.TaskID] = &Job{
+		job := &Job{
 			ID:          task.TaskID,
 			Description: task.Description,
 			TaskType:    task.TaskType,
@@ -133,6 +133,12 @@ func (s *Session) applyTask(subtype string, task *protocol.Task) {
 			Status:      JobRunning,
 			StartedAt:   time.Now(),
 		}
+		if task.TaskType == protocol.TaskTypeLocalAgent {
+			if path := s.agentOutputPath(task.TaskID); path != "" {
+				job.OutputPath = path
+			}
+		}
+		s.jobs[task.TaskID] = job
 		s.jobOrder = append(s.jobOrder, task.TaskID)
 		if task.ToolUseID != "" {
 			if s.jobByToolUse == nil {

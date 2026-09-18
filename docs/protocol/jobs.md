@@ -56,3 +56,30 @@ The `BashOutput` tool result also carries `<status>`, `<exit_code>`, and
 events carry the same status in a structured form. And the model does not call
 that tool — Claude Code tells it to use `Read` on the output file instead, and a
 probe that asked for `BashOutput` by name twice still got `Read`.
+
+## A local agent is a job too
+
+A `Task` (or `Agent`) tool call starts a local agent. It is also a job, so it
+arrives as the same three `system` events, with `task_type` `local_agent`
+instead of `local_bash`. The `task_started` event also carries `subagent_type`
+(for example `Explore`) and the full `prompt`.
+
+The agent runs inside the parent Claude Code process, so it streams its turns on
+the same output as the parent. Each turn of the agent carries a top-level
+`parent_tool_use_id`, set to the `tool_use_id` of the `Task` call. A top-level
+turn carries `parent_tool_use_id: null`, or omits the field.
+
+```json
+{"type":"assistant","parent_tool_use_id":"toolu_01",
+ "message":{"role":"assistant","content":[{"type":"tool_use","name":"Read", ...}]}}
+```
+
+`protocol.Event.ParentToolUseID` holds this id, and `Event.HasParent` reports it.
+The turns of an agent belong to the agent's job, not the session pane; see
+[../sessions/jobs.md](../sessions/jobs.md) and [../tui/output.md](../tui/output.md).
+
+Claude Code writes no output file for an agent. The agent's `task_notification`
+carries an empty `output_file`, and there is no launching `Bash` call to name a
+path. So the multiplexer captures the agent's turns and writes the file itself;
+see [../sessions/jobs.md](../sessions/jobs.md). The agent's final report returns
+as the `Task` tool_result on a parent turn, so the pane keeps it.
