@@ -6,6 +6,7 @@ import (
 
 	"github.com/dextermb/claude-multiplexer/internal/manager"
 	"github.com/dextermb/claude-multiplexer/internal/protocol"
+	"github.com/dextermb/claude-multiplexer/internal/render"
 )
 
 func manyTodos(n int) []protocol.Todo {
@@ -143,5 +144,38 @@ func TestTheTaskScrollResetsWhenTheSelectionChanges(t *testing.T) {
 	}
 	if m.taskScroll != 0 {
 		t.Fatalf("the scroll must reset to the top on a new selection, got %d", m.taskScroll)
+	}
+}
+
+func TestASidebarRefreshKeepsThePlaceInTheOutput(t *testing.T) {
+	m, mgr := newTestModel(t, "")
+	m = start(t, m, 100, 24)
+	m, _ = step(t, m, key("esc"))
+	m = spawn(t, m, mgr, "alpha", t.TempDir())
+
+	lines := make([]render.Line, 0, 200)
+	for i := 0; i < 200; i++ {
+		lines = append(lines, render.Line{Class: render.ClassText, Text: fmt.Sprintf("line %d", i)})
+	}
+	if err := mgr.AppendLines(m.sel, lines); err != nil {
+		t.Fatalf("AppendLines: %v", err)
+	}
+	m.rebuildOutput()
+	if m.output.AtTop() {
+		t.Fatal("the pane needs more lines than it can show")
+	}
+
+	m.output.GotoTop()
+	before := m.output.YOffset
+
+	m, _ = step(t, m, storedMsg{metas: mgr.Stored()})
+	if m.output.YOffset != before {
+		t.Fatalf("a stored refresh moved the pane from %d to %d", before, m.output.YOffset)
+	}
+
+	m.output.GotoBottom()
+	m, _ = step(t, m, storedMsg{metas: mgr.Stored()})
+	if !m.output.AtBottom() {
+		t.Fatal("a pane at the bottom must stay at the bottom")
 	}
 }
