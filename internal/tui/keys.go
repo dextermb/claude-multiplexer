@@ -83,6 +83,7 @@ var sequenceActions = map[string]action{
 	"s k": Model.focusTaskPanel,
 	"s f": Model.openInFiles,
 	"s d": Model.toggleDiffPanel,
+	"s R": Model.reviewSelected,
 	"s E": Model.openInEditor,
 	"s m": func(m Model) (tea.Model, tea.Cmd) { return m.openChoice(settingModel) },
 	"s e": func(m Model) (tea.Model, tea.Cmd) { return m.openChoice(settingEffort) },

@@ -28,6 +28,7 @@ const (
 	focusOutput
 	focusDiff
 	focusTask
+	focusReview
 )
 
 type Options struct {
@@ -201,10 +202,19 @@ type Model struct {
 	diffHalf        bool
 	diffLineNumbers bool
 	diffTicking     bool
-	sidebarHidden   bool
-	taskScroll      int
-	taskFor         string
-	outputFor       string
+
+	reviewMode    bool
+	reviewPending bool
+	reviewFile    int
+	reviewHunk    int
+	reviewScroll  int
+	reviewFocus   reviewSide
+	reviewSidebar bool
+
+	sidebarHidden bool
+	taskScroll    int
+	taskFor       string
+	outputFor     string
 
 	width      int
 	height     int
@@ -478,7 +488,8 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	var cmd tea.Cmd
-	if m.focus == focusPrompt && m.form == nil {
+	promptFocused := m.focus == focusPrompt || (m.reviewMode && m.reviewFocus == reviewPrompt)
+	if promptFocused && m.form == nil {
 		m.prompt, cmd = m.prompt.Update(msg)
 	}
 	return m, cmd

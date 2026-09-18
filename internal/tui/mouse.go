@@ -12,6 +12,10 @@ func (m Model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
+	if m.reviewMode {
+		return m.reviewMouse(msg)
+	}
+
 	switch msg.Button {
 	case tea.MouseButtonWheelUp, tea.MouseButtonWheelDown:
 		if msg.Action != tea.MouseActionPress {

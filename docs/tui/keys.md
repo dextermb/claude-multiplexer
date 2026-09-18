@@ -42,6 +42,7 @@ forms work everywhere, so a sequence still starts while you type a prompt.
 | `s k` | Move the focus to the task and job panel |
 | `s f` | Open the working directories in the file manager |
 | `s d` | Show the working-tree diff of the selected session |
+| `s R` | Open the code review screen for the selected session |
 | `s E` | Open the working directories in the editor |
 | `s m` | Change the model of a running session |
 | `s e` | Change the effort of a running session |
@@ -85,6 +86,24 @@ keeps its output-scroll meaning.
 | `d n` | Show or hide the line numbers |
 
 See [keys/navigation.md](keys/navigation.md) for the full diff panel keys.
+
+## The code review screen
+
+`s R` opens the review screen. While it is open, these keys work on the screen,
+not the panes below it:
+
+| Keys | Action |
+|---|---|
+| `j` `k` | Step through the hunks, and roll to the next or previous file |
+| `}` `{` | Jump to the next or previous file |
+| `g` `G` | Go to the first or the last file |
+| `e` `E` | Explain the selected hunk, or the whole file |
+| `tab` | Move between the diff, the explanation, and the prompt |
+| `esc` | Close the review screen |
+
+On the explanation side, the keys of the output pane work: `[` and `]` move the
+block cursor, `Enter` opens the block, and `j`/`k`/`u`/`d`/`g`/`G` scroll. See
+[review.md](review.md) for the screen and the explanation.
 
 ## The keys that work on their own
 

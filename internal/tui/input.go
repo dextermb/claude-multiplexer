@@ -150,6 +150,13 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.searchKey(msg)
 	}
 
+	// The review screen is modal, so it captures every key before the two-key
+	// sequences and the pane handlers, which would otherwise move the focus off
+	// the screen. See docs/tui/review.md.
+	if m.focus == focusReview {
+		return m.reviewKey(msg)
+	}
+
 	if m.inBurst && msg.Type == tea.KeyRunes && m.focus != focusPrompt {
 		m.focus = focusPrompt
 		m.prompt.Focus()
