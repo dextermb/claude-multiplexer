@@ -174,7 +174,16 @@ func (m *Manager) pump(item *entry) {
 	exitWorktree := map[string]bool{}
 	for ev := range item.sess.Events() {
 		m.trackWorktree(ev, enterWorktree, exitWorktree)
-		lines := item.skill.Track(ev.Protocol, m.opts.Renderer.Lines(ev))
+		raw := m.opts.Renderer.Lines(ev)
+		var lines []render.Line
+		if ev.Protocol.HasParent() {
+			item.sess.CaptureAgentTurn(ev.Protocol.ParentToolUseID, render.Text(raw))
+		} else {
+			lines = item.skill.Track(ev.Protocol, raw)
+			if p := ev.Protocol; p.Subtype == protocol.SubtypeTaskStarted && p.Task != nil {
+				item.sess.FlushAgentTurns(p.Task.ToolUseID)
+			}
+		}
 		partial := trackPartial(item, ev)
 		todos := trackTodos(item, ev)
 		snap := item.total(ev.Snapshot)

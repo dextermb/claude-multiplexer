@@ -21,6 +21,10 @@ const (
 	SubtypeTaskNotification = "task_notification"
 )
 
+// TaskTypeLocalAgent is the task_type of a local agent, the job a Task tool call
+// starts. A background bash is local_bash. See docs/protocol/jobs.md.
+const TaskTypeLocalAgent = "local_agent"
+
 type Event struct {
 	Type      Type
 	Subtype   string
@@ -28,6 +32,9 @@ type Event struct {
 	Raw       []byte
 	Truncated bool
 	IsReplay  bool
+	// ParentToolUseID names the Task tool call whose local agent produced this
+	// event. It is empty on a top-level turn. See docs/protocol/jobs.md.
+	ParentToolUseID string
 
 	Init    *Init
 	Message *Message
@@ -35,6 +42,10 @@ type Event struct {
 	Delta   *Delta
 	Task    *Task
 }
+
+// HasParent reports whether the event is a turn of a local agent, and so belongs
+// to that agent's job rather than the session pane. See docs/protocol/jobs.md.
+func (e Event) HasParent() bool { return e.ParentToolUseID != "" }
 
 type Init struct {
 	SessionID      string      `json:"session_id"`

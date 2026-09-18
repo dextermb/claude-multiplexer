@@ -12,12 +12,13 @@ const MaxLineBytes = 16 << 20
 var ErrNotJSON = errors.New("protocol: line is not a JSON object")
 
 type envelope struct {
-	Type      Type            `json:"type"`
-	Subtype   string          `json:"subtype"`
-	SessionID string          `json:"session_id"`
-	Message   json.RawMessage `json:"message"`
-	Event     json.RawMessage `json:"event"`
-	IsReplay  bool            `json:"isReplay"`
+	Type            Type            `json:"type"`
+	Subtype         string          `json:"subtype"`
+	SessionID       string          `json:"session_id"`
+	Message         json.RawMessage `json:"message"`
+	Event           json.RawMessage `json:"event"`
+	IsReplay        bool            `json:"isReplay"`
+	ParentToolUseID *string         `json:"parent_tool_use_id"`
 }
 
 type streamInner struct {
@@ -41,6 +42,9 @@ func Decode(line []byte) (Event, error) {
 	ev.Subtype = env.Subtype
 	ev.SessionID = env.SessionID
 	ev.IsReplay = env.IsReplay
+	if env.ParentToolUseID != nil {
+		ev.ParentToolUseID = *env.ParentToolUseID
+	}
 
 	switch env.Type {
 	case TypeSystem:

@@ -9,6 +9,12 @@ The pane is a viewport over the rendered lines of the selected session. It
 follows the newest line, unless you scroll up. Then it holds your position until
 you return to the bottom.
 
+The pane shows the turns of the session, not the turns of its local agents. A
+local agent is a job, and its turns go to that job's output, which you open from
+the jobs dialog. The pane keeps the job's lifecycle line (`⚙ started`) and the
+agent's final report, which returns as a parent turn. See
+[sessions/jobs.md](sessions/jobs.md).
+
 The renderer gives each line a class, and the interface gives each class a
 colour. So the words the model writes stay bright, and everything around them
 recedes:
