@@ -160,6 +160,12 @@ for the selected session. Two rules keep the pane honest:
 - A gap in the sequence number means the bus dropped an event, so the pane is
   rebuilt as well, and not appended to.
 
+A rebuild of the same session keeps your place. A rebuild also runs when the
+sidebar reloads its stored sessions, when the window changes size, and when the
+layout changes, and none of these is a reason to move you. So the pane goes to
+the bottom only when it rebuilds a different session, or when you already sit at
+the bottom.
+
 See [manager.md](../manager.md) for the drop policy that makes the gap possible.
 
 ## The view fills the window exactly

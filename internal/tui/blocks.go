@@ -8,9 +8,13 @@ import (
 )
 
 func (m *Model) rebuildOutput() {
+	sameSession := m.sel != "" && m.sel == m.outputFor
+	keepOffset := sameSession && !m.output.AtBottom()
+	offset := m.output.YOffset
 	m.selection = selRange{}
 	m.expanded = make(map[int]bool)
 	m.blockCursor = -1
+	m.outputFor = m.sel
 	if m.sel == "" {
 		m.outputText = ""
 		m.shownLines = nil
@@ -25,6 +29,10 @@ func (m *Model) rebuildOutput() {
 	m.redrawBlocks()
 	m.resetBlockCursor()
 	m.setContent()
+	if keepOffset {
+		m.output.SetYOffset(offset)
+		return
+	}
 	m.output.GotoBottom()
 }
 
