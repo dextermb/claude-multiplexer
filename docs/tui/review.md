@@ -43,8 +43,9 @@ and the hunks:
 - `g` and `G` go to the first and the last file.
 - `pgup` and `pgdown` scroll the diff a page.
 
-The selected file has a purple background, and the selected hunk header is bold.
-The diff side scrolls to keep the selected hunk in view.
+The selected file has a purple background. The selected hunk sits on a subtle
+grey band, and its header is bold. The diff side scrolls to keep the selected
+hunk in view.
 
 `tab` moves the focus across the split: the diff, then the explanation, then the
 prompt, then back to the diff. In the explanation, `j`/`k`/`g`/`G` scroll the

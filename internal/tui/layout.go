@@ -150,6 +150,9 @@ func (m Model) sidePanelHeight() int {
 // baseOutputWidth and bodyHeight, not outputWidth and outputHeight, because
 // those depend on it. See docs/tui/tasks.md and docs/tui/diff.md.
 func (m Model) showSidePanel() bool {
+	if m.reviewMode {
+		return false
+	}
 	if m.diffPanel {
 		if m.sidePanelHorizontal() {
 			return m.bodyHeight()-barHeight-m.sidePanelHeight() >= minOutputHeightWithPanel

@@ -10,6 +10,9 @@ import (
 
 const reviewMinExplain = 24
 
+// reviewSelBg is the subtle band behind the selected hunk on the diff side.
+var reviewSelBg = lipgloss.Color("237")
+
 // reviewView draws the review screen: the session bar, then the split of the
 // diff and the explanation thread. See docs/tui/review.md.
 func (m Model) reviewView() string {
@@ -155,14 +158,21 @@ func (m Model) reviewFileRow(index int, entry diffEntry, width int) string {
 }
 
 func (m Model) reviewHunkLines(h git.Hunk, width int, marked bool) []string {
+	render := func(style lipgloss.Style, text string) []string {
+		var rows []string
+		for _, chunk := range wrapHard(text, width) {
+			if marked {
+				style = style.Background(reviewSelBg).Width(width)
+			}
+			rows = append(rows, style.Render(chunk))
+		}
+		return rows
+	}
 	headerStyle := diffHunkStyle
 	if marked {
 		headerStyle = headerStyle.Bold(true)
 	}
-	var out []string
-	for _, chunk := range wrapHard(h.Header, width) {
-		out = append(out, headerStyle.Render(chunk))
-	}
+	out := render(headerStyle, h.Header)
 	for _, line := range h.Body {
 		style := rowStyle
 		switch {
@@ -171,9 +181,7 @@ func (m Model) reviewHunkLines(h git.Hunk, width int, marked bool) []string {
 		case strings.HasPrefix(line, "-"):
 			style = diffDelStyle
 		}
-		for _, chunk := range wrapHard(line, width) {
-			out = append(out, style.Render(chunk))
-		}
+		out = append(out, render(style, line)...)
 	}
 	return out
 }
