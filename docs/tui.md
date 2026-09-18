@@ -81,7 +81,7 @@ never pushes the sidebar out of line.
 | [tui/output.md](tui/output.md) | The colour of each line, streaming text, and the layout rule |
 | [tui/tasks.md](tui/tasks.md) | The side panel: the session's jobs and task list, their glyphs, and when it shows |
 | [tui/diff.md](tui/diff.md) | The git diff: the count in the bar, the file panel, the inline diff, and the refresh |
-| [tui/review.md](tui/review.md) | The code review screen: the large diff, the hunk navigation, and the explanation thread |
+| [tui/review.md](tui/review.md) | The code review screen: the large diff, the hunk navigation, and the explanation pane |
 | [tui/layouts.md](tui/layouts.md) | The layouts: the four dimensions, the precedence, the switcher, and where a layout lives |
 
 Three things live outside this folder, because they are not only about the
