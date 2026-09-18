@@ -276,7 +276,7 @@ func (m *Manager) trackWorktree(ev session.Event, enter map[string]string, exit 
 func trackPartial(item *entry, ev session.Event) string {
 	item.partialMu.Lock()
 	defer item.partialMu.Unlock()
-	if ev.Kind != session.KindProtocol {
+	if ev.Kind != session.KindProtocol || ev.Protocol.HasParent() {
 		return item.partial.String()
 	}
 	switch {

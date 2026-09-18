@@ -138,6 +138,10 @@ own answers `404`.
 | `POST /api/sessions/{name}/archive` | archive or restore a session |
 | `POST /api/sessions/{name}/jobs/{id}/stop` | stop a background job |
 
+The messages route (and the `get_messages` tool) reads the session's own turns,
+not the turns of its local agents. An agent's turns belong to that agent's job;
+see [../sessions/jobs.md](../sessions/jobs.md).
+
 ### The MCP endpoint (`/mcp`)
 
 A client access token also reaches `/mcp`, the same JSON-RPC endpoint a session
