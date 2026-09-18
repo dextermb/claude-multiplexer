@@ -91,17 +91,42 @@ func activeSince(item Session, cutoff time.Time) bool {
 	return !item.LastActiveAt.Before(cutoff)
 }
 
+// lastActiveCutoff turns a window into the earliest last-active time a session
+// may have and still stay. A zero result means no limit.
+func lastActiveCutoff(window string, now time.Time) (time.Time, error) {
+	d, err := ParseLastActive(window)
+	if err != nil {
+		return time.Time{}, err
+	}
+	if d == 0 {
+		return time.Time{}, nil
+	}
+	return now.Add(-d), nil
+}
+
 func (in listIn) filter(all []Session, now time.Time) ([]Session, error) {
-	window, err := ParseLastActive(in.LastActive)
+	cutoff, err := lastActiveCutoff(in.LastActive, now)
 	if err != nil {
 		return nil, err
 	}
-	var cutoff time.Time
-	if window > 0 {
-		cutoff = now.Add(-window)
-	}
 	return selectSessions(all, func(item Session) bool {
 		return in.keep(item, cutoff)
+	}), nil
+}
+
+// listCategoryIn is the input to list_inactive_sessions and
+// list_archived_sessions, which each name one category and take only the window.
+type listCategoryIn struct {
+	LastActive string `json:"last_active,omitempty" jsonschema:"how recently a session was last active to still return it: 1d, 1w, 1m, 1y, or unset for no limit; 1d by default"`
+}
+
+func (in listCategoryIn) filter(all []Session, now time.Time, inCategory func(Session) bool) ([]Session, error) {
+	cutoff, err := lastActiveCutoff(in.LastActive, now)
+	if err != nil {
+		return nil, err
+	}
+	return selectSessions(all, func(item Session) bool {
+		return inCategory(item) && activeSince(item, cutoff)
 	}), nil
 }
 

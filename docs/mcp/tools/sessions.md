@@ -8,8 +8,8 @@ to a session that holds the grant. See [../grant.md](../grant.md).
 |---|---|---|---|
 | `rename_session` | `title` | Sets the title of the calling session. An empty title clears it. | open |
 | `list_sessions` | `stopped`, `archived`, `last_active` | The sessions that run now: name, title, directory, state, model, turns, cost, last-active time, and the archive flag. `stopped` adds the stored sessions, and `archived` adds the archived ones. `last_active` drops a stored or archived session older than its window. | open |
-| `list_inactive_sessions` | — | The stored sessions that do not run now and are not archived. | open |
-| `list_archived_sessions` | — | The archived sessions. | open |
+| `list_inactive_sessions` | `last_active` | The stored sessions that do not run now and are not archived. `last_active` drops a session older than its window. | open |
+| `list_archived_sessions` | `last_active` | The archived sessions. `last_active` drops a session older than its window. | open |
 | `get_messages` | `session`, `limit` | The recent messages of a session, oldest last. 20 by default, 200 at most. | open |
 | `list_jobs` | `session` | The background jobs of a session: id, description, task type, and status. An empty session means the caller. | open |
 | `send_message` | `session`, `text` | Queues a prompt for another session, and returns the queue length. | control |
@@ -24,14 +24,15 @@ to a session that holds the grant. See [../grant.md](../grant.md).
 `list_sessions` answers the sessions that run now. The `stopped` flag adds the
 stored sessions that do not run, and the `archived` flag adds the archived ones,
 so one call reaches every category. `list_inactive_sessions` and
-`list_archived_sessions` name one category each, and take no argument.
+`list_archived_sessions` name one category each, and take the `last_active`
+window.
 
-The `last_active` window keeps the list short. It drops a stored or archived
-session that took its last turn before the window: `1d`, `1w`, `1m`, `1y`, or
-`unset` for no limit. The default is `1d`. A running session is always returned,
-because it is active now, and a session that never took a turn is always
-returned, because it has no last-active time. The window has no effect until
-`stopped` or `archived` adds those categories.
+The `last_active` window keeps the list short. It drops a session that took its
+last turn before the window: `1d`, `1w`, `1m`, `1y`, or `unset` for no limit. The
+default is `1d`. A session that never took a turn is always returned, because it
+has no last-active time. On `list_sessions` a running session is also always
+returned, because it is active now, and the window has no effect until `stopped`
+or `archived` adds a stored or archived category.
 
 ### Reading a session
 
