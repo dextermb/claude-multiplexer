@@ -11,8 +11,11 @@ func (m *Model) rebuildOutput() {
 	sameSession := m.sel != "" && m.sel == m.outputFor
 	keepOffset := sameSession && !m.output.AtBottom()
 	offset := m.output.YOffset
+	cursor := m.blockCursor
 	m.selection = selRange{}
-	m.expanded = make(map[int]bool)
+	if !sameSession {
+		m.expanded = make(map[int]bool)
+	}
 	m.blockCursor = -1
 	m.outputFor = m.sel
 	if m.sel == "" {
@@ -27,7 +30,11 @@ func (m *Model) rebuildOutput() {
 	m.output.Height = m.outputHeight()
 	m.shownLines = append([]render.Line(nil), lines...)
 	m.redrawBlocks()
-	m.resetBlockCursor()
+	if sameSession && m.isCapped(cursor) {
+		m.setBlockCursor(cursor)
+	} else {
+		m.resetBlockCursor()
+	}
 	m.setContent()
 	if keepOffset {
 		m.output.SetYOffset(offset)
@@ -128,6 +135,15 @@ func (m *Model) resetBlockCursor() {
 		return
 	}
 	m.setBlockCursor(m.capped[len(m.capped)-1])
+}
+
+func (m *Model) isCapped(index int) bool {
+	for _, at := range m.capped {
+		if at == index {
+			return true
+		}
+	}
+	return false
 }
 
 func (m *Model) moveBlockCursor(delta int) {
