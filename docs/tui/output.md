@@ -100,7 +100,9 @@ only when it is out of sight. A click on any marker row opens that block.
 
 The cursor sits on the newest capped block. It returns there at the end of every
 turn, and when you select another session, because that is the block you most
-often want. So `[` is for going back over the answer you just read.
+often want. So `[` is for going back over the answer you just read. A rebuild of
+the same session leaves the cursor where you put it, as long as that block is
+still capped.
 
 **What the pane holds.** A tool result carries its whole body, because the body
 travels with the line and the pane opens it without a second read of the
@@ -160,11 +162,12 @@ for the selected session. Two rules keep the pane honest:
 - A gap in the sequence number means the bus dropped an event, so the pane is
   rebuilt as well, and not appended to.
 
-A rebuild of the same session keeps your place. A rebuild also runs when the
-sidebar reloads its stored sessions, when the window changes size, and when the
-layout changes, and none of these is a reason to move you. So the pane goes to
-the bottom only when it rebuilds a different session, or when you already sit at
-the bottom.
+A rebuild of the same session keeps your place, the blocks you opened, and the
+block cursor. A rebuild also runs when the sidebar reloads its stored sessions,
+when the window changes size, and when the layout changes, and none of these is
+a reason to undo what you did. So the pane goes to the bottom, and closes every
+block, only when it rebuilds a different session. A pane already at the bottom
+stays at the bottom.
 
 See [manager.md](../manager.md) for the drop policy that makes the gap possible.
 

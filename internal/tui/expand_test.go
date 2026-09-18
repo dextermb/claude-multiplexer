@@ -304,3 +304,45 @@ func TestAPerTypeCapDiffersByBucket(t *testing.T) {
 		t.Fatalf("a tool result caps at three, hiding 27:\n%s", view)
 	}
 }
+
+func TestASidebarRefreshKeepsAnOpenBlockOpen(t *testing.T) {
+	m := outputModel(t)
+	if err := m.mgr.AppendLines(m.sel, []render.Line{{Class: render.ClassToolResult, Text: body(30)}}); err != nil {
+		t.Fatalf("AppendLines: %v", err)
+	}
+	m.rebuildOutput()
+	if len(m.capped) != 1 {
+		t.Fatalf("capped = %v, want the one large block", m.capped)
+	}
+
+	index := m.capped[0]
+	m.toggleBlock(index)
+	if !m.expanded[index] {
+		t.Fatal("the block must be open before the refresh")
+	}
+
+	m, _ = step(t, m, storedMsg{metas: m.mgr.Stored()})
+	if !m.expanded[index] {
+		t.Fatal("a stored refresh closed the open block")
+	}
+	if !strings.Contains(visible(m.outputText), "line 30") {
+		t.Fatalf("the open block lost its rows:\n%s", visible(m.outputText))
+	}
+	if m.blockCursor != index {
+		t.Fatalf("blockCursor = %d, want the block the user picked, %d", m.blockCursor, index)
+	}
+}
+
+func TestSwitchingSessionsClosesTheBlocksOfTheOldOne(t *testing.T) {
+	m := outputModel(t)
+	if err := m.mgr.AppendLines(m.sel, []render.Line{{Class: render.ClassToolResult, Text: body(30)}}); err != nil {
+		t.Fatalf("AppendLines: %v", err)
+	}
+	m.rebuildOutput()
+	m.toggleBlock(m.capped[0])
+
+	m = spawn(t, m, m.mgr, "beta", t.TempDir())
+	if len(m.expanded) != 0 {
+		t.Fatalf("another session starts with no block open, got %v", m.expanded)
+	}
+}
