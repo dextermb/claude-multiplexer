@@ -51,6 +51,7 @@ func (m Model) reviewSelected() (tea.Model, tea.Cmd) {
 	m.output.Width = m.outputWidth()
 	m.output.Height = m.outputHeight()
 	m.rebuildOutput()
+	m.output.GotoBottom()
 	cmds := []tea.Cmd{m.diffRefreshCmd()}
 	if !m.diffTicking {
 		m.diffTicking = true
