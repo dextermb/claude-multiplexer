@@ -205,15 +205,18 @@ type Model struct {
 	taskScroll      int
 	taskFor         string
 
-	width     int
-	height    int
-	ready     bool
-	lastSeq   uint64
-	mouseOn   bool
-	status    string
-	errText   string
-	armedQuit bool
-	quitting  bool
+	width      int
+	height     int
+	ready      bool
+	lastSeq    uint64
+	mouseOn    bool
+	status     string
+	errText    string
+	armedQuit  bool
+	quitting   bool
+	burst      *burst
+	burstAware bool
+	inBurst    bool
 }
 
 func New(opts Options) Model {
@@ -261,6 +264,8 @@ func New(opts Options) Model {
 		layout:          config.DefaultLayout(),
 		focus:           focusSidebar,
 		mouseOn:         true,
+		burst:           &burst{},
+		burstAware:      burstAware,
 	}
 }
 
@@ -464,6 +469,7 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if isMouseArtifact(msg) {
 			return m, nil
 		}
+		m.inBurst = m.burstAware && m.burst.key(time.Now())
 		if msg.Paste {
 			return m.handlePaste(string(msg.Runes))
 		}

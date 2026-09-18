@@ -7,7 +7,7 @@ import (
 )
 
 func dropText(raw string) (string, bool) {
-	trimmed := strings.TrimSpace(raw)
+	trimmed := strings.TrimSpace(normalizeNewlines(raw))
 	if trimmed == "" {
 		return "", false
 	}
@@ -20,6 +20,10 @@ func dropText(raw string) (string, bool) {
 		quoted = append(quoted, quotePath(path))
 	}
 	return strings.Join(quoted, " "), true
+}
+
+func normalizeNewlines(raw string) string {
+	return strings.ReplaceAll(strings.ReplaceAll(raw, "\r\n", "\n"), "\r", "\n")
 }
 
 func droppedPaths(text string) []string {

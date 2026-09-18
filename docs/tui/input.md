@@ -112,6 +112,39 @@ presses instead. So a text fragment that holds a `/` also moves the focus to the
 prompt, and the pieces gather there in order. A single `/`, and quick typing
 with no `/` in it, stay as key presses for the list.
 
+## Pasting on Windows
+
+A terminal on macOS and on Linux marks a paste with bracketed paste, so the
+whole paste arrives as one piece. The Windows console has no such mark. It
+delivers one key press for each character, and it delivers each newline as
+`Enter`.
+
+`Enter` sends the prompt, so a paste of several lines would send one prompt for
+each line. To stop this, the multiplexer measures the gap between one key and
+the next. A gap below 8 ms marks the key as part of a burst, because the console
+delivers a paste far faster than a human types.
+
+Two behaviours change inside a burst:
+
+- `Enter` puts a newline into the box, as `Ctrl+J` does. It does not send.
+- A character that arrives while the focus is elsewhere moves the focus to the
+  prompt box and goes in as text. It does not run as a key command.
+
+This rule runs on Windows only. Every other platform has the bracketed-paste
+mark, and a timing rule there could swallow the `Enter` of a fast typist.
+
+The rule reads the gap from the previous key, so it cannot mark the first
+character of a paste. If the focus is on the list, that first character still
+runs as a key command. Put the focus on the prompt box before you paste.
+
+A paste that holds `\r\n` goes into the box with `\n`. This also cleans a
+clipboard that a Windows file filled and a different platform reads.
+
+The timing rule exists because Bubble Tea v1 gives no way to read the Windows
+console through its escape-sequence parser, which is the path that understands
+bracketed paste. Bubble Tea v2 holds a Windows parser that marks a paste
+correctly. An upgrade to v2 removes the need for this rule.
+
 ## Answering a question
 
 A session asks the human a multiple-choice question with the `AskUserQuestion`

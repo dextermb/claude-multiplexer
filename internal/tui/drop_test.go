@@ -370,3 +370,13 @@ func TestDropTextKeepsAnApostropheInAPath(t *testing.T) {
 		t.Fatalf("dropText = %q, %v", quoted, paths)
 	}
 }
+
+func TestAPasteWithCRLFGoesInWithLF(t *testing.T) {
+	text, paths := dropText("line one\r\nline two\r")
+	if paths {
+		t.Fatal("the text was read as a path")
+	}
+	if want := "line one\nline two"; text != want {
+		t.Fatalf("dropText gave %q, want %q", text, want)
+	}
+}
