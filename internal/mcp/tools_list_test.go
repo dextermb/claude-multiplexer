@@ -105,3 +105,61 @@ func TestListFilterLastActive(t *testing.T) {
 		t.Errorf("a bad window wanted an error")
 	}
 }
+
+func TestListCategoryFilterLastActive(t *testing.T) {
+	now := time.Date(2026, 9, 18, 12, 0, 0, 0, time.UTC)
+	hoursAgo := func(h int) time.Time { return now.Add(-time.Duration(h) * time.Hour) }
+
+	all := []Session{
+		{Name: "live", Live: true, LastActiveAt: hoursAgo(2)},
+		{Name: "stored-fresh", LastActiveAt: hoursAgo(2)},
+		{Name: "stored-stale", LastActiveAt: hoursAgo(240)},
+		{Name: "stored-zero"},
+		{Name: "attic-fresh", Archived: true, LastActiveAt: hoursAgo(2)},
+		{Name: "attic-stale", Archived: true, LastActiveAt: hoursAgo(240)},
+	}
+
+	names := func(in listCategoryIn, inCategory func(Session) bool) []string {
+		kept, err := in.filter(all, now, inCategory)
+		if err != nil {
+			t.Fatalf("filter returned %v", err)
+		}
+		out := make([]string, len(kept))
+		for i, item := range kept {
+			out[i] = item.Name
+		}
+		return out
+	}
+
+	eq := func(got, want []string) bool {
+		if len(got) != len(want) {
+			return false
+		}
+		for i := range got {
+			if got[i] != want[i] {
+				return false
+			}
+		}
+		return true
+	}
+
+	if got := names(listCategoryIn{}, isInactive); !eq(got, []string{"stored-fresh", "stored-zero"}) {
+		t.Errorf("inactive within a day returned %v", got)
+	}
+
+	if got := names(listCategoryIn{LastActive: LastActiveUnset}, isInactive); !eq(got, []string{"stored-fresh", "stored-stale", "stored-zero"}) {
+		t.Errorf("inactive with no limit returned %v", got)
+	}
+
+	if got := names(listCategoryIn{}, isArchived); !eq(got, []string{"attic-fresh"}) {
+		t.Errorf("archived within a day returned %v", got)
+	}
+
+	if got := names(listCategoryIn{LastActive: LastActiveYear}, isArchived); !eq(got, []string{"attic-fresh", "attic-stale"}) {
+		t.Errorf("archived within a year returned %v", got)
+	}
+
+	if _, err := (listCategoryIn{LastActive: "nope"}).filter(all, now, isInactive); err == nil {
+		t.Errorf("a bad window wanted an error")
+	}
+}

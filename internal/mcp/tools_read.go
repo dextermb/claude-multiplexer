@@ -34,16 +34,24 @@ func (s *Server) addReadTools(server *sdk.Server, caller string) {
 
 	sdk.AddTool(server, &sdk.Tool{
 		Name:        ToolListInactive,
-		Description: "List the stored sessions that do not run now and are not archived.",
-	}, func(_ context.Context, _ *sdk.CallToolRequest, _ struct{}) (*sdk.CallToolResult, listOut, error) {
-		return nil, listOut{Sessions: selectSessions(s.sessions.List(), isInactive)}, nil
+		Description: "List the stored sessions that do not run now and are not archived. last_active drops a session older than its window (1d, 1w, 1m, 1y, or unset; 1d by default).",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, in listCategoryIn) (*sdk.CallToolResult, listOut, error) {
+		kept, err := in.filter(s.sessions.List(), time.Now(), isInactive)
+		if err != nil {
+			return nil, listOut{}, err
+		}
+		return nil, listOut{Sessions: kept}, nil
 	})
 
 	sdk.AddTool(server, &sdk.Tool{
 		Name:        ToolListArchived,
-		Description: "List the archived sessions.",
-	}, func(_ context.Context, _ *sdk.CallToolRequest, _ struct{}) (*sdk.CallToolResult, listOut, error) {
-		return nil, listOut{Sessions: selectSessions(s.sessions.List(), isArchived)}, nil
+		Description: "List the archived sessions. last_active drops a session older than its window (1d, 1w, 1m, 1y, or unset; 1d by default).",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, in listCategoryIn) (*sdk.CallToolResult, listOut, error) {
+		kept, err := in.filter(s.sessions.List(), time.Now(), isArchived)
+		if err != nil {
+			return nil, listOut{}, err
+		}
+		return nil, listOut{Sessions: kept}, nil
 	})
 
 	sdk.AddTool(server, &sdk.Tool{
