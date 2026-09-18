@@ -51,7 +51,7 @@ files, one to a row:
 
 Each row shows a fold mark, a status letter, the path, and the file's own
 `+I −D`. The status letter is the git letter: `M` (modified), `A` (added),
-`D` (deleted), or `R` (renamed). The selected file has a purple background.
+`D` (deleted), or `R` (renamed). The selected file has a blue background.
 
 `Enter` expands the selected file, and its coloured diff shows below the row.
 `Enter` again collapses it. `Space` does the same as `Enter` here. The diff
