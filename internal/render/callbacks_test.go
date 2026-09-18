@@ -79,3 +79,25 @@ func TestPlainPromptIsNotACallback(t *testing.T) {
 		t.Fatalf("lines = %v", got)
 	}
 }
+
+func TestIsPromptEcho(t *testing.T) {
+	cases := []struct {
+		name string
+		line string
+		want bool
+	}{
+		{"a prompt replay", `{"type":"user","isReplay":true,"message":{"role":"user","content":[{"type":"text","text":"do the thing"}]}}`, true},
+		{"a slash command replay", `{"type":"user","isReplay":true,"message":{"role":"user","content":[{"type":"text","text":"<command-name>/review</command-name>"}]}}`, true},
+		{"a task notification replay", `{"type":"user","isReplay":true,"message":{"role":"user","content":[{"type":"text","text":"<task-notification>\n<status>completed</status>\n</task-notification>"}]}}`, false},
+		{"a reminder replay", `{"type":"user","isReplay":true,"message":{"role":"user","content":[{"type":"text","text":"<system-reminder>note</system-reminder>"}]}}`, false},
+		{"a live prompt, not a replay", `{"type":"user","message":{"role":"user","content":[{"type":"text","text":"do the thing"}]}}`, false},
+		{"an assistant message", `{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"an answer"}]}}`, false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := IsPromptEcho(decode(t, tc.line).Protocol); got != tc.want {
+				t.Fatalf("IsPromptEcho = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}

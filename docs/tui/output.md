@@ -31,10 +31,16 @@ code fence all read as themselves. Press `o m` for the raw text. See
 
 Your prompt appears the moment you send it. The interface holds a copy and
 shows it at once, so there is no wait for the round trip through Claude Code.
-Claude Code then echoes the prompt back through the stream. See
+Claude Code then echoes the turn back through the stream. See
 [protocol.md](../protocol.md). When the echo lands, the interface drops the held
 copy, so the prompt is never shown twice. The echoed prompt is in the transcript
 for a later replay, and the pane reads as a conversation.
+
+A slash command echoes as a `» /name` line, not a violet prompt. So the drop
+keys on the echo of the turn, and not on the prompt line. The manager marks the
+replay of a turn you sent, a prompt or a slash command. The interface drops the
+held copy on that mark. An injected callback, such as a task notification, is
+not a turn you sent, so it drops no held copy.
 
 The class travels with the line from the renderer, through the manager buffer,
 to the screen. The one-shot `run` command prints one line for each event, with

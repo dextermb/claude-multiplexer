@@ -23,6 +23,7 @@ type Event struct {
 	Questions  []protocol.Question `json:"questions,omitempty"`
 	QuestionID string              `json:"question_id,omitempty"`
 	Todos      []protocol.Todo     `json:"todos,omitempty"`
+	PromptEcho bool                `json:"prompt_echo,omitempty"`
 }
 
 // Snapshot mirrors the session snapshot the pane reads, with the error as a
