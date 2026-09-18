@@ -22,6 +22,15 @@ name without a migration.
 | [mcp/notices.md](mcp/notices.md) | How a change with no session event behind it still reaches the screen |
 | [mcp/rules.md](mcp/rules.md) | The rules the multiplexer injects into every session, and how to add one |
 
+## The manager slice
+
+The package reaches the manager through `Sessions`, a composite interface that
+embeds one **port** per concept: the reader, the control, the config, the locks,
+the layouts, the schedules, the usage, the API, the peers, and the shares. So a
+tool group depends on the port it needs, and a tool test fills the few methods of
+one port rather than the whole surface. For the port glossary, see
+[../CONTEXT.md](../CONTEXT.md); for the code, see `internal/mcp/sessions.go`.
+
 For the stream between the multiplexer and one child, see
 [protocol.md](./protocol.md). For the manager the tools call, see
 [manager.md](./manager.md).
