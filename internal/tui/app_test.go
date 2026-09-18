@@ -59,6 +59,7 @@ func newTestModel(t *testing.T, initialDir string) (Model, *manager.Manager) {
 		mgr.Shutdown(ctx)
 	})
 	m := New(Options{Manager: mgr, DefaultDir: t.TempDir(), InitialDir: initialDir})
+	m.burstAware = false
 	return m, mgr
 }
 

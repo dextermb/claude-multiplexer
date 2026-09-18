@@ -150,6 +150,12 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.searchKey(msg)
 	}
 
+	if m.inBurst && msg.Type == tea.KeyRunes && m.focus != focusPrompt {
+		m.focus = focusPrompt
+		m.prompt.Focus()
+		return m.promptKey(msg)
+	}
+
 	if m.seq != nil {
 		return m.resolveSequence(msg)
 	}
@@ -224,11 +230,12 @@ func (m Model) promptKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.prompt.Blur()
 		return m, nil
 	case "enter":
+		if m.inBurst {
+			return m.insertNewline()
+		}
 		return m.send()
 	case "ctrl+j":
-		var cmd tea.Cmd
-		m.prompt, cmd = m.prompt.Update(tea.KeyMsg{Type: tea.KeyEnter})
-		return m, cmd
+		return m.insertNewline()
 	}
 	if next, ok := m.historyKey(msg); ok {
 		return next, nil
@@ -238,6 +245,12 @@ func (m Model) promptKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 	var cmd tea.Cmd
 	m.prompt, cmd = m.prompt.Update(msg)
+	return m, cmd
+}
+
+func (m Model) insertNewline() (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+	m.prompt, cmd = m.prompt.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	return m, cmd
 }
 
