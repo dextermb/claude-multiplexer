@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/charmbracelet/bubbles/textarea"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/dextermb/claude-multiplexer/internal/git"
 	"github.com/dextermb/claude-multiplexer/internal/manager"
 )
@@ -136,6 +137,38 @@ func TestReviewEnterHidesSidebarAndLeaveRestores(t *testing.T) {
 	}
 	if m.sidebarHidden {
 		t.Fatal("leaving must restore the sidebar")
+	}
+}
+
+func TestReviewMouseKeepsTheFocusOnTheScreen(t *testing.T) {
+	m, mgr := newTestModel(t, "")
+	m = start(t, m, 160, 30)
+	m, _ = step(t, m, key("esc"))
+	m = spawn(t, m, mgr, "alpha", t.TempDir())
+	m, _ = step(t, m, key("esc"))
+	m, _ = step(t, m, key("s"))
+	m, _ = step(t, m, key("R"))
+
+	// A left click used to set m.focus by the region, which moved it off the
+	// review screen and broke tab and esc.
+	click := tea.MouseMsg{Action: tea.MouseActionPress, Button: tea.MouseButtonLeft, X: 2, Y: 3}
+	m, _ = step(t, m, click)
+	if m.focus != focusReview {
+		t.Fatalf("a click must keep the focus on the review screen, got %v", m.focus)
+	}
+	if m.reviewFocus != reviewDiff {
+		t.Fatalf("a click on the left must focus the diff side, got %v", m.reviewFocus)
+	}
+
+	right := tea.MouseMsg{Action: tea.MouseActionPress, Button: tea.MouseButtonLeft, X: m.width - 3, Y: 3}
+	m, _ = step(t, m, right)
+	if m.reviewFocus != reviewExplain {
+		t.Fatalf("a click on the right must focus the explanation, got %v", m.reviewFocus)
+	}
+
+	m, _ = step(t, m, key("esc"))
+	if m.reviewMode {
+		t.Fatal("esc must still close the review screen after a click")
 	}
 }
 

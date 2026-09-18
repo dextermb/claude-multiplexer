@@ -66,6 +66,10 @@ The screen is modal, so it captures every key. The two-key sequences (`s`, `l`,
 focus off the screen. So a review key never opens a panel or a dialog behind the
 screen.
 
+The mouse is modal too. A click on the diff, the explanation, or the prompt
+focuses that side, and the wheel scrolls the side under the pointer. A click
+never moves the focus off the screen.
+
 ## The explanation
 
 The explanation side is the session output pane, in the review layout. So it

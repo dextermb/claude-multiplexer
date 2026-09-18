@@ -341,6 +341,48 @@ func (m Model) reviewSend(prompt string) (tea.Model, tea.Cmd) {
 	return model, cmd
 }
 
+// reviewMouse drives the review screen with the mouse. It sets the review focus
+// by the side clicked, and scrolls with the wheel, but never moves m.focus off
+// the screen, so the screen stays modal. See docs/tui/review.md.
+func (m Model) reviewMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
+	onLeft := msg.X < gutterWidth+m.reviewDiffWidth()
+	switch msg.Button {
+	case tea.MouseButtonWheelUp, tea.MouseButtonWheelDown:
+		if msg.Action != tea.MouseActionPress {
+			return m, nil
+		}
+		if onLeft {
+			if msg.Button == tea.MouseButtonWheelUp {
+				m.reviewScroll -= 3
+			} else {
+				m.reviewScroll += 3
+			}
+			m.clampReviewScroll()
+			return m, nil
+		}
+		var cmd tea.Cmd
+		m.output, cmd = m.output.Update(msg)
+		return m, cmd
+	case tea.MouseButtonLeft:
+		if msg.Action != tea.MouseActionPress {
+			return m, nil
+		}
+		if msg.Y >= m.bodyHeight() {
+			m.reviewFocus = reviewPrompt
+			m.prompt.Focus()
+			return m, textarea.Blink
+		}
+		m.prompt.Blur()
+		if onLeft {
+			m.reviewFocus = reviewDiff
+		} else {
+			m.reviewFocus = reviewExplain
+		}
+		return m, nil
+	}
+	return m, nil
+}
+
 func (m *Model) ensureReviewHunkVisible() {
 	_, sel := m.reviewDiffContent(m.reviewDiffWidth())
 	if sel < 0 {
