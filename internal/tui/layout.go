@@ -320,15 +320,25 @@ func (m Model) sessionRow(item row) string {
 		nameStyle.Render(counts)
 }
 
-// rowWorkItem is the short work-item badge for a session row: the mirrored
-// status, or the key when no status is known. It is empty for a session with no
+// rowWorkItem is the short work-item badge for a session row: the item key, so a
+// row names its item inside the status group. It is empty for a session with no
 // link. See docs/work-items.md.
 func rowWorkItem(item row) string {
+	if item.workItem.Key == "" {
+		return ""
+	}
+	return "[" + item.workItem.Key + "]"
+}
+
+// barWorkItem is the work-item segment of the output pane status bar: the
+// mirrored status, next to the effort, and the key when no status is known. See
+// docs/work-items.md.
+func barWorkItem(item row) string {
 	switch {
 	case item.workItem.Status != "":
-		return "[" + item.workItem.Status + "]"
+		return item.workItem.Status
 	case item.workItem.Key != "":
-		return "[" + item.workItem.Key + "]"
+		return item.workItem.Key
 	default:
 		return ""
 	}
@@ -654,6 +664,9 @@ func barDetails(item row) [][]string {
 	full = append(full, item.mode)
 	if item.effort != "" {
 		full = append(full, item.effort+" effort")
+	}
+	if wi := barWorkItem(item); wi != "" {
+		full = append(full, wi)
 	}
 	out := make([][]string, 0, len(full)+1)
 	for n := len(full); n >= 1; n-- {

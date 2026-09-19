@@ -1,12 +1,12 @@
 # Work items: a session links to Jira or Linear
 
 A session links to one work item in Jira or Linear. The multiplexer shows the
-item status on the session row, and a session can change the status. The
+item status in the interface, and a session can change the status. The
 multiplexer is the MCP client to the provider server, so the token stays in the
 multiplexer and the agent needs no provider tools.
 
 The feature is off until a provider token is set. With no provider, the
-work-item tools do not appear and no badge shows.
+work-item tools do not appear.
 
 ## Set up Linear
 
@@ -135,8 +135,18 @@ The multiplexer stores the link and a mirror of the status in the session
   background poll, and no status changes on a session start or stop. The only
   writer is `set_workitem_status`.
 
-The session row shows the mirrored status as a badge, next to the flags. The
-badge shows the key until a status is known.
+## In the interface
+
+The mirror shows in three places:
+
+- **The output pane status bar** shows the status of the selected session, next
+  to the effort.
+- **The sidebar groups** a session that links to a work item by its status. The
+  status groups form a cluster above the directory groups, in status order, and
+  each header names the status. A session with a link, but no status yet, sits
+  in the "no status" group.
+- **The session row** shows the item key, so a row names its item inside the
+  status group.
 
 ## The two status models
 
