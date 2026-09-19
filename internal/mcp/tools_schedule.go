@@ -10,10 +10,11 @@ import (
 func (s *Server) addScheduleTools(server *sdk.Server, caller string, control bool) {
 	sdk.AddTool(server, &sdk.Tool{
 		Name: ToolCreateSchedule,
-		Description: "Create a durable schedule that runs a prompt on a cron. " +
+		Description: "Create a durable schedule that runs a prompt on a cron, or once after a time. " +
 			"The multiplexer runs it on its own clock, and it survives a restart. " +
+			"Give a 5-field cron in local time for a recurring run, or leave cron empty and set 'run_after' for a one-off run that fires once and then pauses. " +
 			"Leave 'session' empty to start a fresh session each run, or give a session name to reuse one session so it keeps its memory. " +
-			"Give a 5-field cron in local time, a directory, and a prompt.",
+			"Give a directory and a prompt.",
 	}, func(_ context.Context, _ *sdk.CallToolRequest, in createScheduleIn) (*sdk.CallToolResult, scheduleOut, error) {
 		out, err := createSchedule(s.sessions, caller, control, in)
 		return nil, out, err
@@ -54,7 +55,7 @@ func (s *Server) addScheduleTools(server *sdk.Server, caller string, control boo
 
 	sdk.AddTool(server, &sdk.Tool{
 		Name:        ToolRunSchedule,
-		Description: "Run a schedule now, whatever its cron says. Use it to test a schedule. It returns the name of the session it ran.",
+		Description: "Run a schedule now, whatever its cron or run-after time says. Use it to test a schedule; a one-off schedule pauses after it runs. It returns the name of the session it ran.",
 	}, func(_ context.Context, _ *sdk.CallToolRequest, in runScheduleIn) (*sdk.CallToolResult, runScheduleOut, error) {
 		out, err := runSchedule(s.sessions, caller, in)
 		return nil, out, err
@@ -69,7 +70,7 @@ func (s *Server) addScheduleTools(server *sdk.Server, caller string, control boo
 }
 
 func createSchedule(sched SchedulePort, caller string, control bool, in createScheduleIn) (scheduleOut, error) {
-	if strings.TrimSpace(in.Cron) == "" {
+	if strings.TrimSpace(in.Cron) == "" && strings.TrimSpace(in.RunAfter) == "" {
 		return scheduleOut{}, ErrNoCron
 	}
 	if strings.TrimSpace(in.Dir) == "" {
@@ -81,6 +82,7 @@ func createSchedule(sched SchedulePort, caller string, control bool, in createSc
 	created, err := sched.CreateSchedule(ScheduleInput{
 		Name:           strings.TrimSpace(in.Name),
 		Cron:           strings.TrimSpace(in.Cron),
+		RunAfter:       strings.TrimSpace(in.RunAfter),
 		Dir:            strings.TrimSpace(in.Dir),
 		Prompt:         in.Prompt,
 		Session:        strings.TrimSpace(in.Session),
@@ -107,6 +109,7 @@ func updateSchedule(sched SchedulePort, caller string, control bool, in updateSc
 	}
 	updated, err := sched.UpdateSchedule(name, ScheduleEdit{
 		Cron:           in.Cron,
+		RunAfter:       in.RunAfter,
 		Dir:            in.Dir,
 		Prompt:         in.Prompt,
 		Session:        in.Session,

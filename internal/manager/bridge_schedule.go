@@ -10,6 +10,7 @@ func (b *bridge) CreateSchedule(in mcp.ScheduleInput, by string) (mcp.Schedule, 
 	sched, err := b.m.CreateSchedule(ScheduleSpec{
 		Name:           in.Name,
 		Cron:           in.Cron,
+		RunAfter:       in.RunAfter,
 		Dir:            in.Dir,
 		Prompt:         in.Prompt,
 		Session:        in.Session,
@@ -28,6 +29,7 @@ func (b *bridge) CreateSchedule(in mcp.ScheduleInput, by string) (mcp.Schedule, 
 func (b *bridge) UpdateSchedule(name string, up mcp.ScheduleEdit, by string) (mcp.Schedule, error) {
 	sched, err := b.m.UpdateSchedule(name, ScheduleUpdate{
 		Cron:           up.Cron,
+		RunAfter:       up.RunAfter,
 		Dir:            up.Dir,
 		Prompt:         up.Prompt,
 		Session:        up.Session,
@@ -97,6 +99,9 @@ func scheduleView(s Schedule) mcp.Schedule {
 		Control:        s.Control,
 		Enabled:        s.Enabled,
 		LastSession:    s.LastSession,
+	}
+	if !s.RunAfter.IsZero() {
+		view.RunAfter = s.RunAfter.Format(time.RFC3339)
 	}
 	if !s.LastRun.IsZero() {
 		view.LastRun = s.LastRun.Format(time.RFC3339)

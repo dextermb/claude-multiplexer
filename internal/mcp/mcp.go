@@ -297,6 +297,7 @@ type Job struct {
 type Schedule struct {
 	Name           string `json:"name"`
 	Cron           string `json:"cron"`
+	RunAfter       string `json:"run_after,omitempty"`
 	Dir            string `json:"dir"`
 	Prompt         string `json:"prompt"`
 	Session        string `json:"session,omitempty"`
@@ -314,6 +315,7 @@ type Schedule struct {
 type ScheduleInput struct {
 	Name           string
 	Cron           string
+	RunAfter       string
 	Dir            string
 	Prompt         string
 	Session        string
@@ -327,6 +329,7 @@ type ScheduleInput struct {
 // caller changes only the fields it sends.
 type ScheduleEdit struct {
 	Cron           *string
+	RunAfter       *string
 	Dir            *string
 	Prompt         *string
 	Session        *string

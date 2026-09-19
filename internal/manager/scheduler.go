@@ -68,14 +68,22 @@ func (m *Manager) runDue(now time.Time) {
 }
 
 // dueSchedules gives a copy of each enabled schedule whose next fire is at or
-// before now. It computes the next fire from the last run, so a slot missed
-// during downtime fires once, and then the last run moves forward.
+// before now. For a recurring schedule it computes the next fire from the last
+// run, so a slot missed during downtime fires once, and then the last run moves
+// forward. A one-off schedule is due when it has not run yet and now is at or
+// after its run-after time.
 func (m *Manager) dueSchedules(now time.Time) []Schedule {
 	m.schedMu.Lock()
 	defer m.schedMu.Unlock()
 	var due []Schedule
 	for _, s := range m.schedules {
 		if !s.Enabled {
+			continue
+		}
+		if s.Cron == "" {
+			if s.LastRun.IsZero() && !s.RunAfter.IsZero() && !now.Before(s.RunAfter) {
+				due = append(due, *s)
+			}
 			continue
 		}
 		parsed, err := cron.ParseStandard(s.Cron)
@@ -169,6 +177,9 @@ func (m *Manager) markRun(name string, now time.Time, session string) {
 	s.LastRun = now
 	if session != "" {
 		s.LastSession = session
+	}
+	if s.Cron == "" {
+		s.Enabled = false
 	}
 	snapshot := *s
 	m.schedMu.Unlock()

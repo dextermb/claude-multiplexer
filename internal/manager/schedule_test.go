@@ -93,6 +93,80 @@ func TestCreateScheduleRejectsBadInput(t *testing.T) {
 	}
 }
 
+func TestCreateOneOffScheduleFromDuration(t *testing.T) {
+	m := newTestManager(t)
+	before := time.Now()
+	s, err := m.CreateSchedule(ScheduleSpec{Name: "once", RunAfter: "30m", Dir: t.TempDir(), Prompt: "poll"})
+	if err != nil {
+		t.Fatalf("CreateSchedule: %v", err)
+	}
+	if s.Cron != "" {
+		t.Fatalf("cron = %q, want empty for a one-off", s.Cron)
+	}
+	want := before.Add(30 * time.Minute)
+	if s.RunAfter.Before(want) || s.RunAfter.After(want.Add(time.Minute)) {
+		t.Fatalf("run_after = %v, want about %v", s.RunAfter, want)
+	}
+}
+
+func TestCreateOneOffScheduleFromTimestamp(t *testing.T) {
+	m := newTestManager(t)
+	when := time.Now().Add(2 * time.Hour).Round(time.Second)
+	s, err := m.CreateSchedule(ScheduleSpec{Name: "once", RunAfter: when.Format(time.RFC3339), Dir: t.TempDir(), Prompt: "poll"})
+	if err != nil {
+		t.Fatalf("CreateSchedule: %v", err)
+	}
+	if !s.RunAfter.Equal(when) {
+		t.Fatalf("run_after = %v, want %v", s.RunAfter, when)
+	}
+}
+
+func TestCreateScheduleRejectsCronAndRunAfterTogether(t *testing.T) {
+	m := newTestManager(t)
+	dir := t.TempDir()
+	if _, err := m.CreateSchedule(ScheduleSpec{Cron: "* * * * *", RunAfter: "30m", Dir: dir, Prompt: "x"}); !errors.Is(err, ErrCronAndRunAfter) {
+		t.Fatalf("err = %v, want ErrCronAndRunAfter", err)
+	}
+	if _, err := m.CreateSchedule(ScheduleSpec{RunAfter: "not a time", Dir: dir, Prompt: "x"}); !errors.Is(err, ErrBadRunAfter) {
+		t.Fatalf("err = %v, want ErrBadRunAfter", err)
+	}
+}
+
+func TestDueOneOffFiresAfterTimeThenPauses(t *testing.T) {
+	m := newTestManager(t)
+	s, err := m.CreateSchedule(ScheduleSpec{Name: "once", RunAfter: "30m", Dir: t.TempDir(), Prompt: "poll"})
+	if err != nil {
+		t.Fatalf("CreateSchedule: %v", err)
+	}
+	if due := m.dueSchedules(time.Now()); len(due) != 0 {
+		t.Fatalf("due before run_after = %d, want 0", len(due))
+	}
+	after := s.RunAfter.Add(time.Second)
+	if due := m.dueSchedules(after); len(due) != 1 {
+		t.Fatalf("due after run_after = %d, want 1", len(due))
+	}
+	m.markRun(s.Name, after, "sess")
+	got := m.ListSchedules()[0]
+	if got.Enabled {
+		t.Fatalf("one-off stayed enabled after it ran: %+v", got)
+	}
+	if due := m.dueSchedules(after); len(due) != 0 {
+		t.Fatalf("due after run = %d, want 0", len(due))
+	}
+}
+
+func TestUpdateScheduleSwitchesToOneOff(t *testing.T) {
+	m := newTestManager(t)
+	s := createSchedule(t, m, ScheduleSpec{Name: "poll"})
+	got, err := m.UpdateSchedule(s.Name, ScheduleUpdate{RunAfter: strptr("1h")})
+	if err != nil {
+		t.Fatalf("UpdateSchedule: %v", err)
+	}
+	if got.Cron != "" || got.RunAfter.IsZero() {
+		t.Fatalf("did not switch to one-off: %+v", got)
+	}
+}
+
 func TestCreateSchedulePersistsAndNamesUniquely(t *testing.T) {
 	m := newTestManager(t)
 	dir := t.TempDir()

@@ -1,7 +1,8 @@
 # The scheduler
 
-A schedule is a durable, recurring task. The multiplexer runs it on its own
-clock. A schedule survives a restart, because it lives on disk, not in a session.
+A schedule is a durable task. The multiplexer runs it on its own clock. A
+schedule survives a restart, because it lives on disk, not in a session. A
+schedule runs on a cron, or once after a time.
 
 The example is a session that polls a website every few minutes. Any session
 creates the schedule with `create_schedule`, and the manager runs it from then
@@ -42,7 +43,8 @@ directory with `get_schedule_path`.
 | Field | What it holds |
 |---|---|
 | `name` | The unique name of the schedule |
-| `cron` | A 5-field cron expression, in local time |
+| `cron` | A 5-field cron expression, in local time; empty for a one-off |
+| `run_after` | The one-off run time; empty for a recurring schedule |
 | `dir` | The directory a run works in |
 | `prompt` | The prompt each run sends |
 | `session` | The reuse target; empty means spawn a fresh session |
@@ -100,15 +102,38 @@ time it is idle. A spawn-mode run then leaves no exited session behind, and a
 reuse-mode run frees its process between fires. See
 [sessions.md](./sessions.md) for the idle point and the deferred action.
 
+## One-off schedules
+
+A schedule runs on a cron, or once after a time. A one-off schedule holds an
+empty `cron` and a `run_after` time. It fires once, at or after that time, and
+then it pauses itself. The `enabled` flag goes to false, but the record stays on
+disk, so `last_run` and `last_session` stay visible in `list_schedules`.
+
+The `run_after` field takes one of two forms:
+
+- a Go duration from the time of creation, such as `30m` or `2h`,
+- an RFC3339 timestamp, such as `2026-09-19T15:30:00+01:00`.
+
+The manager tries a duration first, then a timestamp. It stores the absolute
+time in `run_after`, so a duration is resolved once, at creation. The `cron` and
+the `run_after` field are mutually exclusive: a create with both is an error, and
+an update that sets one clears the other.
+
+A spent one-off does not fire again, because the due test needs `last_run` to be
+zero. So a re-enable of a spent one-off runs nothing. To run it again, set a new
+`run_after` with `update_schedule`, which resets `last_run`.
+
 ## The clock
 
 One goroutine wakes every 30 seconds and runs each schedule that is due. The
 manager starts it once, after the MCP server, because a run spawns a session and
 a session needs the MCP address.
 
-A schedule is due when it is enabled and `now` is at or after the next cron time.
-The manager computes the next time from `last_run`, or from `created_at` when the
-schedule has not run yet. Three rules protect the machine:
+A recurring schedule is due when it is enabled and `now` is at or after the next
+cron time. The manager computes the next time from `last_run`, or from
+`created_at` when the schedule has not run yet. A one-off schedule is due when it
+is enabled, `last_run` is zero, and `now` is at or after `run_after`. Three rules
+protect the machine:
 
 - **A spawn cap.** One tick starts at most 3 fresh sessions. When more spawn-mode
   schedules are due at once (for example after downtime), the tick leaves the rest
@@ -121,8 +146,9 @@ schedule has not run yet. Three rules protect the machine:
   once, and then `last_run` moves to now. The next tick sees the following slot in
   the future, so no burst follows.
 
-A schedule does not expire. It runs until the human pauses or deletes it. This is
-the difference from an in-session cron, which lapses on its own.
+A recurring schedule does not expire. It runs until the human pauses or deletes
+it. This is the difference from an in-session cron, which lapses on its own. A
+one-off schedule pauses itself after its single run.
 
 ## The schedule flag on a session
 
@@ -146,18 +172,21 @@ file.
 
 ## The workflows
 
-- **Create.** Any session calls `create_schedule` with a cron, a directory, and a
-  prompt. The manager validates all three, writes the file, and returns the name.
-  Only a control caller may set the `control` field, and the manager drops it from
-  a plain caller, so a plain session cannot reach the control grant this way.
+- **Create.** Any session calls `create_schedule` with a cron or a `run_after`
+  time, a directory, and a prompt. The manager validates all of them, writes the
+  file, and returns the name. Only a control caller may set the `control` field,
+  and the manager drops it from a plain caller, so a plain session cannot reach
+  the control grant this way.
 - **Update.** `update_schedule` changes the fields it is sent, and leaves the rest.
   A field left out stays as it is, and an empty string clears an optional field,
-  such as `session` to return to a fresh session each run. The name identifies the
-  schedule and does not change. The manager validates a new cron, a new directory,
-  and a new prompt the same way `create_schedule` does, and it drops the `control`
-  field from a plain caller.
+  such as `session` to return to a fresh session each run. A new `cron` switches
+  to recurring; a new `run_after` switches to one-off. The name identifies the
+  schedule and does not change. The manager validates a new cron, a new run-after
+  time, a new directory, and a new prompt the same way `create_schedule` does, and
+  it drops the `control` field from a plain caller.
 - **Run.** The clock runs the schedule, in spawn mode or reuse mode. `run_schedule`
-  runs a schedule at once, whatever its cron says, to test it.
+  runs a schedule at once, whatever its cron or run-after time says, to test it. A
+  one-off schedule pauses after any run, so `run_schedule` spends it.
 - **Pause and resume.** `set_schedule_enabled` flips `enabled`. A paused schedule
   stays on disk, so a resume needs no re-entry of the cron and the prompt.
 - **Delete.** `delete_schedule` removes the file. A session it started is left
