@@ -35,6 +35,7 @@ func TestKeysListsTheSchema(t *testing.T) {
 		{"contextAction", "string"},
 		{"autoArchiveDays", "integer"},
 		{"costWindow", "string"},
+		{"archivedWindow", "string"},
 	}
 	got := Keys()
 	if len(got) != len(want) {

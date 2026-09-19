@@ -47,16 +47,18 @@ func (m Model) readSettings() tea.Cmd {
 		file, err := config.Load(opts.ConfigPaths...)
 		if err != nil {
 			return settingsMsg{
-				caps:     config.ResolveBlockCaps(config.Config{}),
-				defaults: resolveSessionDefaults(opts, config.Config{}),
+				caps:           config.ResolveBlockCaps(config.Config{}),
+				defaults:       resolveSessionDefaults(opts, config.Config{}),
+				archivedWindow: config.ArchivedWindow(""),
 			}
 		}
 		merged := config.Resolve(opts.Config, file, config.LoadClaude(opts.ClaudePaths...))
 		return settingsMsg{
-			caps:         config.ResolveBlockCaps(merged),
-			layouts:      merged.Layouts,
-			activeLayout: merged.ActiveLayout,
-			defaults:     resolveSessionDefaults(opts, merged),
+			caps:           config.ResolveBlockCaps(merged),
+			layouts:        merged.Layouts,
+			activeLayout:   merged.ActiveLayout,
+			defaults:       resolveSessionDefaults(opts, merged),
+			archivedWindow: config.ArchivedWindow(merged.ArchivedWindow),
 		}
 	}
 }

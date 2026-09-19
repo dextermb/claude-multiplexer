@@ -45,43 +45,44 @@ type Model struct {
 	mgr  *manager.Manager
 	sub  *manager.Subscription
 
-	rows         []row
-	groups       []group
-	lines        []listLine
-	peering      bool
-	folded       map[string]bool
-	roots        map[string]string
-	stored       []manager.Meta
-	storedLoaded bool
-	cost         float64
-	costWindow   string
-	greeted      bool
-	showArchived bool
-	search       textinput.Model
-	searchOn     bool
-	replays      map[string][]render.Line
-	partials     map[string]string
-	queued       map[string][]string
-	history      []string
-	histIdx      int
-	histDraft    string
-	todos        map[string][]protocol.Todo
-	spinFrame    int
-	animating    bool
-	md           *markdown.Renderer
-	mdMuted      *markdown.Renderer
-	showRaw      bool
-	showAge      bool
-	ageTicking   bool
-	templates    []template.Template
-	help         *help
-	modal        modal
-	questions    map[string]*questionDialog
-	pending      string
-	seq          *sequence
-	seqGen       int
-	sel          string
-	listOffset   int
+	rows           []row
+	groups         []group
+	lines          []listLine
+	peering        bool
+	folded         map[string]bool
+	roots          map[string]string
+	stored         []manager.Meta
+	storedLoaded   bool
+	cost           float64
+	costWindow     string
+	greeted        bool
+	showArchived   bool
+	archivedWindow string
+	search         textinput.Model
+	searchOn       bool
+	replays        map[string][]render.Line
+	partials       map[string]string
+	queued         map[string][]string
+	history        []string
+	histIdx        int
+	histDraft      string
+	todos          map[string][]protocol.Todo
+	spinFrame      int
+	animating      bool
+	md             *markdown.Renderer
+	mdMuted        *markdown.Renderer
+	showRaw        bool
+	showAge        bool
+	ageTicking     bool
+	templates      []template.Template
+	help           *help
+	modal          modal
+	questions      map[string]*questionDialog
+	pending        string
+	seq            *sequence
+	seqGen         int
+	sel            string
+	listOffset     int
 
 	output          viewport.Model
 	outputText      string
@@ -188,6 +189,7 @@ func New(opts Options) Model {
 		pathPicked:      -1,
 		blockCursor:     -1,
 		caps:            config.ResolveBlockCaps(config.Config{}),
+		archivedWindow:  config.DefaultLastActive,
 		layout:          config.DefaultLayout(),
 		focus:           focusSidebar,
 		mouseOn:         true,
