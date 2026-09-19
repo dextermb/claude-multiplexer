@@ -113,3 +113,11 @@ func (s *Session) SetTitle(title string) {
 	s.mu.Unlock()
 	s.emit(Event{Kind: KindState, State: state, Prev: state})
 }
+
+// SetTitleQuiet sets the title without an event, for a session whose child has
+// exited and whose events channel is closed. See docs/sessions.md.
+func (s *Session) SetTitleQuiet(title string) {
+	s.mu.Lock()
+	s.title = title
+	s.mu.Unlock()
+}

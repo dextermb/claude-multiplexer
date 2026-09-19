@@ -119,6 +119,21 @@ close. `DefaultStopGrace` is 5 seconds.
 
 `Wait` blocks until the session ends, and returns the first error.
 
+## Rename
+
+A rename sets the display title of a session. The manager routes the rename by
+the state of the session.
+
+A running session takes the title in memory, and its pump persists the title to
+the meta on the next event. A session whose child exited gets the title written
+straight to the meta, because the pump is gone and the events channel is closed.
+An exited session lingers as an entry until a resume or a remove, so this second
+path holds for both a lingering entry and a stored session.
+
+A rename of an exited session does not emit an event, because a send on the
+closed events channel panics. The `emit` function also returns early when the
+session context is done, as a second guard.
+
 ## Stop when idle
 
 A session arms a deferred action on itself with the `stop_when_idle` tool. The
