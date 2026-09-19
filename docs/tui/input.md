@@ -104,6 +104,10 @@ exists. Anything else is ordinary pasted text, and it goes in exactly as it is.
 A drop onto the new session form replaces the directory field. Drop a file and
 the field takes the folder that holds it.
 
+A paste or a drop into an open question dialog goes into the text field of that
+dialog, not the prompt, when the output pane has the focus and the cursor sits
+on that field. See "Answering a question" below.
+
 ### When a terminal does not mark the drop
 
 A terminal normally wraps a drop as a bracketed paste, which arrives as one
@@ -165,7 +169,7 @@ the focus. So focus the output pane to answer.
 - `Space` chooses the option under the cursor. A single-choice question keeps
   only the last option. A multi-choice question keeps every option you mark.
 - Type in the text field to give a free answer next to the options, or in place
-  of them.
+  of them. A paste into the text field goes into the field, not the prompt.
 - `Enter` sends the answer. With more than one question, it steps to the next
   one first.
 - `Tab` and `Shift+Tab` move the focus out of the pane, so you can leave the
