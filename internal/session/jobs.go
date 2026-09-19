@@ -3,7 +3,7 @@ package session
 import "time"
 
 // JobStatus is the state of a background job. A job starts as JobRunning and
-// moves to one terminal status. See docs/sessions.md.
+// moves to one terminal status. See docs/sessions/jobs.md.
 type JobStatus uint8
 
 const (
@@ -52,7 +52,7 @@ func StatusWord(status string) string {
 }
 
 // Job is one background job that Claude Code runs for a session. The session
-// derives it from the task events on the stream. See docs/sessions.md.
+// derives it from the task events on the stream. See docs/sessions/jobs.md.
 type Job struct {
 	ID          string
 	Description string
@@ -67,7 +67,7 @@ type Job struct {
 
 // classifyStatus maps a Claude Code task status to a JobStatus. The second
 // return is true when the status is terminal. An unknown value stays running,
-// so a new Claude Code status cannot lose a job. See docs/sessions.md.
+// so a new Claude Code status cannot lose a job. See docs/sessions/jobs.md.
 func classifyStatus(status string) (JobStatus, bool) {
 	switch status {
 	case "completed":

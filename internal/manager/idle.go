@@ -8,7 +8,7 @@ import (
 
 // SetIdleAction arms a session to act on itself when it next goes idle. The
 // action is a stop, and an archive after the stop when archive is true. A call
-// with both false disarms. See docs/sessions.md.
+// with both false disarms. See docs/sessions/lifecycle.md.
 func (m *Manager) SetIdleAction(name string, stop, archive bool) error {
 	item, err := m.entry(name)
 	if err != nil {
@@ -24,7 +24,7 @@ func (m *Manager) SetIdleAction(name string, stop, archive bool) error {
 
 // maybeIdleAction starts the armed idle action once the session is idle, its
 // queue is empty, and it ran at least one turn. The turn guard stops a fresh
-// session from acting before its first prompt. See docs/sessions.md.
+// session from acting before its first prompt. See docs/sessions/lifecycle.md.
 func (m *Manager) maybeIdleAction(item *entry, snap session.Snapshot) {
 	if snap.State != session.StateIdle || snap.Queued > 0 || snap.Turns == 0 {
 		return
@@ -43,7 +43,7 @@ func (m *Manager) maybeIdleAction(item *entry, snap session.Snapshot) {
 
 // idleAct stops the session, and archives it when asked. It runs in its own
 // goroutine, not in the pump, because the stop closes stdin and the pump must
-// keep draining events for the session to exit. See docs/sessions.md.
+// keep draining events for the session to exit. See docs/sessions/lifecycle.md.
 func (m *Manager) idleAct(name string, archive bool) {
 	ctx, cancel := context.WithTimeout(context.Background(), session.DefaultStopGrace)
 	defer cancel()

@@ -22,7 +22,7 @@ var (
 // ReadOutput returns the output that the job wrote, up to MaxJobOutput bytes
 // from the end. A file that is absent or empty returns an empty string and no
 // error, because a job that has printed nothing yet is not a failure. See
-// docs/sessions.md.
+// docs/sessions/jobs.md.
 func ReadOutput(job Job) (string, error) {
 	if job.OutputPath == "" {
 		return "", ErrNoOutputPath
@@ -87,7 +87,7 @@ func writeJobOutput(path, text string) {
 }
 
 // validOutputPath holds a path that came off the child stream to the shape
-// Claude Code writes a job output to; see docs/sessions.md.
+// Claude Code writes a job output to; see docs/sessions/jobs.md.
 func validOutputPath(path, id string) bool {
 	if !filepath.IsAbs(path) || id == "" {
 		return false

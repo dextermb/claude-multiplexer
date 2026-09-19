@@ -229,7 +229,7 @@ first, so the session stops until the next prompt. When false, it ends the turn
 and lets the next queued prompt go at once. `Unqueue(name)` removes the newest
 waiting prompt of the session, and reports whether it removed one; the in-flight
 prompt is off the queue, so it is never removed. See
-[Interrupt](./sessions.md#interrupt).
+[Interrupt](./sessions/lifecycle.md#interrupt).
 
 ## Shutdown
 
