@@ -58,15 +58,22 @@ func (s *Session) apply(ev protocol.Event) {
 	}
 }
 
+// jobWrite is the output the multiplexer must write to a job file, once the lock
+// is released. See docs/sessions/jobs.md.
+type jobWrite struct {
+	path string
+	text string
+}
+
 // applyJobBlocks reads the two message blocks that a background job needs: the
-// Bash call that starts it, and the tool_result that names its output file.
-// See docs/sessions.md.
+// Bash call that starts it, and the tool_result that carries its output. See
+// docs/sessions/jobs.md.
 func (s *Session) applyJobBlocks(ev protocol.Event) {
 	if ev.Message == nil {
 		return
 	}
+	var writes []jobWrite
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	for _, block := range ev.Message.Content {
 		switch block.Type {
 		case "tool_use":
@@ -79,35 +86,61 @@ func (s *Session) applyJobBlocks(ev protocol.Event) {
 			}
 			s.pendingBash[block.ID] = command
 		case "tool_result":
-			s.applyLaunchResult(block)
+			if w, ok := s.applyLaunchResult(block); ok {
+				writes = append(writes, w)
+			}
 		}
+	}
+	s.mu.Unlock()
+	for _, w := range writes {
+		writeJobOutput(w.path, w.text)
 	}
 }
 
-func (s *Session) applyLaunchResult(block protocol.Block) {
+// applyLaunchResult reads the tool_result of a background job. A result that
+// names an external file (the older Claude Code shape) sets the job's output
+// path. A result that carries the output inline (the current shape) returns a
+// write, for the caller to run once the lock is released. A local agent is
+// skipped: its Task tool_result would truncate the turns it captures itself.
+// See docs/sessions/jobs.md.
+func (s *Session) applyLaunchResult(block protocol.Block) (jobWrite, bool) {
 	id := block.ToolUseID
 	if id == "" {
-		return
+		return jobWrite{}, false
 	}
 	_, pending := s.pendingBash[id]
 	taskID, started := s.jobByToolUse[id]
 	if !pending && !started {
-		return
+		return jobWrite{}, false
 	}
-	path := protocol.BackgroundOutputPath(block.Content.Text())
-	if path == "" {
-		return
-	}
-	if started {
-		if job := s.jobs[taskID]; job != nil && job.OutputPath == "" {
-			job.OutputPath = path
+	text := block.Content.Text()
+	if path := protocol.BackgroundOutputPath(text); path != "" {
+		if started {
+			if job := s.jobs[taskID]; job != nil && job.OutputPath == "" {
+				job.OutputPath = path
+			}
+			return jobWrite{}, false
 		}
-		return
+		if s.pendingPath == nil {
+			s.pendingPath = make(map[string]string)
+		}
+		s.pendingPath[id] = path
+		return jobWrite{}, false
 	}
-	if s.pendingPath == nil {
-		s.pendingPath = make(map[string]string)
+	if !started || text == "" {
+		return jobWrite{}, false
 	}
-	s.pendingPath[id] = path
+	job := s.jobs[taskID]
+	if job == nil || job.TaskType == protocol.TaskTypeLocalAgent {
+		return jobWrite{}, false
+	}
+	if job.OutputPath == "" {
+		job.OutputPath = s.generatedOutputPath(taskID)
+	}
+	if job.OutputPath == "" {
+		return jobWrite{}, false
+	}
+	return jobWrite{path: job.OutputPath, text: text}, true
 }
 
 func (s *Session) applyTask(subtype string, task *protocol.Task) {
@@ -134,7 +167,7 @@ func (s *Session) applyTask(subtype string, task *protocol.Task) {
 			StartedAt:   time.Now(),
 		}
 		if task.TaskType == protocol.TaskTypeLocalAgent {
-			if path := s.agentOutputPath(task.TaskID); path != "" {
+			if path := s.generatedOutputPath(task.TaskID); path != "" {
 				job.OutputPath = path
 			}
 		}

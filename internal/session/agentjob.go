@@ -11,18 +11,6 @@ import (
 // same way it reads a background bash job. Claude Code writes no file for an
 // agent, so the multiplexer writes one. See docs/sessions/jobs.md.
 
-// agentOutputPath is where the multiplexer writes a local agent's turns. It sits
-// under the session state directory, at the shape validOutputPath accepts, so
-// ReadOutput opens it with no special case. An empty transcript path (a session
-// with no state directory) has no home for the file, and returns "".
-func (s *Session) agentOutputPath(taskID string) string {
-	if s.cfg.TranscriptPath == "" || taskID == "" {
-		return ""
-	}
-	dir := filepath.Dir(s.cfg.TranscriptPath)
-	return filepath.Join(dir, "tasks", taskID+".output")
-}
-
 // CaptureAgentTurn routes one rendered turn of a local agent to its job output
 // file. It resolves the parent tool_use id to the job, and appends the turn to
 // the job's file. A turn that arrives before task_started registers the job has

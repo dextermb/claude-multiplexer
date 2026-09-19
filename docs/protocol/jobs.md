@@ -57,6 +57,25 @@ events carry the same status in a structured form. And the model does not call
 that tool — Claude Code tells it to use `Read` on the output file instead, and a
 probe that asked for `BashOutput` by name twice still got `Read`.
 
+## A newer Claude Code carries the output inline
+
+A later Claude Code sends a different shape, seen in the session
+`claude-multiplexer-84`. The `Bash` `tool_use` holds no `run_in_background`, the
+`task_notification` `output_file` is empty, and no `tool_result` names a file.
+Instead the `tool_result` carries the whole output inline:
+
+```json
+{"type":"tool_result","tool_use_id":"toolu_01...",
+ "content":"ok  github.com/.../manager\t2.522s\nok  github.com/.../mcp\t0.903s",
+ "is_error":false}
+```
+
+The events still arrive in one order: `tool_use`, `task_started`,
+`task_notification` (completed), then the `tool_result`. So the job is always
+registered when the result arrives. The multiplexer captures the inline content
+to the job's file, the same file a `local_agent` writes; see
+[../sessions/jobs.md](../sessions/jobs.md).
+
 ## A local agent is a job too
 
 A `Task` (or `Agent`) tool call starts a local agent. It is also a job, so it
