@@ -120,6 +120,9 @@ The status name is the platform's own. The multiplexer holds no status
 vocabulary of its own, and a name that is not on the platform list is an error
 that reports the valid names.
 
+For an example rule that tells an agent when to call these tools, see
+[example-rules/work-item-progress.md](example-rules/work-item-progress.md).
+
 ## What moves through the change
 
 The multiplexer stores the link and a mirror of the status in the session
