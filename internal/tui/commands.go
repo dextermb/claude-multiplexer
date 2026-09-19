@@ -106,3 +106,10 @@ func interruptCmd(mgr *manager.Manager, name string, discard bool) tea.Cmd {
 		return interruptedMsg{name: name, err: mgr.Interrupt(name, discard)}
 	}
 }
+
+func unqueueCmd(mgr *manager.Manager, name string) tea.Cmd {
+	return func() tea.Msg {
+		_, err := mgr.Unqueue(name)
+		return unqueuedMsg{name: name, err: err}
+	}
+}

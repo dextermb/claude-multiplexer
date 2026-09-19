@@ -262,6 +262,34 @@ func (m Model) stopBusy() (tea.Model, tea.Cmd, bool) {
 	return m, interruptCmd(m.mgr, m.sel, true), true
 }
 
+// unqueueLast removes the newest waiting prompt of the selected session; it
+// gates on the backend queue count, so it never removes the in-flight prompt.
+// See docs/tui/sessions.md.
+func (m Model) unqueueLast() (tea.Model, tea.Cmd) {
+	item, ok := m.selectedRow()
+	if !ok {
+		return m, nil
+	}
+	if item.readOnly {
+		m.errText = readOnlyStatus
+		return m, nil
+	}
+	q := m.queued[m.sel]
+	if item.queued == 0 || len(q) == 0 {
+		return m, nil
+	}
+	if len(q) == 1 {
+		delete(m.queued, m.sel)
+	} else {
+		m.queued[m.sel] = q[:len(q)-1]
+	}
+	m.errText = ""
+	m.status = "removed a queued prompt"
+	m.refresh()
+	m.setContent()
+	return m, unqueueCmd(m.mgr, m.sel)
+}
+
 func (m Model) dispatch(text string) (tea.Model, tea.Cmd) {
 	if command, feed, ok := parseBang(text); ok {
 		return m.runBash(command, feed)

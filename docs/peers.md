@@ -71,8 +71,8 @@ the owner-scoped surface a peer reaches:
 - `POST /token` — the client-credentials grant, the same one an external client
   uses.
 - `GET /api/usage` — this host's usage, guarded by an access token.
-- The `/api/sessions` REST — list, create, message, interrupt, stop, archive —
-  scoped to the client's own sessions.
+- The `/api/sessions` REST — list, create, message, interrupt, unqueue, stop,
+  archive — scoped to the client's own sessions.
 - `GET /api/sessions/{name}/stream` — the session's event stream as server-sent
   events: the replay of the current lines first, then the live events.
 - The `/api/shares/{id}` surface — the read-only routes a spectator reaches with

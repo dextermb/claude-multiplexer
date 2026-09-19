@@ -228,6 +228,10 @@ func (m Model) promptKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.send()
 	case "ctrl+j":
 		return m.insertNewline()
+	case "backspace":
+		if m.prompt.Value() == "" {
+			return m.unqueueLast()
+		}
 	}
 	if next, ok := m.historyKey(msg); ok {
 		return next, nil

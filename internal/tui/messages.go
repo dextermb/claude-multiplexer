@@ -37,6 +37,11 @@ type interruptedMsg struct {
 	err  error
 }
 
+type unqueuedMsg struct {
+	name string
+	err  error
+}
+
 type shutdownDoneMsg struct{}
 
 type spinTickMsg struct{}

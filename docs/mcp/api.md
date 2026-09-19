@@ -134,6 +134,7 @@ own answers `404`.
 | `GET /api/sessions/{name}/stream` | stream the session's events (SSE) |
 | `POST /api/sessions/{name}/message` | send a prompt |
 | `POST /api/sessions/{name}/interrupt` | interrupt the running turn |
+| `POST /api/sessions/{name}/unqueue` | remove the newest waiting prompt |
 | `POST /api/sessions/{name}/stop` | stop a session |
 | `POST /api/sessions/{name}/archive` | archive or restore a session |
 | `POST /api/sessions/{name}/jobs/{id}/stop` | stop a background job |

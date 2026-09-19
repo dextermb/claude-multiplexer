@@ -69,6 +69,25 @@ func (c *Client) Interrupt(ctx context.Context, name string) error {
 	return err
 }
 
+// Unqueue removes the last waiting prompt of a session on the peer, and reports
+// whether it removed one.
+func (c *Client) Unqueue(ctx context.Context, name string) (bool, error) {
+	if c.shareToken != "" {
+		return false, errReadOnlyShare
+	}
+	body, err := c.post(ctx, "/api/sessions/"+name+"/unqueue", map[string]string{})
+	if err != nil {
+		return false, err
+	}
+	var out struct {
+		Removed bool `json:"removed"`
+	}
+	if err := json.Unmarshal(body, &out); err != nil {
+		return false, err
+	}
+	return out.Removed, nil
+}
+
 // Messages reads the recent conversation of a session on the peer, so the host
 // that views a streamed session reads its transcript from the peer that runs it.
 // A share reads the transcript through its share path.

@@ -226,7 +226,9 @@ interface acts on that instead of a timer. See [mcp/notices.md](./mcp/notices.md
 session. `Interrupt(name, discardQueued)` stops the running turn without
 stopping the session. When `discardQueued` is true, it clears the prompt queue
 first, so the session stops until the next prompt. When false, it ends the turn
-and lets the next queued prompt go at once. See
+and lets the next queued prompt go at once. `Unqueue(name)` removes the newest
+waiting prompt of the session, and reports whether it removed one; the in-flight
+prompt is off the queue, so it is never removed. See
 [Interrupt](./sessions.md#interrupt).
 
 ## Shutdown

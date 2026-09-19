@@ -262,6 +262,12 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.refresh()
 		return m, nil
+	case unqueuedMsg:
+		if msg.err != nil {
+			m.errText = msg.err.Error()
+		}
+		m.refresh()
+		return m, nil
 	case shutdownDoneMsg:
 		return m, tea.Quit
 	case spinTickMsg:

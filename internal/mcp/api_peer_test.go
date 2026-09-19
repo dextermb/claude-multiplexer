@@ -45,6 +45,7 @@ func (r *recordingAPI) SetTitle(string, string) error                   { return
 func (r *recordingAPI) SendFrom(string, string, string) (int, error)    { return 0, nil }
 func (r *recordingAPI) Stop(context.Context, string, string) error      { return nil }
 func (r *recordingAPI) Interrupt(context.Context, string, string) error { return nil }
+func (r *recordingAPI) Unqueue(string) (bool, error)                    { return false, nil }
 func (r *recordingAPI) Archive(string, bool, string) error              { return nil }
 func (r *recordingAPI) StopJob(string, string, string) (int, error)     { return 0, nil }
 func (r *recordingAPI) Stream(context.Context, string) (<-chan wire.Event, error) {

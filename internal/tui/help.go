@@ -80,6 +80,7 @@ var bindings = []binding{
 
 	{"The prompt", "", "enter", "Send what you typed", ""},
 	{"The prompt", "", "ctrl+j", "Add a new line inside the prompt", ""},
+	{"The prompt", "", "backspace", "On an empty prompt, remove the newest queued prompt", ""},
 	{"The prompt", "", "tab", "Complete a /preset name, or move on", ""},
 	{"The prompt", "", "/", "Start a preset name, and see what matches", ""},
 

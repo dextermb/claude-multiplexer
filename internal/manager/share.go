@@ -88,6 +88,7 @@ func (v *sharedSession) Stop(context.Context, string, string) error   { return m
 func (v *sharedSession) Interrupt(context.Context, string, string) error {
 	return mcp.ErrReadOnly
 }
+func (v *sharedSession) Unqueue(string) (bool, error)                { return false, mcp.ErrReadOnly }
 func (v *sharedSession) Archive(string, bool, string) error          { return mcp.ErrReadOnly }
 func (v *sharedSession) StopJob(string, string, string) (int, error) { return 0, mcp.ErrReadOnly }
 func (v *sharedSession) Create(mcp.CreateInput, string) (string, error) {

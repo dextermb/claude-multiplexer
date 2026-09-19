@@ -114,6 +114,13 @@ func (o *ownedSessions) Interrupt(ctx context.Context, name, by string) error {
 	return nil
 }
 
+func (o *ownedSessions) Unqueue(name string) (bool, error) {
+	if err := o.guard(name); err != nil {
+		return false, err
+	}
+	return o.m.Unqueue(name)
+}
+
 func (o *ownedSessions) Archive(name string, archived bool, by string) error {
 	if err := o.guard(name); err != nil {
 		return err

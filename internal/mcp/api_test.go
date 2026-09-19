@@ -71,6 +71,13 @@ func (fakeAPI) Interrupt(_ context.Context, name, _ string) error {
 	return nil
 }
 
+func (fakeAPI) Unqueue(name string) (bool, error) {
+	if name != "mine" {
+		return false, fmt.Errorf("%w: %s", mcp.ErrNotFound, name)
+	}
+	return true, nil
+}
+
 func (fakeAPI) Archive(name string, _ bool, _ string) error {
 	if name != "mine" {
 		return fmt.Errorf("%w: %s", mcp.ErrNotFound, name)
@@ -338,6 +345,7 @@ func TestRESTMutations(t *testing.T) {
 		{"create", http.MethodPost, "/api/sessions", `{"dir":"/tmp","name":"x"}`},
 		{"rename", http.MethodPatch, "/api/sessions/mine", `{"title":"New"}`},
 		{"message", http.MethodPost, "/api/sessions/mine/message", `{"text":"hi"}`},
+		{"unqueue", http.MethodPost, "/api/sessions/mine/unqueue", ""},
 		{"stop", http.MethodPost, "/api/sessions/mine/stop", ""},
 		{"archive", http.MethodPost, "/api/sessions/mine/archive", ""},
 		{"jobs", http.MethodGet, "/api/sessions/mine/jobs", ""},
@@ -349,6 +357,9 @@ func TestRESTMutations(t *testing.T) {
 		}
 	}
 
+	if code, out := apiDo(t, http.MethodPost, base+"/api/sessions/mine/unqueue", token, ""); code != http.StatusOK || !strings.Contains(out, `"removed":true`) {
+		t.Errorf("unqueue mine: want 200 removed=true, got %d (%s)", code, out)
+	}
 	if code, _ := apiDo(t, http.MethodPost, base+"/api/sessions/other/message", token, `{"text":"hi"}`); code != http.StatusNotFound {
 		t.Errorf("message to unowned session: want 404, got %d", code)
 	}
