@@ -14,7 +14,7 @@ tool does, and the grant it needs.
 | [tools/directories.md](tools/directories.md) | The working directory of a session, and the project that spans several code bases |
 | [tools/locks.md](tools/locks.md) | The locks a session holds, so two sessions do not work on the same thing |
 | [../work-items.md](../work-items.md) | Link a session to a Jira or Linear work item, and read or change its status (only when a provider is configured) |
-| [../pull-requests.md](../pull-requests.md) | Configure GitHub or GitLab, and read the pull request of a session's branch (only when a provider is configured) |
+| [../pull-requests.md](../pull-requests.md) | Configure GitHub or GitLab, and read the pull request of each code base of a session (only when a provider is configured) |
 | [tools/layouts.md](tools/layouts.md) | The named interface dimensions, and the scope a layout is active in |
 | [tools/schedules.md](tools/schedules.md) | The durable, recurring tasks, and the one field that needs the control grant |
 

@@ -17,6 +17,6 @@ func (b *bridge) ConfigurePullRequest(provider, token, mode, url, by string) (st
 	return path, nil
 }
 
-func (b *bridge) PullRequest(ctx context.Context, session string) (mcp.PullRequest, error) {
-	return b.m.PullRequest(ctx, session)
+func (b *bridge) PullRequestsFor(ctx context.Context, session string) ([]mcp.PullRequest, error) {
+	return b.m.PullRequestsFor(ctx, session)
 }

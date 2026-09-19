@@ -100,10 +100,10 @@ type getPRIn struct {
 }
 
 type pullRequestOut struct {
-	OK      bool        `json:"ok"`
-	Found   bool        `json:"found"`
-	PR      PullRequest `json:"pr"`
-	Message string      `json:"message"`
+	OK      bool          `json:"ok"`
+	Count   int           `json:"count"`
+	PRs     []PullRequest `json:"prs"`
+	Message string        `json:"message"`
 }
 
 type listIn struct {

@@ -69,16 +69,29 @@ func TestSessionBarHidesTheCacheRateWithoutAPromptToken(t *testing.T) {
 func TestSessionBarShowsThePullRequest(t *testing.T) {
 	var m Model
 	item := busyRow()
-	item.pr = manager.PRBadge{Provider: "gitlab", Number: 1045, State: "open", Unresolved: 3}
+	item.prs = []manager.PRBadge{{Provider: "gitlab", Number: 1045, State: "open", Unresolved: 3}}
 	texts := segTexts(m.rightSegs(item))
 	if indexOfPrefix(texts, "!1045 (3)") < 0 {
 		t.Fatalf("segments = %v, want !1045 (3)", texts)
 	}
 
-	item.pr = manager.PRBadge{Provider: "github", Number: 7, State: "draft"}
+	item.prs = []manager.PRBadge{{Provider: "github", Number: 7, State: "draft"}}
 	texts = segTexts(m.rightSegs(item))
 	if indexOfPrefix(texts, "#7 draft") < 0 {
 		t.Fatalf("segments = %v, want #7 draft", texts)
+	}
+}
+
+func TestSessionBarShowsAPullRequestPerCodeBase(t *testing.T) {
+	var m Model
+	item := busyRow()
+	item.prs = []manager.PRBadge{
+		{Provider: "github", Number: 1045, State: "open", Unresolved: 3},
+		{Provider: "gitlab", Number: 88, State: "open"},
+	}
+	texts := segTexts(m.rightSegs(item))
+	if indexOfPrefix(texts, "#1045 (3)") < 0 || indexOfPrefix(texts, "!88") < 0 {
+		t.Fatalf("segments = %v, want a segment per code base", texts)
 	}
 }
 

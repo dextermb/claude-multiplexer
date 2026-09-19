@@ -66,20 +66,24 @@ func getPR(ctx context.Context, port PullRequestPort, caller string, in getPRIn)
 	if err != nil {
 		return pullRequestOut{}, err
 	}
-	pr, err := port.PullRequest(ctx, target)
+	prs, err := port.PullRequestsFor(ctx, target)
 	if err != nil {
 		return pullRequestOut{}, err
 	}
-	return pullRequestOut{OK: true, Found: pr.Found, PR: pr, Message: prMessage(target, pr)}, nil
+	return pullRequestOut{OK: true, Count: len(prs), PRs: prs, Message: prMessage(target, prs)}, nil
 }
 
-func prMessage(session string, pr PullRequest) string {
-	if !pr.Found {
-		return session + " has no pull request for its branch"
+func prMessage(session string, prs []PullRequest) string {
+	if len(prs) == 0 {
+		return session + " has no pull request for its branches"
 	}
-	msg := session + " has PR " + strconv.Itoa(pr.Number) + " (" + pr.State + ")"
-	if pr.Unresolved > 0 {
-		msg += ", with " + strconv.Itoa(pr.Unresolved) + " unresolved threads"
+	parts := make([]string, 0, len(prs))
+	for _, pr := range prs {
+		part := "PR " + strconv.Itoa(pr.Number) + " (" + pr.State + ")"
+		if pr.Unresolved > 0 {
+			part += " with " + strconv.Itoa(pr.Unresolved) + " unresolved threads"
+		}
+		parts = append(parts, part)
 	}
-	return msg
+	return session + " has " + strings.Join(parts, ", ")
 }

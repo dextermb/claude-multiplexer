@@ -1,15 +1,19 @@
 # Pull requests: a branch shows its PR in the output bar
 
-The multiplexer reads the pull request of a session's branch on GitHub or
-GitLab, and shows it in the top bar of the output pane. The bar shows the number
-and the count of unresolved review threads, for example `#1045 (3)` for a GitHub
-pull request, or `!1045 (3)` for a GitLab merge request. The prefix names the
-provider: `#` for GitHub, `!` for GitLab.
+The multiplexer reads the pull request of each code base of a session on GitHub
+or GitLab, and shows it in the top bar of the output pane. The bar shows the
+number and the count of unresolved review threads, for example `#1045 (3)` for a
+GitHub pull request, or `!1045 (3)` for a GitLab merge request. The prefix names
+the provider: `#` for GitHub, `!` for GitLab.
 
 The branch is the key. There is no link step. The multiplexer reads the branch
-and the `origin` remote of the session directory, infers the provider from the
-remote host, then finds the most recent pull request whose source branch is that
-branch.
+and the `origin` remote of a code base, infers the provider from the remote host,
+then finds the most recent pull request whose source branch is that branch.
+
+A session tracks one code base by default: its working directory. A project
+tracks many, one per project directory. The multiplexer reads the pull request of
+each code base, and the bar draws one segment per pull request. The set of code
+bases is the set the diff panel groups by. See [manager.md](manager.md).
 
 The feature is off until a provider is configured. With no provider, the
 `get_pr` tool does not appear.
@@ -109,11 +113,11 @@ self-hosted GitLab server.
 |---|---|
 | `configure_github` | Set the GitHub token and mode. Always available. |
 | `configure_gitlab` | Set the GitLab token and mode. Always available. |
-| `get_pr` | The pull request of a session's branch, with its number, state, url, and unresolved count. |
+| `get_pr` | The pull request of each code base of a session, with its number, state, url, and unresolved count. |
 
 There is no `set_pr`, because the branch is the key. The `get_pr` tool reads the
-branch and the remote of the session directory, runs one live lookup, mirrors
-the result, and returns it.
+branch and the remote of each code base, runs one live lookup, mirrors the
+result, and returns the list.
 
 ## The poll
 
@@ -121,33 +125,38 @@ The unresolved-thread count of a pull request changes over time, so the mirror
 needs a background poll. A manager worker sweeps every 60 seconds. It reads the
 setting on each sweep, so a change takes effect on the next tick.
 
-One sweep reads the branch and remote of every live session, groups the branches
-by provider, host, and credential, then sends one batched GraphQL request per
-group. Two sessions on the same repository and branch cost one lookup. So a
-fleet costs a few requests a sweep, not one per session.
+One sweep reads the branch and remote of every code base of every live session,
+groups the branches by provider, host, and credential, then sends one batched
+GraphQL request per group. Two code bases on the same repository and branch cost
+one lookup. So a fleet costs a few requests a sweep, not one per code base.
 
-The poll reads every live session, but the interface draws the badge in the top
+The poll reads every live session, but the interface draws the badges in the top
 bar of the selected session only.
 
 ## What moves through the change
 
-The multiplexer stores a mirror of the pull request in the session `meta.json`:
-`pr_provider`, `pr_number`, `pr_url`, `pr_state`, `pr_title`, `pr_unresolved`,
-`pr_branch`, and `pr_synced_at`. See [manager.md](manager.md).
+The multiplexer stores a mirror of the pull requests in the session `meta.json`,
+in the `prs` list. Each entry holds `dir`, `branch`, `provider`, `number`, `url`,
+`state`, `title`, `unresolved`, and `synced_at`, one per code base. An older
+`meta.json` with the flat `pr_*` fields folds into one entry on the first read.
+See [manager.md](manager.md).
 
-- **Poll.** The sweep reads each branch's pull request, then writes the mirror.
-  It writes a session only when a field changes, to limit disk churn.
-- **Branch switch.** `pr_branch` records the branch the mirror belongs to. A
-  branch switch makes the mirror stale, and the next sweep overwrites or clears
-  it.
-- **Read.** The top bar and the `get_pr` tool read the mirror. A transient error
-  keeps the last known mirror. A merged or closed pull request keeps its mirror,
-  so the bar shows the final state.
+- **Poll.** The sweep reads each code base's pull request, then writes the list.
+  It writes a session only when an entry changes, to limit disk churn.
+- **Branch switch.** The `branch` of an entry records the branch the mirror
+  belongs to. A branch switch makes the entry stale, and the next sweep overwrites
+  or clears it.
+- **Code base leaves.** An entry drops when its directory leaves the project.
+- **Read.** The top bar and the `get_pr` tool read the list. A transient error,
+  or a missing branch, keeps the last known entry. A merged or closed pull
+  request keeps its entry, so the bar shows the final state.
 
 ## In the interface
 
-The top bar of the output pane shows the badge for the selected session, next to
-the diff summary.
+The top bar of the output pane shows one badge per code base of the selected
+session, next to the diff summary. A single code base draws one badge. A project
+draws a badge for every code base that has a pull request, in project-directory
+order, for example `#1045 (3) · !88`.
 
 | The pull request | The badge |
 |---|---|
@@ -156,7 +165,7 @@ the diff summary.
 | Draft | `#1045 draft (3)` |
 | Merged | `#1045 merged` |
 | Closed | `#1045 closed` |
-| No pull request for the branch | no segment |
+| No pull request for the code base | no segment |
 
 An unresolved count above zero takes a warning colour, so a review that waits
 stands out.

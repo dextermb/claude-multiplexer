@@ -7,6 +7,7 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/dextermb/claude-multiplexer/internal/config"
+	"github.com/dextermb/claude-multiplexer/internal/manager"
 	"github.com/dextermb/claude-multiplexer/internal/protocol"
 	"github.com/dextermb/claude-multiplexer/internal/session"
 )
@@ -329,19 +330,20 @@ func barWorkItem(item row) string {
 	}
 }
 
-// barPR is the pull-request segment of the output pane status bar: the number
+// barPR is one pull-request segment of the output pane status bar: the number
 // with a provider prefix, the state when it is not open, and the count of
-// unresolved review threads. See docs/pull-requests.md.
-func barPR(item row) string {
-	if item.pr.Number == 0 {
+// unresolved review threads. A project draws one segment per code base. See
+// docs/pull-requests.md.
+func barPR(pr manager.PRBadge) string {
+	if pr.Number == 0 {
 		return ""
 	}
 	prefix := "#"
-	if item.pr.Provider == "gitlab" {
+	if pr.Provider == "gitlab" {
 		prefix = "!"
 	}
-	label := prefix + strconv.Itoa(item.pr.Number)
-	switch item.pr.State {
+	label := prefix + strconv.Itoa(pr.Number)
+	switch pr.State {
 	case "draft":
 		label += " draft"
 	case "merged":
@@ -349,8 +351,8 @@ func barPR(item row) string {
 	case "closed":
 		label += " closed"
 	}
-	if item.pr.Unresolved > 0 {
-		label += fmt.Sprintf(" (%d)", item.pr.Unresolved)
+	if pr.Unresolved > 0 {
+		label += fmt.Sprintf(" (%d)", pr.Unresolved)
 	}
 	return label
 }
@@ -607,12 +609,16 @@ func (m Model) rightSegs(item row) []barSeg {
 	if d, ok := m.diffs[item.name]; ok && d.anyRepo() && !d.stat().Empty() {
 		segs = append(segs, barSeg{barDiffCount(d.stat()), barStyle})
 	}
-	if pr := barPR(item); pr != "" {
+	for _, pr := range item.prs {
+		label := barPR(pr)
+		if label == "" {
+			continue
+		}
 		style := barMutedStyle
-		if item.pr.Unresolved > 0 {
+		if pr.Unresolved > 0 {
 			style = barPRStyle
 		}
-		segs = append(segs, barSeg{pr, style})
+		segs = append(segs, barSeg{label, style})
 	}
 	if item.live && item.context > 0 {
 		segs = append(segs, barSeg{contextLabel(item), barMutedStyle})

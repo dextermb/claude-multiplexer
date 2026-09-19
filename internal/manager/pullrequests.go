@@ -60,136 +60,179 @@ func (m *Manager) ConfigurePullRequest(provider, token, mode, url string) (strin
 	return path, nil
 }
 
-// PullRequest reads the pull request of the calling session's branch. It runs a
-// live lookup for the one session, mirrors the result, and returns it. With no
-// branch or no remote, it returns the last known mirror. See docs/pull-requests.md.
-func (m *Manager) PullRequest(ctx context.Context, by string) (mcp.PullRequest, error) {
+// PullRequestsFor reads the pull request of every code base of the calling
+// session. It runs a live lookup, mirrors the result, and returns the list. A
+// code base with no branch or no remote keeps its last known mirror. See
+// docs/pull-requests.md.
+func (m *Manager) PullRequestsFor(ctx context.Context, by string) ([]mcp.PullRequest, error) {
 	meta, err := m.anyMeta(by)
 	if err != nil {
-		return mcp.PullRequest{}, err
+		return nil, err
 	}
-	dir := effectiveDir(meta)
-	branch := git.Branch(dir)
-	remote := git.RemoteURL(dir, "origin")
-	if branch == "" || remote == "" {
-		return prView(meta), nil
+	dirs := codebaseDirs(meta)
+	if len(dirs) == 0 {
+		return prViews(meta), nil
 	}
-	results := m.pullRequests().Lookup(ctx, []pullrequest.BranchRef{{RemoteURL: remote, Branch: branch}})
-	if len(results) != 1 || results[0].Err != nil {
-		return prView(meta), nil
+	perDir, refs, idx := buildDirRefs(dirs)
+	if len(refs) > 0 {
+		results := m.pullRequests().Lookup(ctx, refs)
+		for j, res := range results {
+			perDir[idx[j]].Res = res
+		}
 	}
-	m.applyPullRequest(by, branch, results[0])
-	if results[0].Found {
-		return prItemView(results[0].PR, branch), nil
+	m.applyPullRequests(by, perDir)
+	updated, err := m.anyMeta(by)
+	if err != nil {
+		return nil, err
 	}
-	return mcp.PullRequest{Branch: branch, Found: false}, nil
+	return prViews(updated), nil
 }
 
-// PullRequests reports the pull request each live session tracks, keyed by
+// PullRequests reports the pull requests each live session tracks, keyed by
 // session name. A session with no tracked PR is absent. See docs/pull-requests.md.
-func (m *Manager) PullRequests() map[string]PRBadge {
+func (m *Manager) PullRequests() map[string][]PRBadge {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	out := make(map[string]PRBadge, len(m.entries))
+	out := make(map[string][]PRBadge, len(m.entries))
 	for name, item := range m.entries {
-		meta := item.metaCopy()
-		if meta.PRNumber == 0 {
-			continue
-		}
-		out[name] = PRBadge{
-			Provider:   meta.PRProvider,
-			Number:     meta.PRNumber,
-			State:      meta.PRState,
-			Unresolved: meta.PRUnresolved,
+		if badges := PRBadges(item.metaCopy().PRs); len(badges) > 0 {
+			out[name] = badges
 		}
 	}
 	return out
 }
 
-// applyPullRequest mirrors one lookup result into a session's metadata. It keeps
-// the last known mirror on a transient error, and writes only on a change.
-func (m *Manager) applyPullRequest(name, branch string, res pullrequest.Result) {
-	if res.Err != nil {
-		return
+// dirResult is one code base's lookup outcome. Keep marks a code base with no
+// branch or no remote this sweep, so its prior mirror stays.
+type dirResult struct {
+	Dir    string
+	Branch string
+	Res    pullrequest.Result
+	Keep   bool
+}
+
+// buildDirRefs reads the branch and remote of each code base, and returns the
+// per-directory slots, the refs to look up, and the index from each ref back to
+// its slot. A code base with no branch or no remote is marked Keep.
+func buildDirRefs(dirs []string) ([]dirResult, []pullrequest.BranchRef, []int) {
+	perDir := make([]dirResult, len(dirs))
+	refs := make([]pullrequest.BranchRef, 0, len(dirs))
+	idx := make([]int, 0, len(dirs))
+	for i, dir := range dirs {
+		branch := git.Branch(dir)
+		remote := git.RemoteURL(dir, "origin")
+		perDir[i] = dirResult{Dir: dir, Branch: branch}
+		if branch == "" || remote == "" {
+			perDir[i].Keep = true
+			continue
+		}
+		refs = append(refs, pullrequest.BranchRef{RemoteURL: remote, Branch: branch})
+		idx = append(idx, i)
 	}
+	return perDir, refs, idx
+}
+
+// applyPullRequests mirrors the per-directory results into a session's metadata.
+// It keeps the last known mirror of a code base on a transient error or a
+// missing branch, drops a code base with no PR, and writes only on a change.
+func (m *Manager) applyPullRequests(name string, results []dirResult) {
 	item, err := m.entry(name)
 	if err != nil {
 		return
 	}
 	cur := item.metaCopy()
-	next := cur
-	if res.Found {
-		applyPR(&next, res.PR, branch)
-	} else {
-		clearPR(&next)
+	prev := make(map[string]PRMirror, len(cur.PRs))
+	for _, pr := range cur.PRs {
+		prev[pr.Dir] = pr
 	}
-	if prSame(cur, next) {
+	next := nextPRs(results, prev)
+	if samePRs(cur.PRs, next) {
 		return
 	}
 	_, _ = item.mutateMeta(func(meta *Meta) error {
-		if res.Found {
-			applyPR(meta, res.PR, branch)
-		} else {
-			clearPR(meta)
-		}
+		meta.PRs = next
 		return nil
 	})
 }
 
-func applyPR(meta *Meta, pr pullrequest.PR, branch string) {
-	meta.PRProvider = pr.Provider
-	meta.PRNumber = pr.Number
-	meta.PRURL = pr.URL
-	meta.PRState = pr.State
-	meta.PRTitle = pr.Title
-	meta.PRUnresolved = pr.Unresolved
-	meta.PRBranch = branch
-	meta.PRSyncedAt = time.Now()
-}
-
-func clearPR(meta *Meta) {
-	meta.PRProvider = ""
-	meta.PRNumber = 0
-	meta.PRURL = ""
-	meta.PRState = ""
-	meta.PRTitle = ""
-	meta.PRUnresolved = 0
-	meta.PRBranch = ""
-	meta.PRSyncedAt = time.Time{}
-}
-
-func prSame(a, b Meta) bool {
-	return a.PRProvider == b.PRProvider &&
-		a.PRNumber == b.PRNumber &&
-		a.PRState == b.PRState &&
-		a.PRUnresolved == b.PRUnresolved &&
-		a.PRBranch == b.PRBranch
-}
-
-func prView(meta Meta) mcp.PullRequest {
-	return mcp.PullRequest{
-		Provider:   meta.PRProvider,
-		Number:     meta.PRNumber,
-		URL:        meta.PRURL,
-		State:      meta.PRState,
-		Title:      meta.PRTitle,
-		Unresolved: meta.PRUnresolved,
-		Branch:     meta.PRBranch,
-		Found:      meta.PRNumber != 0,
+func nextPRs(results []dirResult, prev map[string]PRMirror) []PRMirror {
+	var out []PRMirror
+	for _, r := range results {
+		if r.Keep || r.Res.Err != nil {
+			if p, ok := prev[r.Dir]; ok {
+				out = append(out, p)
+			}
+			continue
+		}
+		if !r.Res.Found {
+			continue
+		}
+		out = append(out, prMirror(r.Dir, r.Branch, r.Res.PR))
 	}
+	return out
 }
 
-func prItemView(pr pullrequest.PR, branch string) mcp.PullRequest {
-	return mcp.PullRequest{
+func prMirror(dir, branch string, pr pullrequest.PR) PRMirror {
+	return PRMirror{
+		Dir:        dir,
+		Branch:     branch,
 		Provider:   pr.Provider,
 		Number:     pr.Number,
 		URL:        pr.URL,
 		State:      pr.State,
 		Title:      pr.Title,
 		Unresolved: pr.Unresolved,
-		Branch:     branch,
-		Found:      true,
+		SyncedAt:   time.Now(),
 	}
+}
+
+// PRBadges is the short form of each mirrored pull request that has a number,
+// for the interface. See docs/pull-requests.md.
+func PRBadges(prs []PRMirror) []PRBadge {
+	var out []PRBadge
+	for _, pr := range prs {
+		if pr.Number == 0 {
+			continue
+		}
+		out = append(out, PRBadge{
+			Provider:   pr.Provider,
+			Number:     pr.Number,
+			State:      pr.State,
+			Unresolved: pr.Unresolved,
+		})
+	}
+	return out
+}
+
+func prViews(meta Meta) []mcp.PullRequest {
+	out := make([]mcp.PullRequest, 0, len(meta.PRs))
+	for _, pr := range meta.PRs {
+		out = append(out, mcp.PullRequest{
+			Provider:   pr.Provider,
+			Number:     pr.Number,
+			URL:        pr.URL,
+			State:      pr.State,
+			Title:      pr.Title,
+			Unresolved: pr.Unresolved,
+			Branch:     pr.Branch,
+			Dir:        pr.Dir,
+			Found:      pr.Number != 0,
+		})
+	}
+	return out
+}
+
+// codebaseDirs is the ordered set of code bases the session tracks: its project
+// directories, or its one working directory when it has no project. It matches
+// the set the diff panel groups by, in Projects. See docs/pull-requests.md.
+func codebaseDirs(meta Meta) []string {
+	if len(meta.WorkingDirs) > 0 {
+		return meta.WorkingDirs
+	}
+	if dir := effectiveDir(meta); dir != "" {
+		return []string{dir}
+	}
+	return nil
 }
 
 // effectiveDir is the directory a session works in: its worktree override, or

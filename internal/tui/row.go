@@ -59,7 +59,7 @@ type row struct {
 	jobs        int
 	jobList     []session.Job
 	workItem    manager.WorkItemBadge
-	pr          manager.PRBadge
+	prs         []manager.PRBadge
 	meta        manager.Meta
 }
 
@@ -122,12 +122,7 @@ func rowFromMeta(meta manager.Meta) row {
 			Key:      meta.WorkItemKey,
 			Status:   meta.WorkItemStatus,
 		},
-		pr: manager.PRBadge{
-			Provider:   meta.PRProvider,
-			Number:     meta.PRNumber,
-			State:      meta.PRState,
-			Unresolved: meta.PRUnresolved,
-		},
+		prs:  manager.PRBadges(meta.PRs),
 		meta: meta,
 	}
 }

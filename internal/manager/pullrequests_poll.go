@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/dextermb/claude-multiplexer/internal/git"
 	"github.com/dextermb/claude-multiplexer/internal/pullrequest"
 )
 
@@ -39,9 +38,11 @@ func (m *Manager) prPollLoop() {
 	}
 }
 
-// sweepPullRequests reads the branch and remote of every live session, then runs
-// one batched lookup and mirrors each result. It reads the settings on each
-// sweep, so a change takes effect on the next tick. See docs/pull-requests.md.
+// sweepPullRequests reads the branch and remote of every code base of every live
+// session, then runs one batched lookup and mirrors each result. It reads the
+// settings on each sweep, so a change takes effect on the next tick. One lookup
+// covers the whole fleet, so a shared repository and branch cost one request.
+// See docs/pull-requests.md.
 func (m *Manager) sweepPullRequests(ctx context.Context) {
 	set := m.pullRequests()
 	if !set.Enabled() {
@@ -50,13 +51,13 @@ func (m *Manager) sweepPullRequests(ctx context.Context) {
 
 	type job struct {
 		name string
-		dir  string
+		dirs []string
 	}
 	m.mu.Lock()
 	jobs := make([]job, 0, len(m.entries))
 	for name, item := range m.entries {
-		if dir := effectiveDir(item.metaCopy()); dir != "" {
-			jobs = append(jobs, job{name: name, dir: dir})
+		if dirs := codebaseDirs(item.metaCopy()); len(dirs) > 0 {
+			jobs = append(jobs, job{name: name, dirs: dirs})
 		}
 	}
 	m.mu.Unlock()
@@ -64,15 +65,27 @@ func (m *Manager) sweepPullRequests(ctx context.Context) {
 		return
 	}
 
-	refs := make([]pullrequest.BranchRef, len(jobs))
-	branches := make([]string, len(jobs))
-	for i, j := range jobs {
-		branches[i] = git.Branch(j.dir)
-		refs[i] = pullrequest.BranchRef{RemoteURL: git.RemoteURL(j.dir, "origin"), Branch: branches[i]}
+	perJob := make([][]dirResult, len(jobs))
+	var refs []pullrequest.BranchRef
+	type at struct{ job, dir int }
+	var index []at
+	for ji, j := range jobs {
+		perDir, jobRefs, jobIdx := buildDirRefs(j.dirs)
+		perJob[ji] = perDir
+		for _, di := range jobIdx {
+			index = append(index, at{job: ji, dir: di})
+		}
+		refs = append(refs, jobRefs...)
 	}
 
-	results := set.Lookup(ctx, refs)
-	for i, res := range results {
-		m.applyPullRequest(jobs[i].name, branches[i], res)
+	if len(refs) > 0 {
+		results := set.Lookup(ctx, refs)
+		for k, res := range results {
+			a := index[k]
+			perJob[a.job][a.dir].Res = res
+		}
+	}
+	for ji, j := range jobs {
+		m.applyPullRequests(j.name, perJob[ji])
 	}
 }

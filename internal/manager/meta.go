@@ -9,48 +9,55 @@ import (
 )
 
 type Meta struct {
-	Name             string    `json:"name"`
-	Title            string    `json:"title,omitempty"`
-	Dir              string    `json:"dir"`
-	Model            string    `json:"model"`
-	PermissionMode   string    `json:"permission_mode"`
-	Effort           string    `json:"effort,omitempty"`
-	ClaudeSessionID  string    `json:"claude_session_id"`
-	CreatedAt        time.Time `json:"created_at"`
-	LastActiveAt     time.Time `json:"last_active_at"`
-	Turns            int       `json:"turns"`
-	Cost             float64   `json:"cost_usd"`
-	InputTokens      int       `json:"input_tokens"`
-	CacheReadTokens  int       `json:"cache_read_tokens,omitempty"`
-	CacheWriteTokens int       `json:"cache_write_tokens,omitempty"`
-	OutputTokens     int       `json:"output_tokens"`
-	WorkingDir       string    `json:"working_dir,omitempty"`
-	WorkingDirs      []string  `json:"working_dirs,omitempty"`
-	Locks            []string  `json:"locks,omitempty"`
-	Layout           string    `json:"layout,omitempty"`
-	Control          bool      `json:"control,omitempty"`
-	Parent           string    `json:"parent,omitempty"`
-	Scheduled        string    `json:"scheduled,omitempty"`
-	Owner            string    `json:"owner,omitempty"`
-	Hosted           bool      `json:"hosted,omitempty"`
-	Lender           string    `json:"lender,omitempty"`
-	TempDir          bool      `json:"temp_dir,omitempty"`
-	Archived         bool      `json:"archived"`
-	ArchivedAt       time.Time `json:"archived_at,omitempty"`
-	WorkItemProvider string    `json:"workitem_provider,omitempty"`
-	WorkItemKey      string    `json:"workitem_key,omitempty"`
-	WorkItemURL      string    `json:"workitem_url,omitempty"`
-	WorkItemStatus   string    `json:"workitem_status,omitempty"`
-	WorkItemStatusID string    `json:"workitem_status_id,omitempty"`
-	WorkItemSyncedAt time.Time `json:"workitem_synced_at,omitempty"`
-	PRProvider       string    `json:"pr_provider,omitempty"`
-	PRNumber         int       `json:"pr_number,omitempty"`
-	PRURL            string    `json:"pr_url,omitempty"`
-	PRState          string    `json:"pr_state,omitempty"`
-	PRTitle          string    `json:"pr_title,omitempty"`
-	PRUnresolved     int       `json:"pr_unresolved,omitempty"`
-	PRBranch         string    `json:"pr_branch,omitempty"`
-	PRSyncedAt       time.Time `json:"pr_synced_at,omitempty"`
+	Name             string     `json:"name"`
+	Title            string     `json:"title,omitempty"`
+	Dir              string     `json:"dir"`
+	Model            string     `json:"model"`
+	PermissionMode   string     `json:"permission_mode"`
+	Effort           string     `json:"effort,omitempty"`
+	ClaudeSessionID  string     `json:"claude_session_id"`
+	CreatedAt        time.Time  `json:"created_at"`
+	LastActiveAt     time.Time  `json:"last_active_at"`
+	Turns            int        `json:"turns"`
+	Cost             float64    `json:"cost_usd"`
+	InputTokens      int        `json:"input_tokens"`
+	CacheReadTokens  int        `json:"cache_read_tokens,omitempty"`
+	CacheWriteTokens int        `json:"cache_write_tokens,omitempty"`
+	OutputTokens     int        `json:"output_tokens"`
+	WorkingDir       string     `json:"working_dir,omitempty"`
+	WorkingDirs      []string   `json:"working_dirs,omitempty"`
+	Locks            []string   `json:"locks,omitempty"`
+	Layout           string     `json:"layout,omitempty"`
+	Control          bool       `json:"control,omitempty"`
+	Parent           string     `json:"parent,omitempty"`
+	Scheduled        string     `json:"scheduled,omitempty"`
+	Owner            string     `json:"owner,omitempty"`
+	Hosted           bool       `json:"hosted,omitempty"`
+	Lender           string     `json:"lender,omitempty"`
+	TempDir          bool       `json:"temp_dir,omitempty"`
+	Archived         bool       `json:"archived"`
+	ArchivedAt       time.Time  `json:"archived_at,omitempty"`
+	WorkItemProvider string     `json:"workitem_provider,omitempty"`
+	WorkItemKey      string     `json:"workitem_key,omitempty"`
+	WorkItemURL      string     `json:"workitem_url,omitempty"`
+	WorkItemStatus   string     `json:"workitem_status,omitempty"`
+	WorkItemStatusID string     `json:"workitem_status_id,omitempty"`
+	WorkItemSyncedAt time.Time  `json:"workitem_synced_at,omitempty"`
+	PRs              []PRMirror `json:"prs,omitempty"`
+}
+
+// PRMirror is the pull request of one code base of a session, keyed by its
+// directory. A project holds one per code base. See docs/pull-requests.md.
+type PRMirror struct {
+	Dir        string    `json:"dir"`
+	Branch     string    `json:"branch,omitempty"`
+	Provider   string    `json:"provider,omitempty"`
+	Number     int       `json:"number,omitempty"`
+	URL        string    `json:"url,omitempty"`
+	State      string    `json:"state,omitempty"`
+	Title      string    `json:"title,omitempty"`
+	Unresolved int       `json:"unresolved,omitempty"`
+	SyncedAt   time.Time `json:"synced_at,omitempty"`
 }
 
 func (m Meta) sameAs(other Meta) bool {
@@ -74,11 +81,24 @@ func (m Meta) sameAs(other Meta) bool {
 		m.WorkItemProvider == other.WorkItemProvider &&
 		m.WorkItemKey == other.WorkItemKey &&
 		m.WorkItemStatus == other.WorkItemStatus &&
-		m.PRProvider == other.PRProvider &&
-		m.PRNumber == other.PRNumber &&
-		m.PRState == other.PRState &&
-		m.PRUnresolved == other.PRUnresolved &&
-		m.PRBranch == other.PRBranch
+		samePRs(m.PRs, other.PRs)
+}
+
+func samePRs(a, b []PRMirror) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i].Dir != b[i].Dir ||
+			a[i].Provider != b[i].Provider ||
+			a[i].Number != b[i].Number ||
+			a[i].State != b[i].State ||
+			a[i].Unresolved != b[i].Unresolved ||
+			a[i].Branch != b[i].Branch {
+			return false
+		}
+	}
+	return true
 }
 
 func sameStrings(a, b []string) bool {
@@ -124,8 +144,44 @@ func ReadMeta(path string) (Meta, error) {
 	if err != nil {
 		return meta, err
 	}
-	err = json.Unmarshal(data, &meta)
-	return meta, err
+	if err := json.Unmarshal(data, &meta); err != nil {
+		return meta, err
+	}
+	migratePR(data, &meta)
+	return meta, nil
+}
+
+// migratePR folds the flat pr_* fields of an older meta.json into the PRs list,
+// so a record written before the per-directory change still loads. See
+// docs/pull-requests.md.
+func migratePR(data []byte, meta *Meta) {
+	if len(meta.PRs) > 0 {
+		return
+	}
+	var legacy struct {
+		Provider   string    `json:"pr_provider"`
+		Number     int       `json:"pr_number"`
+		URL        string    `json:"pr_url"`
+		State      string    `json:"pr_state"`
+		Title      string    `json:"pr_title"`
+		Unresolved int       `json:"pr_unresolved"`
+		Branch     string    `json:"pr_branch"`
+		SyncedAt   time.Time `json:"pr_synced_at"`
+	}
+	if err := json.Unmarshal(data, &legacy); err != nil || legacy.Number == 0 {
+		return
+	}
+	meta.PRs = []PRMirror{{
+		Dir:        effectiveDir(*meta),
+		Branch:     legacy.Branch,
+		Provider:   legacy.Provider,
+		Number:     legacy.Number,
+		URL:        legacy.URL,
+		State:      legacy.State,
+		Title:      legacy.Title,
+		Unresolved: legacy.Unresolved,
+		SyncedAt:   legacy.SyncedAt,
+	}}
 }
 
 func metaPath(root, name string) string {
