@@ -14,12 +14,14 @@ import (
 	"github.com/dextermb/claude-multiplexer/internal/config"
 )
 
-// Schedule is one recurring task the manager runs on its own clock. It holds only
-// provider-neutral fields, so it does not depend on any one session provider. See
-// docs/scheduler.md.
+// Schedule is one task the manager runs on its own clock. A recurring schedule
+// holds a cron; a one-off schedule holds an empty cron and a RunAfter time. It
+// holds only provider-neutral fields, so it does not depend on any one session
+// provider. See docs/scheduler.md.
 type Schedule struct {
 	Name           string    `json:"name"`
 	Cron           string    `json:"cron"`
+	RunAfter       time.Time `json:"run_after,omitempty"`
 	Dir            string    `json:"dir"`
 	Prompt         string    `json:"prompt"`
 	Session        string    `json:"session,omitempty"`
@@ -34,10 +36,12 @@ type Schedule struct {
 }
 
 // ScheduleSpec is the input to CreateSchedule. The manager fills the rest of the
-// Schedule (the name, the created time, the enabled flag).
+// Schedule (the name, the created time, the enabled flag). RunAfter is the raw
+// run-after time: a Go duration or an RFC3339 timestamp.
 type ScheduleSpec struct {
 	Name           string
 	Cron           string
+	RunAfter       string
 	Dir            string
 	Prompt         string
 	Session        string
@@ -45,6 +49,20 @@ type ScheduleSpec struct {
 	PermissionMode string
 	Effort         string
 	Control        bool
+}
+
+// parseRunAfter reads the raw run-after time of a one-off schedule. It tries a Go
+// duration first, so "30m" resolves to now plus the duration; else it tries an
+// RFC3339 timestamp. See docs/scheduler.md.
+func parseRunAfter(raw string, now time.Time) (time.Time, error) {
+	raw = strings.TrimSpace(raw)
+	if d, err := time.ParseDuration(raw); err == nil {
+		return now.Add(d), nil
+	}
+	if t, err := time.Parse(time.RFC3339, raw); err == nil {
+		return t, nil
+	}
+	return time.Time{}, fmt.Errorf("%w: %s", ErrBadRunAfter, raw)
 }
 
 func scheduleDir(root string) string {
@@ -132,11 +150,17 @@ func (m *Manager) defaultScheduleModel() string {
 // CreateSchedule validates the cron, the directory, and the prompt, then writes a
 // new schedule to disk and holds it in memory. See docs/scheduler.md.
 func (m *Manager) CreateSchedule(spec ScheduleSpec) (Schedule, error) {
-	if strings.TrimSpace(spec.Cron) == "" {
+	cronExpr := strings.TrimSpace(spec.Cron)
+	rawAfter := strings.TrimSpace(spec.RunAfter)
+	switch {
+	case cronExpr == "" && rawAfter == "":
 		return Schedule{}, ErrNoCron
-	}
-	if _, err := cron.ParseStandard(spec.Cron); err != nil {
-		return Schedule{}, fmt.Errorf("%w: %v", ErrBadCron, err)
+	case cronExpr != "" && rawAfter != "":
+		return Schedule{}, ErrCronAndRunAfter
+	case cronExpr != "":
+		if _, err := cron.ParseStandard(cronExpr); err != nil {
+			return Schedule{}, fmt.Errorf("%w: %v", ErrBadCron, err)
+		}
 	}
 	if spec.Dir == "" {
 		return Schedule{}, ErrNoDirectory
@@ -156,12 +180,21 @@ func (m *Manager) CreateSchedule(spec ScheduleSpec) (Schedule, error) {
 	if model == "" {
 		model = m.defaultScheduleModel()
 	}
+	now := time.Now()
+	var runAfter time.Time
+	if rawAfter != "" {
+		runAfter, err = parseRunAfter(rawAfter, now)
+		if err != nil {
+			return Schedule{}, err
+		}
+	}
 
 	m.schedMu.Lock()
 	name := m.uniqueScheduleName(spec.Name, dir)
 	record := &Schedule{
 		Name:           name,
-		Cron:           spec.Cron,
+		Cron:           cronExpr,
+		RunAfter:       runAfter,
 		Dir:            dir,
 		Prompt:         spec.Prompt,
 		Session:        strings.TrimSpace(spec.Session),
@@ -170,7 +203,7 @@ func (m *Manager) CreateSchedule(spec ScheduleSpec) (Schedule, error) {
 		Effort:         spec.Effort,
 		Control:        spec.Control,
 		Enabled:        true,
-		CreatedAt:      time.Now(),
+		CreatedAt:      now,
 	}
 	m.schedules[name] = record
 	snapshot := *record
@@ -187,8 +220,11 @@ func (m *Manager) CreateSchedule(spec ScheduleSpec) (Schedule, error) {
 
 // ScheduleUpdate is the input to UpdateSchedule. A nil field stays as it is; a
 // non-nil field takes its new value, so an empty string clears an optional field.
+// A non-empty Cron switches the schedule to recurring; a non-empty RunAfter (a
+// duration or an RFC3339 time) switches it to one-off.
 type ScheduleUpdate struct {
 	Cron           *string
+	RunAfter       *string
 	Dir            *string
 	Prompt         *string
 	Session        *string
@@ -199,16 +235,36 @@ type ScheduleUpdate struct {
 }
 
 // UpdateSchedule changes the fields a ScheduleUpdate names, and leaves the rest.
-// It validates a new cron, a new directory, and a new prompt the same way
-// CreateSchedule does. See docs/scheduler.md.
+// It validates a new cron, a new run-after time, a new directory, and a new
+// prompt the same way CreateSchedule does. The cron and the run-after time are
+// mutually exclusive, so setting one clears the other. See docs/scheduler.md.
 func (m *Manager) UpdateSchedule(name string, up ScheduleUpdate) (Schedule, error) {
+	newCron, setCron := "", false
 	if up.Cron != nil {
-		if strings.TrimSpace(*up.Cron) == "" {
-			return Schedule{}, ErrNoCron
+		newCron = strings.TrimSpace(*up.Cron)
+		setCron = true
+		if newCron != "" {
+			if _, err := cron.ParseStandard(newCron); err != nil {
+				return Schedule{}, fmt.Errorf("%w: %v", ErrBadCron, err)
+			}
 		}
-		if _, err := cron.ParseStandard(*up.Cron); err != nil {
-			return Schedule{}, fmt.Errorf("%w: %v", ErrBadCron, err)
+	}
+	var newRunAfter time.Time
+	setRunAfter, clearRunAfter := false, false
+	if up.RunAfter != nil {
+		if strings.TrimSpace(*up.RunAfter) == "" {
+			clearRunAfter = true
+		} else {
+			t, err := parseRunAfter(*up.RunAfter, time.Now())
+			if err != nil {
+				return Schedule{}, err
+			}
+			newRunAfter = t
+			setRunAfter = true
 		}
+	}
+	if newCron != "" && setRunAfter {
+		return Schedule{}, ErrCronAndRunAfter
 	}
 	var dir string
 	if up.Dir != nil {
@@ -235,9 +291,28 @@ func (m *Manager) UpdateSchedule(name string, up ScheduleUpdate) (Schedule, erro
 		m.schedMu.Unlock()
 		return Schedule{}, fmt.Errorf("%w: %s", ErrUnknownSchedule, name)
 	}
-	if up.Cron != nil {
-		s.Cron = *up.Cron
+	resultCron, resultAfter, resultLastRun := s.Cron, s.RunAfter, s.LastRun
+	if setCron {
+		resultCron = newCron
+		if newCron != "" {
+			resultAfter = time.Time{}
+		}
 	}
+	if setRunAfter {
+		resultAfter = newRunAfter
+		resultCron = ""
+		resultLastRun = time.Time{}
+	}
+	if clearRunAfter {
+		resultAfter = time.Time{}
+	}
+	if resultCron == "" && resultAfter.IsZero() {
+		m.schedMu.Unlock()
+		return Schedule{}, ErrNoCron
+	}
+	s.Cron = resultCron
+	s.RunAfter = resultAfter
+	s.LastRun = resultLastRun
 	if up.Dir != nil {
 		s.Dir = dir
 	}

@@ -36,6 +36,28 @@ func TestCreateScheduleToolCreatesTheSchedule(t *testing.T) {
 	}
 }
 
+func TestCreateScheduleToolCreatesOneOffWithRunAfter(t *testing.T) {
+	sessions := newFakeSessions()
+	client := controlClient(t, sessions)
+
+	result := call(t, client, mcp.ToolCreateSchedule, map[string]any{
+		"run_after": "30m",
+		"dir":       "/tmp",
+		"prompt":    "poll the site once",
+		"name":      "once",
+	})
+	if result.IsError {
+		t.Fatalf("create_schedule failed: %s", resultText(result))
+	}
+	got, ok := sessions.schedules["once"]
+	if !ok {
+		t.Fatalf("one-off schedule was not created: %+v", sessions.schedules)
+	}
+	if got.Cron != "" || got.RunAfter != "30m" {
+		t.Fatalf("run_after not passed through: %+v", got)
+	}
+}
+
 func TestCreateScheduleToolNeedsCronDirPrompt(t *testing.T) {
 	sessions := newFakeSessions()
 	client := controlClient(t, sessions)

@@ -414,7 +414,8 @@ type stopJobOut struct {
 }
 
 type createScheduleIn struct {
-	Cron           string `json:"cron" jsonschema:"a 5-field cron expression in local time, such as '*/5 * * * *' for every 5 minutes or '0 9 * * 1-5' for 09:00 on weekdays"`
+	Cron           string `json:"cron,omitempty" jsonschema:"a 5-field cron expression in local time, such as '*/5 * * * *' for every 5 minutes or '0 9 * * 1-5' for 09:00 on weekdays; leave it empty for a one-off run and set run_after instead"`
+	RunAfter       string `json:"run_after,omitempty" jsonschema:"a one-off run time; a Go duration from now such as '30m' or '2h', or an RFC3339 timestamp; set it only when cron is empty"`
 	Dir            string `json:"dir" jsonschema:"the directory the run works in; a relative path is resolved against the directory the multiplexer runs in"`
 	Prompt         string `json:"prompt" jsonschema:"the prompt the schedule sends on each run"`
 	Name           string `json:"name,omitempty" jsonschema:"an optional name for the schedule; the multiplexer derives one from the directory when it is empty"`
@@ -427,7 +428,8 @@ type createScheduleIn struct {
 
 type updateScheduleIn struct {
 	Name           string  `json:"name" jsonschema:"the name of the schedule to change"`
-	Cron           *string `json:"cron,omitempty" jsonschema:"a new 5-field cron in local time; a field left out stays as it is"`
+	Cron           *string `json:"cron,omitempty" jsonschema:"a new 5-field cron in local time; it switches the schedule to recurring and clears run_after; a field left out stays as it is"`
+	RunAfter       *string `json:"run_after,omitempty" jsonschema:"a new one-off run time, a Go duration or an RFC3339 timestamp; it switches the schedule to one-off and clears cron; an empty string clears it; a field left out stays as it is"`
 	Dir            *string `json:"dir,omitempty" jsonschema:"a new directory the run works in; a field left out stays as it is"`
 	Prompt         *string `json:"prompt,omitempty" jsonschema:"a new prompt the schedule sends on each run; a field left out stays as it is"`
 	Session        *string `json:"session,omitempty" jsonschema:"a session name to reuse one session; an empty string returns to a fresh session each run; a field left out stays as it is"`

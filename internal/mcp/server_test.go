@@ -414,7 +414,7 @@ func (f *fakeSessions) CreateSchedule(in mcp.ScheduleInput, by string) (mcp.Sche
 		name = "schedule"
 	}
 	f.lastControl = in.Control
-	sched := mcp.Schedule{Name: name, Cron: in.Cron, Dir: in.Dir, Prompt: in.Prompt, Session: in.Session, Model: in.Model, Enabled: true}
+	sched := mcp.Schedule{Name: name, Cron: in.Cron, RunAfter: in.RunAfter, Dir: in.Dir, Prompt: in.Prompt, Session: in.Session, Model: in.Model, Enabled: true}
 	f.schedules[name] = sched
 	return sched, nil
 }
