@@ -19,6 +19,7 @@ type sidebarInputs struct {
 	parents         map[string]string
 	schedules       map[string]string
 	workDirs        map[string]string
+	workItems       map[string]manager.WorkItemBadge
 	projects        map[string][]string
 	layouts         map[string]string
 	hosted          map[string]bool
@@ -54,6 +55,7 @@ func (m Model) gatherSidebarInputs() sidebarInputs {
 		parents:         m.mgr.Parents(),
 		schedules:       m.mgr.Schedules(),
 		workDirs:        m.mgr.WorkingDirs(),
+		workItems:       m.mgr.WorkItems(),
 		projects:        m.mgr.Projects(),
 		layouts:         m.mgr.SessionLayouts(),
 		hosted:          m.mgr.Hosted(),
@@ -92,6 +94,7 @@ func deriveSidebar(in sidebarInputs) sidebarView {
 		item.parent = in.parents[snap.Name]
 		item.scheduled = in.schedules[snap.Name]
 		item.workDir = in.workDirs[snap.Name]
+		item.workItem = in.workItems[snap.Name]
 		item.projectDirs = in.projects[snap.Name]
 		item.layout = in.layouts[snap.Name]
 		item.hosted = in.hosted[snap.Name]

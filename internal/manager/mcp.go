@@ -110,6 +110,11 @@ func (m *Manager) equipTools(cfg *session.Config, name string, profile mcp.Profi
 	}
 	cfg.ExtraArgs = append(cfg.ExtraArgs, "--mcp-config", path)
 	cfg.AllowedTools = append(append([]string{}, cfg.AllowedTools...), mcp.AllowedTools(profile, control)...)
+	if profile != mcp.ProfileMinimal && m.WorkItemsEnabled() {
+		for _, tool := range mcp.WorkItemTools {
+			cfg.AllowedTools = append(cfg.AllowedTools, mcp.Qualify(tool))
+		}
+	}
 	return token, nil
 }
 

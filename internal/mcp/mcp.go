@@ -54,6 +54,15 @@ const (
 	ToolClearLocks = "clear_locks"
 	ToolFindLocked = "find_locked_sessions"
 
+	ToolConfigureJira   = "configure_jira"
+	ToolConfigureLinear = "configure_linear"
+
+	ToolGetWorkItem       = "get_workitem"
+	ToolSetWorkItem       = "set_workitem"
+	ToolUnsetWorkItem     = "unset_workitem"
+	ToolWorkItemStatuses  = "list_workitem_statuses"
+	ToolSetWorkItemStatus = "set_workitem_status"
+
 	ToolListLayouts  = "list_layouts"
 	ToolSaveLayout   = "save_layout"
 	ToolDeleteLayout = "delete_layout"
@@ -161,8 +170,15 @@ var (
 		ToolListLayouts, ToolSaveLayout, ToolDeleteLayout, ToolSetLayout, ToolUnsetLayout,
 		ToolCreateSchedule, ToolUpdateSchedule, ToolListSchedules, ToolDeleteSchedule, ToolSetScheduleEnabled, ToolRunSchedule,
 		ToolSchedulePath, ToolAPIURL, ToolAPIDocs, ToolGetUsage, ToolPeerUsage, ToolPeerURL,
-		ToolShareSession}
-	ControlTools = []string{ToolSend, ToolStop, ToolArchive, ToolCreate, ToolStopJob,
+		ToolShareSession,
+		ToolConfigureJira, ToolConfigureLinear}
+	// WorkItemTools link a session to a Jira or Linear work item and change its
+	// status. They are open, but a session carries them only when a provider is
+	// configured, so the gate is the settings file. The configure_* tools that
+	// set the token are always open, in OpenTools above, so a session can turn
+	// the feature on. See docs/work-items.md.
+	WorkItemTools = []string{ToolGetWorkItem, ToolSetWorkItem, ToolUnsetWorkItem, ToolWorkItemStatuses, ToolSetWorkItemStatus}
+	ControlTools  = []string{ToolSend, ToolStop, ToolArchive, ToolCreate, ToolStopJob,
 		ToolCreateAPIAdmin, ToolRotateAPIAdmin, ToolRevokeAPIAdmin,
 		ToolCreateAPIClient, ToolUpdateAPIClient, ToolRotateAPIClient, ToolRevokeAPIClient,
 		ToolListAPIClients, ToolCreateAPIKey, ToolRevokeAPIKey, ToolAPIEndpoint,
@@ -192,13 +208,17 @@ var (
 	ErrNoEditor     = errors.New("mcp: this tool needs an editor, a terminal flag, or both")
 	ErrNoDir        = errors.New("mcp: this tool needs a directory path")
 	ErrNoLock       = errors.New("mcp: this tool needs a lock label")
-	ErrBadCap       = errors.New("mcp: the block cap must be zero or more rows")
-	ErrBadDays      = errors.New("mcp: the auto-archive days must be one or more")
-	ErrCapBoth      = errors.New("mcp: give rows or unlimited, not both")
-	ErrBadType      = errors.New("mcp: the block type must be prompt, message, tool, meta, bash, or error")
-	ErrNoLayout     = errors.New("mcp: this tool needs a layout name")
-	ErrBadScope     = errors.New("mcp: the scope must be session or all")
-	ErrBadDim       = errors.New("mcp: a layout dimension must be one or more")
+
+	ErrNoWorkItemKey    = errors.New("mcp: this tool needs a work-item key")
+	ErrNoWorkItemStatus = errors.New("mcp: this tool needs a target status")
+	ErrNoWorkItemToken  = errors.New("mcp: this tool needs a provider token")
+	ErrBadCap           = errors.New("mcp: the block cap must be zero or more rows")
+	ErrBadDays          = errors.New("mcp: the auto-archive days must be one or more")
+	ErrCapBoth          = errors.New("mcp: give rows or unlimited, not both")
+	ErrBadType          = errors.New("mcp: the block type must be prompt, message, tool, meta, bash, or error")
+	ErrNoLayout         = errors.New("mcp: this tool needs a layout name")
+	ErrBadScope         = errors.New("mcp: the scope must be session or all")
+	ErrBadDim           = errors.New("mcp: a layout dimension must be one or more")
 
 	ErrBadPosition = errors.New("mcp: the diff position must be left, right, top, or bottom")
 
@@ -272,6 +292,26 @@ type Session struct {
 	// another session must keep away. They are advisory. See
 	// docs/mcp/tools/locks.md.
 	Locks []string `json:"locks,omitempty"`
+}
+
+// WorkItem is the work item a session links to: the provider, the key, and the
+// mirror of the item title, url, and status. Linked is false for a session with
+// no link. See docs/work-items.md.
+type WorkItem struct {
+	Provider string `json:"provider,omitempty"`
+	Key      string `json:"key,omitempty"`
+	Title    string `json:"title,omitempty"`
+	URL      string `json:"url,omitempty"`
+	Status   string `json:"status,omitempty"`
+	StatusID string `json:"status_id,omitempty"`
+	Linked   bool   `json:"linked"`
+}
+
+// WorkItemStatus is one status a work item may move to: the display name the
+// platform offers, and the raw provider id. See docs/work-items.md.
+type WorkItemStatus struct {
+	ID   string `json:"id,omitempty"`
+	Name string `json:"name"`
 }
 
 // Message is one entry of get_messages. The transcript carries no timestamp for

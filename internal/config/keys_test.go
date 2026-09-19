@@ -36,6 +36,12 @@ func TestKeysListsTheSchema(t *testing.T) {
 		{"autoArchiveDays", "integer"},
 		{"costWindow", "string"},
 		{"archivedWindow", "string"},
+		{"workItems.jira.token", "string"},
+		{"workItems.jira.email", "string"},
+		{"workItems.jira.url", "string"},
+		{"workItems.linear.token", "string"},
+		{"workItems.linear.email", "string"},
+		{"workItems.linear.url", "string"},
 	}
 	got := Keys()
 	if len(got) != len(want) {

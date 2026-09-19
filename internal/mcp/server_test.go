@@ -56,12 +56,25 @@ type fakeSessions struct {
 	hostingPaused bool
 	lastControl   bool
 	idleArmed     []idleArm
+	work          workItemState
 }
 
 type idleArm struct {
 	Name    string
 	Stop    bool
 	Archive bool
+}
+
+type workItemState struct {
+	enabled     bool
+	providers   []string
+	item        mcp.WorkItem
+	statuses    []mcp.WorkItemStatus
+	setStatus   string
+	setKey      string
+	configured  string
+	configToken string
+	err         error
 }
 
 func newFakeSessions() *fakeSessions {
@@ -329,6 +342,56 @@ func (f *fakeSessions) FindLocked(labels []string, live bool) ([]mcp.Session, er
 		}
 	}
 	return out, nil
+}
+
+func (f *fakeSessions) WorkItemsEnabled() bool { return f.work.enabled }
+
+func (f *fakeSessions) WorkItemProviders() []string { return f.work.providers }
+
+func (f *fakeSessions) ConfigureWorkItem(provider, token, _, _, _ string) (string, error) {
+	if f.work.err != nil {
+		return "", f.work.err
+	}
+	f.work.configured = provider
+	f.work.configToken = token
+	return "/tmp/config.json", nil
+}
+
+func (f *fakeSessions) WorkItem(string) (mcp.WorkItem, error) {
+	return f.work.item, f.work.err
+}
+
+func (f *fakeSessions) SetWorkItem(_ context.Context, _, key, _ string) (mcp.WorkItem, error) {
+	if f.work.err != nil {
+		return mcp.WorkItem{}, f.work.err
+	}
+	f.work.setKey = key
+	f.work.item.Key = key
+	f.work.item.Linked = true
+	return f.work.item, nil
+}
+
+func (f *fakeSessions) UnsetWorkItem(string) (bool, error) {
+	if f.work.err != nil {
+		return false, f.work.err
+	}
+	linked := f.work.item.Linked
+	f.work.item = mcp.WorkItem{}
+	return linked, nil
+}
+
+func (f *fakeSessions) WorkItemStatuses(context.Context, string) ([]mcp.WorkItemStatus, error) {
+	return f.work.statuses, f.work.err
+}
+
+func (f *fakeSessions) SetWorkItemStatus(_ context.Context, target, _ string) (mcp.WorkItem, error) {
+	if f.work.err != nil {
+		return mcp.WorkItem{}, f.work.err
+	}
+	f.work.setStatus = target
+	f.work.item.Status = target
+	f.work.item.Linked = true
+	return f.work.item, nil
 }
 
 func holdsEvery(held, wanted []string) bool {

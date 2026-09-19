@@ -294,13 +294,17 @@ func (m Model) sessionRow(item row) string {
 	if flags := rowFlags(item); flags != "" {
 		flagText = " " + flags
 	}
-	nameWidth := width - 3 - lipgloss.Width(flagText) - lipgloss.Width(counts)
+	badgeText := ""
+	if badge := rowWorkItem(item); badge != "" {
+		badgeText = " " + badge
+	}
+	nameWidth := width - 3 - lipgloss.Width(flagText) - lipgloss.Width(badgeText) - lipgloss.Width(counts)
 	if nameWidth < 1 {
 		nameWidth = 1
 	}
 	glyph := rowGlyph(item, m.spinFrame)
 	if item.name == m.sel {
-		rest := " " + pad(item.displayName(), nameWidth) + flagText + counts
+		rest := " " + pad(item.displayName(), nameWidth) + badgeText + flagText + counts
 		return selectedRowStyle.Render(" ") +
 			item.style().Background(lipgloss.Color("62")).Render(glyph) +
 			selectedRowStyle.Width(width-2).Render(rest)
@@ -311,8 +315,23 @@ func (m Model) sessionRow(item row) string {
 	}
 	return " " + item.style().Render(glyph) +
 		nameStyle.Render(" "+pad(item.displayName(), nameWidth)) +
+		rowMutedStyle.Render(badgeText) +
 		rowMutedStyle.Render(flagText) +
 		nameStyle.Render(counts)
+}
+
+// rowWorkItem is the short work-item badge for a session row: the mirrored
+// status, or the key when no status is known. It is empty for a session with no
+// link. See docs/work-items.md.
+func rowWorkItem(item row) string {
+	switch {
+	case item.workItem.Status != "":
+		return "[" + item.workItem.Status + "]"
+	case item.workItem.Key != "":
+		return "[" + item.workItem.Key + "]"
+	default:
+		return ""
+	}
 }
 
 // rowFlags is the muted single-letter flags for a session row, concatenated in a
