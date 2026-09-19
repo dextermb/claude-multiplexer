@@ -63,7 +63,7 @@ func TestAgentTurnBeforeStartIsFlushedInOrder(t *testing.T) {
 	s.CaptureAgentTurn("toolu_1", []string{"first"})
 	s.CaptureAgentTurn("toolu_1", []string{"second"})
 
-	if body, _ := ReadOutput(Job{ID: "a1", OutputPath: s.agentOutputPath("a1")}); body != "" {
+	if body, _ := ReadOutput(Job{ID: "a1", OutputPath: s.generatedOutputPath("a1")}); body != "" {
 		t.Fatalf("nothing must be written before the job registers, got %q", body)
 	}
 

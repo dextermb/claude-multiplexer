@@ -2,7 +2,7 @@
 
 A session derives its background jobs from the stream, the same way it derives
 the cost and the token counts. Claude Code pushes three task events for each
-job, and it writes the job output to a file; see
+job, and it carries the job output in a file or inline in a `tool_result`; see
 [protocol/jobs.md](../protocol/jobs.md). `apply` turns them into `Job` records:
 
 - `task_started` adds a `Job` with the status `running`.
@@ -30,28 +30,41 @@ A notification does not change a job that already reached a terminal status.
 `Snapshot.RunningJobs` counts the jobs that still run. The interface shows both;
 see [../tui/sessions.md](../tui/sessions.md).
 
-### The command and the output path
+### The command and the output
 
-The two events above do not carry the command or the output path. Both come
-from the message blocks around them, so `applyJobBlocks` reads two block types:
+The two events above do not carry the command or the output. Both come from the
+message blocks around them, so `applyJobBlocks` reads two block types:
 
 - A `Bash` `tool_use` whose input holds `run_in_background`. The session keeps
   the command under the block id, until `task_started` names that id.
-- The `tool_result` of that block. Claude Code answers a background `Bash` with
-  the text `Output is being written to: <path>.`, and the session keeps the
-  path on the job.
+- The `tool_result` of that block, which the session reads two ways; see
+  [../protocol/jobs.md](../protocol/jobs.md) for the two shapes.
 
-`task_started` can arrive before or after the `tool_result`. So the session
-holds a path that arrives first, and `task_started` takes it. The `output_file`
-of the notification then replaces the parsed path, unless it is empty, which is
-what a killed job sends.
+An older Claude Code names an external file: the `tool_result` text holds
+`Output is being written to: <path>.`, and the session keeps that path on the
+job. `task_started` can arrive before or after this result, so the session holds
+a path that arrives first, and `task_started` takes it. The `output_file` of the
+notification then replaces the parsed path, unless it is empty, which is what a
+killed job sends.
 
-### A local agent writes its turns to the file
+The current Claude Code names no file. The `tool_result` carries the whole
+output inline, so the multiplexer writes it to the job's file itself, the same
+file a local agent gets. `applyLaunchResult` returns the write, and
+`applyJobBlocks` runs it once the lock is released. The write truncates the
+file, because one `tool_result` is the whole output, so a replay on restart
+cannot stack it.
+
+### A generated file, when Claude Code names none
+
+A job whose output the multiplexer writes gets a path under the session state
+directory, at `<dir>/tasks/<task id>.output`, the shape `ReadOutput` accepts.
+`generatedOutputPath` builds it. A background bash job takes this path when its
+inline result arrives; a `local_agent` takes it at `task_started`.
 
 A local agent is a job with `task_type` `local_agent`; see
 [../protocol/jobs.md](../protocol/jobs.md). Claude Code writes no file for it, and
 its `task_notification` carries an empty `output_file`. So the multiplexer writes
-the file itself, from the agent's turns.
+the file, from the agent's turns.
 
 The agent's turns stream inline on the parent output, each with a
 `parent_tool_use_id`. The multiplexer renders each such turn and appends it to
@@ -59,9 +72,7 @@ the agent job's output file, so the jobs dialog reads it the same way it reads a
 background bash job. The turns do not go to the session pane; see
 [../tui/output.md](../tui/output.md).
 
-`task_started` gives a `local_agent` job an output path under the session state
-directory, at `<dir>/tasks/<task id>.output`, the shape `ReadOutput` accepts. A
-turn that arrives before `task_started` names the job has no job yet, so the
+A turn that arrives before `task_started` names the job has no job yet, so the
 session holds it under the parent id, and the flush writes it in order once the
 job registers. `CaptureAgentTurn` and `FlushAgentTurns` do this, both from the
 one manager pump, so every write to a job file stays sequential and in order.
