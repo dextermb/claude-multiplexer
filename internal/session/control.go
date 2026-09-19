@@ -31,6 +31,20 @@ func (s *Session) DiscardQueued() {
 	s.q.clear()
 }
 
+// Unqueue removes the last waiting prompt from the queue and returns it. The
+// write loop pops the in-flight prompt off the front before it sends it, so a
+// tail removal never touches the prompt already handed to the child. On a
+// removal it emits a state event, so the new queue length reaches a viewer.
+func (s *Session) Unqueue() (string, bool) {
+	text, ok := s.q.removeLast()
+	if !ok {
+		return "", false
+	}
+	state := s.State()
+	s.emit(Event{Kind: KindState, State: state, Prev: state})
+	return text, true
+}
+
 // SetPaused holds or releases the queue of a session. While paused, the write
 // loop finishes the running turn and then does not take the next queued prompt.
 // A resume wakes the loop, so a prompt that waited runs at once. The reserve

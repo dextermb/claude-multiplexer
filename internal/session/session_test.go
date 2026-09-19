@@ -537,6 +537,58 @@ func TestSessionInterruptFlushesTheQueue(t *testing.T) {
 	}
 }
 
+func TestSessionUnqueueRemovesTheTailNotTheInFlightPrompt(t *testing.T) {
+	s := newTestSession(t, Config{Name: "unqueue", Env: []string{"FAKECLAUDE_MODE=interruptible"}})
+	c := collect(s)
+	if err := s.Start(context.Background()); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	if err := s.Send("one"); err != nil {
+		t.Fatalf("Send one: %v", err)
+	}
+	waitForState(t, s, StateBusy, 10*time.Second)
+	if err := s.Send("two"); err != nil {
+		t.Fatalf("Send two: %v", err)
+	}
+	if err := s.Send("three"); err != nil {
+		t.Fatalf("Send three: %v", err)
+	}
+	if snap := s.Snapshot(); snap.Queued != 2 {
+		t.Fatalf("queue length = %d, want 2 while busy", snap.Queued)
+	}
+
+	if text, ok := s.Unqueue(); !ok || text != "three" {
+		t.Fatalf("Unqueue = %q, %v; want \"three\", true", text, ok)
+	}
+	if text, ok := s.Unqueue(); !ok || text != "two" {
+		t.Fatalf("Unqueue = %q, %v; want \"two\", true", text, ok)
+	}
+	if snap := s.Snapshot(); snap.Queued != 0 {
+		t.Fatalf("queue length = %d, want 0 after two removals", snap.Queued)
+	}
+	// "one" is in-flight, so it is not in the queue; Unqueue leaves it alone.
+	if text, ok := s.Unqueue(); ok || text != "" {
+		t.Fatalf("Unqueue with only the in-flight prompt = %q, %v; want \"\", false", text, ok)
+	}
+
+	if err := s.Interrupt(); err != nil {
+		t.Fatalf("Interrupt: %v", err)
+	}
+	waitForTurns(t, s, 1, 10*time.Second)
+	stop, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	_ = s.Stop(stop)
+	c.wait(t)
+
+	results := c.results()
+	if len(results) != 1 {
+		t.Fatalf("got %d results, want 1 (two and three were unqueued)", len(results))
+	}
+	if results[0].Result != "interrupted: one" {
+		t.Errorf("result = %q, want %q", results[0].Result, "interrupted: one")
+	}
+}
+
 func TestSessionWaitsAfterAQuestion(t *testing.T) {
 	s := newTestSession(t, Config{Name: "ask", Env: []string{"FAKECLAUDE_MODE=question"}})
 	c := collect(s)

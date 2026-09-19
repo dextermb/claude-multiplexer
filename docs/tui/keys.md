@@ -117,6 +117,7 @@ job panel).
 | `j`, `k`, `up`, `down` | Move through the list, or scroll the output |
 | `Enter` | Type into a live session, or resume one that is not running |
 | `Enter` (in the prompt) | Send the prompt, or send a queued prompt now while busy |
+| `Backspace` (empty prompt) | Remove the newest queued prompt of the session, bottom to top |
 | `Enter` (in the output) | Open or close the block under the cursor, or move to the prompt when there is no capped block |
 | `[`, `]` (in the output) | Move the cursor between the capped blocks |
 | `i` (in the output) | Move to the prompt |

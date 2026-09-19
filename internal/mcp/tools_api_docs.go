@@ -167,6 +167,13 @@ func apiDocs(baseURL string) apiDocsOut {
 			},
 			{
 				Method:      "POST",
+				Path:        "/api/sessions/{name}/unqueue",
+				Auth:        "an access token",
+				Headers:     "Authorization: Bearer <access token>",
+				Description: "Remove the newest waiting prompt of a session.",
+			},
+			{
+				Method:      "POST",
 				Path:        "/api/sessions/{name}/archive",
 				Auth:        "an access token",
 				Headers:     "Authorization: Bearer <access token>",

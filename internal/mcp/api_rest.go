@@ -62,6 +62,8 @@ func (s *Server) handleAPI(w http.ResponseWriter, r *http.Request) {
 		s.restStop(w, r, sess, parts[1], grant.clientName)
 	case len(parts) == 3 && parts[2] == "interrupt" && r.Method == http.MethodPost:
 		s.restInterrupt(w, r, sess, parts[1], grant.clientName)
+	case len(parts) == 3 && parts[2] == "unqueue" && r.Method == http.MethodPost:
+		s.restUnqueue(w, sess, parts[1])
 	case len(parts) == 3 && parts[2] == "archive" && r.Method == http.MethodPost:
 		s.restArchive(w, r, sess, parts[1], grant.clientName)
 	case len(parts) == 5 && parts[2] == "jobs" && parts[4] == "stop" && r.Method == http.MethodPost:
@@ -163,6 +165,15 @@ func (s *Server) restInterrupt(w http.ResponseWriter, r *http.Request, sess APIS
 		return
 	}
 	writeJSON(w, http.StatusOK, okOut{OK: true, Message: name + " is interrupted"})
+}
+
+func (s *Server) restUnqueue(w http.ResponseWriter, sess APISessions, name string) {
+	removed, err := sess.Unqueue(name)
+	if err != nil {
+		writeAPIError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]bool{"removed": removed})
 }
 
 func (s *Server) restArchive(w http.ResponseWriter, r *http.Request, sess APISessions, name, by string) {

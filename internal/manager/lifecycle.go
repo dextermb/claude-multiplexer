@@ -188,6 +188,23 @@ func (m *Manager) SendFrom(target, from, text string) (int, error) {
 	return snap.Queued, nil
 }
 
+// Unqueue removes the last waiting prompt of a session, and reports whether it
+// removed one. It refuses a read-only remote session, the same as Send.
+func (m *Manager) Unqueue(name string) (bool, error) {
+	if re := m.remote(name); re != nil {
+		if re.readOnly {
+			return false, ErrReadOnly
+		}
+		return re.client.Unqueue(context.Background(), re.remoteName)
+	}
+	item, err := m.entry(name)
+	if err != nil {
+		return false, err
+	}
+	_, ok := item.sess.Unqueue()
+	return ok, nil
+}
+
 func (m *Manager) Interrupt(name string, discardQueued bool) error {
 	if re := m.remote(name); re != nil {
 		if re.readOnly {

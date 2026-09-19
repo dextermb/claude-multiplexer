@@ -187,6 +187,19 @@ it back the same way.
 Only a session that finished at least one turn is remembered. See
 [manager.md](../manager.md).
 
+## The prompt queue
+
+When a session is busy, a prompt you send waits in the session queue, and the row
+shows `⇢n` for the `n` prompts that wait. Press `Enter` on an empty prompt to send
+the next queued prompt at once. Press `Backspace` on an empty prompt to remove the
+newest queued prompt, bottom to top; each press removes one.
+
+`Backspace` never removes the prompt already handed to Claude. The write loop takes
+the in-flight prompt off the front of the queue before it sends it, so `⇢n` counts
+only the prompts that still wait. `Backspace` acts only when that count is above
+zero, and removes the tail of the queue. To stop the in-flight prompt, press `Esc`,
+which interrupts the turn and drops the whole queue. See [keys.md](./keys.md).
+
 ## How the list is built
 
 The interface builds the list in two steps, so the fold is pure and the state

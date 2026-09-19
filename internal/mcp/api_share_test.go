@@ -85,7 +85,7 @@ func TestShareSurfaceHasNoWriteRoute(t *testing.T) {
 	base := server.PeerBaseURL()
 	share, token, _ := store.CreateShare("mine", time.Hour)
 
-	for _, path := range []string{"/message", "/stop", "/interrupt", "/archive"} {
+	for _, path := range []string{"/message", "/unqueue", "/stop", "/interrupt", "/archive"} {
 		if code, _ := apiDo(t, http.MethodPost, base+"/api/shares/"+share.ID+path, token, `{"text":"hi"}`); code != http.StatusNotFound {
 			t.Errorf("POST %s: want 404 (no write route), got %d", path, code)
 		}

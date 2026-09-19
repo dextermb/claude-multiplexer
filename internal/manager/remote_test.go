@@ -38,6 +38,11 @@ func (f *fakePeer) start(t *testing.T) config.PeerHost {
 			json.NewEncoder(w).Encode(map[string]any{"access_token": "tok", "expires_in": 3600})
 		case r.URL.Path == "/api/sessions" && r.Method == http.MethodPost:
 			json.NewEncoder(w).Encode(map[string]string{"name": "remote-1"})
+		case r.URL.Path == "/api/sessions/remote-1/unqueue":
+			f.mu.Lock()
+			f.paths = append(f.paths, r.URL.Path)
+			f.mu.Unlock()
+			json.NewEncoder(w).Encode(map[string]bool{"removed": true})
 		case r.URL.Path == "/api/sessions/remote-1/stream":
 			w.Header().Set("Content-Type", "text/event-stream")
 			w.WriteHeader(http.StatusOK)
@@ -160,16 +165,20 @@ func TestRemoteInputRoutesToThePeer(t *testing.T) {
 	if err := m.Interrupt(local, false); err != nil {
 		t.Fatal(err)
 	}
+	if removed, err := m.Unqueue(local); err != nil || !removed {
+		t.Fatalf("Unqueue = %v, %v; want true, nil", removed, err)
+	}
 	if err := m.Stop(context.Background(), local); err != nil {
 		t.Fatal(err)
 	}
 
 	waitFor(t, 3*time.Second, func() bool {
-		return len(fp.seen()) >= 3
+		return len(fp.seen()) >= 4
 	})
 	want := map[string]bool{
 		"/api/sessions/remote-1/message":   false,
 		"/api/sessions/remote-1/interrupt": false,
+		"/api/sessions/remote-1/unqueue":   false,
 		"/api/sessions/remote-1/stop":      false,
 	}
 	for _, p := range fp.seen() {

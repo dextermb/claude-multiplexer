@@ -40,6 +40,18 @@ func (q *queue) pop() (string, bool) {
 	return item, true
 }
 
+func (q *queue) removeLast() (string, bool) {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	if len(q.items) == 0 {
+		return "", false
+	}
+	last := len(q.items) - 1
+	item := q.items[last]
+	q.items = q.items[:last]
+	return item, true
+}
+
 func (q *queue) len() int {
 	q.mu.Lock()
 	defer q.mu.Unlock()

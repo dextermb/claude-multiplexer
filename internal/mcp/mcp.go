@@ -488,6 +488,7 @@ type APISessions interface {
 	SendFrom(target, from, text string) (int, error)
 	Stop(ctx context.Context, name, by string) error
 	Interrupt(ctx context.Context, name, by string) error
+	Unqueue(name string) (bool, error)
 	Archive(name string, archived bool, by string) error
 	Create(in CreateInput, by string) (string, error)
 	List() []Session
