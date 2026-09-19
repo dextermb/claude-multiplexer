@@ -868,6 +868,99 @@ func TestSetTitleRenamesAStoredSession(t *testing.T) {
 	}
 }
 
+// TestSetTitleRenamesAStoppedLingeringSession renames a session whose child has
+// exited but whose entry still lingers in the live set. The pump is gone and the
+// events channel is closed, so the title must go straight to the meta on disk,
+// and the rename must neither drop nor panic.
+func TestSetTitleRenamesAStoppedLingeringSession(t *testing.T) {
+	m := newTestManager(t)
+	name, err := m.Spawn(context.Background(), Spec{Name: "docs", Dir: t.TempDir()})
+	if err != nil {
+		t.Fatalf("Spawn: %v", err)
+	}
+	runOneTurn(t, m, name, "hello")
+	waitForMeta(t, m, name)
+
+	stopCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := m.Stop(stopCtx, name); err != nil {
+		t.Fatalf("Stop: %v", err)
+	}
+	waitFor(t, 10*time.Second, func() bool {
+		snap, err := m.Snapshot(name)
+		return err == nil && !snap.State.Live()
+	})
+
+	if err := m.SetTitle(name, "renamed-after-stop"); err != nil {
+		t.Fatalf("SetTitle: %v", err)
+	}
+
+	snap, err := m.Snapshot(name)
+	if err != nil {
+		t.Fatalf("Snapshot: %v", err)
+	}
+	if snap.Title != "renamed-after-stop" {
+		t.Fatalf("live row title = %q, want %q", snap.Title, "renamed-after-stop")
+	}
+
+	meta, err := ReadMeta(filepath.Join(m.Root(), "sessions", name, "meta.json"))
+	if err != nil {
+		t.Fatalf("ReadMeta: %v", err)
+	}
+	if meta.Title != "renamed-after-stop" {
+		t.Fatalf("disk title = %q, want %q", meta.Title, "renamed-after-stop")
+	}
+}
+
+// TestArchiveKeepsAStoppedRenameAcrossResume renames a stopped session, archives
+// it, and resumes it. The resumed session must keep the new title.
+func TestArchiveKeepsAStoppedRenameAcrossResume(t *testing.T) {
+	m := newTestManager(t)
+	ctx := context.Background()
+	name, err := m.Spawn(ctx, Spec{Name: "docs", Dir: t.TempDir()})
+	if err != nil {
+		t.Fatalf("Spawn: %v", err)
+	}
+	runOneTurn(t, m, name, "hello")
+	waitForMeta(t, m, name)
+
+	stopCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	if err := m.Stop(stopCtx, name); err != nil {
+		t.Fatalf("Stop: %v", err)
+	}
+	waitFor(t, 10*time.Second, func() bool {
+		snap, err := m.Snapshot(name)
+		return err == nil && !snap.State.Live()
+	})
+
+	if err := m.SetTitle(name, "renamed-then-archived"); err != nil {
+		t.Fatalf("SetTitle: %v", err)
+	}
+	if err := m.Archive(name, true); err != nil {
+		t.Fatalf("Archive: %v", err)
+	}
+
+	meta, err := m.Meta(name)
+	if err != nil {
+		t.Fatalf("Meta: %v", err)
+	}
+	if meta.Title != "renamed-then-archived" {
+		t.Fatalf("archived title = %q, want %q", meta.Title, "renamed-then-archived")
+	}
+
+	if _, err := m.Resume(ctx, meta); err != nil {
+		t.Fatalf("Resume: %v", err)
+	}
+	snap, err := m.Snapshot(name)
+	if err != nil {
+		t.Fatalf("Snapshot: %v", err)
+	}
+	if snap.Title != "renamed-then-archived" {
+		t.Fatalf("resumed title = %q, want %q", snap.Title, "renamed-then-archived")
+	}
+}
+
 func TestPartialTextGrowsAndThenClears(t *testing.T) {
 	m := newTestManager(t)
 	sub := m.Subscribe(4096)

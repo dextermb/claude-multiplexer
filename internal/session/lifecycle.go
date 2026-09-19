@@ -77,6 +77,11 @@ func (s *Session) supervise() {
 }
 
 func (s *Session) emit(ev Event) {
+	select {
+	case <-s.ctx.Done():
+		return
+	default:
+	}
 	ev.Session = s.cfg.Name
 	if ev.At.IsZero() {
 		ev.At = time.Now()

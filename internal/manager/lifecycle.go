@@ -414,15 +414,25 @@ func appendUnique(dirs []string, dir string) []string {
 	return append(dirs, dir)
 }
 
-// SetTitle renames a session. A live session takes the new title and persists it
-// on its next turn; a stored session gets it written straight to its meta.
+// SetTitle renames a session. A running session takes the new title and
+// persists it on its next event through the pump. A session whose child has
+// exited, whether it lingers as an entry or is already stored, gets the title
+// written straight to its meta. See docs/sessions.md.
 func (m *Manager) SetTitle(name, title string) error {
 	m.mu.Lock()
 	item, live := m.entries[name]
 	m.mu.Unlock()
-	if live {
+	if live && item.sess.State().Live() {
 		item.sess.SetTitle(title)
 		return nil
+	}
+	if live {
+		item.sess.SetTitleQuiet(title)
+		_, err := item.mutateMeta(func(meta *Meta) error {
+			meta.Title = title
+			return nil
+		})
+		return err
 	}
 	return mutateStoredMeta(metaPath(m.opts.Root, name), func(meta *Meta) error {
 		meta.Title = title
