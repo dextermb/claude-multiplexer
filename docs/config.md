@@ -87,8 +87,8 @@ with `unset_config`. Both tools take a dot path and reach a nested key:
 | `costWindow` | The window the status bar total counts, such as `1d` or `all` |
 | `archivedWindow` | The rolling window `l a` clamps the archived list to, such as `1w` or `unset` |
 | `workItems.linear.token` | A work-item provider token, keyed by provider |
-| `pullRequests.github.token` | A pull-request provider token, keyed by provider |
-| `pullRequests.github.mode` | The transport of a pull-request provider: `auto`, `api`, or `cli` |
+| `pullRequests.github.token` | A pull-request provider token, keyed by provider (`github` or `gitlab`) |
+| `pullRequests.gitlab.mode` | The transport of a pull-request provider: `auto`, `api`, or `cli` |
 
 `set_config` also takes a `value`, as any JSON value: a string, a number, a
 boolean, an object, or `null`. It checks the path and the value against the
