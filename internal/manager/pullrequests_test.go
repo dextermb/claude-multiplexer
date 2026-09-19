@@ -21,6 +21,9 @@ func TestApplyAndClearPR(t *testing.T) {
 	if meta.PRNumber != 1045 || meta.PRUnresolved != 3 || meta.PRBranch != "feature/pr" {
 		t.Fatalf("apply did not mirror: %+v", meta)
 	}
+	if meta.PRSyncedAt.IsZero() {
+		t.Fatal("apply did not stamp the sync time")
+	}
 	view := prView(meta)
 	if !view.Found || view.Provider != "github" || view.Unresolved != 3 {
 		t.Fatalf("view = %+v", view)

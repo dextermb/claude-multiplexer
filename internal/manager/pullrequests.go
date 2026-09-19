@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"time"
 
 	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/git"
@@ -143,6 +144,7 @@ func applyPR(meta *Meta, pr pullrequest.PR, branch string) {
 	meta.PRTitle = pr.Title
 	meta.PRUnresolved = pr.Unresolved
 	meta.PRBranch = branch
+	meta.PRSyncedAt = time.Now()
 }
 
 func clearPR(meta *Meta) {
@@ -153,6 +155,7 @@ func clearPR(meta *Meta) {
 	meta.PRTitle = ""
 	meta.PRUnresolved = 0
 	meta.PRBranch = ""
+	meta.PRSyncedAt = time.Time{}
 }
 
 func prSame(a, b Meta) bool {
