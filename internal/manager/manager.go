@@ -124,6 +124,10 @@ type Manager struct {
 
 	archiveStop chan struct{}
 	archiveWG   sync.WaitGroup
+
+	configStop  chan struct{}
+	configWG    sync.WaitGroup
+	configPrint string
 }
 
 func New(opts Options) (*Manager, error) {
