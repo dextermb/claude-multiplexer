@@ -95,6 +95,20 @@ key back with `get_config_path` and the file to confirm it.
 The interface reads the file again after each write, so a change takes effect at
 once. See [mcp/tools/settings.md](mcp/tools/settings.md).
 
+## An edit by hand reloads too
+
+A tool write is not the only way the file changes. The manager also watches the
+active settings file, so an edit by hand takes effect without a restart.
+
+The watch is a poll, not a callback. Every second the manager fingerprints the
+active file by its path, its modification time, and its size. When the
+fingerprint changes, the manager publishes a reload, and the interface reads the
+file again. The reload carries no notice, so it does not touch the status line.
+
+The watch reads the active file only, which is the first path that is there. So
+a new file at an earlier path, or a change to the file already there, both
+reload. See [manager.md](manager.md).
+
 ## The pages
 
 | Page | Read it for |
