@@ -43,6 +43,30 @@ func IsRepo(dir string) bool {
 	return err == nil && strings.TrimSpace(out) == "true"
 }
 
+// Branch reads the current branch of dir. It returns "" for a detached head,
+// where the ref resolves to "HEAD". See docs/pull-requests.md.
+func Branch(dir string) string {
+	out, err := run(dir, "rev-parse", "--abbrev-ref", "HEAD")
+	if err != nil {
+		return ""
+	}
+	branch := strings.TrimSpace(out)
+	if branch == "HEAD" {
+		return ""
+	}
+	return branch
+}
+
+// RemoteURL reads the url of the named remote of dir, or "" when the remote
+// does not exist. See docs/pull-requests.md.
+func RemoteURL(dir, remote string) string {
+	out, err := run(dir, "remote", "get-url", remote)
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(out)
+}
+
 // Diff reads the working-tree changes of dir against the base.
 func Diff(dir string) (Stat, []FileChange, error) {
 	base := baseRef(dir)

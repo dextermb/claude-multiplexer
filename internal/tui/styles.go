@@ -197,6 +197,10 @@ var (
 			Foreground(lipgloss.Color("108")).
 			Background(barBackground)
 
+	barPRStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("214")).
+			Background(barBackground)
+
 	taskPanelStyle = lipgloss.NewStyle().
 			Border(lipgloss.NormalBorder(), false, false, false, true).
 			BorderForeground(lipgloss.Color("240")).

@@ -43,6 +43,14 @@ type Meta struct {
 	WorkItemStatus   string    `json:"workitem_status,omitempty"`
 	WorkItemStatusID string    `json:"workitem_status_id,omitempty"`
 	WorkItemSyncedAt time.Time `json:"workitem_synced_at,omitempty"`
+	PRProvider       string    `json:"pr_provider,omitempty"`
+	PRNumber         int       `json:"pr_number,omitempty"`
+	PRURL            string    `json:"pr_url,omitempty"`
+	PRState          string    `json:"pr_state,omitempty"`
+	PRTitle          string    `json:"pr_title,omitempty"`
+	PRUnresolved     int       `json:"pr_unresolved,omitempty"`
+	PRBranch         string    `json:"pr_branch,omitempty"`
+	PRSyncedAt       time.Time `json:"pr_synced_at,omitempty"`
 }
 
 func (m Meta) sameAs(other Meta) bool {
@@ -65,7 +73,12 @@ func (m Meta) sameAs(other Meta) bool {
 		m.Archived == other.Archived &&
 		m.WorkItemProvider == other.WorkItemProvider &&
 		m.WorkItemKey == other.WorkItemKey &&
-		m.WorkItemStatus == other.WorkItemStatus
+		m.WorkItemStatus == other.WorkItemStatus &&
+		m.PRProvider == other.PRProvider &&
+		m.PRNumber == other.PRNumber &&
+		m.PRState == other.PRState &&
+		m.PRUnresolved == other.PRUnresolved &&
+		m.PRBranch == other.PRBranch
 }
 
 func sameStrings(a, b []string) bool {

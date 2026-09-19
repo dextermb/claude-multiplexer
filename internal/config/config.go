@@ -146,6 +146,10 @@ type Config struct {
 	// WorkItems configures the Jira and Linear work-item providers. A nil block,
 	// or a provider with no token, keeps that provider off. See docs/work-items.md.
 	WorkItems *WorkItems `json:"workItems,omitempty"`
+	// PullRequests configures the GitHub and GitLab pull-request providers. A nil
+	// block, or a provider with no token and no CLI, keeps that provider off. See
+	// docs/pull-requests.md.
+	PullRequests *PullRequests `json:"pullRequests,omitempty"`
 }
 
 // Peers holds the cross-host settings. Enabled off keeps the peer listener off.

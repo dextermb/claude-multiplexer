@@ -59,6 +59,7 @@ type row struct {
 	jobs        int
 	jobList     []session.Job
 	workItem    manager.WorkItemBadge
+	pr          manager.PRBadge
 	meta        manager.Meta
 }
 
@@ -120,6 +121,12 @@ func rowFromMeta(meta manager.Meta) row {
 			Provider: meta.WorkItemProvider,
 			Key:      meta.WorkItemKey,
 			Status:   meta.WorkItemStatus,
+		},
+		pr: manager.PRBadge{
+			Provider:   meta.PRProvider,
+			Number:     meta.PRNumber,
+			State:      meta.PRState,
+			Unresolved: meta.PRUnresolved,
 		},
 		meta: meta,
 	}

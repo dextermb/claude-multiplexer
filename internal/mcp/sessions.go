@@ -24,6 +24,7 @@ type Sessions interface {
 	PeerPort
 	SharePort
 	WorkItemPort
+	PullRequestPort
 }
 
 // SessionReader reads the shape of a session.
@@ -87,6 +88,14 @@ type WorkItemPort interface {
 	UnsetWorkItem(by string) (bool, error)
 	WorkItemStatuses(ctx context.Context, by string) ([]WorkItemStatus, error)
 	SetWorkItemStatus(ctx context.Context, target, by string) (WorkItem, error)
+}
+
+// PullRequestPort reads the pull request of a session's branch, and configures
+// the providers. A read takes a session name. See docs/pull-requests.md.
+type PullRequestPort interface {
+	PullRequestsEnabled() bool
+	ConfigurePullRequest(provider, token, mode, url, by string) (string, error)
+	PullRequest(ctx context.Context, session string) (PullRequest, error)
 }
 
 // LayoutPort reads and changes the saved screen layouts. See

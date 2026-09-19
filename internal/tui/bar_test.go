@@ -3,6 +3,8 @@ package tui
 import (
 	"strings"
 	"testing"
+
+	"github.com/dextermb/claude-multiplexer/internal/manager"
 )
 
 func segTexts(segs []barSeg) []string {
@@ -61,6 +63,30 @@ func TestSessionBarHidesTheCacheRateWithoutAPromptToken(t *testing.T) {
 	texts := segTexts(m.rightSegs(row{label: "idle", live: true}))
 	if indexOfPrefix(texts, "cache ") >= 0 {
 		t.Fatalf("segments = %v, want no cache rate", texts)
+	}
+}
+
+func TestSessionBarShowsThePullRequest(t *testing.T) {
+	var m Model
+	item := busyRow()
+	item.pr = manager.PRBadge{Provider: "gitlab", Number: 1045, State: "open", Unresolved: 3}
+	texts := segTexts(m.rightSegs(item))
+	if indexOfPrefix(texts, "!1045 (3)") < 0 {
+		t.Fatalf("segments = %v, want !1045 (3)", texts)
+	}
+
+	item.pr = manager.PRBadge{Provider: "github", Number: 7, State: "draft"}
+	texts = segTexts(m.rightSegs(item))
+	if indexOfPrefix(texts, "#7 draft") < 0 {
+		t.Fatalf("segments = %v, want #7 draft", texts)
+	}
+}
+
+func TestSessionBarHidesThePullRequestWithoutOne(t *testing.T) {
+	var m Model
+	texts := segTexts(m.rightSegs(busyRow()))
+	if indexOfPrefix(texts, "#") >= 0 || indexOfPrefix(texts, "!") >= 0 {
+		t.Fatalf("segments = %v, want no PR segment", texts)
 	}
 }
 

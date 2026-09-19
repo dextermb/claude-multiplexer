@@ -202,6 +202,7 @@ func tuiCommand(argv []string) int {
 	mgr.StartScheduler()
 	mgr.StartAutoArchive()
 	mgr.StartConfigWatch()
+	mgr.StartPullRequestPoll()
 
 	initialDir := *dir
 	if initialDir != "" {

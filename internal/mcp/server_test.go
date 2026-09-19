@@ -57,6 +57,15 @@ type fakeSessions struct {
 	lastControl   bool
 	idleArmed     []idleArm
 	work          workItemState
+	pr            prState
+}
+
+type prState struct {
+	enabled    bool
+	item       mcp.PullRequest
+	configured string
+	configMode string
+	err        error
 }
 
 type idleArm struct {
@@ -392,6 +401,21 @@ func (f *fakeSessions) SetWorkItemStatus(_ context.Context, target, _ string) (m
 	f.work.item.Status = target
 	f.work.item.Linked = true
 	return f.work.item, nil
+}
+
+func (f *fakeSessions) PullRequestsEnabled() bool { return f.pr.enabled }
+
+func (f *fakeSessions) ConfigurePullRequest(provider, _, mode, _, _ string) (string, error) {
+	if f.pr.err != nil {
+		return "", f.pr.err
+	}
+	f.pr.configured = provider
+	f.pr.configMode = mode
+	return "/tmp/config.json", nil
+}
+
+func (f *fakeSessions) PullRequest(context.Context, string) (mcp.PullRequest, error) {
+	return f.pr.item, f.pr.err
 }
 
 func holdsEvery(held, wanted []string) bool {

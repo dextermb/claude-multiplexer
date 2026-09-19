@@ -554,6 +554,11 @@ func (m *Manager) Shutdown(ctx context.Context) {
 		m.archiveWG.Wait()
 		m.archiveStop = nil
 	}
+	if m.prStop != nil {
+		close(m.prStop)
+		m.prWG.Wait()
+		m.prStop = nil
+	}
 
 	m.mu.Lock()
 	items := make([]*entry, 0, len(m.order))

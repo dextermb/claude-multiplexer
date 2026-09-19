@@ -76,6 +76,36 @@ type workItemStatusesOut struct {
 	Message  string           `json:"message"`
 }
 
+type configureGitHubIn struct {
+	Token string `json:"token,omitempty" jsonschema:"a GitHub token with repo read scope; leave empty to use the gh CLI login"`
+	Mode  string `json:"mode,omitempty" jsonschema:"the transport: auto, api, or cli; empty is auto (api with a token, else the gh CLI)"`
+	URL   string `json:"url,omitempty" jsonschema:"the GraphQL endpoint, or empty for the default https://api.github.com/graphql"`
+}
+
+type configureGitLabIn struct {
+	Token string `json:"token,omitempty" jsonschema:"a GitLab token with read_api scope; leave empty to use the glab CLI login"`
+	Mode  string `json:"mode,omitempty" jsonschema:"the transport: auto, api, or cli; empty is auto (api with a token, else the glab CLI)"`
+	URL   string `json:"url,omitempty" jsonschema:"the GraphQL endpoint, or empty for the default https://gitlab.com/api/graphql"`
+}
+
+type configurePROut struct {
+	OK       bool   `json:"ok"`
+	Provider string `json:"provider"`
+	Path     string `json:"path"`
+	Message  string `json:"message"`
+}
+
+type getPRIn struct {
+	Session string `json:"session,omitempty" jsonschema:"the session to read, or empty for this session"`
+}
+
+type pullRequestOut struct {
+	OK      bool        `json:"ok"`
+	Found   bool        `json:"found"`
+	PR      PullRequest `json:"pr"`
+	Message string      `json:"message"`
+}
+
 type listIn struct {
 	Stopped    bool   `json:"stopped,omitempty" jsonschema:"true to also return the sessions that are stored and not running now"`
 	Archived   bool   `json:"archived,omitempty" jsonschema:"true to also return the archived sessions"`

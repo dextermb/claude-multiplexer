@@ -63,6 +63,7 @@ a typing mistake.
 | `costWindow` | The window the status bar total counts: `1d`, `7d`, `2w`, `1m`, or `all`. The boundary is UTC, and the default is `1d` | [cost.md](cost.md) |
 | `archivedWindow` | The rolling window `l a` clamps the archived list to: `1d`, `1w`, `1m`, `1y`, or `unset` for no limit. The default is `1d` | [sessions.md](sessions.md) |
 | `workItems` | The Jira and Linear work-item providers, keyed by provider, each with a token | [work-items.md](work-items.md) |
+| `pullRequests` | The GitHub and GitLab pull-request providers, keyed by provider, each with a token or a CLI mode | [pull-requests.md](pull-requests.md) |
 
 ## Write any key by its path
 
@@ -86,6 +87,8 @@ with `unset_config`. Both tools take a dot path and reach a nested key:
 | `costWindow` | The window the status bar total counts, such as `1d` or `all` |
 | `archivedWindow` | The rolling window `l a` clamps the archived list to, such as `1w` or `unset` |
 | `workItems.linear.token` | A work-item provider token, keyed by provider |
+| `pullRequests.github.token` | A pull-request provider token, keyed by provider |
+| `pullRequests.github.mode` | The transport of a pull-request provider: `auto`, `api`, or `cli` |
 
 `set_config` also takes a `value`, as any JSON value: a string, a number, a
 boolean, an object, or `null`. It checks the path and the value against the

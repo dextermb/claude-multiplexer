@@ -329,6 +329,32 @@ func barWorkItem(item row) string {
 	}
 }
 
+// barPR is the pull-request segment of the output pane status bar: the number
+// with a provider prefix, the state when it is not open, and the count of
+// unresolved review threads. See docs/pull-requests.md.
+func barPR(item row) string {
+	if item.pr.Number == 0 {
+		return ""
+	}
+	prefix := "#"
+	if item.pr.Provider == "gitlab" {
+		prefix = "!"
+	}
+	label := prefix + strconv.Itoa(item.pr.Number)
+	switch item.pr.State {
+	case "draft":
+		label += " draft"
+	case "merged":
+		label += " merged"
+	case "closed":
+		label += " closed"
+	}
+	if item.pr.Unresolved > 0 {
+		label += fmt.Sprintf(" (%d)", item.pr.Unresolved)
+	}
+	return label
+}
+
 // rowFlags is the muted single-letter flags for a session row, concatenated in a
 // fixed order: held, read-only, watched, hoisted, scheduled, control. A control session
 // that heads its own group takes no flag, because the group header already marks
@@ -580,6 +606,13 @@ func (m Model) rightSegs(item row) []barSeg {
 	segs := []barSeg{{item.label, item.style().Background(barBackground)}}
 	if d, ok := m.diffs[item.name]; ok && d.anyRepo() && !d.stat().Empty() {
 		segs = append(segs, barSeg{barDiffCount(d.stat()), barStyle})
+	}
+	if pr := barPR(item); pr != "" {
+		style := barMutedStyle
+		if item.pr.Unresolved > 0 {
+			style = barPRStyle
+		}
+		segs = append(segs, barSeg{pr, style})
 	}
 	if item.live && item.context > 0 {
 		segs = append(segs, barSeg{contextLabel(item), barMutedStyle})

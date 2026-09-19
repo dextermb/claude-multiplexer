@@ -21,23 +21,24 @@ import (
 const DefaultMaxLines = 5000
 
 var (
-	ErrUnknownSession  = errors.New("manager: unknown session")
-	ErrNoWorkItem      = errors.New("manager: this session links to no work item")
-	ErrUnknownProvider = errors.New("manager: the provider must be jira or linear")
-	ErrNoWorkItemToken = errors.New("manager: a work-item provider needs a token")
-	ErrNoDirectory     = errors.New("manager: a session needs a directory")
-	ErrNotDirectory    = errors.New("manager: the path is not a directory")
-	ErrStillLive       = errors.New("manager: the session is still live")
-	ErrUnknownJob      = errors.New("manager: unknown background job")
-	ErrJobNotRunning   = errors.New("manager: the background job is not running")
-	ErrNoCron          = errors.New("manager: a schedule needs a cron expression or a run-after time")
-	ErrBadCron         = errors.New("manager: the cron expression is not valid")
-	ErrBadRunAfter     = errors.New("manager: the run-after time is not valid")
-	ErrCronAndRunAfter = errors.New("manager: a schedule takes a cron expression or a run-after time, not both")
-	ErrNoPrompt        = errors.New("manager: a schedule needs a prompt")
-	ErrUnknownSchedule = errors.New("manager: unknown schedule")
-	ErrNoAPIStore      = errors.New("manager: the api is not started")
-	ErrReadOnly        = errors.New("manager: this session is read-only")
+	ErrUnknownSession    = errors.New("manager: unknown session")
+	ErrNoWorkItem        = errors.New("manager: this session links to no work item")
+	ErrUnknownProvider   = errors.New("manager: the provider must be jira or linear")
+	ErrNoWorkItemToken   = errors.New("manager: a work-item provider needs a token")
+	ErrUnknownPRProvider = errors.New("manager: the provider must be github or gitlab")
+	ErrNoDirectory       = errors.New("manager: a session needs a directory")
+	ErrNotDirectory      = errors.New("manager: the path is not a directory")
+	ErrStillLive         = errors.New("manager: the session is still live")
+	ErrUnknownJob        = errors.New("manager: unknown background job")
+	ErrJobNotRunning     = errors.New("manager: the background job is not running")
+	ErrNoCron            = errors.New("manager: a schedule needs a cron expression or a run-after time")
+	ErrBadCron           = errors.New("manager: the cron expression is not valid")
+	ErrBadRunAfter       = errors.New("manager: the run-after time is not valid")
+	ErrCronAndRunAfter   = errors.New("manager: a schedule takes a cron expression or a run-after time, not both")
+	ErrNoPrompt          = errors.New("manager: a schedule needs a prompt")
+	ErrUnknownSchedule   = errors.New("manager: unknown schedule")
+	ErrNoAPIStore        = errors.New("manager: the api is not started")
+	ErrReadOnly          = errors.New("manager: this session is read-only")
 )
 
 type Options struct {
@@ -133,6 +134,9 @@ type Manager struct {
 	configStop  chan struct{}
 	configWG    sync.WaitGroup
 	configPrint string
+
+	prStop chan struct{}
+	prWG   sync.WaitGroup
 }
 
 func New(opts Options) (*Manager, error) {
