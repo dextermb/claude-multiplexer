@@ -28,7 +28,7 @@ func (s *Session) apply(ev protocol.Event) {
 		}
 		s.mu.Unlock()
 		s.setStateIf(StateStarting, StateIdle)
-	case ev.Type == protocol.TypeAssistant && ev.Message != nil && ev.Message.Usage != nil:
+	case ev.Type == protocol.TypeAssistant && ev.Message != nil && ev.Message.Usage != nil && !ev.HasParent():
 		u := ev.Message.Usage
 		s.mu.Lock()
 		s.contextTokens = u.InputTokens + u.CacheReadInputTokens + u.CacheCreationInputTokens + u.OutputTokens

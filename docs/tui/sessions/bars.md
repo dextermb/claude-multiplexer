@@ -52,6 +52,11 @@ is the size of the context now. The `result` usage is a session total, and its
 cache-read count repeats the whole context every turn, so a sum of `result`
 usage grows far past the window and is wrong for this number.
 
+A local agent reports its own `assistant` usage, but that usage is the context of
+the agent, not the session. So the fill skips a turn with a parent tool-use id,
+and it tracks the session context alone. See
+[../../protocol/jobs.md](../../protocol/jobs.md).
+
 Each session is a separate child process, so each context fill is its own. When
 the model window is not known, the bar shows the raw count only (`ctx 12.2k`).
 The context fill shows for a live session only, because a stored session has no

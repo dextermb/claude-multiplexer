@@ -18,6 +18,14 @@ func resultWithUsage(u *protocol.Usage) protocol.Event {
 	}
 }
 
+func assistantWithUsage(parentToolUseID string, u *protocol.Usage) protocol.Event {
+	return protocol.Event{
+		Type:            protocol.TypeAssistant,
+		ParentToolUseID: parentToolUseID,
+		Message:         &protocol.Message{Role: "assistant", Usage: u},
+	}
+}
+
 func newAppliedSession(t *testing.T, events ...protocol.Event) *Session {
 	t.Helper()
 	s, err := New(Config{Name: "alpha"})
@@ -90,6 +98,24 @@ func TestCacheHitRateIsUnknownUntilAPromptTokenIsCounted(t *testing.T) {
 	}
 	if rate != 94 {
 		t.Fatalf("CacheHitRate = %d, want 94", rate)
+	}
+}
+
+func TestContextTokensIgnoreLocalAgentTurns(t *testing.T) {
+	parent := assistantWithUsage("", &protocol.Usage{
+		InputTokens:          1000,
+		CacheReadInputTokens: 5000,
+		OutputTokens:         200,
+	})
+	subagent := assistantWithUsage("toolu_123", &protocol.Usage{
+		InputTokens:          10,
+		CacheReadInputTokens: 20,
+		OutputTokens:         5,
+	})
+	s := newAppliedSession(t, parent, subagent)
+
+	if got := s.Snapshot().ContextTokens; got != 6200 {
+		t.Fatalf("ContextTokens = %d, want 6200 (the parent turn, not the local agent)", got)
 	}
 }
 
