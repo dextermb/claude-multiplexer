@@ -32,6 +32,50 @@ type renameIn struct {
 	Title string `json:"title" jsonschema:"the new display title for this session; an empty string clears it"`
 }
 
+type configureJiraIn struct {
+	Token string `json:"token" jsonschema:"the Jira API token or service-account key"`
+	Email string `json:"email,omitempty" jsonschema:"the account email; set it for a personal token (Basic auth), and leave it empty for a service-account key (bearer)"`
+	URL   string `json:"url,omitempty" jsonschema:"the MCP endpoint, or empty for the default https://mcp.atlassian.com/v2/mcp"`
+}
+
+type configureLinearIn struct {
+	Token string `json:"token" jsonschema:"the Linear API key"`
+	URL   string `json:"url,omitempty" jsonschema:"the MCP endpoint, or empty for the default https://mcp.linear.app/mcp"`
+}
+
+type configureWorkItemOut struct {
+	OK       bool   `json:"ok"`
+	Provider string `json:"provider"`
+	Path     string `json:"path"`
+	Message  string `json:"message"`
+}
+
+type getWorkItemIn struct {
+	Session string `json:"session,omitempty" jsonschema:"the session to read, or empty for this session"`
+}
+
+type setWorkItemIn struct {
+	Provider string `json:"provider,omitempty" jsonschema:"the provider: jira or linear; leave empty when only one is configured"`
+	Key      string `json:"key" jsonschema:"the work-item key, such as PROJ-123 for Jira or ENG-45 for Linear"`
+}
+
+type setWorkItemStatusIn struct {
+	Status string `json:"status" jsonschema:"the target status, which must be one of the statuses the platform offers for this item"`
+}
+
+type workItemOut struct {
+	OK      bool     `json:"ok"`
+	Linked  bool     `json:"linked"`
+	Item    WorkItem `json:"item"`
+	Message string   `json:"message"`
+}
+
+type workItemStatusesOut struct {
+	OK       bool             `json:"ok"`
+	Statuses []WorkItemStatus `json:"statuses"`
+	Message  string           `json:"message"`
+}
+
 type listIn struct {
 	Stopped    bool   `json:"stopped,omitempty" jsonschema:"true to also return the sessions that are stored and not running now"`
 	Archived   bool   `json:"archived,omitempty" jsonschema:"true to also return the archived sessions"`

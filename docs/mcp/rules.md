@@ -34,3 +34,9 @@ copy the rule text.
 |---|---|
 | `project-dirs.md` | Use a project when one change spans two or more code bases: `add_project_dir` for each code base root (not a subdirectory), `remove_project_dir` or `clear_project` when a code base drops out. |
 | `worktree-working-dir.md` | Call `set_working_dir` after you move into a worktree, and `unset_working_dir` after you collapse it, so `s f` and `s d` open the right directory. |
+
+## Example rules to adopt
+
+The multiplexer injects only the files above. For example rules a user can adopt
+for a workflow, and how to adopt one, see
+[../example-rules.md](../example-rules.md).

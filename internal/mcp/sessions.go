@@ -23,6 +23,7 @@ type Sessions interface {
 	APIPort
 	PeerPort
 	SharePort
+	WorkItemPort
 }
 
 // SessionReader reads the shape of a session.
@@ -73,6 +74,19 @@ type LockPort interface {
 	RemoveLock(label, by string) ([]string, error)
 	ClearLocks(by string) (bool, error)
 	FindLocked(labels []string, live bool) ([]Session, error)
+}
+
+// WorkItemPort reads and changes the work item a session links to. A read takes
+// a session name; a change acts on the calling session. See docs/work-items.md.
+type WorkItemPort interface {
+	WorkItemsEnabled() bool
+	WorkItemProviders() []string
+	ConfigureWorkItem(provider, token, email, url, by string) (string, error)
+	WorkItem(session string) (WorkItem, error)
+	SetWorkItem(ctx context.Context, provider, key, by string) (WorkItem, error)
+	UnsetWorkItem(by string) (bool, error)
+	WorkItemStatuses(ctx context.Context, by string) ([]WorkItemStatus, error)
+	SetWorkItemStatus(ctx context.Context, target, by string) (WorkItem, error)
 }
 
 // LayoutPort reads and changes the saved screen layouts. See

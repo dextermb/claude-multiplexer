@@ -19,6 +19,7 @@ type sidebarInputs struct {
 	parents         map[string]string
 	schedules       map[string]string
 	workDirs        map[string]string
+	workItems       map[string]manager.WorkItemBadge
 	projects        map[string][]string
 	layouts         map[string]string
 	hosted          map[string]bool
@@ -54,6 +55,7 @@ func (m Model) gatherSidebarInputs() sidebarInputs {
 		parents:         m.mgr.Parents(),
 		schedules:       m.mgr.Schedules(),
 		workDirs:        m.mgr.WorkingDirs(),
+		workItems:       m.mgr.WorkItems(),
 		projects:        m.mgr.Projects(),
 		layouts:         m.mgr.SessionLayouts(),
 		hosted:          m.mgr.Hosted(),
@@ -92,6 +94,7 @@ func deriveSidebar(in sidebarInputs) sidebarView {
 		item.parent = in.parents[snap.Name]
 		item.scheduled = in.schedules[snap.Name]
 		item.workDir = in.workDirs[snap.Name]
+		item.workItem = in.workItems[snap.Name]
 		item.projectDirs = in.projects[snap.Name]
 		item.layout = in.layouts[snap.Name]
 		item.hosted = in.hosted[snap.Name]
@@ -151,18 +154,22 @@ func activeSinceCutoff(lastActive, cutoff time.Time) bool {
 	return !lastActive.Before(cutoff)
 }
 
-// rowGroup keys a row on the control session that created it, or that it created
-// rows for, then on the peer a remote session involves, and on its repository
-// when none of those holds.
+// rowGroup keys a row on the peer a remote session involves, then on the status
+// of the work item it links to, then on the control session that created it, or
+// that it created rows for, and on its repository when none of those holds. See
+// docs/work-items.md.
 func rowGroup(item row, children map[string]bool, roots map[string]string) string {
+	if remote := item.remoteHost(); remote != "" {
+		return hostPrefix + remote
+	}
+	if item.workItem.Key != "" {
+		return wiPrefix + workItemGroupKey(item)
+	}
 	if item.parent != "" {
 		return byPrefix + item.parent
 	}
 	if children[item.name] {
 		return byPrefix + item.name
-	}
-	if remote := item.remoteHost(); remote != "" {
-		return hostPrefix + remote
 	}
 	return dirPrefix + groupKey(item.dir, roots)
 }

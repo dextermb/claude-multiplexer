@@ -26,7 +26,8 @@ name without a migration.
 
 The package reaches the manager through `Sessions`, a composite interface that
 embeds one **port** per concept: the reader, the control, the config, the locks,
-the layouts, the schedules, the usage, the API, the peers, and the shares. So a
+the work items, the layouts, the schedules, the usage, the API, the peers, and
+the shares. So a
 tool group depends on the port it needs, and a tool test fills the few methods of
 one port rather than the whole surface. For the port glossary, see
 [../CONTEXT.md](../CONTEXT.md); for the code, see `internal/mcp/sessions.go`.

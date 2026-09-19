@@ -58,6 +58,7 @@ type row struct {
 	context     int
 	jobs        int
 	jobList     []session.Job
+	workItem    manager.WorkItemBadge
 	meta        manager.Meta
 }
 
@@ -115,7 +116,12 @@ func rowFromMeta(meta manager.Meta) row {
 		cacheRead:   meta.CacheReadTokens,
 		cacheWrite:  meta.CacheWriteTokens,
 		output:      meta.OutputTokens,
-		meta:        meta,
+		workItem: manager.WorkItemBadge{
+			Provider: meta.WorkItemProvider,
+			Key:      meta.WorkItemKey,
+			Status:   meta.WorkItemStatus,
+		},
+		meta: meta,
 	}
 }
 

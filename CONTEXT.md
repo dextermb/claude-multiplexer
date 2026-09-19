@@ -16,6 +16,7 @@ satisfies every port. See `internal/mcp/sessions.go`.
 | `ControlPort` | Drive a session: send, stop, archive, create, stop a job. A control grant gates it. |
 | `ConfigPort` | Read and change the settings and the directories of a session. |
 | `LockPort` | Read and change the advisory locks a session holds. See [docs/mcp/tools/locks.md](docs/mcp/tools/locks.md). |
+| `WorkItemPort` | Read and change the Jira or Linear work item a session links to. See [docs/work-items.md](docs/work-items.md). |
 | `LayoutPort` | Read and change the saved screen layouts. See [docs/tui/layouts.md](docs/tui/layouts.md). |
 | `SchedulePort` | Read and change the scheduled runs. See [docs/scheduler.md](docs/scheduler.md). |
 | `UsagePort` | Read the token and cost usage, local and on the peers. See [docs/cost.md](docs/cost.md). |

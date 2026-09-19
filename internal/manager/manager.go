@@ -22,6 +22,9 @@ const DefaultMaxLines = 5000
 
 var (
 	ErrUnknownSession  = errors.New("manager: unknown session")
+	ErrNoWorkItem      = errors.New("manager: this session links to no work item")
+	ErrUnknownProvider = errors.New("manager: the provider must be jira or linear")
+	ErrNoWorkItemToken = errors.New("manager: a work-item provider needs a token")
 	ErrNoDirectory     = errors.New("manager: a session needs a directory")
 	ErrNotDirectory    = errors.New("manager: the path is not a directory")
 	ErrStillLive       = errors.New("manager: the session is still live")

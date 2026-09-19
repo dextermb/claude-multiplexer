@@ -128,6 +128,35 @@ func (m *Manager) WorkingDirs() map[string]string {
 	return out
 }
 
+// WorkItemBadge is the work item a session links to, in the short form the
+// sidebar draws: the provider, the key, and the mirrored status. See
+// docs/work-items.md.
+type WorkItemBadge struct {
+	Provider string
+	Key      string
+	Status   string
+}
+
+// WorkItems reports the work item each live session links to, keyed by session
+// name. A session with no link is absent. See docs/work-items.md.
+func (m *Manager) WorkItems() map[string]WorkItemBadge {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	out := make(map[string]WorkItemBadge, len(m.entries))
+	for name, item := range m.entries {
+		meta := item.metaCopy()
+		if meta.WorkItemKey == "" {
+			continue
+		}
+		out[name] = WorkItemBadge{
+			Provider: meta.WorkItemProvider,
+			Key:      meta.WorkItemKey,
+			Status:   meta.WorkItemStatus,
+		}
+	}
+	return out
+}
+
 // Projects reports the project directories of each live session that has a
 // project. The interface groups the diff by these directories.
 func (m *Manager) Projects() map[string][]string {

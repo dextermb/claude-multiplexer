@@ -143,6 +143,9 @@ type Config struct {
 	// inside this rolling window: 1d, 1w, 1m, 1y, or unset for no limit. An empty
 	// or unknown value takes DefaultLastActive. See docs/config.md.
 	ArchivedWindow string `json:"archivedWindow,omitempty"`
+	// WorkItems configures the Jira and Linear work-item providers. A nil block,
+	// or a provider with no token, keeps that provider off. See docs/work-items.md.
+	WorkItems *WorkItems `json:"workItems,omitempty"`
 }
 
 // Peers holds the cross-host settings. Enabled off keeps the peer listener off.

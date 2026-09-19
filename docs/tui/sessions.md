@@ -39,7 +39,8 @@ directory is on the peer, and it returns to the local default for `local`.
 
 The list groups the sessions. Each group starts with a header, and its rows
 follow it, indented by one column. A group holds one directory, the work of one
-control session, or the sessions that involve one peer.
+control session, the sessions that involve one peer, or the sessions that link
+to a work item of one status.
 
 ### A directory group
 
@@ -86,9 +87,19 @@ The header takes the client name from the credential store, because a hosted
 session carries the client id, not the name. A name the store does not hold
 falls back to the id. See [../peers.md](../peers.md).
 
+### A work-item group
+
+A session that links to a Jira or Linear work item groups by the status of that
+item, and not by its directory or its creator. So every session on an item of
+one status shares one group, and the header names the status, for example
+`In Review`. A session with a link, but no status yet, joins the `no status`
+group. The link renames the session to the item key, so the key names the row
+inside the group. See [../work-items.md](../work-items.md).
+
 ### The order of the groups
 
-A group that holds a live session comes first. Then come the groups that hold
+The work-item groups form a cluster first, in status order. Then come the other
+groups: a group that holds a live session comes first, then the groups that hold
 stored sessions, and last the groups that hold archived sessions only. Inside a
 group, the order is the order below.
 

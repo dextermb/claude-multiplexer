@@ -37,6 +37,12 @@ type Meta struct {
 	TempDir          bool      `json:"temp_dir,omitempty"`
 	Archived         bool      `json:"archived"`
 	ArchivedAt       time.Time `json:"archived_at,omitempty"`
+	WorkItemProvider string    `json:"workitem_provider,omitempty"`
+	WorkItemKey      string    `json:"workitem_key,omitempty"`
+	WorkItemURL      string    `json:"workitem_url,omitempty"`
+	WorkItemStatus   string    `json:"workitem_status,omitempty"`
+	WorkItemStatusID string    `json:"workitem_status_id,omitempty"`
+	WorkItemSyncedAt time.Time `json:"workitem_synced_at,omitempty"`
 }
 
 func (m Meta) sameAs(other Meta) bool {
@@ -56,7 +62,10 @@ func (m Meta) sameAs(other Meta) bool {
 		m.CacheReadTokens == other.CacheReadTokens &&
 		m.CacheWriteTokens == other.CacheWriteTokens &&
 		m.OutputTokens == other.OutputTokens &&
-		m.Archived == other.Archived
+		m.Archived == other.Archived &&
+		m.WorkItemProvider == other.WorkItemProvider &&
+		m.WorkItemKey == other.WorkItemKey &&
+		m.WorkItemStatus == other.WorkItemStatus
 }
 
 func sameStrings(a, b []string) bool {

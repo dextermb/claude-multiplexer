@@ -11,13 +11,40 @@ import (
 
 const maxLabelDepth = 8
 
-// A group key names a directory, the control session that created the rows, or
-// the peer a remote session involves.
+// A group key names a directory, the control session that created the rows, the
+// peer a remote session involves, or the status of the work item a session links
+// to.
 const (
 	dirPrefix  = "dir:"
 	byPrefix   = "by:"
 	hostPrefix = "host:"
+	wiPrefix   = "wi:"
 )
+
+// The bands order the groups inside one section: the work-item groups come
+// first, so a session that links to a work item sits in its own cluster above
+// the directory groups. See docs/work-items.md.
+const (
+	bandWorkItem = 0
+	bandOther    = 1
+)
+
+func groupBand(key string) int {
+	if strings.HasPrefix(key, wiPrefix) {
+		return bandWorkItem
+	}
+	return bandOther
+}
+
+// workItemGroupKey names the group of a session that links to a work item: its
+// status, or "no status" when the status is not known yet.
+func workItemGroupKey(item row) string {
+	status := strings.TrimSpace(item.workItem.Status)
+	if status == "" {
+		return "no status"
+	}
+	return status
+}
 
 type group struct {
 	key      string
@@ -199,6 +226,10 @@ func labelGroups(rows []row) map[string]string {
 		if _, done := labels[item.group]; done {
 			continue
 		}
+		if status, ok := strings.CutPrefix(item.group, wiPrefix); ok {
+			labels[item.group] = status
+			continue
+		}
 		if creator, ok := strings.CutPrefix(item.group, byPrefix); ok {
 			labels[item.group] = creator
 			if name, live := shown[creator]; live {
@@ -267,6 +298,13 @@ func groupRows(rows []row, folded map[string]bool) ([]row, []group) {
 	sort.SliceStable(groups, func(i, j int) bool {
 		if groups[i].section != groups[j].section {
 			return groups[i].section < groups[j].section
+		}
+		bi, bj := groupBand(groups[i].key), groupBand(groups[j].key)
+		if bi != bj {
+			return bi < bj
+		}
+		if bi == bandWorkItem {
+			return groups[i].label < groups[j].label
 		}
 		return groups[i].rank < groups[j].rank
 	})

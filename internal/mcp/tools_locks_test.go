@@ -25,6 +25,12 @@ func newLockFake() *lockPortFake {
 	return &lockPortFake{locks: map[string][]string{}}
 }
 
+func (f *lockPortFake) WorkItemsEnabled() bool { return false }
+
+func (f *lockPortFake) ConfigureWorkItem(_, _, _, _, _ string) (string, error) {
+	return "", nil
+}
+
 func (f *lockPortFake) Locks(session string) ([]string, error) {
 	return f.locks[session], nil
 }

@@ -315,6 +315,20 @@ func (m Model) sessionRow(item row) string {
 		nameStyle.Render(counts)
 }
 
+// barWorkItem is the work-item segment of the output pane status bar: the
+// mirrored status, next to the effort, and the key when no status is known. See
+// docs/work-items.md.
+func barWorkItem(item row) string {
+	switch {
+	case item.workItem.Status != "":
+		return item.workItem.Status
+	case item.workItem.Key != "":
+		return item.workItem.Key
+	default:
+		return ""
+	}
+}
+
 // rowFlags is the muted single-letter flags for a session row, concatenated in a
 // fixed order: held, read-only, watched, hoisted, scheduled, control. A control session
 // that heads its own group takes no flag, because the group header already marks
@@ -635,6 +649,9 @@ func barDetails(item row) [][]string {
 	full = append(full, item.mode)
 	if item.effort != "" {
 		full = append(full, item.effort+" effort")
+	}
+	if wi := barWorkItem(item); wi != "" {
+		full = append(full, wi)
 	}
 	out := make([][]string, 0, len(full)+1)
 	for n := len(full); n >= 1; n-- {
