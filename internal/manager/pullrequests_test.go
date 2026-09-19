@@ -26,6 +26,20 @@ func found(dir, branch, provider string, number, unresolved int) dirResult {
 	}
 }
 
+func TestPRBadgesCarryTheURLAndDir(t *testing.T) {
+	badges := PRBadges([]PRMirror{
+		{Dir: "/repo/api", Number: 1, URL: "https://host/api/1"},
+		{Dir: "/repo/web", Number: 0, URL: "https://host/web/0"},
+	})
+
+	if len(badges) != 1 {
+		t.Fatalf("badges = %d, want one for the mirror with a number", len(badges))
+	}
+	if badges[0].URL != "https://host/api/1" || badges[0].Dir != "/repo/api" {
+		t.Fatalf("badge = %+v, want the url and the code base of the mirror", badges[0])
+	}
+}
+
 func TestNextPRsBuildsKeepsAndDrops(t *testing.T) {
 	prev := map[string]PRMirror{
 		"/a": {Dir: "/a", Provider: "github", Number: 7, State: "open"},

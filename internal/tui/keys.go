@@ -108,6 +108,8 @@ var sequenceActions = map[string]action{
 	"d -": Model.narrowDiff,
 	"d /": Model.toggleHalfDiff,
 	"d n": Model.toggleDiffNumbers,
+	"d p": Model.openSelectedPR,
+	"d P": Model.openAllPRs,
 }
 
 // sequenceHints lists the action keys of a target, for the status bar.

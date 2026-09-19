@@ -27,6 +27,24 @@ func TestTheFileManagerOfThePlatform(t *testing.T) {
 	}
 }
 
+func TestTheBrowserOfThePlatform(t *testing.T) {
+	target := Browser("https://host/pr/1")
+
+	want := map[string]string{"darwin": "open", "windows": "explorer"}[runtime.GOOS]
+	if want == "" {
+		want = "xdg-open"
+	}
+	if target.Command != want {
+		t.Fatalf("command = %q, want %q", target.Command, want)
+	}
+	if len(target.Args) != 1 || target.Args[0] != "https://host/pr/1" {
+		t.Fatalf("args = %v, want the url", target.Args)
+	}
+	if target.Terminal {
+		t.Fatal("the browser must not take the terminal")
+	}
+}
+
 func TestTheEditorTakesTheDirectoryLast(t *testing.T) {
 	target, err := Editor(config.Config{Editor: "code -n"}, "/tmp/work")
 	if err != nil {
