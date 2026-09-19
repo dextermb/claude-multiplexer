@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/usage"
 	"github.com/dextermb/claude-multiplexer/internal/wire"
 )
@@ -26,6 +27,7 @@ const (
 	ToolMessages      = "get_messages"
 	ToolListJobs      = "list_jobs"
 	ToolConfigPath    = "get_config_path"
+	ToolConfigKeys    = "list_config_keys"
 	ToolTemplatePath  = "get_template_path"
 	ToolSetConfig     = "set_config"
 	ToolUnsetConfig   = "unset_config"
@@ -137,7 +139,7 @@ func ParseProfile(name string) (Profile, error) {
 // MinimalTools are the open tools of the minimal profile: the session reads, and
 // the description of the REST API.
 var MinimalTools = []string{ToolRename, ToolList, ToolListInactive, ToolListArchived, ToolMessages, ToolListJobs,
-	ToolConfigPath, ToolTemplatePath, ToolAPIDocs}
+	ToolConfigPath, ToolConfigKeys, ToolTemplatePath, ToolAPIDocs}
 
 // OpenToolsFor names the open tools of a profile.
 func OpenToolsFor(profile Profile) []string {
@@ -150,7 +152,7 @@ func OpenToolsFor(profile Profile) []string {
 // OpenTools go to every session on the standard profile. ControlTools go only to
 // a session that holds the control grant.
 var (
-	OpenTools = []string{ToolRename, ToolList, ToolListInactive, ToolListArchived, ToolMessages, ToolListJobs, ToolConfigPath, ToolTemplatePath,
+	OpenTools = []string{ToolRename, ToolList, ToolListInactive, ToolListArchived, ToolMessages, ToolListJobs, ToolConfigPath, ToolConfigKeys, ToolTemplatePath,
 		ToolSetConfig, ToolUnsetConfig,
 		ToolSetEditor, ToolUnsetEditor, ToolSetBlockCap, ToolUnsetBlockCap,
 		ToolSetAutoArchive, ToolUnsetAutoArchive, ToolSetWorkingDir, ToolUnsetWorkingDir,
@@ -332,6 +334,13 @@ type ScheduleEdit struct {
 	PermissionMode *string
 	Effort         *string
 	Control        *bool
+}
+
+// ConfigKeys is the output of list_config_keys: the settings key paths, in the
+// dot notation set_config and unset_config take, each with its JSON type. A map
+// key is a "<key>" placeholder. See docs/mcp/tools/settings.md.
+type ConfigKeys struct {
+	Keys []config.KeyPath `json:"keys"`
 }
 
 // ConfigPath names the settings files, in the order they are read. See

@@ -6,6 +6,7 @@ the files a session reads. See [../../config.md](../../config.md).
 | Tool | Arguments | What it does | Grant |
 |---|---|---|---|
 | `get_config_path` | — | The settings files, in the order they are read, the one that is read now, and the one a write goes to. | open |
+| `list_config_keys` | — | The settings keys `set_config` and `unset_config` accept, as dot paths, each with its JSON type. | open |
 | `get_template_path` | `session` | The directories a session reads a preset prompt from, in the order they are read. | open |
 | `set_config` | `path`, `value` | Sets one settings key by a dot path, such as `blockCaps.tool`. It rejects a key or a type the settings do not allow. | open |
 | `unset_config` | `path` | Removes one settings key by a dot path, so that key takes its default again. | open |
@@ -38,6 +39,21 @@ empty for the calling session.
 That `dir` is the one the session started in, which is the one the interface
 reads, and not the one `set_working_dir` names. Both tools only read. See
 [../../config.md](../../config.md) and [../../templates.md](../../templates.md).
+
+### The settings keys
+
+`set_config` and `unset_config` take a `path`, a dot path into the settings, and
+`set_config` rejects a key or a type the settings do not allow. A session cannot
+see the schema, so it must name a real key first.
+
+`list_config_keys` answers with `keys`, the full list of key paths, each with its
+JSON type (`string`, `integer`, `boolean`, `object`, or `array`). The list comes
+from the settings schema itself, so it stays true as the schema grows.
+
+A `<key>` segment stands for a name the user chooses. `blockCaps.<key>` caps one
+block bucket, and `layouts.<key>.sidebarSize` sets one layout dimension. Replace
+`<key>` with the bucket or layout name, then pass that path to `set_config`. See
+[../../config.md](../../config.md).
 
 ### The editor
 

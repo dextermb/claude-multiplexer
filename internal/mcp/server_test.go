@@ -1076,6 +1076,35 @@ func TestUnsetConfigTool(t *testing.T) {
 	}
 }
 
+func TestListConfigKeysTool(t *testing.T) {
+	sessions := newFakeSessions()
+	server := startServer(t, sessions)
+	token, err := server.Register("docs", mcp.DefaultProfile, false)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+
+	client := connect(t, server, token)
+	result := call(t, client, mcp.ToolConfigKeys, nil)
+	if result.IsError {
+		t.Fatalf("list_config_keys failed: %s", resultText(result))
+	}
+	var out mcp.ConfigKeys
+	if err := json.Unmarshal([]byte(resultText(result)), &out); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	want := map[string]string{"editor": "string", "blockCaps.<key>": "integer", "layouts.<key>.sidebarSize": "integer"}
+	got := map[string]string{}
+	for _, key := range out.Keys {
+		got[key.Path] = key.Type
+	}
+	for path, kind := range want {
+		if got[path] != kind {
+			t.Fatalf("key %q = %q, want %q; keys = %v", path, got[path], kind, out.Keys)
+		}
+	}
+}
+
 func TestSetEditorToolWritesBothFields(t *testing.T) {
 	sessions := newFakeSessions()
 	server := startServer(t, sessions)
