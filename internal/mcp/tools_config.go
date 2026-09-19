@@ -22,6 +22,15 @@ func (s *Server) addConfigTools(server *sdk.Server, caller string) {
 	})
 
 	sdk.AddTool(server, &sdk.Tool{
+		Name: ToolConfigKeys,
+		Description: "The settings keys " + ToolSetConfig + " and " + ToolUnsetConfig + " accept, as dot paths, each with its JSON type. " +
+			"A '<key>' segment stands for a name you choose, such as a block bucket in 'blockCaps.<key>' or a layout in 'layouts.<key>.sidebarSize'. " +
+			"Read this to name a real key before you set one.",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, _ struct{}) (*sdk.CallToolResult, ConfigKeys, error) {
+		return nil, ConfigKeys{Keys: config.Keys()}, nil
+	})
+
+	sdk.AddTool(server, &sdk.Tool{
 		Name: ToolTemplatePath,
 		Description: "The directories one session reads a preset prompt from, in the order they are read. " +
 			"The last directory wins when two hold the same name. Give a session name, or leave it empty for this session.",
