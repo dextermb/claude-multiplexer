@@ -11,7 +11,7 @@ const autoArchiveTick = time.Hour
 
 // StartAutoArchive starts the clock that archives a stopped session after it is
 // idle for the configured number of days. Call it once, after StartScheduler.
-// See docs/sessions.md.
+// See docs/sessions/lifecycle.md.
 func (m *Manager) StartAutoArchive() {
 	if m.archiveStop != nil {
 		return

@@ -63,7 +63,7 @@ it at once. Two keys then act on the running turn:
 - `Enter` on an empty prompt box sends the queued prompt now: it stops the turn,
   so the queued prompt goes at once instead of after the turn ends.
 
-Both use the interrupt described in [../../sessions.md](../../sessions.md#interrupt).
+Both use the interrupt described in [../../sessions/lifecycle.md](../../sessions/lifecycle.md#interrupt).
 When the session is not busy, `Esc` still leaves the pane as before.
 
 ## Watching a shared session

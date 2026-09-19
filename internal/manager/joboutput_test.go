@@ -10,7 +10,7 @@ import (
 )
 
 // TestAJobCarriesItsCommandAndOutput drives the whole background job path
-// against the fake binary. See docs/sessions.md.
+// against the fake binary. See docs/sessions/jobs.md.
 func TestAJobCarriesItsCommandAndOutput(t *testing.T) {
 	t.Setenv("FAKECLAUDE_MODE", "jobs")
 	m := newTestManager(t)

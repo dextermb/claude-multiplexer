@@ -417,7 +417,7 @@ func appendUnique(dirs []string, dir string) []string {
 // SetTitle renames a session. A running session takes the new title and
 // persists it on its next event through the pump. A session whose child has
 // exited, whether it lingers as an entry or is already stored, gets the title
-// written straight to its meta. See docs/sessions.md.
+// written straight to its meta. See docs/sessions/lifecycle.md.
 func (m *Manager) SetTitle(name, title string) error {
 	m.mu.Lock()
 	item, live := m.entries[name]
