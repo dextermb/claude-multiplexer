@@ -63,6 +63,11 @@ const (
 	ToolWorkItemStatuses  = "list_workitem_statuses"
 	ToolSetWorkItemStatus = "set_workitem_status"
 
+	ToolConfigureGitHub = "configure_github"
+	ToolConfigureGitLab = "configure_gitlab"
+
+	ToolGetPR = "get_pr"
+
 	ToolListLayouts  = "list_layouts"
 	ToolSaveLayout   = "save_layout"
 	ToolDeleteLayout = "delete_layout"
@@ -171,14 +176,21 @@ var (
 		ToolCreateSchedule, ToolUpdateSchedule, ToolListSchedules, ToolDeleteSchedule, ToolSetScheduleEnabled, ToolRunSchedule,
 		ToolSchedulePath, ToolAPIURL, ToolAPIDocs, ToolGetUsage, ToolPeerUsage, ToolPeerURL,
 		ToolShareSession,
-		ToolConfigureJira, ToolConfigureLinear}
+		ToolConfigureJira, ToolConfigureLinear,
+		ToolConfigureGitHub, ToolConfigureGitLab}
 	// WorkItemTools link a session to a Jira or Linear work item and change its
 	// status. They are open, but a session carries them only when a provider is
 	// configured, so the gate is the settings file. The configure_* tools that
 	// set the token are always open, in OpenTools above, so a session can turn
 	// the feature on. See docs/work-items.md.
 	WorkItemTools = []string{ToolGetWorkItem, ToolSetWorkItem, ToolUnsetWorkItem, ToolWorkItemStatuses, ToolSetWorkItemStatus}
-	ControlTools  = []string{ToolSend, ToolStop, ToolArchive, ToolCreate, ToolStopJob,
+	// PullRequestTools read the pull request of a session's branch. They are open,
+	// but a session carries them only when a provider is configured, so the gate is
+	// the settings file. The configure_* tools that set the token are always open,
+	// in OpenTools above, so a session can turn the feature on. See
+	// docs/pull-requests.md.
+	PullRequestTools = []string{ToolGetPR}
+	ControlTools     = []string{ToolSend, ToolStop, ToolArchive, ToolCreate, ToolStopJob,
 		ToolCreateAPIAdmin, ToolRotateAPIAdmin, ToolRevokeAPIAdmin,
 		ToolCreateAPIClient, ToolUpdateAPIClient, ToolRotateAPIClient, ToolRevokeAPIClient,
 		ToolListAPIClients, ToolCreateAPIKey, ToolRevokeAPIKey, ToolAPIEndpoint,
@@ -312,6 +324,20 @@ type WorkItem struct {
 type WorkItemStatus struct {
 	ID   string `json:"id,omitempty"`
 	Name string `json:"name"`
+}
+
+// PullRequest is the pull request of a session's branch, mirrored from GitHub or
+// GitLab. Found is false when the branch has no pull request. See
+// docs/pull-requests.md.
+type PullRequest struct {
+	Provider   string `json:"provider,omitempty"`
+	Number     int    `json:"number,omitempty"`
+	URL        string `json:"url,omitempty"`
+	State      string `json:"state,omitempty"`
+	Title      string `json:"title,omitempty"`
+	Unresolved int    `json:"unresolved,omitempty"`
+	Branch     string `json:"branch,omitempty"`
+	Found      bool   `json:"found"`
 }
 
 // Message is one entry of get_messages. The transcript carries no timestamp for

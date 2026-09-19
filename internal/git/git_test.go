@@ -107,6 +107,72 @@ func TestDiffFallsBackToHeadWithoutARemote(t *testing.T) {
 	Diff("/tmp/work")
 }
 
+func TestBranchReadsTheCurrentBranch(t *testing.T) {
+	old := run
+	defer func() { run = old }()
+
+	run = func(dir string, args ...string) (string, error) {
+		if !hasArg(args, "--abbrev-ref") {
+			t.Errorf("branch args = %v, want --abbrev-ref", args)
+		}
+		return "feature/pr\n", nil
+	}
+	if got := Branch("/tmp/work"); got != "feature/pr" {
+		t.Fatalf("branch = %q, want feature/pr", got)
+	}
+}
+
+func TestBranchIsEmptyForADetachedHead(t *testing.T) {
+	old := run
+	defer func() { run = old }()
+
+	run = func(dir string, args ...string) (string, error) {
+		return "HEAD\n", nil
+	}
+	if got := Branch("/tmp/work"); got != "" {
+		t.Fatalf("branch = %q, want empty for a detached head", got)
+	}
+}
+
+func TestBranchIsEmptyOnAGitError(t *testing.T) {
+	old := run
+	defer func() { run = old }()
+
+	run = func(dir string, args ...string) (string, error) {
+		return "", errNotRepo
+	}
+	if got := Branch("/tmp/work"); got != "" {
+		t.Fatalf("branch = %q, want empty on a git error", got)
+	}
+}
+
+func TestRemoteURLReadsTheRemote(t *testing.T) {
+	old := run
+	defer func() { run = old }()
+
+	run = func(dir string, args ...string) (string, error) {
+		if !hasArg(args, "get-url") || !hasArg(args, "origin") {
+			t.Errorf("remote args = %v, want get-url origin", args)
+		}
+		return "git@github.com:owner/name.git\n", nil
+	}
+	if got := RemoteURL("/tmp/work", "origin"); got != "git@github.com:owner/name.git" {
+		t.Fatalf("remote = %q", got)
+	}
+}
+
+func TestRemoteURLIsEmptyWithoutARemote(t *testing.T) {
+	old := run
+	defer func() { run = old }()
+
+	run = func(dir string, args ...string) (string, error) {
+		return "", errNotRepo
+	}
+	if got := RemoteURL("/tmp/work", "origin"); got != "" {
+		t.Fatalf("remote = %q, want empty without a remote", got)
+	}
+}
+
 var errNotRepo = &gitError{}
 
 type gitError struct{}

@@ -42,6 +42,14 @@ func TestKeysListsTheSchema(t *testing.T) {
 		{"workItems.linear.token", "string"},
 		{"workItems.linear.email", "string"},
 		{"workItems.linear.url", "string"},
+		{"pullRequests.github.token", "string"},
+		{"pullRequests.github.mode", "string"},
+		{"pullRequests.github.url", "string"},
+		{"pullRequests.github.hosts", "array"},
+		{"pullRequests.gitlab.token", "string"},
+		{"pullRequests.gitlab.mode", "string"},
+		{"pullRequests.gitlab.url", "string"},
+		{"pullRequests.gitlab.hosts", "array"},
 	}
 	got := Keys()
 	if len(got) != len(want) {

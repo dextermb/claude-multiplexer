@@ -27,6 +27,8 @@ func newLockFake() *lockPortFake {
 
 func (f *lockPortFake) WorkItemsEnabled() bool { return false }
 
+func (f *lockPortFake) PullRequestsEnabled() bool { return false }
+
 func (f *lockPortFake) ConfigureWorkItem(_, _, _, _, _ string) (string, error) {
 	return "", nil
 }

@@ -115,6 +115,11 @@ func (m *Manager) equipTools(cfg *session.Config, name string, profile mcp.Profi
 			cfg.AllowedTools = append(cfg.AllowedTools, mcp.Qualify(tool))
 		}
 	}
+	if profile != mcp.ProfileMinimal && m.PullRequestsEnabled() {
+		for _, tool := range mcp.PullRequestTools {
+			cfg.AllowedTools = append(cfg.AllowedTools, mcp.Qualify(tool))
+		}
+	}
 	return token, nil
 }
 

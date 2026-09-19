@@ -23,6 +23,10 @@ func (s *Server) build(caller string, profile Profile, control bool) *sdk.Server
 		if s.sessions.WorkItemsEnabled() {
 			s.addWorkItemTools(server, caller)
 		}
+		s.addPullRequestConfigTools(server, caller)
+		if s.sessions.PullRequestsEnabled() {
+			s.addPullRequestTools(server, caller)
+		}
 		s.addLayoutTools(server, caller)
 		s.addScheduleTools(server, caller, control)
 		s.addShareSessionTool(server, caller, control)
