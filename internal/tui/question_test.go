@@ -4,6 +4,8 @@ import (
 	"strings"
 	"testing"
 
+	tea "github.com/charmbracelet/bubbletea"
+
 	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/manager"
 	"github.com/dextermb/claude-multiplexer/internal/protocol"
@@ -236,6 +238,32 @@ func TestQuestionDoesNotStealSelection(t *testing.T) {
 	}
 	if view := m.View(); strings.Contains(visible(view), "Which colour do you prefer?") {
 		t.Fatal("the pane of another session must not show the question")
+	}
+}
+
+func TestAPasteOnTheOtherRowGoesToTheDialog(t *testing.T) {
+	m, mgr := newTestModel(t, "")
+	m = start(t, m, 100, 30)
+	m, _ = step(t, m, key("esc"))
+	m = spawn(t, m, mgr, "alpha", t.TempDir())
+
+	m, _ = step(t, m, eventMsg(manager.Event{Session: "alpha", Questions: colourQuestion(false)}))
+	m.focus = focusOutput
+	m, _ = step(t, m, key("down"))
+	m, _ = step(t, m, key("down"))
+	if !m.questions["alpha"].onText() {
+		t.Fatal("the cursor must sit on the Other row")
+	}
+
+	m, _ = step(t, m, tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("teal"), Paste: true})
+	if got := m.questions["alpha"].text[0].Value(); got != "teal" {
+		t.Fatalf("the Other input = %q, want the pasted text", got)
+	}
+	if got := m.prompt.Value(); got != "" {
+		t.Fatalf("the prompt = %q, want it untouched by the paste", got)
+	}
+	if m.focus != focusOutput {
+		t.Fatalf("focus = %v, want the paste to stay on the dialog", m.focus)
 	}
 }
 

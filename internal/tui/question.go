@@ -84,6 +84,23 @@ func (d *questionDialog) Update(msg tea.Msg) (formResult, tea.Cmd) {
 	return formOpen, nil
 }
 
+func (d *questionDialog) paste(text string) {
+	if !d.onText() {
+		return
+	}
+	input := &d.text[d.step]
+	runes := []rune(input.Value())
+	at := input.Position()
+	if at < 0 {
+		at = 0
+	}
+	if at > len(runes) {
+		at = len(runes)
+	}
+	input.SetValue(string(runes[:at]) + text + string(runes[at:]))
+	input.SetCursor(at + len([]rune(text)))
+}
+
 func (d *questionDialog) move(delta int) {
 	rows := d.textRow() + 1
 	d.cursor = (d.cursor + delta + rows) % rows

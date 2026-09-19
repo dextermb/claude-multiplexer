@@ -62,6 +62,10 @@ func (m Model) handlePaste(raw string) (tea.Model, tea.Cmd) {
 		m.form.insert(text, paths)
 		return m, nil
 	}
+	if q := m.questions[m.sel]; q != nil && m.focus == focusOutput {
+		q.paste(text)
+		return m, nil
+	}
 	if paths {
 		text += " "
 	}
