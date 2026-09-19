@@ -11,7 +11,9 @@ import (
 
 func workItemRow(name, dir, status string) row {
 	item := liveRow(name, dir, session.StateIdle)
-	item.workItem = manager.WorkItemBadge{Provider: "linear", Key: name + "-1", Status: status}
+	key := name + "-1"
+	item.title = key
+	item.workItem = manager.WorkItemBadge{Provider: "linear", Key: key, Status: status}
 	return item
 }
 
@@ -34,8 +36,8 @@ func TestWorkItemSessionsGroupByStatus(t *testing.T) {
 	}
 
 	view := visible(m.sidebarView())
-	if !strings.Contains(view, "[alpha-1]") {
-		t.Fatalf("a work-item row must show its key:\n%s", view)
+	if !strings.Contains(view, "alpha-1") {
+		t.Fatalf("a renamed work-item session must show its key as its name:\n%s", view)
 	}
 	if !strings.Contains(view, "In Review") {
 		t.Fatalf("a status group must show the status as its header:\n%s", view)

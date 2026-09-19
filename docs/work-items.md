@@ -128,7 +128,8 @@ The multiplexer stores the link and a mirror of the status in the session
 [manager.md](manager.md).
 
 - **Link.** `set_workitem` reads the item on the provider, then writes the
-  title, url, and status into the mirror.
+  title, url, and status into the mirror. It renames the session to the item
+  key, so the key names the row.
 - **Set status.** `set_workitem_status` changes the status on the provider, then
   writes the new status into the mirror.
 - **Read.** The mirror refreshes when a work-item tool runs. There is no
@@ -145,8 +146,9 @@ The mirror shows in three places:
   status groups form a cluster above the directory groups, in status order, and
   each header names the status. A session with a link, but no status yet, sits
   in the "no status" group.
-- **The session row** shows the item key, so a row names its item inside the
-  status group.
+- **The session name** becomes the item key on the link, so a row names its item
+  inside the status group. The unlink clears the rename, unless you changed the
+  name yourself.
 
 ## The two status models
 

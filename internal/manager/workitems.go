@@ -84,17 +84,21 @@ func (m *Manager) SetWorkItem(ctx context.Context, by, provider, key string) (mc
 	}); err != nil {
 		return mcp.WorkItem{}, err
 	}
+	// Rename the session to the item, so its key names the row; see docs/work-items.md.
+	_ = m.SetTitle(by, resolved.Key)
 	return itemView(resolved), nil
 }
 
 // UnsetWorkItem clears the link of the calling session, and reports whether it
-// held one.
+// held one. When the title still names the item, it clears the title too, so the
+// rename does not outlive the link. See docs/work-items.md.
 func (m *Manager) UnsetWorkItem(by string) (bool, error) {
 	item, err := m.entry(by)
 	if err != nil {
 		return false, err
 	}
-	if item.metaCopy().WorkItemKey == "" {
+	key := item.metaCopy().WorkItemKey
+	if key == "" {
 		return false, nil
 	}
 	if _, err := item.mutateMeta(func(meta *Meta) error {
@@ -102,6 +106,9 @@ func (m *Manager) UnsetWorkItem(by string) (bool, error) {
 		return nil
 	}); err != nil {
 		return false, err
+	}
+	if item.sess.Snapshot().Title == key {
+		_ = m.SetTitle(by, "")
 	}
 	return true, nil
 }

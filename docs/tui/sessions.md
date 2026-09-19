@@ -93,8 +93,8 @@ A session that links to a Jira or Linear work item groups by the status of that
 item, and not by its directory or its creator. So every session on an item of
 one status shares one group, and the header names the status, for example
 `In Review`. A session with a link, but no status yet, joins the `no status`
-group. The row shows the item key, so a row names its item inside the group. See
-[../work-items.md](../work-items.md).
+group. The link renames the session to the item key, so the key names the row
+inside the group. See [../work-items.md](../work-items.md).
 
 ### The order of the groups
 

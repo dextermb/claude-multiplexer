@@ -294,17 +294,13 @@ func (m Model) sessionRow(item row) string {
 	if flags := rowFlags(item); flags != "" {
 		flagText = " " + flags
 	}
-	badgeText := ""
-	if badge := rowWorkItem(item); badge != "" {
-		badgeText = " " + badge
-	}
-	nameWidth := width - 3 - lipgloss.Width(flagText) - lipgloss.Width(badgeText) - lipgloss.Width(counts)
+	nameWidth := width - 3 - lipgloss.Width(flagText) - lipgloss.Width(counts)
 	if nameWidth < 1 {
 		nameWidth = 1
 	}
 	glyph := rowGlyph(item, m.spinFrame)
 	if item.name == m.sel {
-		rest := " " + pad(item.displayName(), nameWidth) + badgeText + flagText + counts
+		rest := " " + pad(item.displayName(), nameWidth) + flagText + counts
 		return selectedRowStyle.Render(" ") +
 			item.style().Background(lipgloss.Color("62")).Render(glyph) +
 			selectedRowStyle.Width(width-2).Render(rest)
@@ -315,19 +311,8 @@ func (m Model) sessionRow(item row) string {
 	}
 	return " " + item.style().Render(glyph) +
 		nameStyle.Render(" "+pad(item.displayName(), nameWidth)) +
-		rowMutedStyle.Render(badgeText) +
 		rowMutedStyle.Render(flagText) +
 		nameStyle.Render(counts)
-}
-
-// rowWorkItem is the short work-item badge for a session row: the item key, so a
-// row names its item inside the status group. It is empty for a session with no
-// link. See docs/work-items.md.
-func rowWorkItem(item row) string {
-	if item.workItem.Key == "" {
-		return ""
-	}
-	return "[" + item.workItem.Key + "]"
 }
 
 // barWorkItem is the work-item segment of the output pane status bar: the
