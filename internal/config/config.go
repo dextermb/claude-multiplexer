@@ -139,6 +139,10 @@ type Config struct {
 	// "1d", "7d", "2w", or "1m". The value "all" counts the whole history, and
 	// an empty or unknown value takes DefaultCostWindow. See docs/cost.md.
 	CostWindow string `json:"costWindow,omitempty"`
+	// ArchivedWindow clamps the archived list (l a) to sessions last active
+	// inside this rolling window: 1d, 1w, 1m, 1y, or unset for no limit. An empty
+	// or unknown value takes DefaultLastActive. See docs/config.md.
+	ArchivedWindow string `json:"archivedWindow,omitempty"`
 }
 
 // Peers holds the cross-host settings. Enabled off keeps the peer listener off.

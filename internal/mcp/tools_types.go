@@ -1,9 +1,9 @@
 package mcp
 
 import (
-	"errors"
-	"strings"
 	"time"
+
+	"github.com/dextermb/claude-multiplexer/internal/config"
 )
 
 type setConfigIn struct {
@@ -38,38 +38,25 @@ type listIn struct {
 	LastActive string `json:"last_active,omitempty" jsonschema:"how recently a stored or archived session was last active to still return it: 1d, 1w, 1m, 1y, or unset for no limit; 1d by default; running sessions are always returned"`
 }
 
-// The windows last_active accepts. LastActiveUnset removes the limit.
+// The windows last_active accepts. The vocabulary lives in config, so the MCP
+// tools and the TUI archived list share one set. See docs/config.md.
 const (
-	LastActiveDay   = "1d"
-	LastActiveWeek  = "1w"
-	LastActiveMonth = "1m"
-	LastActiveYear  = "1y"
-	LastActiveUnset = "unset"
+	LastActiveDay   = config.LastActiveDay
+	LastActiveWeek  = config.LastActiveWeek
+	LastActiveMonth = config.LastActiveMonth
+	LastActiveYear  = config.LastActiveYear
+	LastActiveUnset = config.LastActiveUnset
 )
 
 // DefaultLastActive is the window a call takes when it names none.
-const DefaultLastActive = LastActiveDay
+const DefaultLastActive = config.DefaultLastActive
 
 // ErrBadLastActive is the failure when last_active is not a known window.
-var ErrBadLastActive = errors.New("mcp: last_active must be 1d, 1w, 1m, 1y, or unset")
+var ErrBadLastActive = config.ErrBadLastActive
 
 // ParseLastActive turns a window into a lookback duration. An empty window takes
 // the default of one day, and "unset" returns zero, which means no limit.
-func ParseLastActive(window string) (time.Duration, error) {
-	switch strings.TrimSpace(window) {
-	case "", LastActiveDay:
-		return 24 * time.Hour, nil
-	case LastActiveWeek:
-		return 7 * 24 * time.Hour, nil
-	case LastActiveMonth:
-		return 30 * 24 * time.Hour, nil
-	case LastActiveYear:
-		return 365 * 24 * time.Hour, nil
-	case LastActiveUnset:
-		return 0, nil
-	}
-	return 0, ErrBadLastActive
-}
+var ParseLastActive = config.ParseLastActive
 
 // keep decides one session. A running session always stays. A stored or archived
 // session stays only when its category is asked for and it was active since the

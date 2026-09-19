@@ -3,6 +3,7 @@ package tui
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/dextermb/claude-multiplexer/internal/manager"
 	"github.com/dextermb/claude-multiplexer/internal/session"
@@ -97,5 +98,39 @@ func TestDeriveSidebarFiltersBySearch(t *testing.T) {
 	in.showArchived = true
 	if got := deriveSidebar(in); len(got.rows) != 3 {
 		t.Fatalf("rows = %d, want the archived meta shown with showArchived", len(got.rows))
+	}
+}
+
+// TestDeriveSidebarClampsArchived shows an archived row only when it is active
+// since the cutoff. A zero last-active time, or a zero cutoff, passes.
+func TestDeriveSidebarClampsArchived(t *testing.T) {
+	now := time.Date(2026, 9, 18, 12, 0, 0, 0, time.UTC)
+	in := sidebarInputs{
+		stored: []manager.Meta{
+			{Name: "fresh", Dir: "/work/one", Archived: true, LastActiveAt: now.Add(-2 * time.Hour)},
+			{Name: "stale", Dir: "/work/one", Archived: true, LastActiveAt: now.Add(-48 * time.Hour)},
+			{Name: "undated", Dir: "/work/one", Archived: true},
+		},
+		roots:        map[string]string{"/work/one": "/work/one"},
+		folded:       map[string]bool{},
+		showArchived: true,
+	}
+
+	names := func(view sidebarView) string {
+		out := make([]string, 0, len(view.rows))
+		for _, item := range view.rows {
+			out = append(out, item.name)
+		}
+		return strings.Join(out, ",")
+	}
+
+	in.archivedCutoff = now.Add(-24 * time.Hour)
+	if got := names(deriveSidebar(in)); got != "fresh,undated" {
+		t.Fatalf("rows = %q, want the stale archived row clamped out", got)
+	}
+
+	in.archivedCutoff = time.Time{}
+	if got := names(deriveSidebar(in)); got != "fresh,stale,undated" {
+		t.Fatalf("rows = %q, want no clamp when the cutoff is zero", got)
 	}
 }

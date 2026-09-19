@@ -243,3 +243,9 @@ nothing on disk is deleted. Press `l a` to show archived rows again, and `s a`
 on one of them to bring it back.
 
 A running session cannot be archived. Stop it first.
+
+`l a` clamps the archived rows to a rolling last-active window. The window is
+the `archivedWindow` setting: `1d`, `1w`, `1m`, `1y`, or `unset` for no limit.
+The default is `1d`, so `l a` shows the sessions archived or active in the last
+day. A row with no last-active time always shows. See
+[../config.md](../config.md).

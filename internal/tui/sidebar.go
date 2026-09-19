@@ -1,6 +1,9 @@
 package tui
 
 import (
+	"time"
+
+	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/manager"
 	"github.com/dextermb/claude-multiplexer/internal/session"
 )
@@ -30,6 +33,7 @@ type sidebarInputs struct {
 	folded          map[string]bool
 	needle          string
 	showArchived    bool
+	archivedCutoff  time.Time
 	peering         bool
 }
 
@@ -64,8 +68,17 @@ func (m Model) gatherSidebarInputs() sidebarInputs {
 		folded:          m.folded,
 		needle:          m.searchNeedle(),
 		showArchived:    m.showArchived,
+		archivedCutoff:  m.archivedCutoffAt(time.Now()),
 		peering:         m.peering,
 	}
+}
+
+// archivedCutoffAt gives the earliest last-active time an archived row may have
+// and still show, or the zero time when the window is "unset". See
+// docs/config.md.
+func (m Model) archivedCutoffAt(now time.Time) time.Time {
+	cutoff, _ := config.ArchivedCutoff(m.archivedWindow, now)
+	return cutoff
 }
 
 // deriveSidebar folds the inputs into the rows, the groups, and the lines the
@@ -95,8 +108,10 @@ func deriveSidebar(in sidebarInputs) sidebarView {
 		rows = append(rows, item)
 	}
 	for _, meta := range in.stored {
-		if meta.Archived && !in.showArchived {
-			continue
+		if meta.Archived {
+			if !in.showArchived || !activeSinceCutoff(meta.LastActiveAt, in.archivedCutoff) {
+				continue
+			}
 		}
 		rows = append(rows, rowFromMeta(meta))
 	}
@@ -125,6 +140,15 @@ func deriveSidebar(in sidebarInputs) sidebarView {
 	grouped, groups := groupRows(rows, in.folded)
 	lines := listLines(grouped, groups, sectionedRows(in.peering, grouped))
 	return sidebarView{rows: grouped, groups: groups, lines: lines}
+}
+
+// activeSinceCutoff reports whether an archived row is recent enough to show. A
+// zero cutoff (the "unset" window), or a row with no last-active time, passes.
+func activeSinceCutoff(lastActive, cutoff time.Time) bool {
+	if cutoff.IsZero() || lastActive.IsZero() {
+		return true
+	}
+	return !lastActive.Before(cutoff)
 }
 
 // rowGroup keys a row on the control session that created it, or that it created

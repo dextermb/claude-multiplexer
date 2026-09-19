@@ -21,10 +21,11 @@ type storedMsg struct {
 }
 
 type settingsMsg struct {
-	caps         map[string]int
-	layouts      map[string]config.Layout
-	activeLayout string
-	defaults     newSessionDefaults
+	caps           map[string]int
+	layouts        map[string]config.Layout
+	activeLayout   string
+	defaults       newSessionDefaults
+	archivedWindow string
 }
 
 type stoppedMsg struct {
