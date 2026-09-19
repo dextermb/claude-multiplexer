@@ -206,6 +206,23 @@ the metas, key each row's group and section, drop the rows the search needle
 misses, then group and lay them out. A directory group keys on the repository,
 and the walk is cached, because the fold runs on every event.
 
+## The state that follows the selection
+
+Two bits of state trail the selection, and `Update` derives them from the
+selection, not from a mirror it repairs. So a caller sets `m.sel` and nothing
+else, and the follow-state stays correct.
+
+`Update` reads `m.sel` before it dispatches the message, then compares it after.
+When the selection moved, `followSelection` resets the task scroll to the top and
+requests the diff of the new session. The diff cache and the task scroll are the
+only state a new selection changes, so a caller never re-syncs them.
+
+`clampTaskFocus` keeps the task focus valid the same way. The focus holds on the
+task panel (`focusTask`) only while that panel shows and the diff panel is
+closed. When the panel goes — the diff panel opens, or the window narrows past
+the panel — the focus derives back to the output, so it never lands on a panel
+the pane no longer draws.
+
 ## Archived rows
 
 Press `s a` to archive the selected session. The row leaves the list, and

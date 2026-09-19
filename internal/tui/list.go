@@ -100,6 +100,27 @@ func (m *Model) refresh() {
 	m.applyLayout()
 }
 
+// followSelection derives the state that trails the selection, so a caller sets
+// m.sel and never repairs it: when the selection moved this update, the task
+// scroll resets and the diff of the new session is (re)requested. It returns nil
+// when the selection did not move. See docs/tui/sessions.md.
+func (m *Model) followSelection(prev string) tea.Cmd {
+	if m.sel == prev {
+		return nil
+	}
+	m.taskScroll = 0
+	return m.diffRefreshCmd()
+}
+
+// clampTaskFocus keeps the task focus valid: focusTask holds only while the task
+// panel shows and the diff panel is closed, so the focus never lands on a panel
+// the pane no longer draws. See docs/tui/sessions.md.
+func (m *Model) clampTaskFocus() {
+	if m.focus == focusTask && (m.diffPanel || !m.showSidePanel()) {
+		m.focus = focusOutput
+	}
+}
+
 // syncJobsModal gives the open jobs dialog the jobs of its session, so a
 // running job grows while you read it. See docs/tui/sessions/jobs.md.
 func (m *Model) syncJobsModal() {
