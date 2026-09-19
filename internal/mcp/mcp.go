@@ -184,7 +184,7 @@ var (
 	// set the token are always open, in OpenTools above, so a session can turn
 	// the feature on. See docs/work-items.md.
 	WorkItemTools = []string{ToolGetWorkItem, ToolSetWorkItem, ToolUnsetWorkItem, ToolWorkItemStatuses, ToolSetWorkItemStatus}
-	// PullRequestTools read the pull request of a session's branch. They are open,
+	// PullRequestTools read the pull request of each code base of a session. They are open,
 	// but a session carries them only when a provider is configured, so the gate is
 	// the settings file. The configure_* tools that set the token are always open,
 	// in OpenTools above, so a session can turn the feature on. See
@@ -326,9 +326,9 @@ type WorkItemStatus struct {
 	Name string `json:"name"`
 }
 
-// PullRequest is the pull request of a session's branch, mirrored from GitHub or
-// GitLab. Found is false when the branch has no pull request. See
-// docs/pull-requests.md.
+// PullRequest is the pull request of one code base of a session, mirrored from
+// GitHub or GitLab. Dir names the code base. Found is false when the branch has
+// no pull request. See docs/pull-requests.md.
 type PullRequest struct {
 	Provider   string `json:"provider,omitempty"`
 	Number     int    `json:"number,omitempty"`
@@ -337,6 +337,7 @@ type PullRequest struct {
 	Title      string `json:"title,omitempty"`
 	Unresolved int    `json:"unresolved,omitempty"`
 	Branch     string `json:"branch,omitempty"`
+	Dir        string `json:"dir,omitempty"`
 	Found      bool   `json:"found"`
 }
 

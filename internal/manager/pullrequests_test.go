@@ -3,67 +3,124 @@ package manager
 import (
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/dextermb/claude-multiplexer/internal/pullrequest"
 )
 
-func TestApplyAndClearPR(t *testing.T) {
-	var meta Meta
-	applyPR(&meta, pullrequest.PR{
-		Provider:   "github",
-		Number:     1045,
-		URL:        "https://github.com/o/n/pull/1045",
-		State:      pullrequest.StateOpen,
-		Title:      "t",
-		Unresolved: 3,
-	}, "feature/pr")
-	if meta.PRNumber != 1045 || meta.PRUnresolved != 3 || meta.PRBranch != "feature/pr" {
-		t.Fatalf("apply did not mirror: %+v", meta)
-	}
-	if meta.PRSyncedAt.IsZero() {
-		t.Fatal("apply did not stamp the sync time")
-	}
-	view := prView(meta)
-	if !view.Found || view.Provider != "github" || view.Unresolved != 3 {
-		t.Fatalf("view = %+v", view)
-	}
-
-	clearPR(&meta)
-	if meta.PRNumber != 0 || meta.PRState != "" || meta.PRBranch != "" {
-		t.Fatalf("clear left data: %+v", meta)
-	}
-	if prView(meta).Found {
-		t.Fatal("a cleared mirror must not read as found")
+func found(dir, branch, provider string, number, unresolved int) dirResult {
+	return dirResult{
+		Dir:    dir,
+		Branch: branch,
+		Res: pullrequest.Result{
+			Found: true,
+			PR: pullrequest.PR{
+				Provider:   provider,
+				Number:     number,
+				State:      pullrequest.StateOpen,
+				Unresolved: unresolved,
+			},
+		},
 	}
 }
 
-func TestApplyPullRequestMirrorsAndClears(t *testing.T) {
+func TestNextPRsBuildsKeepsAndDrops(t *testing.T) {
+	prev := map[string]PRMirror{
+		"/a": {Dir: "/a", Provider: "github", Number: 7, State: "open"},
+	}
+	out := nextPRs([]dirResult{
+		{Dir: "/a", Keep: true},
+		found("/b", "feat", "gitlab", 42, 2),
+		{Dir: "/c", Res: pullrequest.Result{Found: false}},
+	}, prev)
+	if len(out) != 2 {
+		t.Fatalf("want 2 mirrors, got %d: %+v", len(out), out)
+	}
+	if out[0].Dir != "/a" || out[0].Number != 7 {
+		t.Fatalf("a Keep must retain the prior mirror: %+v", out[0])
+	}
+	if out[1].Dir != "/b" || out[1].Number != 42 || out[1].Provider != "gitlab" {
+		t.Fatalf("a found result must mirror: %+v", out[1])
+	}
+}
+
+func TestApplyPullRequestsTracksEachCodeBase(t *testing.T) {
 	m := newBridgeManager(t)
 	name, err := m.Spawn(context.Background(), Spec{Dir: m.opts.Root, Name: "s"})
 	if err != nil {
 		t.Fatalf("Spawn: %v", err)
 	}
 
-	m.applyPullRequest(name, "feat", pullrequest.Result{
-		Found: true,
-		PR:    pullrequest.PR{Provider: "gitlab", Number: 42, State: pullrequest.StateOpen, Unresolved: 2},
+	m.applyPullRequests(name, []dirResult{
+		found("/a", "feat-a", "github", 10, 1),
+		found("/b", "feat-b", "gitlab", 20, 0),
 	})
-	badges := m.PullRequests()
-	if b, ok := badges[name]; !ok || b.Number != 42 || b.Unresolved != 2 || b.Provider != "gitlab" {
-		t.Fatalf("badge = %+v ok=%v, want number 42", badges[name], ok)
+	badges := m.PullRequests()[name]
+	if len(badges) != 2 {
+		t.Fatalf("want 2 badges, got %d: %+v", len(badges), badges)
+	}
+	if badges[0].Number != 10 || badges[1].Number != 20 {
+		t.Fatalf("badges out of order: %+v", badges)
 	}
 
-	// A transient error keeps the last known mirror.
-	m.applyPullRequest(name, "feat", pullrequest.Result{Err: errors.New("network")})
-	if _, ok := m.PullRequests()[name]; !ok {
-		t.Fatal("a transient error must keep the mirror")
+	// A transient error on one code base keeps its mirror.
+	m.applyPullRequests(name, []dirResult{
+		{Dir: "/a", Res: pullrequest.Result{Err: errors.New("network")}},
+		found("/b", "feat-b", "gitlab", 20, 3),
+	})
+	badges = m.PullRequests()[name]
+	if len(badges) != 2 || badges[0].Number != 10 {
+		t.Fatalf("a transient error must keep the mirror: %+v", badges)
+	}
+	if badges[1].Unresolved != 3 {
+		t.Fatalf("the other code base must update: %+v", badges)
 	}
 
-	// A not-found result clears the mirror.
-	m.applyPullRequest(name, "feat", pullrequest.Result{Found: false})
-	if _, ok := m.PullRequests()[name]; ok {
-		t.Fatal("a not-found result must clear the mirror")
+	// A code base with no PR drops from the list.
+	m.applyPullRequests(name, []dirResult{
+		{Dir: "/a", Res: pullrequest.Result{Found: false}},
+		found("/b", "feat-b", "gitlab", 20, 3),
+	})
+	badges = m.PullRequests()[name]
+	if len(badges) != 1 || badges[0].Number != 20 {
+		t.Fatalf("a not-found code base must drop: %+v", badges)
+	}
+
+	// A code base that leaves the project drops with it.
+	m.applyPullRequests(name, []dirResult{
+		found("/b", "feat-b", "gitlab", 20, 3),
+	})
+	if badges := m.PullRequests()[name]; len(badges) != 1 {
+		t.Fatalf("a removed code base must not linger: %+v", badges)
+	}
+}
+
+func TestMigratePRFoldsTheFlatFields(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "meta.json")
+	old := `{
+		"name": "s",
+		"dir": "/repo",
+		"pr_provider": "github",
+		"pr_number": 1045,
+		"pr_state": "open",
+		"pr_unresolved": 3,
+		"pr_branch": "feature/pr"
+	}`
+	if err := os.WriteFile(path, []byte(old), 0o644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	meta, err := ReadMeta(path)
+	if err != nil {
+		t.Fatalf("ReadMeta: %v", err)
+	}
+	if len(meta.PRs) != 1 {
+		t.Fatalf("want 1 folded mirror, got %d", len(meta.PRs))
+	}
+	pr := meta.PRs[0]
+	if pr.Number != 1045 || pr.Provider != "github" || pr.Branch != "feature/pr" || pr.Dir != "/repo" {
+		t.Fatalf("fold = %+v", pr)
 	}
 }
 

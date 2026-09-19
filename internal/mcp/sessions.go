@@ -90,12 +90,13 @@ type WorkItemPort interface {
 	SetWorkItemStatus(ctx context.Context, target, by string) (WorkItem, error)
 }
 
-// PullRequestPort reads the pull request of a session's branch, and configures
-// the providers. A read takes a session name. See docs/pull-requests.md.
+// PullRequestPort reads the pull requests of a session's code bases, and
+// configures the providers. A read takes a session name. See
+// docs/pull-requests.md.
 type PullRequestPort interface {
 	PullRequestsEnabled() bool
 	ConfigurePullRequest(provider, token, mode, url, by string) (string, error)
-	PullRequest(ctx context.Context, session string) (PullRequest, error)
+	PullRequestsFor(ctx context.Context, session string) ([]PullRequest, error)
 }
 
 // LayoutPort reads and changes the saved screen layouts. See

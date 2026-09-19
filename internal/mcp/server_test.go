@@ -62,7 +62,7 @@ type fakeSessions struct {
 
 type prState struct {
 	enabled    bool
-	item       mcp.PullRequest
+	items      []mcp.PullRequest
 	configured string
 	configMode string
 	err        error
@@ -414,8 +414,8 @@ func (f *fakeSessions) ConfigurePullRequest(provider, _, mode, _, _ string) (str
 	return "/tmp/config.json", nil
 }
 
-func (f *fakeSessions) PullRequest(context.Context, string) (mcp.PullRequest, error) {
-	return f.pr.item, f.pr.err
+func (f *fakeSessions) PullRequestsFor(context.Context, string) ([]mcp.PullRequest, error) {
+	return f.pr.items, f.pr.err
 }
 
 func holdsEvery(held, wanted []string) bool {
