@@ -112,7 +112,6 @@ type Model struct {
 	diffs           map[string]projectDiff
 	fileDiffs       map[string]map[fileKey]string
 	diffOpen        map[string]map[fileKey]bool
-	diffFor         string
 	diffPanel       bool
 	diffSel         int
 	diffScroll      int
@@ -131,7 +130,6 @@ type Model struct {
 
 	sidebarHidden bool
 	taskScroll    int
-	taskFor       string
 	outputFor     string
 
 	width      int
@@ -213,6 +211,7 @@ func (m Model) Init() tea.Cmd {
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	prevSel := m.sel
 	next, cmd := m.update(msg)
 	model, ok := next.(Model)
 	if !ok {
@@ -220,19 +219,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 	model.syncPromptHeight()
 	model.syncMentions()
-	if model.sel != model.diffFor {
-		model.diffFor = model.sel
-		if refresh := model.diffRefreshCmd(); refresh != nil {
-			cmd = tea.Batch(cmd, refresh)
-		}
+	if refresh := model.followSelection(prevSel); refresh != nil {
+		cmd = tea.Batch(cmd, refresh)
 	}
-	if model.sel != model.taskFor {
-		model.taskFor = model.sel
-		model.taskScroll = 0
-	}
-	if model.focus == focusTask && (model.diffPanel || !model.showSidePanel()) {
-		model.focus = focusOutput
-	}
+	model.clampTaskFocus()
 	return model, cmd
 }
 
