@@ -170,6 +170,15 @@ order, for example `#1045 (3) · !88`.
 An unresolved count above zero takes a warning colour, so a review that waits
 stands out.
 
+### Open a pull request from the diff panel
+
+The diff panel opens the tracked pull request in the browser. `d p` opens the
+pull request of the code base the current file belongs to. `d P` opens the pull
+request of every code base of the project. Both keys open the tracked url with
+the browser of the platform, and a code base with no pull request opens nothing.
+The multiplexer does not create a pull request, because the branch is the key.
+See [tui/diff.md](tui/diff.md).
+
 ## The two query models
 
 The two platforms name a pull request differently, so one provider interface has

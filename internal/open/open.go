@@ -77,3 +77,16 @@ func FileManager(dir string) Target {
 		return Target{Command: "xdg-open", Args: []string{dir}}
 	}
 }
+
+// Browser builds the command that opens url in the default browser of the
+// platform.
+func Browser(url string) Target {
+	switch runtime.GOOS {
+	case "darwin":
+		return Target{Command: "open", Args: []string{url}}
+	case "windows":
+		return Target{Command: "explorer", Args: []string{url}}
+	default:
+		return Target{Command: "xdg-open", Args: []string{url}}
+	}
+}

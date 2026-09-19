@@ -13,13 +13,16 @@ import (
 )
 
 // PRBadge is the pull request of a session, in the short form the output bar
-// draws: the provider, the number, the state, and the unresolved count. See
-// docs/pull-requests.md.
+// draws: the provider, the number, the state, and the unresolved count. It also
+// carries the url and the code base, so the diff panel can open the pull request.
+// See docs/pull-requests.md.
 type PRBadge struct {
 	Provider   string
 	Number     int
 	State      string
 	Unresolved int
+	URL        string
+	Dir        string
 }
 
 // pullRequests builds the provider set from the current settings file, so a
@@ -199,6 +202,8 @@ func PRBadges(prs []PRMirror) []PRBadge {
 			Number:     pr.Number,
 			State:      pr.State,
 			Unresolved: pr.Unresolved,
+			URL:        pr.URL,
+			Dir:        pr.Dir,
 		})
 	}
 	return out

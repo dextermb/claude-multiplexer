@@ -85,6 +85,18 @@ of one directory expands on its own, so two files of the same name in two
 directories stay apart. On a horizontal side the grid stays flat, and a cell
 carries its directory's short name when the project has more than one directory.
 
+### Open a pull request
+
+`d p` opens the pull request of the code base the current file belongs to. The
+pull request is for the code base, not the file, so `d p` opens the same pull
+request for every file of that code base. `d P` opens the pull request of every
+code base of the project, one browser tab each.
+
+Both keys open the tracked pull-request url with the browser of the platform, the
+same launch path as `s f`. A code base with no tracked pull request opens
+nothing, and the bar shows a short message. The multiplexer does not create a
+pull request. See [../pull-requests.md](../pull-requests.md).
+
 ## The position and the grid
 
 A layout puts the diff panel on any of four sides. Left and right are vertical
