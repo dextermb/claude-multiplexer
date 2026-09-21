@@ -114,6 +114,26 @@ func (b *bridge) UnsetConfig(path, by string) (string, bool, error) {
 	return file, changed, nil
 }
 
+func (b *bridge) SetKeybinding(action string, keyList []string, by string) (string, string, error) {
+	file, warning, err := b.m.SetKeybinding(action, keyList)
+	if err != nil {
+		return "", "", err
+	}
+	b.m.notify(by, by+" bound "+action+" in the settings", false)
+	return file, warning, nil
+}
+
+func (b *bridge) ResetKeybinding(action, by string) (string, bool, error) {
+	file, changed, err := b.m.ResetKeybinding(action)
+	if err != nil {
+		return "", false, err
+	}
+	if changed {
+		b.m.notify(by, by+" reset "+action+" to its default", false)
+	}
+	return file, changed, nil
+}
+
 func (b *bridge) SetBlockCap(bucket string, rows *int, by string) (string, error) {
 	path, err := b.m.SetBlockCap(bucket, rows)
 	if err != nil {

@@ -37,6 +37,9 @@ const (
 	ToolSetBlockCap   = "set_block_cap"
 	ToolUnsetBlockCap = "unset_block_cap"
 
+	ToolSetKeybinding   = "set_keybinding"
+	ToolResetKeybinding = "reset_keybinding"
+
 	ToolSetAutoArchive   = "set_auto_archive"
 	ToolUnsetAutoArchive = "unset_auto_archive"
 
@@ -169,6 +172,7 @@ func OpenToolsFor(profile Profile) []string {
 var (
 	OpenTools = []string{ToolRename, ToolList, ToolListInactive, ToolListArchived, ToolMessages, ToolListJobs, ToolConfigPath, ToolConfigKeys, ToolBarDefaults, ToolTemplatePath,
 		ToolSetConfig, ToolUnsetConfig,
+		ToolSetKeybinding, ToolResetKeybinding,
 		ToolSetEditor, ToolUnsetEditor, ToolSetBlockCap, ToolUnsetBlockCap,
 		ToolSetAutoArchive, ToolUnsetAutoArchive, ToolSetWorkingDir, ToolUnsetWorkingDir,
 		ToolListProject, ToolAddProjectDir, ToolRemoveProject, ToolSetProject, ToolClearProject,
@@ -218,6 +222,8 @@ var (
 	ErrNoPrompt     = errors.New("mcp: this tool needs a prompt")
 	ErrNoSchedule   = errors.New("mcp: this tool needs a schedule name")
 	ErrNoConfigPath = errors.New("mcp: this tool needs a settings path")
+	ErrNoKeyAction  = errors.New("mcp: this tool needs a keybinding action")
+	ErrNoKeys       = errors.New("mcp: this tool needs one or more keys")
 	ErrNoEditor     = errors.New("mcp: this tool needs an editor, a terminal flag, or both")
 	ErrNoDir        = errors.New("mcp: this tool needs a directory path")
 	ErrNoLock       = errors.New("mcp: this tool needs a lock label")

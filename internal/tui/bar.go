@@ -366,9 +366,9 @@ func (m Model) statusView() string {
 		return statusStyle.Width(m.width).Render(errorStyle.Render(truncate(m.errText, m.width-2)))
 	}
 	if m.seq != nil {
-		hints := truncate(sequenceHints(m.seq.target), m.width-6)
+		hints := truncate(m.sequenceHints(m.seq.target), m.width-6)
 		return statusStyle.Width(m.width).Render(
-			statusKeyStyle.Render(m.seq.target) + statusMutedStyle.Render("  "+hints))
+			statusKeyStyle.Render(targetLabel(m.keys, m.seq.target)) + statusMutedStyle.Render("  "+hints))
 	}
 	left := m.statusLeftSegs()
 	right := m.statusRight()
@@ -444,7 +444,7 @@ func (m Model) statusRight() string {
 			continue
 		}
 		if e.ID == "hints" {
-			parts = append(parts, statusMutedStyle.Render(statusHints()))
+			parts = append(parts, statusMutedStyle.Render(m.statusHints()))
 			continue
 		}
 		for _, seg := range m.statusSessionSeg(e) {

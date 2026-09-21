@@ -6,12 +6,14 @@ import (
 	"testing"
 
 	"github.com/dextermb/claude-multiplexer/internal/git"
+	"github.com/dextermb/claude-multiplexer/internal/keys"
 )
 
 func diffModel() Model {
 	return Model{
 		sel:       "a",
 		focus:     focusDiff,
+		keys:      defaultKeymap(),
 		diffs:     make(map[string]projectDiff),
 		diffOpen:  make(map[string]map[fileKey]bool),
 		fileDiffs: make(map[string]map[fileKey]string),
@@ -565,10 +567,11 @@ func TestHalfWidthTogglesAndReturns(t *testing.T) {
 }
 
 func TestTheDTargetStartsOnlyWithThePanelOpen(t *testing.T) {
-	if _, ok := sequenceTarget("d", false, false); ok {
+	m := Model{keys: defaultKeymap()}
+	if _, ok := m.sequenceTarget("d", false, false); ok {
 		t.Error("with the panel closed, d must not start a sequence")
 	}
-	if target, ok := sequenceTarget("d", false, true); !ok || target != "d" {
+	if target, ok := m.sequenceTarget("d", false, true); !ok || target != keys.TargetDiff {
 		t.Errorf("with the panel open, d must start the d target, got %q %v", target, ok)
 	}
 }

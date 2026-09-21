@@ -58,6 +58,26 @@ func (s *Server) addConfigTools(server *sdk.Server, caller string) {
 	})
 
 	sdk.AddTool(server, &sdk.Tool{
+		Name: ToolSetKeybinding,
+		Description: "Bind one or more keys to an action of the interface, such as 'session.rename' or 'global.quit'. " +
+			"Give 'action' as '<context>.<action>' and 'keys' as the keys, such as [\"N\"] or [\"n\",\"ctrl+n\"]. " +
+			"It refuses a reserved key (?, esc, ctrl+c), an unknown action, or a clash with another binding. " +
+			"It answers with 'warning' when the new binding takes a key a default action used, so you can rebind that action too. " +
+			"Read " + ToolConfigKeys + " for the 'keybindings.<context>.<action>' paths.",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, in setKeybindingIn) (*sdk.CallToolResult, setKeybindingOut, error) {
+		out, err := setKeybinding(s.sessions, caller, in)
+		return nil, out, err
+	})
+
+	sdk.AddTool(server, &sdk.Tool{
+		Name:        ToolResetKeybinding,
+		Description: "Clear one keybinding, so the action takes its built-in keys again. Give 'action' as '<context>.<action>', such as 'session.rename'.",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, in resetKeybindingIn) (*sdk.CallToolResult, resetKeybindingOut, error) {
+		out, err := resetKeybinding(s.sessions, caller, in)
+		return nil, out, err
+	})
+
+	sdk.AddTool(server, &sdk.Tool{
 		Name: ToolSetEditor,
 		Description: "Set the editor the human opens a session directory with, and whether it draws in the terminal. " +
 			"It writes the settings file of the multiplexer, and makes that file when there is none. " +
@@ -255,6 +275,38 @@ func unsetConfig(cfg ConfigPort, caller string, in unsetConfigIn) (unsetConfigOu
 		message = path + " is no longer set in " + file
 	}
 	return unsetConfigOut{OK: true, Path: file, Changed: changed, Message: message}, nil
+}
+
+func setKeybinding(cfg ConfigPort, caller string, in setKeybindingIn) (setKeybindingOut, error) {
+	action := strings.TrimSpace(in.Action)
+	if action == "" {
+		return setKeybindingOut{}, ErrNoKeyAction
+	}
+	if len(in.Keys) == 0 {
+		return setKeybindingOut{}, ErrNoKeys
+	}
+	file, warning, err := cfg.SetKeybinding(action, in.Keys, caller)
+	if err != nil {
+		return setKeybindingOut{}, err
+	}
+	message := action + " is bound to " + strings.Join(in.Keys, " ") + " in " + file
+	return setKeybindingOut{OK: true, Path: file, Message: message, Warning: warning}, nil
+}
+
+func resetKeybinding(cfg ConfigPort, caller string, in resetKeybindingIn) (resetKeybindingOut, error) {
+	action := strings.TrimSpace(in.Action)
+	if action == "" {
+		return resetKeybindingOut{}, ErrNoKeyAction
+	}
+	file, changed, err := cfg.ResetKeybinding(action, caller)
+	if err != nil {
+		return resetKeybindingOut{}, err
+	}
+	message := action + " was not bound in " + file
+	if changed {
+		message = action + " takes its default keys again, in " + file
+	}
+	return resetKeybindingOut{OK: true, Path: file, Changed: changed, Message: message}, nil
 }
 
 func setEditor(cfg ConfigPort, caller string, in setEditorIn) (setEditorOut, error) {

@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/dextermb/claude-multiplexer/internal/config"
+	"github.com/dextermb/claude-multiplexer/internal/keys"
 	"github.com/dextermb/claude-multiplexer/internal/manager"
 	"github.com/dextermb/claude-multiplexer/internal/markdown"
 	"github.com/dextermb/claude-multiplexer/internal/protocol"
@@ -81,6 +82,7 @@ type Model struct {
 	pending        string
 	seq            *sequence
 	seqGen         int
+	keys           keys.Keymap
 	sel            string
 	listOffset     int
 
@@ -198,6 +200,7 @@ func New(opts Options) Model {
 		barRuns:         make(map[string]time.Time),
 		archivedWindow:  config.DefaultLastActive,
 		layout:          config.DefaultLayout(),
+		keys:            defaultKeymap(),
 		focus:           focusSidebar,
 		mouseOn:         true,
 		burst:           &burst{},

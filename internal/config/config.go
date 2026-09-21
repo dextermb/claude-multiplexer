@@ -154,6 +154,9 @@ type Config struct {
 	// custom elements that run a script. A nil block takes the built-in defaults.
 	// See docs/config/bars.md.
 	Bars *Bars `json:"bars,omitempty"`
+	// Keybindings rebinds the keys of the interface. A nil block keeps every
+	// default. See docs/config/keybindings.md.
+	Keybindings *Keybindings `json:"keybindings,omitempty"`
 }
 
 // Peers holds the cross-host settings. Enabled off keeps the peer listener off.
