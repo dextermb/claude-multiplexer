@@ -111,6 +111,20 @@ func TestValidateBarsRejectsAnUnknownID(t *testing.T) {
 	}
 }
 
+func TestValidateBarsAcceptsASessionIDOnTheStatusBar(t *testing.T) {
+	bars := &Bars{Status: &BarSpec{Right: []BarElement{{ID: "cache"}}, Left: []BarElement{{ID: "model"}}}}
+	if err := ValidateBars(bars); err != nil {
+		t.Fatalf("ValidateBars rejected a session id on the status bar: %v", err)
+	}
+}
+
+func TestValidateBarsRejectsAStatusIDOnTheSessionBar(t *testing.T) {
+	bars := &Bars{Session: &BarSpec{Right: []BarElement{{ID: "sessions"}}}}
+	if err := ValidateBars(bars); err == nil {
+		t.Fatal("ValidateBars accepted a status id on the session bar, want an error")
+	}
+}
+
 func TestValidateBarsRejectsABadExtension(t *testing.T) {
 	bars := &Bars{Status: &BarSpec{Right: []BarElement{{Script: "x.rb"}}}}
 	if err := ValidateBars(bars); err == nil {

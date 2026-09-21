@@ -401,8 +401,37 @@ func (m Model) statusLeftSeg(e config.BarElement) []barSeg {
 		if m.status != "" {
 			return []barSeg{{m.status, statusMutedStyle}}
 		}
+	default:
+		return m.statusSessionSeg(e)
 	}
 	return nil
+}
+
+// statusSessionSeg draws a session element on the status bar, for the selected
+// session, restyled to the status bar. See docs/config/bars.md.
+func (m Model) statusSessionSeg(e config.BarElement) []barSeg {
+	item, ok := m.selectedRow()
+	if !ok {
+		return nil
+	}
+	return statusRestyle(m.sessionSeg(item, e))
+}
+
+// sessionSeg draws one built-in session element, from the side its id belongs to.
+func (m Model) sessionSeg(item row, e config.BarElement) []barSeg {
+	if config.SessionElementSide(e.ID) == "left" {
+		return m.sessionLeftSeg(item, e)
+	}
+	return m.sessionRightSeg(item, e)
+}
+
+// statusRestyle rebackgrounds session segments to the status bar, which shares
+// the foreground colours but sits on a different background.
+func statusRestyle(segs []barSeg) []barSeg {
+	for i := range segs {
+		segs[i].style = segs[i].style.Background(statusBackground)
+	}
+	return segs
 }
 
 func (m Model) statusRight() string {
@@ -416,6 +445,10 @@ func (m Model) statusRight() string {
 		}
 		if e.ID == "hints" {
 			parts = append(parts, statusMutedStyle.Render(statusHints()))
+			continue
+		}
+		for _, seg := range m.statusSessionSeg(e) {
+			parts = append(parts, seg.style.Render(seg.text))
 		}
 	}
 	return strings.Join(parts, statusMutedStyle.Render("  "))

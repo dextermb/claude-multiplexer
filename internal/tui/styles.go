@@ -126,23 +126,25 @@ var (
 			Foreground(lipgloss.Color("15")).
 			Background(lipgloss.Color("62"))
 
+	statusBackground = lipgloss.Color("236")
+
 	statusStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("252")).
-			Background(lipgloss.Color("236")).
+			Background(statusBackground).
 			Padding(0, 1)
 
 	statusMutedStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("244")).
-				Background(lipgloss.Color("236"))
+				Background(statusBackground)
 
 	statusKeyStyle = lipgloss.NewStyle().
 			Bold(true).
 			Foreground(lipgloss.Color("15")).
-			Background(lipgloss.Color("236"))
+			Background(statusBackground)
 
 	statusCostStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("108")).
-			Background(lipgloss.Color("236"))
+			Background(statusBackground)
 
 	errorStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("203")).Bold(true)
 
