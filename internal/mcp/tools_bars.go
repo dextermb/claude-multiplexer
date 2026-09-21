@@ -26,24 +26,44 @@ func (s *Server) addBarDefaultsTool(server *sdk.Server) {
 }
 
 type barDefaultsOut struct {
-	Session json.RawMessage `json:"session"`
-	Status  json.RawMessage `json:"status"`
-	Note    string          `json:"note"`
+	Session barSpecOut `json:"session"`
+	Status  barSpecOut `json:"status"`
+	Note    string     `json:"note"`
+}
+
+// barSpecOut is the shape the tool returns for one bar: an ordered list of
+// built-in element ids per side. The defaults hold only built-in ids, so a
+// string list matches the value and the generated output schema agree.
+type barSpecOut struct {
+	Left  []string `json:"left"`
+	Right []string `json:"right"`
 }
 
 func barDefaults() (barDefaultsOut, error) {
-	session, err := config.DefaultBarJSON(config.BarSession)
+	session, err := barSpecOutFor(config.BarSession)
 	if err != nil {
 		return barDefaultsOut{}, err
 	}
-	status, err := config.DefaultBarJSON(config.BarStatus)
+	status, err := barSpecOutFor(config.BarStatus)
 	if err != nil {
 		return barDefaultsOut{}, err
 	}
 	return barDefaultsOut{
-		Session: json.RawMessage(session),
-		Status:  json.RawMessage(status),
+		Session: session,
+		Status:  status,
 		Note: "Write a copy with " + ToolSetConfig + " on 'bars.session' or 'bars.status'. " +
 			"A bare string is a built-in id. An object {\"script\":\"path.sh\",\"label\":\"name\"} runs a Go, Python, or Bash script and shows its first line of output.",
 	}, nil
+}
+
+func barSpecOutFor(bar string) (barSpecOut, error) {
+	data, err := config.DefaultBarJSON(bar)
+	if err != nil {
+		return barSpecOut{}, err
+	}
+	var out barSpecOut
+	if err := json.Unmarshal([]byte(data), &out); err != nil {
+		return barSpecOut{}, err
+	}
+	return out, nil
 }

@@ -67,6 +67,60 @@ func TestSessionBarHidesTheCacheRateWithoutAPromptToken(t *testing.T) {
 	}
 }
 
+func TestStatusBarShowsTheSelectedSessionCacheHitRate(t *testing.T) {
+	item := busyRow()
+	item.name = "alpha"
+	m := Model{
+		rows: []row{item},
+		sel:  "alpha",
+		barSpecs: map[string]config.BarSpec{
+			config.BarStatus: {Right: []config.BarElement{{ID: "cache"}}},
+		},
+	}
+	if got := m.statusRight(); !strings.Contains(got, "cache 94%") {
+		t.Fatalf("statusRight = %q, want it to contain cache 94%%", got)
+	}
+}
+
+func TestStatusBarHidesTheCacheRateWithoutASelectedSession(t *testing.T) {
+	m := Model{
+		barSpecs: map[string]config.BarSpec{
+			config.BarStatus: {Right: []config.BarElement{{ID: "cache"}}},
+		},
+	}
+	if got := m.statusRight(); strings.Contains(got, "cache ") {
+		t.Fatalf("statusRight = %q, want no cache rate with no selection", got)
+	}
+}
+
+func TestStatusBarShowsASelectedSessionElement(t *testing.T) {
+	item := busyRow()
+	item.name = "alpha"
+	item.model = "opus"
+	m := Model{
+		rows: []row{item},
+		sel:  "alpha",
+		barSpecs: map[string]config.BarSpec{
+			config.BarStatus: {Left: []config.BarElement{{ID: "model"}}},
+		},
+	}
+	texts := segTexts(m.statusLeftSegs())
+	if indexOfPrefix(texts, "opus") < 0 {
+		t.Fatalf("statusLeftSegs = %v, want the selected session model", texts)
+	}
+}
+
+func TestStatusBarSessionElementNeedsASelection(t *testing.T) {
+	m := Model{
+		barSpecs: map[string]config.BarSpec{
+			config.BarStatus: {Left: []config.BarElement{{ID: "model"}}},
+		},
+	}
+	if segs := m.statusLeftSegs(); len(segs) != 0 {
+		t.Fatalf("statusLeftSegs = %v, want none with no selection", segTexts(segs))
+	}
+}
+
 func TestSessionBarShowsThePullRequest(t *testing.T) {
 	var m Model
 	item := busyRow()

@@ -94,9 +94,14 @@ with `unset_config`. Both tools take a dot path and reach a nested key:
 | `bars.status.right` | The ordered elements of the status bar right side |
 
 `set_config` also takes a `value`, as any JSON value: a string, a number, a
-boolean, an object, or `null`. It checks the path and the value against the
-settings before it writes, so an unknown field or a wrong type fails and the
+boolean, an array, an object, or `null`. It checks the path and the value against
+the settings before it writes, so an unknown field or a wrong type fails and the
 file stays as it was. A field inside a layout is checked the same way.
+
+A client that cannot send an array or an object sends it as a string of that
+JSON instead. So `set_config` reads a string that holds an array or an object as
+the value it holds, and a scalar or a plain string passes through unchanged. So
+`"[]"` sets an empty list, the same as `[]`.
 
 The check cannot catch a mistyped map key, because `blockCaps` and `layouts`
 take any key. So `blockCaps.tol` writes a key the program never reads. Read the

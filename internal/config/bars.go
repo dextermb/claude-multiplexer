@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 )
@@ -246,10 +247,26 @@ func validateCustomElement(bar, side string, e BarElement) error {
 }
 
 func validBuiltinID(bar, side, id string) bool {
-	for _, name := range builtinBarIDs[bar][side] {
-		if name == id {
-			return true
-		}
+	if slices.Contains(builtinBarIDs[bar][side], id) {
+		return true
+	}
+	// The status bar also accepts every session element, drawn for the selected
+	// session; see docs/config/bars.md.
+	if bar == BarStatus {
+		return SessionElementSide(id) != ""
 	}
 	return false
+}
+
+// SessionElementSide returns the side of a built-in session element ("left" or
+// "right"), and "" when the id names no session element. The status bar reads it
+// to draw a session element for the selected session. See docs/config/bars.md.
+func SessionElementSide(id string) string {
+	if slices.Contains(builtinBarIDs[BarSession]["left"], id) {
+		return "left"
+	}
+	if slices.Contains(builtinBarIDs[BarSession]["right"], id) {
+		return "right"
+	}
+	return ""
 }

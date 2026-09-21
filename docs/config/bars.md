@@ -11,7 +11,8 @@ built-in defaults. See [../config.md](../config.md).
   The left side is the name and the session details. The right side is the
   state, the diff, the pull requests, the tokens, the cost, and more.
 - The **status bar** is the bottom line. The left side counts the sessions and
-  the total cost. The right side is the key hints.
+  the total cost. The right side is the key hints. Both sides also accept any
+  session element, drawn for the selected session.
 
 Each bar has a left side and a right side. Each side is an ordered list of
 elements. An element is a built-in id or a custom script.
@@ -30,6 +31,14 @@ A built-in element is a string, its id. Each side has its own set of ids.
 An id outside its side is an error at load. A built-in element draws nothing
 when it has no data. For example `diff` draws nothing with no change, and `pr`
 draws one segment for each code base and none with no pull request.
+
+The status bar also accepts every session element, on either side, drawn for the
+selected session. So `cache` on the status bar right shows the cache hit rate of
+the selected session, and `model` on the status bar left shows its model. The
+element takes the status bar colours, and it draws nothing with no selection.
+
+An id the status bar owns keeps its own meaning. `cost` on the status bar is the
+total across the sessions, not the cost of the selected session.
 
 ## The defaults
 
