@@ -129,11 +129,19 @@ func (j *jira) site(ctx context.Context, c *conn) (jiraSite, error) {
 	items := unwrapArray(raw)
 	for _, item := range items {
 		var res struct {
-			ID  string `json:"id"`
-			URL string `json:"url"`
+			ID      string `json:"id"`
+			CloudID string `json:"cloudId"`
+			URL     string `json:"url"`
 		}
-		if err := json.Unmarshal(item, &res); err == nil && res.ID != "" {
-			return jiraSite{cloudID: res.ID, baseURL: res.URL}, nil
+		if err := json.Unmarshal(item, &res); err != nil {
+			continue
+		}
+		id := res.CloudID
+		if id == "" {
+			id = res.ID
+		}
+		if id != "" {
+			return jiraSite{cloudID: id, baseURL: res.URL}, nil
 		}
 	}
 	return jiraSite{}, fmt.Errorf("workitem: the Jira token reaches no site")

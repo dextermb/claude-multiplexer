@@ -64,7 +64,7 @@ func unwrapArray(raw json.RawMessage) []json.RawMessage {
 	if err := json.Unmarshal(raw, &obj); err != nil {
 		return nil
 	}
-	for _, key := range []string{"statuses", "states", "transitions", "nodes", "items", "results", "values"} {
+	for _, key := range []string{"statuses", "states", "transitions", "nodes", "items", "results", "values", "data", "resources"} {
 		if inner, ok := obj[key]; ok {
 			if arr := unwrapArray(inner); arr != nil {
 				return arr
