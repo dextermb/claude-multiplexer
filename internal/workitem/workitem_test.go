@@ -76,10 +76,10 @@ func linearServer(state *fakeState) *sdk.Server {
 	return server
 }
 
-func jiraServer(state *fakeState) *sdk.Server {
+func jiraServer(state *fakeState, resources any) *sdk.Server {
 	server := sdk.NewServer(&sdk.Implementation{Name: "jira", Version: "test"}, nil)
-	sdk.AddTool(server, &sdk.Tool{Name: "getAccessibleAtlassianResources"}, func(_ context.Context, _ *sdk.CallToolRequest, _ map[string]any) (*sdk.CallToolResult, []map[string]any, error) {
-		return nil, []map[string]any{{"id": "cloud-1", "url": "https://acme.atlassian.net"}}, nil
+	sdk.AddTool(server, &sdk.Tool{Name: "getAccessibleAtlassianResources"}, func(_ context.Context, _ *sdk.CallToolRequest, _ map[string]any) (*sdk.CallToolResult, any, error) {
+		return nil, resources, nil
 	})
 	type issueIn struct {
 		CloudID      string `json:"cloudId"`
@@ -125,8 +125,23 @@ func linearSet(t *testing.T, state *fakeState) *workitem.Set {
 	return workitem.NewSet(&config.WorkItems{Linear: &config.WorkItemProvider{Token: "t", URL: url}})
 }
 
+// jiraResourcesV1 is the flat array an older Atlassian MCP endpoint returns.
+var jiraResourcesV1 = []map[string]any{{"id": "cloud-1", "url": "https://acme.atlassian.net"}}
+
+// jiraResourcesV2 is the shape the Rovo v2 endpoint returns: the list nested
+// under data.resources, and the id named cloudId.
+var jiraResourcesV2 = map[string]any{"data": map[string]any{"resources": []map[string]any{{
+	"cloudId":  "cloud-1",
+	"url":      "https://acme.atlassian.net",
+	"products": []map[string]any{{"id": "jira", "access": "read-write"}},
+}}}}
+
 func jiraSet(t *testing.T, state *fakeState) *workitem.Set {
-	url := serve(t, jiraServer(state))
+	return jiraSetWith(t, state, jiraResourcesV1)
+}
+
+func jiraSetWith(t *testing.T, state *fakeState, resources any) *workitem.Set {
+	url := serve(t, jiraServer(state, resources))
 	return workitem.NewSet(&config.WorkItems{Jira: &config.WorkItemProvider{Token: "t", URL: url}})
 }
 
@@ -225,4 +240,22 @@ func findName(list []workitem.Status, name string) (workitem.Status, bool) {
 		}
 	}
 	return workitem.Status{}, false
+}
+
+func TestJiraResolveAcrossResourceShapes(t *testing.T) {
+	for name, resources := range map[string]any{"v1": jiraResourcesV1, "rovo-v2": jiraResourcesV2} {
+		t.Run(name, func(t *testing.T) {
+			set := jiraSetWith(t, &fakeState{status: "To Do"}, resources)
+			item, err := set.Resolve(context.Background(), "jira", "PROJ-1")
+			if err != nil {
+				t.Fatalf("resolve: %v", err)
+			}
+			if item.Status != "To Do" || item.Title != "Fix the bug" {
+				t.Fatalf("title/status: %+v", item)
+			}
+			if item.URL != "https://acme.atlassian.net/browse/PROJ-1" {
+				t.Fatalf("url: %q", item.URL)
+			}
+		})
+	}
 }
