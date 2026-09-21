@@ -93,7 +93,9 @@ first, so the order is also the priority: the first element stays the longest.
 ## Custom elements
 
 A custom element is an object that names a script. The script runs, and the
-first line of its output is the element text.
+first line of its output is the element text. For a worked example, see
+[../example-scripts/bars/hello-world.sh](../example-scripts/bars/hello-world.sh),
+which rotates between two words on each refresh.
 
 ```json
 {
