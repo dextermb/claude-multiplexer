@@ -207,7 +207,7 @@ func setConfig(cfg ConfigPort, caller string, in setConfigIn) (setConfigOut, err
 	if path == "" {
 		return setConfigOut{}, ErrNoConfigPath
 	}
-	value, err := json.Marshal(in.Value)
+	value, err := configValue(in.Value)
 	if err != nil {
 		return setConfigOut{}, err
 	}
@@ -216,6 +216,29 @@ func setConfig(cfg ConfigPort, caller string, in setConfigIn) (setConfigOut, err
 		return setConfigOut{}, err
 	}
 	return setConfigOut{OK: true, Path: file, Message: path + " is set in " + file}, nil
+}
+
+// configValue turns the tool input into the JSON value to write. A client that
+// cannot send a JSON array or object sends it as a string of that JSON instead,
+// so a string that holds an array or an object is unwrapped to the value it
+// holds. A scalar, and a plain string, pass through as themselves.
+func configValue(v any) (json.RawMessage, error) {
+	raw, err := json.Marshal(v)
+	if err != nil {
+		return nil, err
+	}
+	s, ok := v.(string)
+	if !ok {
+		return raw, nil
+	}
+	trimmed := strings.TrimSpace(s)
+	if trimmed == "" || (trimmed[0] != '[' && trimmed[0] != '{') {
+		return raw, nil
+	}
+	if !json.Valid([]byte(trimmed)) {
+		return raw, nil
+	}
+	return json.RawMessage(trimmed), nil
 }
 
 func unsetConfig(cfg ConfigPort, caller string, in unsetConfigIn) (unsetConfigOut, error) {

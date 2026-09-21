@@ -1132,6 +1132,50 @@ func TestSetConfigToolPassesTheRawValue(t *testing.T) {
 	}
 }
 
+func TestSetConfigToolUnwrapsAStringifiedArray(t *testing.T) {
+	sessions := newFakeSessions()
+	server := startServer(t, sessions)
+	token, err := server.Register("docs", mcp.DefaultProfile, false)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+
+	client := connect(t, server, token)
+	result := call(t, client, mcp.ToolSetConfig, map[string]any{"path": "bars.status.right", "value": "[]"})
+	if result.IsError {
+		t.Fatalf("set_config failed: %s", resultText(result))
+	}
+	got, ok := sessions.configSet["bars.status.right"]
+	if !ok {
+		t.Fatal("set_config did not record the path")
+	}
+	if string(got) != "[]" {
+		t.Fatalf("value = %s, want [] (an array, not a string)", got)
+	}
+}
+
+func TestSetConfigToolKeepsAPlainString(t *testing.T) {
+	sessions := newFakeSessions()
+	server := startServer(t, sessions)
+	token, err := server.Register("docs", mcp.DefaultProfile, false)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+
+	client := connect(t, server, token)
+	result := call(t, client, mcp.ToolSetConfig, map[string]any{"path": "editor", "value": "nvim"})
+	if result.IsError {
+		t.Fatalf("set_config failed: %s", resultText(result))
+	}
+	got, ok := sessions.configSet["editor"]
+	if !ok {
+		t.Fatal("set_config did not record the path")
+	}
+	if string(got) != `"nvim"` {
+		t.Fatalf("value = %s, want the string \"nvim\"", got)
+	}
+}
+
 func TestSetConfigToolNeedsAPath(t *testing.T) {
 	sessions := newFakeSessions()
 	server := startServer(t, sessions)
