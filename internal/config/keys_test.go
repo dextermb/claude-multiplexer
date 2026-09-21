@@ -50,6 +50,10 @@ func TestKeysListsTheSchema(t *testing.T) {
 		{"pullRequests.gitlab.mode", "string"},
 		{"pullRequests.gitlab.url", "string"},
 		{"pullRequests.gitlab.hosts", "array"},
+		{"bars.session.left", "array"},
+		{"bars.session.right", "array"},
+		{"bars.status.left", "array"},
+		{"bars.status.right", "array"},
 	}
 	got := Keys()
 	if len(got) != len(want) {

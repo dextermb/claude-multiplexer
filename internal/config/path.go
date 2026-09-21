@@ -41,7 +41,14 @@ func SetPath(cfg Config, path string, value json.RawMessage) (Config, error) {
 		node = child
 	}
 	node[keys[len(keys)-1]] = *leaf
-	return fromMap(tree)
+	next, err := fromMap(tree)
+	if err != nil {
+		return Config{}, err
+	}
+	if err := ValidateBars(next.Bars); err != nil {
+		return Config{}, err
+	}
+	return next, nil
 }
 
 // UnsetPath removes one settings key by a dot-notation path. It reports whether
