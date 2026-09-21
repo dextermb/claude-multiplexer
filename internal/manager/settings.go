@@ -186,6 +186,18 @@ func (m *Manager) ResetKeybinding(action string) (string, bool, error) {
 	return m.UnsetConfig("keybindings." + action)
 }
 
+// Keybindings lists the resolved keymap: every action, the keys it answers to
+// now, and whether the user changed it from the default. See
+// docs/config/keybindings.md.
+func (m *Manager) Keybindings() []keys.Entry {
+	var kb *config.Keybindings
+	if file, err := config.Load(m.opts.ConfigPaths...); err == nil {
+		kb = file.Keybindings
+	}
+	km, _, _ := keys.LoadKeymap(kb)
+	return keys.Entries(km)
+}
+
 // SetBlockCap writes the rows a block draws before the pane caps it, so a
 // session can change how much of a large result the human sees. An empty bucket
 // sets the default for every type; a bucket sets that one type. A nil rows caps

@@ -31,6 +31,43 @@ func (k Keymap) Action(ctx Context, key string) (Action, bool) {
 // Keys returns the keys an action answers to, in order.
 func (k Keymap) Keys(a Action) []string { return k.keys[a] }
 
+// Entry is one action of the resolved keymap: its keys, and whether the user
+// changed them from the built-in default.
+type Entry struct {
+	Action  Action
+	Context Context
+	Keys    []string
+	Custom  bool
+}
+
+// Entries lists the resolved keymap in catalogue order, so a reader sees every
+// action and the keys it answers to now. See docs/config/keybindings.md.
+func Entries(km Keymap) []Entry {
+	out := make([]Entry, 0, len(Defaults))
+	for _, d := range Defaults {
+		ks := km.Keys(d.Action)
+		out = append(out, Entry{
+			Action:  d.Action,
+			Context: d.Context,
+			Keys:    ks,
+			Custom:  !sameKeys(ks, d.Keys),
+		})
+	}
+	return out
+}
+
+func sameKeys(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
 // Warning is a default action that lost a key to a user binding.
 type Warning struct {
 	Displaced Action

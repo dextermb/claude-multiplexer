@@ -193,8 +193,9 @@ user binds `session.archive` to `o a`. Now `session.archive` runs on `o a`,
 
 ## The tools
 
-`set_keybinding` and `reset_keybinding` write one action each, and validate the
-whole keymap before they write. See
-[../mcp/tools/settings.md](../mcp/tools/settings.md). `set_config` reaches the
-same fields by the path `keybindings.<context>.<action>`, and `list_config_keys`
-lists every path.
+`get_keybindings` lists the resolved bindings — every action, the keys it
+answers to now, and whether the settings changed it. `set_keybinding` and
+`reset_keybinding` write one action each, and validate the whole keymap before
+they write. See [../mcp/tools/settings.md](../mcp/tools/settings.md).
+`set_config` reaches the same fields by the path
+`keybindings.<context>.<action>`, and `list_config_keys` lists every path.

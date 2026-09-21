@@ -184,6 +184,23 @@ func (f *fakeSessions) ResetKeybinding(action, by string) (string, bool, error) 
 	return "/tmp/config.json", true, nil
 }
 
+func (f *fakeSessions) Keybindings() []keys.Entry {
+	kb := &config.Keybindings{}
+	for action, keyList := range f.keybindingSet {
+		raw, err := json.Marshal(keyList)
+		if err != nil {
+			continue
+		}
+		next, err := config.SetPath(config.Config{Keybindings: kb}, "keybindings."+action, raw)
+		if err != nil {
+			continue
+		}
+		kb = next.Keybindings
+	}
+	km, _, _ := keys.LoadKeymap(kb)
+	return keys.Entries(km)
+}
+
 func (f *fakeSessions) SetEditor(editor string, terminal *bool, by string) (string, error) {
 	if editor != "" {
 		f.editor = editor
@@ -1206,6 +1223,36 @@ func TestSetConfigToolKeepsAPlainString(t *testing.T) {
 	}
 	if string(got) != `"nvim"` {
 		t.Fatalf("value = %s, want the string \"nvim\"", got)
+	}
+}
+
+func TestGetKeybindingsTool(t *testing.T) {
+	sessions := newFakeSessions()
+	server := startServer(t, sessions)
+	token, err := server.Register("docs", mcp.DefaultProfile, false)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+
+	client := connect(t, server, token)
+
+	def := call(t, client, mcp.ToolGetKeybindings, map[string]any{"action": "session.rename"})
+	if def.IsError {
+		t.Fatalf("get_keybindings failed: %s", resultText(def))
+	}
+	if text := resultText(def); !strings.Contains(text, "session.rename") || !strings.Contains(text, `"n"`) {
+		t.Fatalf("want session.rename bound to n:\n%s", text)
+	}
+
+	if r := call(t, client, mcp.ToolSetKeybinding, map[string]any{"action": "output.age", "keys": []any{"A"}}); r.IsError {
+		t.Fatalf("set_keybinding failed: %s", resultText(r))
+	}
+	got := call(t, client, mcp.ToolGetKeybindings, map[string]any{"action": "output.age"})
+	if got.IsError {
+		t.Fatalf("get_keybindings failed: %s", resultText(got))
+	}
+	if text := resultText(got); !strings.Contains(text, `"A"`) || !strings.Contains(text, `"custom":true`) {
+		t.Fatalf("want output.age bound to A and marked custom:\n%s", text)
 	}
 }
 
