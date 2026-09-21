@@ -41,6 +41,10 @@ The session bar shows the git diff count of the session, for example `+120 −30
 `s d` opens a diff panel that lists the changed files and expands each one to its
 diff. See [tui/diff.md](tui/diff.md).
 
+The settings file composes the session bar and the status bar: it reorders the
+built-in elements, removes one, and adds a custom element that runs a script.
+See [config/bars.md](config/bars.md).
+
 ## Where a dialog draws
 
 A dialog draws in one of two regions.
