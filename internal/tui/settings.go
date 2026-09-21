@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/dextermb/claude-multiplexer/internal/commands"
 	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/keys"
 	"github.com/dextermb/claude-multiplexer/internal/session"
@@ -60,6 +61,7 @@ func (m Model) readSettings() tea.Cmd {
 		}
 		merged := config.Resolve(opts.Config, file, config.LoadClaude(opts.ClaudePaths...))
 		km, ok, note := resolveKeymap(merged.Keybindings)
+		cmds, cok, cnote := resolveCommands(merged.Commands, km)
 		return settingsMsg{
 			caps:           config.ResolveBlockCaps(merged),
 			layouts:        merged.Layouts,
@@ -70,8 +72,22 @@ func (m Model) readSettings() tea.Cmd {
 			keys:           km,
 			keysOK:         ok,
 			keyNote:        note,
+			commands:       cmds,
+			commandsOK:     cok,
+			commandNote:    cnote,
 		}
 	}
+}
+
+// resolveCommands builds the command table from the settings, validated against
+// the resolved keymap. It reports whether the commands are valid, and a note for
+// the status bar from any refusal. See docs/config/commands.md.
+func resolveCommands(cmds []config.Command, km keys.Keymap) (commands.Resolved, bool, string) {
+	resolved, errs := commands.Resolve(cmds, km)
+	if len(errs) > 0 {
+		return resolved, false, "commands: " + errs[0].Error()
+	}
+	return resolved, true, ""
 }
 
 // resolveKeymap builds the keymap from the user bindings. It reports whether the

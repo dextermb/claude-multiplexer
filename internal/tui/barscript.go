@@ -1,12 +1,7 @@
 package tui
 
 import (
-	"bytes"
-	"context"
-	"os"
-	"os/exec"
 	"path/filepath"
-	"strings"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -160,51 +155,12 @@ func (m Model) configDir() string {
 func runBarScript(job barJob, baseDir string) tea.Cmd {
 	return func() tea.Msg {
 		out := barOutputMsg{bar: job.bar, session: job.session, label: job.label}
-		runner, ok := config.BarScriptRunner(job.script)
-		if !ok {
-			out.err = &barScriptError{"unknown script type"}
-			return out
-		}
-		ctx, cancel := context.WithTimeout(context.Background(), barScriptTimeout)
-		defer cancel()
-		args := append(runner[1:], expandBarPath(job.script, baseDir))
-		cmd := exec.CommandContext(ctx, runner[0], args...)
-		cmd.Stdin = bytes.NewReader(job.payload)
-		if baseDir != "" {
-			cmd.Dir = baseDir
-		}
-		data, err := cmd.Output()
+		text, err := runScriptSync(job.script, job.payload, barScriptTimeout, baseDir)
 		if err != nil {
 			out.err = err
 			return out
 		}
-		out.text = firstLine(data)
+		out.text = text
 		return out
 	}
-}
-
-type barScriptError struct{ msg string }
-
-func (e *barScriptError) Error() string { return e.msg }
-
-// expandBarPath resolves a script path: a leading ~ against the home directory,
-// and a relative path against the settings directory.
-func expandBarPath(path, baseDir string) string {
-	if strings.HasPrefix(path, "~/") {
-		if home, err := os.UserHomeDir(); err == nil {
-			return filepath.Join(home, path[2:])
-		}
-	}
-	if filepath.IsAbs(path) || baseDir == "" {
-		return path
-	}
-	return filepath.Join(baseDir, path)
-}
-
-func firstLine(data []byte) string {
-	text := string(data)
-	if i := strings.IndexByte(text, '\n'); i >= 0 {
-		text = text[:i]
-	}
-	return strings.TrimSpace(text)
 }

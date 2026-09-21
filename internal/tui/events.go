@@ -21,6 +21,12 @@ func (m Model) handleSettings(msg settingsMsg) (tea.Model, tea.Cmd) {
 	if msg.keyNote != "" {
 		m.status = msg.keyNote
 	}
+	if msg.commandsOK {
+		m.commands = msg.commands
+	}
+	if msg.commandNote != "" {
+		m.status = msg.commandNote
+	}
 	windowChanged := msg.archivedWindow != m.archivedWindow
 	m.archivedWindow = msg.archivedWindow
 	m.applyLayout()

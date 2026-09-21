@@ -66,6 +66,39 @@ type resetKeybindingOut struct {
 	Message string `json:"message"`
 }
 
+type commandEntry struct {
+	Keys   string `json:"keys"`
+	Label  string `json:"label"`
+	Script string `json:"script"`
+}
+
+type getCommandsOut struct {
+	Commands []commandEntry `json:"commands"`
+}
+
+type addCommandIn struct {
+	Keys   string `json:"keys" jsonschema:"the trigger, as one or two space-separated keys: a standalone key such as 'ctrl+g', or a leader and a second key such as 'b o'"`
+	Label  string `json:"label" jsonschema:"a name for the command, shown in the help overlay and the notice; a second command with the same label replaces the first"`
+	Script string `json:"script" jsonschema:"the script to run: an absolute path, a ~/ path, or a path under the settings directory, ending .sh, .py, or .go"`
+}
+
+type addCommandOut struct {
+	OK      bool   `json:"ok"`
+	Path    string `json:"path"`
+	Message string `json:"message"`
+}
+
+type removeCommandIn struct {
+	Label string `json:"label" jsonschema:"the label of the command to remove"`
+}
+
+type removeCommandOut struct {
+	OK      bool   `json:"ok"`
+	Path    string `json:"path"`
+	Changed bool   `json:"changed"`
+	Message string `json:"message"`
+}
+
 type renameIn struct {
 	Title string `json:"title" jsonschema:"the new display title for this session; an empty string clears it"`
 }

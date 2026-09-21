@@ -5,6 +5,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/keys"
 )
 
@@ -229,7 +230,7 @@ func (h *help) Update(msg tea.Msg) (bool, tea.Cmd) {
 	return true, cmd
 }
 
-func (h *help) rows(km keys.Keymap, width int) []string {
+func (h *help) rows(km keys.Keymap, cmds []config.Command, width int) []string {
 	needle := strings.ToLower(strings.TrimSpace(h.filter.Value()))
 	var (
 		out   []string
@@ -252,17 +253,30 @@ func (h *help) rows(km keys.Keymap, width int) []string {
 		}
 		out = append(out, "  "+fieldLabelStyle.Render(pad(shown, 17))+truncate(item.what, width-21))
 	}
+	for _, c := range cmds {
+		if needle != "" &&
+			!strings.Contains(strings.ToLower(c.Keys), needle) &&
+			!strings.Contains(strings.ToLower(c.Label), needle) &&
+			!strings.Contains("your commands", needle) {
+			continue
+		}
+		if group != "Your commands" {
+			group = "Your commands"
+			out = append(out, titleStyle.Render(group))
+		}
+		out = append(out, "  "+fieldLabelStyle.Render(pad(c.Keys, 17))+truncate(c.Label, width-21))
+	}
 	return out
 }
 
-func (h *help) View(km keys.Keymap, width, height int) string {
+func (h *help) View(km keys.Keymap, cmds []config.Command, width, height int) string {
 	inner := modalInner(width)
 	window := height - 10
 	if window < 3 {
 		window = 3
 	}
 
-	rows := h.rows(km, inner)
+	rows := h.rows(km, cmds, inner)
 	if h.offset > len(rows)-window {
 		h.offset = len(rows) - window
 	}

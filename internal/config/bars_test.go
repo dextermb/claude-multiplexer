@@ -139,23 +139,6 @@ func TestValidateBarsRejectsABadRefresh(t *testing.T) {
 	}
 }
 
-func TestBarScriptRunnerReadsTheExtension(t *testing.T) {
-	cases := map[string][]string{
-		"a/branch.sh": {"bash"},
-		"weather.py":  {"python3"},
-		"stat.go":     {"go", "run"},
-	}
-	for path, want := range cases {
-		cmd, ok := BarScriptRunner(path)
-		if !ok || !equalStrings(cmd, want) {
-			t.Fatalf("BarScriptRunner(%q) = %v %v, want %v", path, cmd, ok, want)
-		}
-	}
-	if _, ok := BarScriptRunner("x.rb"); ok {
-		t.Fatal("BarScriptRunner(.rb) reported a runner, want none")
-	}
-}
-
 func TestBarRefreshTakesTheDefaultAndTheFloor(t *testing.T) {
 	if d := (BarElement{}).BarRefresh(); d != DefaultBarRefresh {
 		t.Fatalf("empty refresh = %v, want %v", d, DefaultBarRefresh)

@@ -139,6 +139,28 @@ func (b *bridge) ResetKeybinding(action, by string) (string, bool, error) {
 	return file, changed, nil
 }
 
+func (b *bridge) Commands() []config.Command { return b.m.Commands() }
+
+func (b *bridge) AddCommand(keyList, label, script, by string) (string, error) {
+	file, err := b.m.AddCommand(keyList, label, script)
+	if err != nil {
+		return "", err
+	}
+	b.m.notify(by, by+" bound the "+label+" command in the settings", false)
+	return file, nil
+}
+
+func (b *bridge) RemoveCommand(label, by string) (string, bool, error) {
+	file, changed, err := b.m.RemoveCommand(label)
+	if err != nil {
+		return "", false, err
+	}
+	if changed {
+		b.m.notify(by, by+" removed the "+label+" command from the settings", false)
+	}
+	return file, changed, nil
+}
+
 func (b *bridge) SetBlockCap(bucket string, rows *int, by string) (string, error) {
 	path, err := b.m.SetBlockCap(bucket, rows)
 	if err != nil {

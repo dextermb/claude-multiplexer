@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"path/filepath"
 	"slices"
 	"strings"
 	"time"
@@ -96,27 +95,6 @@ var builtinBarIDs = map[string]map[string][]string{
 		"left":  {"sessions", "busy", "cost", "status"},
 		"right": {"hints"},
 	},
-}
-
-// barScriptRunners maps a script extension to the command that runs it. The
-// config validates the extension, and the interface runs the command. See
-// docs/config/bars.md.
-var barScriptRunners = map[string][]string{
-	".go": {"go", "run"},
-	".py": {"python3"},
-	".sh": {"bash"},
-}
-
-// BarScriptRunner gives the command and its leading arguments for a script path,
-// by the file extension, and false when the extension is not one it runs.
-func BarScriptRunner(path string) ([]string, bool) {
-	cmd, ok := barScriptRunners[strings.ToLower(filepath.Ext(path))]
-	if !ok {
-		return nil, false
-	}
-	out := make([]string, len(cmd))
-	copy(out, cmd)
-	return out, true
 }
 
 // DefaultBarSpec parses the embedded default of one bar: BarSession or
@@ -235,7 +213,7 @@ func validateBarSide(bar, side string, elements []BarElement) error {
 }
 
 func validateCustomElement(bar, side string, e BarElement) error {
-	if _, ok := BarScriptRunner(e.Script); !ok {
+	if _, ok := ScriptRunner(e.Script); !ok {
 		return fmt.Errorf("config: the script %q of bars.%s.%s has no known extension (.go, .py, or .sh)", e.Script, bar, side)
 	}
 	if strings.TrimSpace(e.Refresh) != "" {
