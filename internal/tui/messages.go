@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"github.com/dextermb/claude-multiplexer/internal/commands"
 	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/keys"
 	"github.com/dextermb/claude-multiplexer/internal/manager"
@@ -31,6 +32,9 @@ type settingsMsg struct {
 	keys           keys.Keymap
 	keysOK         bool
 	keyNote        string
+	commands       commands.Resolved
+	commandsOK     bool
+	commandNote    string
 }
 
 type stoppedMsg struct {

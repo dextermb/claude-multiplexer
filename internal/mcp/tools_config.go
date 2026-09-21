@@ -87,6 +87,34 @@ func (s *Server) addConfigTools(server *sdk.Server, caller string) {
 	})
 
 	sdk.AddTool(server, &sdk.Tool{
+		Name: ToolGetCommands,
+		Description: "The key commands of the interface: each trigger, its label, and its script. " +
+			"A command binds a key trigger to a script, so a press runs the script. " +
+			"Read this to see a command before you change it with " + ToolAddCommand + " or " + ToolRemoveCommand + ".",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, _ struct{}) (*sdk.CallToolResult, getCommandsOut, error) {
+		return nil, getCommands(s.sessions), nil
+	})
+
+	sdk.AddTool(server, &sdk.Tool{
+		Name: ToolAddCommand,
+		Description: "Bind a key trigger to a script, so a press runs the script. " +
+			"Give 'keys' as the trigger (a standalone key such as 'ctrl+g', or a leader and a second key such as 'b o'), 'label' as a name, and 'script' as the file. " +
+			"The script runs off the main loop, reads the selected session as JSON on stdin, and its first stdout line shows as a notice. " +
+			"A command with the same label is replaced. It validates the whole set before it writes, so it refuses a reserved key (?, esc, ctrl+c), a bad trigger, or a clash with a key of the interface.",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, in addCommandIn) (*sdk.CallToolResult, addCommandOut, error) {
+		out, err := addCommand(s.sessions, caller, in)
+		return nil, out, err
+	})
+
+	sdk.AddTool(server, &sdk.Tool{
+		Name:        ToolRemoveCommand,
+		Description: "Remove a key command by its label, so its trigger runs nothing again. Give 'label' as the name of the command to remove.",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, in removeCommandIn) (*sdk.CallToolResult, removeCommandOut, error) {
+		out, err := removeCommand(s.sessions, caller, in)
+		return nil, out, err
+	})
+
+	sdk.AddTool(server, &sdk.Tool{
 		Name: ToolSetEditor,
 		Description: "Set the editor the human opens a session directory with, and whether it draws in the terminal. " +
 			"It writes the settings file of the multiplexer, and makes that file when there is none. " +
@@ -333,6 +361,51 @@ func resetKeybinding(cfg ConfigPort, caller string, in resetKeybindingIn) (reset
 		message = action + " takes its default keys again, in " + file
 	}
 	return resetKeybindingOut{OK: true, Path: file, Changed: changed, Message: message}, nil
+}
+
+func getCommands(cfg ConfigPort) getCommandsOut {
+	var out getCommandsOut
+	for _, c := range cfg.Commands() {
+		out.Commands = append(out.Commands, commandEntry{Keys: c.Keys, Label: c.Label, Script: c.Script})
+	}
+	return out
+}
+
+func addCommand(cfg ConfigPort, caller string, in addCommandIn) (addCommandOut, error) {
+	keyList := strings.TrimSpace(in.Keys)
+	label := strings.TrimSpace(in.Label)
+	script := strings.TrimSpace(in.Script)
+	if keyList == "" {
+		return addCommandOut{}, ErrNoKeys
+	}
+	if label == "" {
+		return addCommandOut{}, ErrNoCommandLabel
+	}
+	if script == "" {
+		return addCommandOut{}, ErrNoCommandScript
+	}
+	file, err := cfg.AddCommand(keyList, label, script, caller)
+	if err != nil {
+		return addCommandOut{}, err
+	}
+	message := label + " runs " + script + " on " + keyList + " in " + file
+	return addCommandOut{OK: true, Path: file, Message: message}, nil
+}
+
+func removeCommand(cfg ConfigPort, caller string, in removeCommandIn) (removeCommandOut, error) {
+	label := strings.TrimSpace(in.Label)
+	if label == "" {
+		return removeCommandOut{}, ErrNoCommandLabel
+	}
+	file, changed, err := cfg.RemoveCommand(label, caller)
+	if err != nil {
+		return removeCommandOut{}, err
+	}
+	message := label + " was not a command in " + file
+	if changed {
+		message = label + " is no longer a command in " + file
+	}
+	return removeCommandOut{OK: true, Path: file, Changed: changed, Message: message}, nil
 }
 
 func setEditor(cfg ConfigPort, caller string, in setEditorIn) (setEditorOut, error) {

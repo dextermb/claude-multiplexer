@@ -156,8 +156,12 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.seq != nil {
 		return m.resolveSequence(msg)
 	}
-	if target, ok := m.sequenceTarget(msg.String(), m.focus == focusPrompt, m.diffPanel); ok {
+	inPrompt := m.focus == focusPrompt
+	if target, ok := m.sequenceTarget(msg.String(), inPrompt, m.diffPanel); ok {
 		return m.startSequence(target)
+	}
+	if leader, ok := m.commandLeader(msg.String(), inPrompt); ok {
+		return m.startCommandSequence(leader)
 	}
 
 	if m.focus == focusDiff {
@@ -171,6 +175,9 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if a, ok := m.keys.Action(keys.CtxGlobal, key); ok && globalEverywhere(key) {
 		return m.runGlobal(a)
 	}
+	if cmd, ok := m.commands.Single(key); ok && strings.HasPrefix(key, "ctrl+") {
+		return m.runCommand(cmd)
+	}
 
 	if m.focus != focusPrompt {
 		if looksDropped(msg) {
@@ -182,6 +189,9 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		if a, ok := m.keys.Action(keys.CtxGlobal, key); ok {
 			return m.runGlobal(a)
+		}
+		if cmd, ok := m.commands.Single(key); ok {
+			return m.runCommand(cmd)
 		}
 	}
 

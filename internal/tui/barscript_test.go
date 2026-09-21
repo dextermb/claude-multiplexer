@@ -20,11 +20,11 @@ func TestFirstLineTrimsAndCuts(t *testing.T) {
 	}
 }
 
-func TestExpandBarPathResolvesRelativeAndAbsolute(t *testing.T) {
-	if got := expandBarPath("branch.sh", "/cfg"); got != "/cfg/branch.sh" {
+func TestExpandScriptPathResolvesRelativeAndAbsolute(t *testing.T) {
+	if got := expandScriptPath("branch.sh", "/cfg"); got != "/cfg/branch.sh" {
 		t.Fatalf("relative path = %q, want /cfg/branch.sh", got)
 	}
-	if got := expandBarPath("/abs/x.sh", "/cfg"); got != "/abs/x.sh" {
+	if got := expandScriptPath("/abs/x.sh", "/cfg"); got != "/abs/x.sh" {
 		t.Fatalf("absolute path = %q, want it unchanged", got)
 	}
 }

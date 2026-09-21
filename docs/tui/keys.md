@@ -32,6 +32,11 @@ second key also cancels it, and the status bar shows a short notice, such as
 The plain target keys work when the focus is the list or the output. The control
 forms work everywhere, so a sequence still starts while you type a prompt.
 
+You can add your own two-key sequences and standalone keys, each of which runs a
+script. A custom leader (such as `b`) works the same as a built-in target, and a
+standalone key (such as `ctrl+g`) works on its own. See
+[../config/commands.md](../config/commands.md).
+
 ## The session: `s`
 
 | Keys | Action |

@@ -12,6 +12,7 @@ import (
 
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 
+	"github.com/dextermb/claude-multiplexer/internal/commands"
 	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/keys"
 	"github.com/dextermb/claude-multiplexer/internal/mcp"
@@ -35,6 +36,8 @@ type fakeSessions struct {
 	configUnset     []string
 	keybindingSet   map[string][]string
 	keybindingReset []string
+	commands        []config.Command
+	commandRemoved  []string
 	editor          string
 	terminal        *bool
 	editorPath      string
@@ -181,6 +184,43 @@ func (f *fakeSessions) SetKeybinding(action string, keyList []string, by string)
 
 func (f *fakeSessions) ResetKeybinding(action, by string) (string, bool, error) {
 	f.keybindingReset = append(f.keybindingReset, action)
+	return "/tmp/config.json", true, nil
+}
+
+func (f *fakeSessions) Commands() []config.Command { return f.commands }
+
+func (f *fakeSessions) AddCommand(keyList, label, script, by string) (string, error) {
+	km, _, _ := keys.LoadKeymap(nil)
+	next := append([]config.Command(nil), f.commands...)
+	replaced := false
+	for i := range next {
+		if next[i].Label == label {
+			next[i] = config.Command{Keys: keyList, Label: label, Script: script}
+			replaced = true
+		}
+	}
+	if !replaced {
+		next = append(next, config.Command{Keys: keyList, Label: label, Script: script})
+	}
+	if _, errs := commands.Resolve(next, km); len(errs) > 0 {
+		return "", errs[0]
+	}
+	f.commands = next
+	return "/tmp/config.json", nil
+}
+
+func (f *fakeSessions) RemoveCommand(label, by string) (string, bool, error) {
+	kept := make([]config.Command, 0, len(f.commands))
+	for _, c := range f.commands {
+		if c.Label != label {
+			kept = append(kept, c)
+		}
+	}
+	if len(kept) == len(f.commands) {
+		return "/tmp/config.json", false, nil
+	}
+	f.commands = kept
+	f.commandRemoved = append(f.commandRemoved, label)
 	return "/tmp/config.json", true, nil
 }
 
@@ -1272,6 +1312,51 @@ func TestSetKeybindingTool(t *testing.T) {
 	got, ok := sessions.keybindingSet["session.rename"]
 	if !ok || len(got) != 1 || got[0] != "N" {
 		t.Fatalf("recorded = %v, want [N]", got)
+	}
+}
+
+func TestAddCommandTool(t *testing.T) {
+	sessions := newFakeSessions()
+	server := startServer(t, sessions)
+	token, err := server.Register("docs", mcp.DefaultProfile, false)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+
+	client := connect(t, server, token)
+	result := call(t, client, mcp.ToolAddCommand, map[string]any{"keys": "b o", "label": "browser", "script": "open.sh"})
+	if result.IsError {
+		t.Fatalf("add_command failed: %s", resultText(result))
+	}
+	if len(sessions.commands) != 1 || sessions.commands[0].Label != "browser" {
+		t.Fatalf("recorded = %v, want the browser command", sessions.commands)
+	}
+
+	removed := call(t, client, mcp.ToolRemoveCommand, map[string]any{"label": "browser"})
+	if removed.IsError {
+		t.Fatalf("remove_command failed: %s", resultText(removed))
+	}
+	if len(sessions.commands) != 0 {
+		t.Fatalf("commands = %v, want none after remove", sessions.commands)
+	}
+}
+
+func TestAddCommandToolRefusesAClash(t *testing.T) {
+	sessions := newFakeSessions()
+	server := startServer(t, sessions)
+	token, err := server.Register("docs", mcp.DefaultProfile, false)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+
+	client := connect(t, server, token)
+	// q quits, so it cannot be a standalone command.
+	result := call(t, client, mcp.ToolAddCommand, map[string]any{"keys": "q", "label": "boom", "script": "x.sh"})
+	if !result.IsError {
+		t.Fatalf("add_command must refuse a clash with a key of the interface, got: %s", resultText(result))
+	}
+	if len(sessions.commands) != 0 {
+		t.Fatal("a refused command must not be recorded")
 	}
 }
 

@@ -151,6 +151,7 @@ func TestKeysListsTheSchema(t *testing.T) {
 		{"keybindings.review.explainHunk", "array"},
 		{"keybindings.review.explainFile", "array"},
 		{"keybindings.review.focusNext", "array"},
+		{"commands", "array"},
 	}
 	got := Keys()
 	if len(got) != len(want) {

@@ -65,6 +65,7 @@ a typing mistake.
 | `workItems` | The Jira and Linear work-item providers, keyed by provider, each with a token | [work-items.md](work-items.md) |
 | `pullRequests` | The GitHub and GitLab pull-request providers, keyed by provider, each with a token or a CLI mode | [pull-requests.md](pull-requests.md) |
 | `bars` | The composition of the session bar and the status bar: the ordered elements, and any custom script elements | [config/bars.md](config/bars.md) |
+| `commands` | Key commands: a trigger, a label, and a script the press runs | [config/commands.md](config/commands.md) |
 
 ## Write any key by its path
 
@@ -92,6 +93,7 @@ with `unset_config`. Both tools take a dot path and reach a nested key:
 | `pullRequests.gitlab.mode` | The transport of a pull-request provider: `auto`, `api`, or `cli` |
 | `bars.session.left` | The ordered elements of the session bar left side |
 | `bars.status.right` | The ordered elements of the status bar right side |
+| `commands` | The whole list of key commands; `add_command` and `remove_command` are the tools that own it |
 
 `set_config` also takes a `value`, as any JSON value: a string, a number, a
 boolean, an array, an object, or `null`. It checks the path and the value against
@@ -134,3 +136,4 @@ reload. See [manager.md](manager.md).
 | [config/new-session.md](config/new-session.md) | The option each field of the new session form opens on |
 | [config/bars.md](config/bars.md) | The composition of the two status bars, the built-in elements, and custom script elements |
 | [config/keybindings.md](config/keybindings.md) | Rebinding the keys of the interface, the reserved set, the action catalogue, and the precedence rule |
+| [config/commands.md](config/commands.md) | Binding a key trigger to a script, the trigger forms, the payload the script reads, and the tools |

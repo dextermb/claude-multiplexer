@@ -8,6 +8,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/dextermb/claude-multiplexer/internal/commands"
 	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/keys"
 	"github.com/dextermb/claude-multiplexer/internal/manager"
@@ -83,6 +84,7 @@ type Model struct {
 	seq            *sequence
 	seqGen         int
 	keys           keys.Keymap
+	commands       commands.Resolved
 	sel            string
 	listOffset     int
 
@@ -307,6 +309,8 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleBarTick(msg)
 	case barOutputMsg:
 		return m.handleBarOutput(msg)
+	case commandOutputMsg:
+		return m.handleCommandOutput(msg)
 	case tea.MouseMsg:
 		return m.handleMouse(msg)
 	case tea.KeyMsg:

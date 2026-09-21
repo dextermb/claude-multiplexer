@@ -41,6 +41,10 @@ const (
 	ToolSetKeybinding   = "set_keybinding"
 	ToolResetKeybinding = "reset_keybinding"
 
+	ToolGetCommands   = "get_commands"
+	ToolAddCommand    = "add_command"
+	ToolRemoveCommand = "remove_command"
+
 	ToolSetAutoArchive   = "set_auto_archive"
 	ToolUnsetAutoArchive = "unset_auto_archive"
 
@@ -174,6 +178,7 @@ var (
 	OpenTools = []string{ToolRename, ToolList, ToolListInactive, ToolListArchived, ToolMessages, ToolListJobs, ToolConfigPath, ToolConfigKeys, ToolBarDefaults, ToolTemplatePath,
 		ToolSetConfig, ToolUnsetConfig,
 		ToolGetKeybindings, ToolSetKeybinding, ToolResetKeybinding,
+		ToolGetCommands, ToolAddCommand, ToolRemoveCommand,
 		ToolSetEditor, ToolUnsetEditor, ToolSetBlockCap, ToolUnsetBlockCap,
 		ToolSetAutoArchive, ToolUnsetAutoArchive, ToolSetWorkingDir, ToolUnsetWorkingDir,
 		ToolListProject, ToolAddProjectDir, ToolRemoveProject, ToolSetProject, ToolClearProject,
@@ -225,6 +230,8 @@ var (
 	ErrNoConfigPath = errors.New("mcp: this tool needs a settings path")
 	ErrNoKeyAction  = errors.New("mcp: this tool needs a keybinding action")
 	ErrNoKeys       = errors.New("mcp: this tool needs one or more keys")
+	ErrNoCommandLabel  = errors.New("mcp: this tool needs a command label")
+	ErrNoCommandScript = errors.New("mcp: this tool needs a script path")
 	ErrNoEditor     = errors.New("mcp: this tool needs an editor, a terminal flag, or both")
 	ErrNoDir        = errors.New("mcp: this tool needs a directory path")
 	ErrNoLock       = errors.New("mcp: this tool needs a lock label")

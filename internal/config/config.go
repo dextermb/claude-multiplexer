@@ -157,6 +157,9 @@ type Config struct {
 	// Keybindings rebinds the keys of the interface. A nil block keeps every
 	// default. See docs/config/keybindings.md.
 	Keybindings *Keybindings `json:"keybindings,omitempty"`
+	// Commands bind a key trigger to a script, so a press runs the script. An
+	// empty list binds nothing. See docs/config/commands.md.
+	Commands []Command `json:"commands,omitempty"`
 }
 
 // Peers holds the cross-host settings. Enabled off keeps the peer listener off.

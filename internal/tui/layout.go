@@ -228,7 +228,7 @@ func (m Model) sessionDialogView() (string, bool) {
 func (m Model) bodyDialogView() (string, bool) {
 	width, height := m.width, m.bodyHeight()
 	if m.help != nil {
-		return centre(width, height, m.help.View(m.keys, width, height)), true
+		return centre(width, height, m.help.View(m.keys, m.commands.List(), width, height)), true
 	}
 	if m.form != nil {
 		return centre(width, height, m.form.View(width)), true

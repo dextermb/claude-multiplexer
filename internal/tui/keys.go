@@ -12,8 +12,11 @@ const sequenceTimeout = time.Second
 
 type sequenceTimeoutMsg struct{ gen int }
 
+// sequence tracks a two-key chord in progress. A built-in chord sets target; a
+// command chord sets leader to its first key. See docs/config/commands.md.
 type sequence struct {
 	target keys.Action
+	leader string
 	gen    int
 }
 
@@ -40,8 +43,30 @@ func (m Model) sequenceTarget(key string, inPrompt, diffOpen bool) (keys.Action,
 }
 
 func (m Model) startSequence(target keys.Action) (tea.Model, tea.Cmd) {
+	return m.armSequence(sequence{target: target})
+}
+
+// commandLeader reports the leader a key starts a command sequence with. Inside
+// the prompt only the control forms start one, the same as a built-in target.
+// See docs/config/commands.md.
+func (m Model) commandLeader(key string, inPrompt bool) (string, bool) {
+	if inPrompt && !strings.HasPrefix(key, "ctrl+") {
+		return "", false
+	}
+	if m.commands.IsLeader(key) {
+		return key, true
+	}
+	return "", false
+}
+
+func (m Model) startCommandSequence(leader string) (tea.Model, tea.Cmd) {
+	return m.armSequence(sequence{leader: leader})
+}
+
+func (m Model) armSequence(seq sequence) (tea.Model, tea.Cmd) {
 	m.seqGen++
-	m.seq = &sequence{target: target, gen: m.seqGen}
+	seq.gen = m.seqGen
+	m.seq = &seq
 	m.errText = ""
 	gen := m.seqGen
 	return m, tea.Tick(sequenceTimeout, func(time.Time) tea.Msg {
@@ -50,19 +75,26 @@ func (m Model) startSequence(target keys.Action) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) resolveSequence(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	target := m.seq.target
+	seq := *m.seq
 	m.seq = nil
 	key := msg.String()
 	if key == "esc" {
 		return m, nil
 	}
-	ctx, _ := keys.TargetContext(target)
+	if seq.leader != "" {
+		if cmd, ok := m.commands.Second(seq.leader, key); ok {
+			return m.runCommand(cmd)
+		}
+		m.status = "no key " + seq.leader + " " + key
+		return m, nil
+	}
+	ctx, _ := keys.TargetContext(seq.target)
 	if action, ok := m.keys.Action(ctx, key); ok {
 		if run, ok := chordActions[action]; ok {
 			return run(m)
 		}
 	}
-	m.status = "no key " + targetLabel(m.keys, target) + " " + key
+	m.status = "no key " + targetLabel(m.keys, seq.target) + " " + key
 	return m, nil
 }
 
