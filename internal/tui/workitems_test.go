@@ -48,7 +48,8 @@ func TestStatusBarShowsWorkItemNextToEffort(t *testing.T) {
 	item := row{mode: "default", effort: "high"}
 	item.workItem = manager.WorkItemBadge{Key: "GIM-1", Status: "In Review"}
 
-	full := barDetails(item)[0]
+	var m Model
+	full := segTexts(m.leftSegs(item))
 	effortAt := slices.Index(full, "high effort")
 	statusAt := slices.Index(full, "In Review")
 	if effortAt < 0 || statusAt < 0 {
