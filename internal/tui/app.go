@@ -96,6 +96,10 @@ type Model struct {
 	caps            map[string]int
 	layouts         map[string]config.Layout
 	activeLayout    string
+	barSpecs        map[string]config.BarSpec
+	barOutputs      map[string]string
+	barRuns         map[string]time.Time
+	barTicking      bool
 	sessionDefaults newSessionDefaults
 	layout          config.ResolvedLayout
 	content         string
@@ -190,6 +194,8 @@ func New(opts Options) Model {
 		pathPicked:      -1,
 		blockCursor:     -1,
 		caps:            config.ResolveBlockCaps(config.Config{}),
+		barOutputs:      make(map[string]string),
+		barRuns:         make(map[string]time.Time),
 		archivedWindow:  config.DefaultLastActive,
 		layout:          config.DefaultLayout(),
 		focus:           focusSidebar,
@@ -294,6 +300,10 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleDiffTick()
 	case ageTickMsg:
 		return m.handleAgeTick()
+	case barTickMsg:
+		return m.handleBarTick(msg)
+	case barOutputMsg:
+		return m.handleBarOutput(msg)
 	case tea.MouseMsg:
 		return m.handleMouse(msg)
 	case tea.KeyMsg:

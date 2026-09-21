@@ -1,0 +1,4 @@
+{
+  "left": ["name", "control", "model", "mode", "effort", "workItem"],
+  "right": ["state", "diff", "pr", "context", "raw", "scroll", "jobs", "queued", "tokens", "cache", "cost"]
+}

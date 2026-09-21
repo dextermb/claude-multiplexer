@@ -14,6 +14,7 @@ func (s *Server) build(caller string, profile Profile, control bool) *sdk.Server
 
 	s.addReadTools(server, caller)
 	s.addAPIDocsTool(server)
+	s.addBarDefaultsTool(server)
 
 	if profile != ProfileMinimal {
 		s.addUsageTools(server)

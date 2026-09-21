@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/manager"
 )
 
@@ -100,6 +101,45 @@ func TestSessionBarHidesThePullRequestWithoutOne(t *testing.T) {
 	texts := segTexts(m.rightSegs(busyRow()))
 	if indexOfPrefix(texts, "#") >= 0 || indexOfPrefix(texts, "!") >= 0 {
 		t.Fatalf("segments = %v, want no PR segment", texts)
+	}
+}
+
+func TestSessionBarReordersAndRemovesByConfig(t *testing.T) {
+	m := Model{barSpecs: map[string]config.BarSpec{
+		config.BarSession: {Right: []config.BarElement{{ID: "cost"}, {ID: "state"}}},
+	}}
+	texts := segTexts(m.rightSegs(busyRow()))
+	if len(texts) != 2 {
+		t.Fatalf("segments = %v, want only the two named elements", texts)
+	}
+	if indexOfPrefix(texts, "$") != 0 || texts[1] != "idle" {
+		t.Fatalf("segments = %v, want the cost first and the state second", texts)
+	}
+}
+
+func TestSessionBarDrawsACustomElementFromTheCache(t *testing.T) {
+	item := busyRow()
+	item.name = "api"
+	m := Model{
+		barSpecs: map[string]config.BarSpec{
+			config.BarSession: {Right: []config.BarElement{{Script: "branch.sh", Label: "branch"}}},
+		},
+		barOutputs: map[string]string{
+			barOutputKey(config.BarSession, "api", "branch"): "main",
+		},
+	}
+	texts := segTexts(m.rightSegs(item))
+	if len(texts) != 1 || texts[0] != "main" {
+		t.Fatalf("segments = %v, want the custom output main", texts)
+	}
+}
+
+func TestSessionBarHidesACustomElementWithNoOutput(t *testing.T) {
+	m := Model{barSpecs: map[string]config.BarSpec{
+		config.BarSession: {Right: []config.BarElement{{Script: "branch.sh", Label: "branch"}}},
+	}}
+	if texts := segTexts(m.rightSegs(busyRow())); len(texts) != 0 {
+		t.Fatalf("segments = %v, want none without a cached output", texts)
 	}
 }
 

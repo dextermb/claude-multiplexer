@@ -28,6 +28,7 @@ const (
 	ToolListJobs      = "list_jobs"
 	ToolConfigPath    = "get_config_path"
 	ToolConfigKeys    = "list_config_keys"
+	ToolBarDefaults   = "get_bar_defaults"
 	ToolTemplatePath  = "get_template_path"
 	ToolSetConfig     = "set_config"
 	ToolUnsetConfig   = "unset_config"
@@ -153,7 +154,7 @@ func ParseProfile(name string) (Profile, error) {
 // MinimalTools are the open tools of the minimal profile: the session reads, and
 // the description of the REST API.
 var MinimalTools = []string{ToolRename, ToolList, ToolListInactive, ToolListArchived, ToolMessages, ToolListJobs,
-	ToolConfigPath, ToolConfigKeys, ToolTemplatePath, ToolAPIDocs}
+	ToolConfigPath, ToolConfigKeys, ToolBarDefaults, ToolTemplatePath, ToolAPIDocs}
 
 // OpenToolsFor names the open tools of a profile.
 func OpenToolsFor(profile Profile) []string {
@@ -166,7 +167,7 @@ func OpenToolsFor(profile Profile) []string {
 // OpenTools go to every session on the standard profile. ControlTools go only to
 // a session that holds the control grant.
 var (
-	OpenTools = []string{ToolRename, ToolList, ToolListInactive, ToolListArchived, ToolMessages, ToolListJobs, ToolConfigPath, ToolConfigKeys, ToolTemplatePath,
+	OpenTools = []string{ToolRename, ToolList, ToolListInactive, ToolListArchived, ToolMessages, ToolListJobs, ToolConfigPath, ToolConfigKeys, ToolBarDefaults, ToolTemplatePath,
 		ToolSetConfig, ToolUnsetConfig,
 		ToolSetEditor, ToolUnsetEditor, ToolSetBlockCap, ToolUnsetBlockCap,
 		ToolSetAutoArchive, ToolUnsetAutoArchive, ToolSetWorkingDir, ToolUnsetWorkingDir,

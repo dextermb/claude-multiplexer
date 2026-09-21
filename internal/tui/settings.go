@@ -48,6 +48,7 @@ func (m Model) readSettings() tea.Cmd {
 		if err != nil {
 			return settingsMsg{
 				caps:           config.ResolveBlockCaps(config.Config{}),
+				bars:           resolveBarSpecs(nil),
 				defaults:       resolveSessionDefaults(opts, config.Config{}),
 				archivedWindow: config.ArchivedWindow(""),
 			}
@@ -57,8 +58,21 @@ func (m Model) readSettings() tea.Cmd {
 			caps:           config.ResolveBlockCaps(merged),
 			layouts:        merged.Layouts,
 			activeLayout:   merged.ActiveLayout,
+			bars:           resolveBarSpecs(merged.Bars),
 			defaults:       resolveSessionDefaults(opts, merged),
 			archivedWindow: config.ArchivedWindow(merged.ArchivedWindow),
 		}
 	}
+}
+
+// resolveBarSpecs resolves the composition of the two bars against the embedded
+// defaults, so the interface holds a ready spec for each. See docs/config/bars.md.
+func resolveBarSpecs(bars *config.Bars) map[string]config.BarSpec {
+	out := make(map[string]config.BarSpec, 2)
+	for _, bar := range []string{config.BarSession, config.BarStatus} {
+		if spec, err := config.ResolveBarSpec(bars, bar); err == nil {
+			out[bar] = spec
+		}
+	}
+	return out
 }

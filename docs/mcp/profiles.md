@@ -27,7 +27,7 @@ saving smaller than the tool count suggests. See [../caching.md](../caching.md).
 
 | Profile | The open tools it carries |
 |---|---|
-| `minimal` | The session reads (`list_sessions`, `list_inactive_sessions`, `list_archived_sessions`, `get_messages`, `rename_session`, `list_jobs`, `get_config_path`, `get_template_path`) and `get_api_docs` |
+| `minimal` | The session reads (`list_sessions`, `list_inactive_sessions`, `list_archived_sessions`, `get_messages`, `rename_session`, `list_jobs`, `get_config_path`, `get_bar_defaults`, `get_template_path`) and `get_api_docs` |
 | `standard` | Every open tool: `minimal`, plus the config, layout, schedule, usage, and share tools |
 
 `standard` is the default, so a session that names no profile behaves exactly as
