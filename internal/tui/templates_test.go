@@ -241,7 +241,7 @@ func TestANewSessionCanStartWithAPreset(t *testing.T) {
 	dir := t.TempDir()
 	m.form.inputs[fieldDir].SetValue(dir)
 	m.form.inputs[fieldName].SetValue("api")
-	m.form.inputs[fieldFirst].SetValue("/linear ENG-42")
+	m.form.firstArea.SetValue("/linear ENG-42")
 	m, cmd := step(t, m, key("enter"))
 	if cmd == nil {
 		t.Fatal("the form must spawn a session")

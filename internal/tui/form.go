@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -91,6 +92,7 @@ func (s *selectField) label() string { return s.labels[s.cursor] }
 
 type form struct {
 	inputs     [fieldCount]textinput.Model
+	firstArea  textarea.Model
 	selects    [fieldCount]*selectField
 	focus      int
 	err        string
@@ -107,7 +109,6 @@ func newForm(dir string, defaults newSessionDefaults, peers, hoistable []string)
 	var placeholders [fieldCount]string
 	placeholders[fieldDir] = dir
 	placeholders[fieldName] = "taken from the directory"
-	placeholders[fieldFirst] = "optional, and /preset works here"
 	for i := range f.inputs {
 		input := textinput.New()
 		input.Placeholder = placeholders[i]
@@ -115,6 +116,12 @@ func newForm(dir string, defaults newSessionDefaults, peers, hoistable []string)
 		input.Width = 40
 		f.inputs[i] = input
 	}
+	f.firstArea = textarea.New()
+	f.firstArea.Placeholder = "optional, and /preset works here"
+	f.firstArea.CharLimit = 512
+	f.firstArea.ShowLineNumbers = false
+	f.firstArea.Prompt = ""
+	f.firstArea.SetHeight(3)
 	f.inputs[fieldDir].SetValue(dir)
 	f.selects[fieldHost] = newSelect(append([]string{localHost}, peers...), localHost)
 	f.selects[fieldHoist] = newSelect(hoistOptions, hoistMode)
@@ -246,11 +253,18 @@ func (f *form) Update(msg tea.Msg) (formResult, tea.Cmd) {
 		switch key.String() {
 		case "esc":
 			return formCancelled, nil
-		case "enter":
+		case "ctrl+d", "shift+enter":
 			if f.validate() {
 				return formSubmitted, nil
 			}
 			return formOpen, nil
+		case "enter":
+			if f.focus != fieldFirst {
+				if f.validate() {
+					return formSubmitted, nil
+				}
+				return formOpen, nil
+			}
 		case "tab":
 			if f.focus == fieldDir {
 				if f.picked >= 0 && f.cycle(1) {
@@ -269,11 +283,15 @@ func (f *form) Update(msg tea.Msg) (formResult, tea.Cmd) {
 			f.move(-1)
 			return formOpen, nil
 		case "down":
-			f.move(1)
-			return formOpen, nil
+			if f.focus != fieldFirst {
+				f.move(1)
+				return formOpen, nil
+			}
 		case "up":
-			f.move(-1)
-			return formOpen, nil
+			if f.focus != fieldFirst {
+				f.move(-1)
+				return formOpen, nil
+			}
 		}
 		if f.isSelect(f.focus) {
 			before := f.host()
@@ -290,15 +308,17 @@ func (f *form) Update(msg tea.Msg) (formResult, tea.Cmd) {
 		}
 	}
 	var cmd tea.Cmd
-	f.inputs[f.focus], cmd = f.inputs[f.focus].Update(msg)
+	if f.focus == fieldFirst {
+		f.firstArea, cmd = f.firstArea.Update(msg)
+	} else {
+		f.inputs[f.focus], cmd = f.inputs[f.focus].Update(msg)
+	}
 	f.suggest()
 	return formOpen, cmd
 }
 
 func (f *form) move(delta int) {
-	if !f.isSelect(f.focus) {
-		f.inputs[f.focus].Blur()
-	}
+	f.blur(f.focus)
 	step := delta
 	if step == 0 {
 		step = 1
@@ -307,15 +327,36 @@ func (f *form) move(delta int) {
 	for !f.visible(f.focus) {
 		f.focus = (f.focus + step + fieldCount) % fieldCount
 	}
-	if !f.isSelect(f.focus) {
-		f.inputs[f.focus].Focus()
-		f.inputs[f.focus].CursorEnd()
-	}
+	f.focusInput(f.focus)
 	f.suggest()
+}
+
+func (f *form) blur(i int) {
+	switch {
+	case i == fieldFirst:
+		f.firstArea.Blur()
+	case !f.isSelect(i):
+		f.inputs[i].Blur()
+	}
+}
+
+func (f *form) focusInput(i int) {
+	switch {
+	case i == fieldFirst:
+		f.firstArea.Focus()
+		f.firstArea.CursorEnd()
+	case !f.isSelect(i):
+		f.inputs[i].Focus()
+		f.inputs[i].CursorEnd()
+	}
 }
 
 func (f *form) insert(text string, paths bool) {
 	if f.isSelect(f.focus) {
+		return
+	}
+	if f.focus == fieldFirst {
+		f.firstArea.InsertString(text)
 		return
 	}
 	input := &f.inputs[f.focus]
@@ -398,7 +439,7 @@ func (f *form) spec() manager.Spec {
 }
 
 func (f *form) firstPrompt() string {
-	return strings.TrimSpace(f.inputs[fieldFirst].Value())
+	return strings.TrimSpace(f.firstArea.Value())
 }
 
 func (f *form) View(width int) string {
@@ -408,6 +449,14 @@ func (f *form) View(width int) string {
 	inner := modalInner(width)
 	for i := range f.inputs {
 		if !f.visible(i) {
+			continue
+		}
+		if i == fieldFirst {
+			f.firstArea.SetWidth(inner - 4)
+			b.WriteString(fieldLabelStyle.Render(fieldLabels[i]))
+			b.WriteString("\n")
+			b.WriteString(f.firstArea.View())
+			b.WriteString("\n")
 			continue
 		}
 		b.WriteString(fieldLabelStyle.Render(pad(fieldLabels[i], 16)))
@@ -442,6 +491,8 @@ func (f *form) selectView(i int) string {
 
 func (f *form) hint() string {
 	switch {
+	case f.focus == fieldFirst:
+		return "enter newline · shift+enter or ctrl+d start · esc cancel"
 	case f.isSelect(f.focus):
 		return "←→ change · ↑↓ move · enter start · esc cancel"
 	case f.focus == fieldDir:
