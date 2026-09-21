@@ -15,7 +15,8 @@ func (s *Server) addWorkItemConfigTools(server *sdk.Server, caller string) {
 		Name: ToolConfigureJira,
 		Description: "Configure the Jira work-item provider, so this multiplexer can read and change Jira issues. " +
 			"Give the API token. Give the account email for a personal token (Basic auth), or leave it empty for a service-account key (bearer). " +
-			"An organisation admin must first turn on API token authentication in Atlassian. It writes the settings file.",
+			"The default endpoint is the Rovo MCP server, which an organisation admin must first turn on for API token authentication. " +
+			"Give a Jira site base as the url to use the Jira REST API instead, which needs no such gate. It writes the settings file.",
 	}, func(_ context.Context, _ *sdk.CallToolRequest, in configureJiraIn) (*sdk.CallToolResult, configureWorkItemOut, error) {
 		out, err := configureJira(s.sessions, caller, in)
 		return nil, out, err

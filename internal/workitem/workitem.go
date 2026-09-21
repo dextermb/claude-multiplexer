@@ -1,12 +1,14 @@
-// Package workitem is the multiplexer's MCP client to the Jira and Linear work
-// item servers. It links a session to one work item, reads its status, and
-// changes it. See docs/work-items.md.
+// Package workitem is the multiplexer's client to the Jira and Linear work item
+// servers, over MCP or the Jira REST API. It links a session to one work item,
+// reads its status, and changes it. See docs/work-items.md.
 package workitem
 
 import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/dextermb/claude-multiplexer/internal/config"
@@ -162,10 +164,24 @@ func (s *Set) provider(name string) (Provider, string, error) {
 	auth := authorization(settings)
 	switch name {
 	case config.WorkItemJira:
+		if !isMCPEndpoint(endpoint) {
+			return &jiraREST{site: endpoint, auth: auth, httpc: &http.Client{Timeout: dialTimeout}}, name, nil
+		}
 		return &jira{conn: connector{endpoint: endpoint, authorization: auth}}, name, nil
 	default:
 		return &linear{conn: connector{endpoint: endpoint, authorization: auth}}, name, nil
 	}
+}
+
+// isMCPEndpoint reports whether a url names an MCP server rather than a Jira
+// site. A path that ends in /mcp is the MCP server, and any other url is a site
+// base the REST transport reads. See docs/work-items.md.
+func isMCPEndpoint(endpoint string) bool {
+	parsed, err := url.Parse(strings.TrimSpace(endpoint))
+	if err != nil {
+		return true
+	}
+	return strings.HasSuffix(strings.TrimRight(parsed.Path, "/"), "/mcp")
 }
 
 func cleanKey(key string) (string, error) {

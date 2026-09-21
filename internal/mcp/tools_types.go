@@ -35,7 +35,7 @@ type renameIn struct {
 type configureJiraIn struct {
 	Token string `json:"token" jsonschema:"the Jira API token or service-account key"`
 	Email string `json:"email,omitempty" jsonschema:"the account email; set it for a personal token (Basic auth), and leave it empty for a service-account key (bearer)"`
-	URL   string `json:"url,omitempty" jsonschema:"the MCP endpoint, or empty for the default https://mcp.atlassian.com/v2/mcp"`
+	URL   string `json:"url,omitempty" jsonschema:"a Jira site base such as https://acme.atlassian.net to use the Jira REST API, an MCP endpoint whose path ends in /mcp, or empty for the default https://mcp.atlassian.com/v2/mcp"`
 }
 
 type configureLinearIn struct {
