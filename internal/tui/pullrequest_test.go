@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/dextermb/claude-multiplexer/internal/git"
+	"github.com/dextermb/claude-multiplexer/internal/keys"
 	"github.com/dextermb/claude-multiplexer/internal/manager"
 )
 
@@ -145,9 +146,17 @@ func TestOpenAllPRsReportsNone(t *testing.T) {
 }
 
 func TestThePullRequestKeysAreRegistered(t *testing.T) {
-	for _, key := range []string{"d p", "d P"} {
-		if sequenceActions[key] == nil {
-			t.Errorf("no action for %q", key)
+	km := defaultKeymap()
+	for _, tc := range []struct {
+		key  string
+		want keys.Action
+	}{{"p", keys.DiffPr}, {"P", keys.DiffAllPrs}} {
+		a, ok := km.Action(keys.CtxDiff, tc.key)
+		if !ok || a != tc.want {
+			t.Errorf("d %s = %q, %v; want %q", tc.key, a, ok, tc.want)
+		}
+		if chordActions[tc.want] == nil {
+			t.Errorf("no action for %q", tc.want)
 		}
 	}
 }

@@ -133,3 +133,4 @@ reload. See [manager.md](manager.md).
 | [config/layouts.md](config/layouts.md) | The named interface layouts and the global active layout |
 | [config/new-session.md](config/new-session.md) | The option each field of the new session form opens on |
 | [config/bars.md](config/bars.md) | The composition of the two status bars, the built-in elements, and custom script elements |
+| [config/keybindings.md](config/keybindings.md) | Rebinding the keys of the interface, the reserved set, the action catalogue, and the precedence rule |

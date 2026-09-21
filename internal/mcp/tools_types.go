@@ -28,6 +28,29 @@ type unsetConfigOut struct {
 	Message string `json:"message"`
 }
 
+type setKeybindingIn struct {
+	Action string   `json:"action" jsonschema:"the qualified keybinding action, as '<context>.<action>', such as 'session.rename', 'list.archived', or 'global.quit'"`
+	Keys   []string `json:"keys" jsonschema:"the keys that trigger the action, such as [\"N\"] or [\"n\",\"ctrl+n\"]"`
+}
+
+type setKeybindingOut struct {
+	OK      bool   `json:"ok"`
+	Path    string `json:"path"`
+	Message string `json:"message"`
+	Warning string `json:"warning,omitempty"`
+}
+
+type resetKeybindingIn struct {
+	Action string `json:"action" jsonschema:"the qualified keybinding action to reset to its default, such as 'session.rename'"`
+}
+
+type resetKeybindingOut struct {
+	OK      bool   `json:"ok"`
+	Path    string `json:"path"`
+	Changed bool   `json:"changed"`
+	Message string `json:"message"`
+}
+
 type renameIn struct {
 	Title string `json:"title" jsonschema:"the new display title for this session; an empty string clears it"`
 }

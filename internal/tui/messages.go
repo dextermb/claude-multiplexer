@@ -2,6 +2,7 @@ package tui
 
 import (
 	"github.com/dextermb/claude-multiplexer/internal/config"
+	"github.com/dextermb/claude-multiplexer/internal/keys"
 	"github.com/dextermb/claude-multiplexer/internal/manager"
 )
 
@@ -27,6 +28,9 @@ type settingsMsg struct {
 	bars           map[string]config.BarSpec
 	defaults       newSessionDefaults
 	archivedWindow string
+	keys           keys.Keymap
+	keysOK         bool
+	keyNote        string
 }
 
 type stoppedMsg struct {

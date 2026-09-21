@@ -51,6 +51,8 @@ type ConfigPort interface {
 	TemplatePath(name string) (TemplatePath, error)
 	SetConfig(path string, value json.RawMessage, by string) (string, error)
 	UnsetConfig(path, by string) (string, bool, error)
+	SetKeybinding(action string, keys []string, by string) (string, string, error)
+	ResetKeybinding(action, by string) (string, bool, error)
 	SetEditor(editor string, terminal *bool, by string) (string, error)
 	UnsetEditor(field, by string) (string, bool, error)
 	SetBlockCap(bucket string, rows *int, by string) (string, error)

@@ -15,6 +15,12 @@ func (m Model) handleSettings(msg settingsMsg) (tea.Model, tea.Cmd) {
 	m.activeLayout = msg.activeLayout
 	m.barSpecs = msg.bars
 	m.sessionDefaults = msg.defaults
+	if msg.keysOK {
+		m.keys = msg.keys
+	}
+	if msg.keyNote != "" {
+		m.status = msg.keyNote
+	}
 	windowChanged := msg.archivedWindow != m.archivedWindow
 	m.archivedWindow = msg.archivedWindow
 	m.applyLayout()

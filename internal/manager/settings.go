@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/dextermb/claude-multiplexer/internal/config"
+	"github.com/dextermb/claude-multiplexer/internal/keys"
 )
 
 // SetEditor writes the editor settings, so a session can name the editor the
@@ -142,6 +143,47 @@ func (m *Manager) UnsetConfig(path string) (string, bool, error) {
 		return "", false, err
 	}
 	return file, true, nil
+}
+
+// SetKeybinding rebinds one action to the given keys in the settings file. It
+// validates the whole keymap before it writes, so it refuses a reserved key, an
+// unknown action, or a clash with another user binding. It reports a warning
+// when the new binding displaces a default action. See docs/config/keybindings.md.
+func (m *Manager) SetKeybinding(action string, keyList []string) (string, string, error) {
+	file := config.Target(m.opts.ConfigPaths...)
+	if file == "" {
+		return "", "", errors.New("manager: no settings file to write")
+	}
+	current, err := config.Load(file)
+	if err != nil {
+		return "", "", err
+	}
+	raw, err := json.Marshal(keyList)
+	if err != nil {
+		return "", "", err
+	}
+	next, err := config.SetPath(current, "keybindings."+action, raw)
+	if err != nil {
+		return "", "", err
+	}
+	_, warnings, errs := keys.LoadKeymap(next.Keybindings)
+	if len(errs) > 0 {
+		return "", "", errs[0]
+	}
+	if err := config.Write(file, next); err != nil {
+		return "", "", err
+	}
+	warning := ""
+	if len(warnings) > 0 {
+		warning = warnings[0].String()
+	}
+	return file, warning, nil
+}
+
+// ResetKeybinding clears one action, so it takes its default keys again. See
+// docs/config/keybindings.md.
+func (m *Manager) ResetKeybinding(action string) (string, bool, error) {
+	return m.UnsetConfig("keybindings." + action)
 }
 
 // SetBlockCap writes the rows a block draws before the pane caps it, so a

@@ -1,7 +1,11 @@
 # Keys and the mouse
 
 Every key, what the mouse does, and how to leave. This page is the reference of
-tables. Two pages carry the detail of how each action behaves:
+tables. The keys are rebindable, so the keys in these tables are the defaults;
+see [../config/keybindings.md](../config/keybindings.md) to change them, and the
+help overlay (`?`) for the keys as they are set now.
+
+Two pages carry the detail of how each action behaves:
 
 | Page | Read it for |
 |---|---|

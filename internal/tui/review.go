@@ -7,6 +7,7 @@ import (
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/dextermb/claude-multiplexer/internal/git"
+	"github.com/dextermb/claude-multiplexer/internal/keys"
 )
 
 // reviewSide is the pane the focus sits in while the review screen is open: the
@@ -111,15 +112,18 @@ func (m Model) reviewKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.reviewFocus == reviewPrompt {
 		return m.reviewPromptKey(msg)
 	}
-	switch msg.String() {
-	case "esc":
+	if msg.String() == "esc" {
 		return m.leaveReview()
-	case "tab":
-		return m.reviewCycleFocus()
-	case "e":
-		return m.reviewExplainHunk()
-	case "E":
-		return m.reviewExplainFile()
+	}
+	if a, ok := m.keys.Action(keys.CtxReview, msg.String()); ok {
+		switch a {
+		case keys.ReviewFocusNext:
+			return m.reviewCycleFocus()
+		case keys.ReviewExplainHunk:
+			return m.reviewExplainHunk()
+		case keys.ReviewExplainFile:
+			return m.reviewExplainFile()
+		}
 	}
 	if m.reviewFocus == reviewExplain {
 		return m.reviewExplainKey(msg)
@@ -128,28 +132,32 @@ func (m Model) reviewKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) reviewDiffKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	switch msg.String() {
-	case "j", "down":
+	a, ok := m.keys.Action(keys.CtxReview, msg.String())
+	if !ok {
+		return m, nil
+	}
+	switch a {
+	case keys.ReviewHunkNext:
 		return m.reviewMoveHunk(1)
-	case "k", "up":
+	case keys.ReviewHunkPrev:
 		return m.reviewMoveHunk(-1)
-	case "}", "shift+]":
+	case keys.ReviewFileNext:
 		return m.reviewMoveFile(1)
-	case "{", "shift+[":
+	case keys.ReviewFilePrev:
 		return m.reviewMoveFile(-1)
-	case "g", "home":
+	case keys.ReviewTop:
 		return m.reviewGotoFile(0)
-	case "G", "end":
+	case keys.ReviewBottom:
 		return m.reviewGotoFile(len(m.diffEntries()) - 1)
-	case "pgup":
+	case keys.ReviewPageUp:
 		m.reviewScroll -= m.reviewPage()
 		m.clampReviewScroll()
 		return m, nil
-	case "pgdown":
+	case keys.ReviewPageDown:
 		m.reviewScroll += m.reviewPage()
 		m.clampReviewScroll()
 		return m, nil
-	case "n":
+	case keys.ReviewNumbers:
 		return m.reviewToggleNumbers()
 	}
 	return m, nil

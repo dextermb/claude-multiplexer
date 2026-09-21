@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/git"
+	"github.com/dextermb/claude-multiplexer/internal/keys"
 )
 
 // diffRefreshInterval is how often the open panel re-reads the diff, so the
@@ -225,48 +226,53 @@ func (m Model) closeDiffPanel() (tea.Model, tea.Cmd) {
 
 func (m Model) diffKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	entries := m.diffEntries()
-	switch msg.String() {
-	case "esc":
+	if msg.String() == "esc" {
 		return m.closeDiffPanel()
-	case "tab":
+	}
+	a, ok := m.keys.Action(keys.CtxDiffPane, msg.String())
+	if !ok {
+		return m, nil
+	}
+	switch a {
+	case keys.DiffPaneFocusNext:
 		return m.toggleFocus()
-	case "k":
+	case keys.DiffPaneUp:
 		if m.diffHorizontal() {
 			return m.diffGridMove(-m.gridCols())
 		}
 		return m.diffCursorUp()
-	case "j":
+	case keys.DiffPaneDown:
 		if m.diffHorizontal() {
 			return m.diffGridMove(m.gridCols())
 		}
 		return m.diffCursorDown()
-	case "h":
+	case keys.DiffPaneLeft:
 		if m.diffHorizontal() {
 			return m.diffGridMove(-1)
 		}
 		return m, nil
-	case "l":
+	case keys.DiffPaneRight:
 		if m.diffHorizontal() {
 			return m.diffGridMove(1)
 		}
 		return m, nil
-	case "up":
+	case keys.DiffPaneLineUp:
 		m.diffScroll--
 		m.clampDiffScroll()
 		return m, nil
-	case "down":
+	case keys.DiffPaneLineDown:
 		m.diffScroll++
 		m.clampDiffScroll()
 		return m, nil
-	case "pgup":
+	case keys.DiffPanePageUp:
 		m.diffScroll -= m.diffPage()
 		m.clampDiffScroll()
 		return m, nil
-	case "pgdown":
+	case keys.DiffPanePageDown:
 		m.diffScroll += m.diffPage()
 		m.clampDiffScroll()
 		return m, nil
-	case "g":
+	case keys.DiffPaneTop:
 		if m.anyDiffOpen() {
 			m.diffScroll = 0
 			return m, nil
@@ -274,7 +280,7 @@ func (m Model) diffKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.diffSel = 0
 		m.diffScroll = 0
 		return m, nil
-	case "G":
+	case keys.DiffPaneBottom:
 		if m.anyDiffOpen() {
 			m.diffScroll = len(m.diffPanelLines())
 			m.clampDiffScroll()
@@ -284,11 +290,11 @@ func (m Model) diffKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.clampDiffSel()
 		m.ensureDiffSelVisible()
 		return m, nil
-	case "}", "shift+]":
+	case keys.DiffPaneJumpDown:
 		return m.diffJumpDown()
-	case "{", "shift+[":
+	case keys.DiffPaneJumpUp:
 		return m.diffJumpUp()
-	case "enter", " ":
+	case keys.DiffPaneToggle:
 		return m.toggleDiffFile()
 	}
 	return m, nil
