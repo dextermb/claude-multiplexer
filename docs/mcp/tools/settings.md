@@ -10,6 +10,7 @@ the files a session reads. See [../../config.md](../../config.md).
 | `get_template_path` | `session` | The directories a session reads a preset prompt from, in the order they are read. | open |
 | `set_config` | `path`, `value` | Sets one settings key by a dot path, such as `blockCaps.tool`. It rejects a key or a type the settings do not allow. | open |
 | `unset_config` | `path` | Removes one settings key by a dot path, so that key takes its default again. | open |
+| `get_keybindings` | `action` | The resolved keybindings: every action, the keys it answers to now, and whether the settings changed it. `action` filters to one action or context. | open |
 | `set_keybinding` | `action`, `keys` | Binds keys to an action, such as `session.rename`. It refuses a reserved key or a clash, and warns on a displaced default. | open |
 | `reset_keybinding` | `action` | Clears one keybinding, so the action takes its built-in keys again. | open |
 | `set_editor` | `editor`, `terminal` | Sets the editor the human opens a directory with, in the settings file. | open |
@@ -114,6 +115,12 @@ the human archives it. It answers with `changed: false` when the file held no
 setting. `set_config` reaches the same field by the path `autoArchiveDays`.
 
 ### Keybindings
+
+`get_keybindings` lists the resolved keybindings: every action, the keys it
+answers to now, and a `custom` flag that is true when the settings changed it
+from the default. Give `action` to filter to one action, such as
+`session.rename`, or to one context, such as `session`. Read it to see a binding
+before you change it.
 
 `set_keybinding` binds keys to an action of the interface. Give `action` as
 `<context>.<action>`, such as `session.rename` or `global.quit`, and `keys` as

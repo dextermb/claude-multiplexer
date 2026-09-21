@@ -58,6 +58,15 @@ func (s *Server) addConfigTools(server *sdk.Server, caller string) {
 	})
 
 	sdk.AddTool(server, &sdk.Tool{
+		Name: ToolGetKeybindings,
+		Description: "The resolved keybindings of the interface: every action, the keys it answers to now, and whether the settings changed it from the default. " +
+			"Give 'action' to filter to one action, such as 'session.rename', or to one context, such as 'session'. " +
+			"Read this to see a binding before you change it with " + ToolSetKeybinding + ".",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, in getKeybindingsIn) (*sdk.CallToolResult, getKeybindingsOut, error) {
+		return nil, getKeybindings(s.sessions, in), nil
+	})
+
+	sdk.AddTool(server, &sdk.Tool{
 		Name: ToolSetKeybinding,
 		Description: "Bind one or more keys to an action of the interface, such as 'session.rename' or 'global.quit'. " +
 			"Give 'action' as '<context>.<action>' and 'keys' as the keys, such as [\"N\"] or [\"n\",\"ctrl+n\"]. " +
@@ -275,6 +284,23 @@ func unsetConfig(cfg ConfigPort, caller string, in unsetConfigIn) (unsetConfigOu
 		message = path + " is no longer set in " + file
 	}
 	return unsetConfigOut{OK: true, Path: file, Changed: changed, Message: message}, nil
+}
+
+func getKeybindings(cfg ConfigPort, in getKeybindingsIn) getKeybindingsOut {
+	filter := strings.TrimSpace(in.Action)
+	var out getKeybindingsOut
+	for _, e := range cfg.Keybindings() {
+		if filter != "" && string(e.Action) != filter && string(e.Context) != filter {
+			continue
+		}
+		out.Keybindings = append(out.Keybindings, keybindingEntry{
+			Action:  string(e.Action),
+			Context: string(e.Context),
+			Keys:    e.Keys,
+			Custom:  e.Custom,
+		})
+	}
+	return out
 }
 
 func setKeybinding(cfg ConfigPort, caller string, in setKeybindingIn) (setKeybindingOut, error) {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/dextermb/claude-multiplexer/internal/keys"
 	"github.com/dextermb/claude-multiplexer/internal/usage"
 )
 
@@ -53,6 +54,7 @@ type ConfigPort interface {
 	UnsetConfig(path, by string) (string, bool, error)
 	SetKeybinding(action string, keys []string, by string) (string, string, error)
 	ResetKeybinding(action, by string) (string, bool, error)
+	Keybindings() []keys.Entry
 	SetEditor(editor string, terminal *bool, by string) (string, error)
 	UnsetEditor(field, by string) (string, bool, error)
 	SetBlockCap(bucket string, rows *int, by string) (string, error)

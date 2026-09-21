@@ -37,6 +37,7 @@ const (
 	ToolSetBlockCap   = "set_block_cap"
 	ToolUnsetBlockCap = "unset_block_cap"
 
+	ToolGetKeybindings  = "get_keybindings"
 	ToolSetKeybinding   = "set_keybinding"
 	ToolResetKeybinding = "reset_keybinding"
 
@@ -172,7 +173,7 @@ func OpenToolsFor(profile Profile) []string {
 var (
 	OpenTools = []string{ToolRename, ToolList, ToolListInactive, ToolListArchived, ToolMessages, ToolListJobs, ToolConfigPath, ToolConfigKeys, ToolBarDefaults, ToolTemplatePath,
 		ToolSetConfig, ToolUnsetConfig,
-		ToolSetKeybinding, ToolResetKeybinding,
+		ToolGetKeybindings, ToolSetKeybinding, ToolResetKeybinding,
 		ToolSetEditor, ToolUnsetEditor, ToolSetBlockCap, ToolUnsetBlockCap,
 		ToolSetAutoArchive, ToolUnsetAutoArchive, ToolSetWorkingDir, ToolUnsetWorkingDir,
 		ToolListProject, ToolAddProjectDir, ToolRemoveProject, ToolSetProject, ToolClearProject,

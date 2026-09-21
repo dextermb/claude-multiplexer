@@ -28,6 +28,21 @@ type unsetConfigOut struct {
 	Message string `json:"message"`
 }
 
+type getKeybindingsIn struct {
+	Action string `json:"action,omitempty" jsonschema:"an optional filter, as a qualified action such as 'session.rename', or a context such as 'session'; empty lists every action"`
+}
+
+type keybindingEntry struct {
+	Action  string   `json:"action"`
+	Context string   `json:"context"`
+	Keys    []string `json:"keys"`
+	Custom  bool     `json:"custom"`
+}
+
+type getKeybindingsOut struct {
+	Keybindings []keybindingEntry `json:"keybindings"`
+}
+
 type setKeybindingIn struct {
 	Action string   `json:"action" jsonschema:"the qualified keybinding action, as '<context>.<action>', such as 'session.rename', 'list.archived', or 'global.quit'"`
 	Keys   []string `json:"keys" jsonschema:"the keys that trigger the action, such as [\"N\"] or [\"n\",\"ctrl+n\"]"`
