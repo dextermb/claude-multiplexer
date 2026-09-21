@@ -32,12 +32,16 @@ func (f *fakeState) set(status string) {
 	f.mu.Unlock()
 }
 
+// serve mounts a fake provider server at /mcp, because a url whose path ends in
+// /mcp is what selects the MCP transport.
 func serve(t *testing.T, server *sdk.Server) string {
 	t.Helper()
 	handler := sdk.NewStreamableHTTPHandler(func(*http.Request) *sdk.Server { return server }, nil)
-	ts := httptest.NewServer(handler)
+	mux := http.NewServeMux()
+	mux.Handle("/mcp", handler)
+	ts := httptest.NewServer(mux)
 	t.Cleanup(ts.Close)
-	return ts.URL
+	return ts.URL + "/mcp"
 }
 
 func linearServer(state *fakeState) *sdk.Server {

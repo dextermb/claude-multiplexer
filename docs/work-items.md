@@ -2,7 +2,7 @@
 
 A session links to one work item in Jira or Linear. The multiplexer shows the
 item status in the interface, and a session can change the status. The
-multiplexer is the MCP client to the provider server, so the token stays in the
+multiplexer is the client to the provider, so the token stays in the
 multiplexer and the agent needs no provider tools.
 
 The feature is off until a provider token is set. With no provider, the
@@ -46,8 +46,35 @@ The email selects Basic auth, so the multiplexer sends `base64(email:token)`.
 3. With no email, the multiplexer sends a bearer token.
 
 A token needs read and write Jira access, so the multiplexer can read an item
-and change its status. Both token types use the default endpoint. Override it
-with `workItems.jira.url` only for a non-standard site.
+and change its status. Both token types use the default endpoint, the Rovo MCP
+server.
+
+### The Jira REST API, when the MCP server refuses the token
+
+The Rovo MCP server refuses a personal API token until the admin turns on API
+token authentication. The refusal arrives on the first product call, not on the
+handshake:
+
+```
+getJiraIssue: {"error":true,
+ "message":"You don't have permission to connect via API token.
+            Please ask your organization admin for access."}
+```
+
+The Jira REST API has no such gate, and the same personal token reads and moves
+the same issue there. To use it, give the site base as the url:
+
+```
+configure_jira  token: …  email: you@corp.com  url: https://acme.atlassian.net
+```
+
+The url selects the transport. A url whose path ends in `/mcp` is an MCP
+server. Any other url is a Jira site base, and the multiplexer calls
+`/rest/api/3/issue/…` under it. An empty url stays the Rovo MCP default, so an
+installation that already works does not move.
+
+The REST transport resolves no site, because the site base is the url. So it
+makes no `getAccessibleAtlassianResources` call and carries no cloudId.
 
 ## When the tools appear
 
@@ -73,7 +100,7 @@ once. A provider with no token is off. See [config.md](config.md).
 |---|---|
 | `workItems.jira.token` | The Jira API token or service-account key |
 | `workItems.jira.email` | The account email, set only for a Jira personal token |
-| `workItems.jira.url` | The MCP endpoint, or empty for the default |
+| `workItems.jira.url` | A Jira site base for the REST API, an MCP endpoint ending in `/mcp`, or empty for the default |
 | `workItems.linear.token` | The Linear API key |
 | `workItems.linear.url` | The MCP endpoint, or empty for the default |
 
@@ -98,7 +125,13 @@ because it is a daemon.
 | Jira | `https://mcp.atlassian.com/v2/mcp` |
 | Linear | `https://mcp.linear.app/mcp` |
 
-Both are remote, cloud-hosted MCP servers over Streamable HTTP.
+Both defaults are remote, cloud-hosted MCP servers over Streamable HTTP. A Jira
+url that is not an MCP endpoint selects the REST transport instead.
+
+| Jira url | Transport | Calls |
+|---|---|---|
+| empty, or a path that ends in `/mcp` | MCP | `getJiraIssue`, `getTransitionsForJiraIssue`, `transitionJiraIssue` |
+| a site base, such as `https://acme.atlassian.net` | REST | `GET`/`POST` under `/rest/api/3/issue/{key}` |
 
 ## The tools
 
@@ -108,7 +141,7 @@ configured. See [mcp/tools.md](mcp/tools.md).
 
 | Tool | What it does |
 |---|---|
-| `configure_jira` | Set the Jira token, and an email for a personal token. Always available. |
+| `configure_jira` | Set the Jira token, an email for a personal token, and a url to choose the transport. Always available. |
 | `configure_linear` | Set the Linear API key. Always available. |
 | `set_workitem` | Link this session to an item by key. Names a `provider` when more than one is configured, else takes the sole one. |
 | `set_workitem_status` | Move the linked item to a status. The status must be one the platform offers. |

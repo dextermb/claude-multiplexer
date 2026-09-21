@@ -23,9 +23,10 @@ type WorkItems struct {
 	Linear *WorkItemProvider `json:"linear,omitempty"`
 }
 
-// WorkItemProvider holds one provider's MCP endpoint and token. Email selects
-// Jira Basic auth (email:token); with no email the client sends a bearer token.
-// See docs/work-items.md.
+// WorkItemProvider holds one provider's endpoint and token. The url names an
+// MCP server, or a Jira site base the REST transport reads. Email selects Jira
+// Basic auth (email:token); with no email the client sends a bearer token. See
+// docs/work-items.md.
 type WorkItemProvider struct {
 	Token string `json:"token,omitempty"`
 	Email string `json:"email,omitempty"`
@@ -92,8 +93,8 @@ func ValidWorkItemProvider(name string) bool {
 	return name == WorkItemJira || name == WorkItemLinear
 }
 
-// Endpoint gives the MCP url of a provider: its own url, or the provider
-// default when it names none.
+// Endpoint gives the url of a provider: its own url, or the provider default
+// when it names none.
 func (w *WorkItems) Endpoint(name string) string {
 	p := w.Provider(name)
 	if p != nil && strings.TrimSpace(p.URL) != "" {
