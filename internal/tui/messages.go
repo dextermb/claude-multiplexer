@@ -24,6 +24,7 @@ type settingsMsg struct {
 	caps           map[string]int
 	layouts        map[string]config.Layout
 	activeLayout   string
+	bars           map[string]config.BarSpec
 	defaults       newSessionDefaults
 	archivedWindow string
 }
