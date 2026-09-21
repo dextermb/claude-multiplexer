@@ -67,6 +67,7 @@ var bindings = []binding{
 	{"The review screen (s R)", "", "j  k", "Step through the hunks, and roll to the next or previous file", ""},
 	{"The review screen (s R)", "", "}  {", "Jump to the next or previous file", ""},
 	{"The review screen (s R)", "", "e  E", "Explain the selected hunk, or the whole file", ""},
+	{"The review screen (s R)", "", "n", "Show or hide the line numbers of the diff", ""},
 	{"The review screen (s R)", "", "tab", "Move between the diff, the explanation, and the prompt", ""},
 	{"The review screen (s R)", "", "[  ]  enter", "In the explanation, move the block cursor and open a block", ""},
 

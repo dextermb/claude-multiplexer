@@ -47,7 +47,7 @@ func (m Model) reviewSelected() (tea.Model, tea.Cmd) {
 	m.sidebarHidden = true
 	m.focus = focusReview
 	m.prompt.Blur()
-	m.status = "review — j/k hunk · }/{ file · e explain · E file · tab pane · esc close"
+	m.status = "review — j/k hunk · }/{ file · e explain · E file · n numbers · tab pane · esc close"
 	m.output.Width = m.outputWidth()
 	m.output.Height = m.outputHeight()
 	m.rebuildOutput()
@@ -149,7 +149,18 @@ func (m Model) reviewDiffKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.reviewScroll += m.reviewPage()
 		m.clampReviewScroll()
 		return m, nil
+	case "n":
+		return m.reviewToggleNumbers()
 	}
+	return m, nil
+}
+
+// reviewToggleNumbers shows or hides the new-side line numbers of the diff, the
+// same as d n in the diff panel. The gutter narrows the text, so a long line may
+// re-wrap. The toggle keeps the selected hunk in view. See docs/tui/review.md.
+func (m Model) reviewToggleNumbers() (tea.Model, tea.Cmd) {
+	m.reviewLineNumbers = !m.reviewLineNumbers
+	m.ensureReviewHunkVisible()
 	return m, nil
 }
 

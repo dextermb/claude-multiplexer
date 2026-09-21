@@ -121,13 +121,14 @@ type Model struct {
 	diffLineNumbers bool
 	diffTicking     bool
 
-	reviewMode    bool
-	reviewPending bool
-	reviewFile    int
-	reviewHunk    int
-	reviewScroll  int
-	reviewFocus   reviewSide
-	reviewSidebar bool
+	reviewMode        bool
+	reviewPending     bool
+	reviewFile        int
+	reviewHunk        int
+	reviewScroll      int
+	reviewFocus       reviewSide
+	reviewSidebar     bool
+	reviewLineNumbers bool
 
 	sidebarHidden bool
 	taskScroll    int

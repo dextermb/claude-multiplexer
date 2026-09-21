@@ -98,6 +98,7 @@ not the panes below it:
 | `}` `{` | Jump to the next or previous file |
 | `g` `G` | Go to the first or the last file |
 | `e` `E` | Explain the selected hunk, or the whole file |
+| `n` | Show or hide the line numbers of the diff |
 | `tab` | Move between the diff, the explanation, and the prompt |
 | `esc` | Close the review screen |
 

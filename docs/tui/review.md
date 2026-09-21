@@ -47,10 +47,16 @@ and the hunks:
 - `}` and `{` jump to the next and the previous file.
 - `g` and `G` go to the first and the last file.
 - `pgup` and `pgdown` scroll the diff a page.
+- `n` shows or hides the new-side line numbers of the diff.
 
 The selected file has a blue background. The selected hunk sits on a subtle
 grey band, and its header is bold. The diff side scrolls to keep the selected
 hunk in view.
+
+`n` shows a gutter with the new-side line number of each line, the same as `d n`
+in the diff panel. A removed line has no new-side number, so its gutter is blank.
+The gutter narrows the text, so a long line may re-wrap, and the diff side scrolls
+to keep the selected hunk in view. See [diff.md](diff.md).
 
 `tab` moves the focus across the split: the diff, then the explanation, then the
 prompt, then back to the diff. The focused pane has a blue header, so it is clear
