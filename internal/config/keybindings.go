@@ -33,6 +33,7 @@ type SessionKeys struct {
 	Resume     []string `json:"resume,omitempty"`
 	Rename     []string `json:"rename,omitempty"`
 	Archive    []string `json:"archive,omitempty"`
+	ArchiveAll []string `json:"archiveAll,omitempty"`
 	Stop       []string `json:"stop,omitempty"`
 	Jobs       []string `json:"jobs,omitempty"`
 	FocusTasks []string `json:"focusTasks,omitempty"`

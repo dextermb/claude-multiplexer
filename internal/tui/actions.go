@@ -136,6 +136,61 @@ func (m Model) archiveSelected() (tea.Model, tea.Cmd) {
 	return m, archiveCmd(m.mgr, item.name, !item.archived)
 }
 
+// archiveAttached is the s A action. It archives every stopped session attached
+// to the control session of the selected row, and skips the ones still running.
+// See docs/tui/keys/session-actions.md.
+func (m Model) archiveAttached() (tea.Model, tea.Cmd) {
+	item, ok := m.selectedRow()
+	if !ok {
+		return m, nil
+	}
+	control := controlName(item)
+	if control == "" {
+		m.errText = "select the control session, or one attached to it"
+		return m, nil
+	}
+	names, running := attachedToArchive(m.rows, control)
+	if len(names) == 0 {
+		if running > 0 {
+			m.errText = "every attached session is still running — stop them first"
+		} else {
+			m.errText = "no attached session to archive"
+		}
+		return m, nil
+	}
+	m.errText = ""
+	return m, archiveManyCmd(m.mgr, names, running)
+}
+
+// controlName gives the control session a row belongs to: the row's parent when
+// it is attached, or the row itself when it is the control session.
+func controlName(item row) string {
+	if item.parent != "" {
+		return item.parent
+	}
+	if item.control {
+		return item.name
+	}
+	return ""
+}
+
+// attachedToArchive lists the stopped sessions attached to a control session,
+// and counts the attached sessions that still run, because a running session
+// cannot be archived.
+func attachedToArchive(rows []row, control string) (names []string, running int) {
+	for _, r := range rows {
+		if r.parent != control || r.archived {
+			continue
+		}
+		if r.running() {
+			running++
+			continue
+		}
+		names = append(names, r.name)
+	}
+	return names, running
+}
+
 func (m Model) openNewForm() (tea.Model, tea.Cmd) {
 	m.form = newForm(m.newFormDir(), m.sessionDefaults, m.mgr.PeerNames(), m.mgr.HoistPeers())
 	return m, textinputBlink()

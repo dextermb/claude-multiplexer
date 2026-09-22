@@ -63,6 +63,7 @@ func TestKeysListsTheSchema(t *testing.T) {
 		{"keybindings.session.resume", "array"},
 		{"keybindings.session.rename", "array"},
 		{"keybindings.session.archive", "array"},
+		{"keybindings.session.archiveAll", "array"},
 		{"keybindings.session.stop", "array"},
 		{"keybindings.session.jobs", "array"},
 		{"keybindings.session.focusTasks", "array"},

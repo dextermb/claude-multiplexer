@@ -63,3 +63,9 @@ type archivedMsg struct {
 	archived bool
 	err      error
 }
+
+type archivedManyMsg struct {
+	count   int
+	skipped int
+	err     error
+}
