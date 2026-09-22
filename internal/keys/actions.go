@@ -71,13 +71,14 @@ const (
 	DiffPr       Action = "diff.pr"
 	DiffAllPrs   Action = "diff.allPrs"
 
-	GlobalNewSession  Action = "global.newSession"
-	GlobalPresets     Action = "global.presets"
-	GlobalToggleMouse Action = "global.toggleMouse"
-	GlobalQuit        Action = "global.quit"
-	GlobalFocusNext   Action = "global.focusNext"
-	GlobalPageUp      Action = "global.pageUp"
-	GlobalPageDown    Action = "global.pageDown"
+	GlobalNewSession    Action = "global.newSession"
+	GlobalPresets       Action = "global.presets"
+	GlobalToggleMouse   Action = "global.toggleMouse"
+	GlobalQuit          Action = "global.quit"
+	GlobalFocusNext     Action = "global.focusNext"
+	GlobalPageUp        Action = "global.pageUp"
+	GlobalPageDown      Action = "global.pageDown"
+	GlobalDismissUpdate Action = "global.dismissUpdate"
 
 	OutputPaneOpenBlock   Action = "outputPane.openBlock"
 	OutputPaneToggleBlock Action = "outputPane.toggleBlock"
@@ -201,6 +202,7 @@ var Defaults = []Def{
 	{GlobalFocusNext, CtxGlobal, []string{"tab"}, "move to the next pane"},
 	{GlobalPageUp, CtxGlobal, []string{"pgup"}, "scroll the output up a page"},
 	{GlobalPageDown, CtxGlobal, []string{"pgdown"}, "scroll the output down a page"},
+	{GlobalDismissUpdate, CtxGlobal, []string{"ctrl+g"}, "dismiss the update notice for a day"},
 
 	{OutputPaneOpenBlock, CtxOutputPane, []string{"enter"}, "output: open the block, or move to the prompt"},
 	{OutputPaneToggleBlock, CtxOutputPane, []string{" "}, "output: open or close the block"},

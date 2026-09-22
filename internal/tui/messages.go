@@ -35,6 +35,7 @@ type settingsMsg struct {
 	commands       commands.Resolved
 	commandsOK     bool
 	commandNote    string
+	checkUpdates   bool
 }
 
 type stoppedMsg struct {

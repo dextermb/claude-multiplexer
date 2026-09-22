@@ -126,6 +126,19 @@ The watch reads the active file only, which is the first path that is there. So
 a new file at an earlier path, or a change to the file already there, both
 reload. See [manager.md](manager.md).
 
+## The update check
+
+The `checkUpdates` key turns the hourly GitHub update check on or off. A nil
+value, or true, keeps the check on; false turns it off. When the check is off, no
+call goes to GitHub and no banner shows. See
+[version-updates.md](version-updates.md).
+
+```json
+{
+  "checkUpdates": false
+}
+```
+
 ## The pages
 
 | Page | Read it for |

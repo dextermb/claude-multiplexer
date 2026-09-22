@@ -57,6 +57,7 @@ func (m Model) readSettings() tea.Cmd {
 				keys:           km,
 				keysOK:         ok,
 				keyNote:        note,
+				checkUpdates:   true,
 			}
 		}
 		merged := config.Resolve(opts.Config, file, config.LoadClaude(opts.ClaudePaths...))
@@ -75,6 +76,7 @@ func (m Model) readSettings() tea.Cmd {
 			commands:       cmds,
 			commandsOK:     cok,
 			commandNote:    cnote,
+			checkUpdates:   config.CheckUpdates(merged),
 		}
 	}
 }
