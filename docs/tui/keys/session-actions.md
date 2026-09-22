@@ -53,6 +53,23 @@ switch. `s C` resumes the session with the new setting: it stops the child and
 starts it again, and keeps the conversation, the same way `s e` changes the
 effort. Control is also a field in the new session form.
 
+## Archiving sessions
+
+`s a` archives the selected session, and brings it back when it is already
+archived. A running session cannot be archived, so stop it first. See
+[../sessions.md](../sessions.md).
+
+`s A` archives every session attached to the control session in one step. The
+selected row names the control session: the control session itself, or any
+session attached to it. The multiplexer then archives every attached session
+that is stopped, and leaves the control session active.
+
+`s A` skips an attached session that still runs, because a running session
+cannot be archived. The status bar then reports how many sessions it archived,
+and how many it skipped. A control session groups the sessions it creates, so
+`s A` clears that group of its stopped members at once. See
+[../../mcp/grant.md](../../mcp/grant.md).
+
 ## While a session is busy
 
 A prompt you send while a session is busy waits in the queue, and the pane shows

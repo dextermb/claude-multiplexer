@@ -37,6 +37,7 @@ const (
 	SessionResume     Action = "session.resume"
 	SessionRename     Action = "session.rename"
 	SessionArchive    Action = "session.archive"
+	SessionArchiveAll Action = "session.archiveAll"
 	SessionStop       Action = "session.stop"
 	SessionJobs       Action = "session.jobs"
 	SessionFocusTasks Action = "session.focusTasks"
@@ -159,6 +160,7 @@ var Defaults = []Def{
 	{SessionResume, CtxSession, []string{"r"}, "session: resume the selected session"},
 	{SessionRename, CtxSession, []string{"n"}, "session: rename the selected session"},
 	{SessionArchive, CtxSession, []string{"a"}, "session: archive the selected session"},
+	{SessionArchiveAll, CtxSession, []string{"A"}, "session: archive every session attached to the control session"},
 	{SessionStop, CtxSession, []string{"x"}, "session: stop the selected session"},
 	{SessionJobs, CtxSession, []string{"j"}, "session: show the background jobs"},
 	{SessionFocusTasks, CtxSession, []string{"k"}, "session: focus the task and job panel"},

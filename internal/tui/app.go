@@ -264,6 +264,16 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.status = "restored " + msg.name
 		}
 		return m, reloadStored(m.mgr)
+	case archivedManyMsg:
+		if msg.err != nil {
+			m.errText = msg.err.Error()
+			return m, nil
+		}
+		m.status = "archived " + plural(msg.count, "attached session")
+		if msg.skipped > 0 {
+			m.status += ", skipped " + plural(msg.skipped, "running session")
+		}
+		return m, reloadStored(m.mgr)
 	case stoppedMsg:
 		if msg.err != nil {
 			m.errText = msg.err.Error()

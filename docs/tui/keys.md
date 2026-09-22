@@ -46,6 +46,7 @@ standalone key (such as `ctrl+g`) works on its own. See
 | `s r` | Resume the selected session |
 | `s n` | Rename the selected session |
 | `s a` | Archive the selected session, or bring it back |
+| `s A` | Archive every session attached to the control session |
 | `s x` | Stop the selected session, after a confirmation |
 | `s j` | Show the background jobs of the selected session |
 | `s k` | Move the focus to the task and job panel |

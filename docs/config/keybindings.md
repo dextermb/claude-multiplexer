@@ -79,9 +79,10 @@ of a two-key sequence; the other contexts are the panes.
 | `session.resume` | `r` | `session.effort` | `e` |
 | `session.rename` | `n` | `session.mode` | `p` |
 | `session.archive` | `a` | `session.control` | `C` |
-| `session.stop` | `x` | `session.clearHold` | `h` |
-| `session.jobs` | `j` | `session.diff` | `d` |
-| `session.focusTasks` | `k` | `session.review` | `R` |
+| `session.archiveAll` | `A` | `session.clearHold` | `h` |
+| `session.stop` | `x` | `session.diff` | `d` |
+| `session.jobs` | `j` | `session.review` | `R` |
+| `session.focusTasks` | `k` | | |
 | `session.files` | `f` | | |
 
 `list` — the second key after `l`:

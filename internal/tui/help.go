@@ -32,6 +32,7 @@ var bindings = []binding{
 	{group: "The session (s)", action: keys.SessionResume, what: "Resume the selected session"},
 	{group: "The session (s)", action: keys.SessionRename, what: "Rename the selected session"},
 	{group: "The session (s)", action: keys.SessionArchive, what: "Archive the selected session, or bring it back"},
+	{group: "The session (s)", action: keys.SessionArchiveAll, what: "Archive every session attached to the control session"},
 	{group: "The session (s)", action: keys.SessionStop, what: "Stop the selected session, after a confirmation"},
 	{group: "The session (s)", action: keys.SessionJobs, what: "Show the background jobs of the selected session"},
 	{group: "The session (s)", action: keys.SessionFocusTasks, what: "Move the focus to the task and job panel"},
