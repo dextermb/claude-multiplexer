@@ -227,3 +227,20 @@ wrong, because you cannot see what is missing.
 So anything drawn into a fixed space sheds detail on purpose. The session bar
 has an order for what to drop first, and the sidebar cuts a name short only
 after the rest has gone.
+
+## Text from outside holds no control character
+
+A session prints what it likes, and a file under review holds what it likes. A
+control character in either one is a command to the terminal, not text. `\r`
+moves the cursor to the start of the row, so the rest of the row paints over the
+pane at the left of it, and a file with Windows line endings puts one at the end
+of every diff line. `\x1b[...` moves the cursor or wipes the screen. Each of
+these counts as zero columns, so the renderer cannot cut the row to the width of
+the window, and one row that wraps shifts every row under it. Bubbletea then
+skips a row that matches the frame before it, so the fault stays on the screen.
+
+`render.Clean` drops the escape sequences and the control characters, and keeps
+the newline and the tab. It runs on every line the session prints
+(`render.Lines`), on the diff of one file (`handleFileDiff`), and in the pane
+itself (`Model.wrap` and `setPartial`) for any path added later. A test asserts
+that no row of the review screen holds one of these characters.

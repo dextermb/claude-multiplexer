@@ -90,7 +90,7 @@ type Renderer struct {
 }
 
 func (r Renderer) Lines(ev session.Event) []Line {
-	return stampAt(r.lines(ev), ev.At)
+	return stampAt(cleanLines(r.lines(ev)), ev.At)
 }
 
 // stampAt records the event time on every block-start line (Cont is false), so

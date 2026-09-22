@@ -10,6 +10,7 @@ import (
 	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/git"
 	"github.com/dextermb/claude-multiplexer/internal/keys"
+	"github.com/dextermb/claude-multiplexer/internal/render"
 )
 
 // diffRefreshInterval is how often the open panel re-reads the diff, so the
@@ -175,7 +176,7 @@ func (m Model) handleDiff(msg diffMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) handleFileDiff(msg fileDiffMsg) (tea.Model, tea.Cmd) {
-	text := msg.text
+	text := render.Clean(msg.text)
 	if msg.err != nil {
 		text = "diff failed: " + msg.err.Error()
 	}
