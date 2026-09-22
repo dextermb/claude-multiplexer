@@ -148,6 +148,12 @@ var (
 
 	errorStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("203")).Bold(true)
 
+	updateBannerStyle = lipgloss.NewStyle().
+				Bold(true).
+				Foreground(lipgloss.Color("232")).
+				Background(lipgloss.Color("214")).
+				Padding(0, 1)
+
 	promptLabelStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("62")).Bold(true)
 
 	spinnerStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))

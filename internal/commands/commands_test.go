@@ -18,14 +18,14 @@ func keymap(t *testing.T) keys.Keymap {
 
 func TestResolveBindsASingleKeyAndASequence(t *testing.T) {
 	r, errs := Resolve([]config.Command{
-		{Keys: "ctrl+g", Label: "gitui", Script: "g.sh"},
+		{Keys: "ctrl+b", Label: "gitui", Script: "g.sh"},
 		{Keys: "b o", Label: "browser", Script: "o.sh"},
 	}, keymap(t))
 	if len(errs) > 0 {
 		t.Fatalf("Resolve: %v", errs)
 	}
-	if c, ok := r.Single("ctrl+g"); !ok || c.Label != "gitui" {
-		t.Fatalf("Single(ctrl+g) = %+v %v, want the gitui command", c, ok)
+	if c, ok := r.Single("ctrl+b"); !ok || c.Label != "gitui" {
+		t.Fatalf("Single(ctrl+b) = %+v %v, want the gitui command", c, ok)
 	}
 	if !r.IsLeader("b") {
 		t.Fatal("b is not a leader, want it to start a sequence")
@@ -69,9 +69,9 @@ func TestResolveRefusesASingleKeyThatClashesWithAGlobal(t *testing.T) {
 
 func TestResolveRefusesADuplicateLabelAndTrigger(t *testing.T) {
 	_, errs := Resolve([]config.Command{
-		{Keys: "ctrl+g", Label: "same", Script: "a.sh"},
+		{Keys: "ctrl+b", Label: "same", Script: "a.sh"},
 		{Keys: "ctrl+y", Label: "same", Script: "b.sh"},
-		{Keys: "ctrl+g", Label: "other", Script: "c.sh"},
+		{Keys: "ctrl+b", Label: "other", Script: "c.sh"},
 	}, keymap(t))
 	if len(errs) != 2 {
 		t.Fatalf("errs = %v, want two refusals (a duplicate label and a duplicate trigger)", errs)
@@ -80,7 +80,7 @@ func TestResolveRefusesADuplicateLabelAndTrigger(t *testing.T) {
 
 func TestResolveRefusesAnUnknownScriptType(t *testing.T) {
 	_, errs := Resolve([]config.Command{
-		{Keys: "ctrl+g", Label: "x", Script: "x.rb"},
+		{Keys: "ctrl+b", Label: "x", Script: "x.rb"},
 	}, keymap(t))
 	if len(errs) != 1 {
 		t.Fatalf("errs = %v, want one refusal of the unknown extension", errs)

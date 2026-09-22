@@ -117,7 +117,7 @@ of a two-key sequence; the other contexts are the panes.
 | `global.newSession` | `n`, `ctrl+n` | `global.focusNext` | `tab` |
 | `global.presets` | `t`, `ctrl+p` | `global.pageUp` | `pgup` |
 | `global.toggleMouse` | `ctrl+t` | `global.pageDown` | `pgdown` |
-| `global.quit` | `q` | | |
+| `global.quit` | `q` | `global.dismissUpdate` | `ctrl+g` |
 
 `outputPane`, `sidebar`, and `prompt`:
 

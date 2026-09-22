@@ -189,6 +189,8 @@ func (m Model) runGlobal(a keys.Action) (tea.Model, tea.Cmd) {
 	case keys.GlobalPageDown:
 		m.output.ViewDown()
 		return m, nil
+	case keys.GlobalDismissUpdate:
+		return m.dismissUpdate()
 	}
 	return m, nil
 }

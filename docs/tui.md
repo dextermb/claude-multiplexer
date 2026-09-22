@@ -91,6 +91,12 @@ and keeps the side panel beside it. The new session form takes a dropped path
 and suppresses the prompt while it is open. The stop confirmation guards the
 paste and the mouse as a bare string.
 
+## The update banner
+
+A one-line banner sits below the status bar when a newer release exists. It
+takes one row from the body, and `ctrl+g` dismisses it for a day. The check and
+the banner are described in [version-updates.md](version-updates.md).
+
 ## The pages
 
 | Page | Read it for |

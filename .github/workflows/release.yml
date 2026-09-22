@@ -1,0 +1,58 @@
+name: Release
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Version part to bump
+        type: choice
+        options: [patch, minor, major]
+        default: patch
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute the next version
+        id: next
+        run: |
+          set -euo pipefail
+          bump="${{ github.event.inputs.bump || 'patch' }}"
+          git fetch --tags --force
+          latest=$(git tag -l 'v*' --sort=-v:refname | head -n1)
+          if [ -z "$latest" ]; then
+            major=0; minor=0; patch=0
+          else
+            IFS=. read -r major minor patch <<< "${latest#v}"
+          fi
+          case "$bump" in
+            major) major=$((major + 1)); minor=0; patch=0 ;;
+            minor) minor=$((minor + 1)); patch=0 ;;
+            patch) patch=$((patch + 1)) ;;
+          esac
+          next="v${major}.${minor}.${patch}"
+          echo "Latest: ${latest:-none} -> Next: $next"
+          echo "tag=$next" >> "$GITHUB_OUTPUT"
+
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create "${{ steps.next.outputs.tag }}" \
+            --target "$GITHUB_SHA" \
+            --title "${{ steps.next.outputs.tag }}" \
+            --generate-notes

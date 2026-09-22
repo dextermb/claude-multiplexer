@@ -40,6 +40,8 @@ type Options struct {
 	DefaultPermissionMode string
 	InitialDir            string
 	InitialControl        bool
+	Version               string
+	BuildTime             time.Time
 }
 
 type Model struct {
@@ -154,6 +156,15 @@ type Model struct {
 	burst      *burst
 	burstAware bool
 	inBurst    bool
+
+	version        string
+	buildTime      time.Time
+	checkUpdates   bool
+	updateTag      string
+	updateURL      string
+	updateOutdated bool
+	updateDismiss  time.Time
+	updateTicking  bool
 }
 
 func New(opts Options) Model {
@@ -207,6 +218,9 @@ func New(opts Options) Model {
 		mouseOn:         true,
 		burst:           &burst{},
 		burstAware:      burstAware,
+		version:         opts.Version,
+		buildTime:       opts.BuildTime,
+		checkUpdates:    true,
 	}
 }
 
@@ -217,7 +231,7 @@ func Run(opts Options) error {
 }
 
 func (m Model) Init() tea.Cmd {
-	cmds := []tea.Cmd{waitEvent(m.sub), textarea.Blink, reloadStored(m.mgr), m.readSettings()}
+	cmds := []tea.Cmd{waitEvent(m.sub), textarea.Blink, reloadStored(m.mgr), m.readSettings(), m.updateCheck()}
 	if m.opts.InitialDir != "" {
 		cmds = append(cmds, spawnCmd(m.mgr, manager.Spec{Dir: m.opts.InitialDir, Control: m.opts.InitialControl}))
 	}
@@ -317,6 +331,10 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleAgeTick()
 	case barTickMsg:
 		return m.handleBarTick(msg)
+	case updateMsg:
+		return m.handleUpdate(msg)
+	case updateTickMsg:
+		return m.handleUpdateTick()
 	case barOutputMsg:
 		return m.handleBarOutput(msg)
 	case commandOutputMsg:
