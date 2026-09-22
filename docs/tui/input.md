@@ -197,13 +197,21 @@ the session again.
 
 The form asks for a directory, a name, a model, a permission mode, an effort
 level, a control grant, and a first prompt. The directory comes first, because
-it is the only required field. The directory, the name, and the first prompt are
-text fields. The model, the permission mode, the effort, and the control are
-select fields.
+it is the only required field. The directory and the name are text fields. The
+first prompt is a text area, under its label, so it holds more than one line. The
+model, the permission mode, the effort, and the control are select fields.
 
 The first prompt is sent as soon as the session starts, and it takes a `/preset`
-name. See [templates.md](../templates.md). It defaults to the current directory.
-An empty name becomes the last element of the directory.
+name. See [templates.md](../templates.md). The directory defaults to the current
+directory. An empty name becomes the last element of the directory.
+
+`Enter` starts the session from any field, but on the first prompt it adds a new
+line, so a prompt may run to several lines. `Ctrl+D` starts the session from the
+first prompt, and so does `Shift+Enter` on a terminal that sends it.
+
+Most terminals send the same code for `Shift+Enter` as for `Enter`, so the
+multiplexer cannot tell the two apart. `Ctrl+D` always works, so it is the key to
+depend on.
 
 The select fields do not take typed text. `↑` and `↓`, and `Tab`, move between
 the fields. `←` and `→` change the value of the select you are on, and the value

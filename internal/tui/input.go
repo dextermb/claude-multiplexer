@@ -6,6 +6,7 @@ import (
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/dextermb/claude-multiplexer/internal/keys"
 )
 
 func (m Model) questionKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
@@ -155,8 +156,12 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.seq != nil {
 		return m.resolveSequence(msg)
 	}
-	if target, ok := sequenceTarget(msg.String(), m.focus == focusPrompt, m.diffPanel); ok {
+	inPrompt := m.focus == focusPrompt
+	if target, ok := m.sequenceTarget(msg.String(), inPrompt, m.diffPanel); ok {
 		return m.startSequence(target)
+	}
+	if leader, ok := m.commandLeader(msg.String(), inPrompt); ok {
+		return m.startCommandSequence(leader)
 	}
 
 	if m.focus == focusDiff {
@@ -166,44 +171,27 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.taskKey(msg)
 	}
 
-	switch msg.String() {
-	case "ctrl+p":
-		return m.openPicker()
-	case "ctrl+n":
-		return m.openNewForm()
-	case "ctrl+t":
-		m.mouseOn = !m.mouseOn
-		if m.mouseOn {
-			return m, tea.EnableMouseCellMotion
-		}
-		return m, tea.DisableMouse
-	case "tab":
-		if m.focus == focusPrompt {
-			return m.complete()
-		}
-		return m.toggleFocus()
-	case "pgup":
-		m.output.ViewUp()
-		return m, nil
-	case "pgdown":
-		m.output.ViewDown()
-		return m, nil
+	key := msg.String()
+	if a, ok := m.keys.Action(keys.CtxGlobal, key); ok && globalEverywhere(key) {
+		return m.runGlobal(a)
+	}
+	if cmd, ok := m.commands.Single(key); ok && strings.HasPrefix(key, "ctrl+") {
+		return m.runCommand(cmd)
 	}
 
 	if m.focus != focusPrompt {
 		if looksDropped(msg) {
 			return m.handlePaste(string(msg.Runes))
 		}
-		switch msg.String() {
-		case "n":
-			return m.openNewForm()
-		case "t":
-			return m.openPicker()
-		case "?":
+		if key == "?" {
 			m.help = newHelp()
 			return m, textinput.Blink
-		case "q":
-			return m.startQuit()
+		}
+		if a, ok := m.keys.Action(keys.CtxGlobal, key); ok {
+			return m.runGlobal(a)
+		}
+		if cmd, ok := m.commands.Single(key); ok {
+			return m.runCommand(cmd)
 		}
 	}
 
@@ -217,24 +205,27 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) promptKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	switch msg.String() {
-	case "esc":
+	if msg.String() == "esc" {
 		if next, cmd, ok := m.stopBusy(); ok {
 			return next, cmd
 		}
 		m.focus = m.retreatFocus()
 		m.prompt.Blur()
 		return m, nil
-	case "enter":
-		if m.inBurst {
+	}
+	if a, ok := m.keys.Action(keys.CtxPrompt, msg.String()); ok {
+		switch a {
+		case keys.PromptSend:
+			if m.inBurst {
+				return m.insertNewline()
+			}
+			return m.send()
+		case keys.PromptNewline:
 			return m.insertNewline()
-		}
-		return m.send()
-	case "ctrl+j":
-		return m.insertNewline()
-	case "backspace":
-		if m.prompt.Value() == "" {
-			return m.unqueueLast()
+		case keys.PromptUnqueueLast:
+			if m.prompt.Value() == "" {
+				return m.unqueueLast()
+			}
 		}
 	}
 	if next, ok := m.historyKey(msg); ok {
@@ -295,14 +286,19 @@ func (m *Model) recordHistory(text string) {
 
 func (m Model) outputKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	m.clearSelection()
-	switch msg.String() {
-	case "esc":
+	if msg.String() == "esc" {
 		if next, cmd, ok := m.stopBusy(); ok {
 			return next, cmd
 		}
 		m.focus = m.retreatFocus()
 		return m, nil
-	case "enter":
+	}
+	a, ok := m.keys.Action(keys.CtxOutputPane, msg.String())
+	if !ok {
+		return m, nil
+	}
+	switch a {
+	case keys.OutputPaneOpenBlock:
 		if m.blockCursor >= 0 {
 			m.toggleBlock(m.blockCursor)
 			return m, nil
@@ -310,30 +306,30 @@ func (m Model) outputKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.focus = focusPrompt
 		m.prompt.Focus()
 		return m, textarea.Blink
-	case " ":
+	case keys.OutputPaneToggleBlock:
 		if m.blockCursor >= 0 {
 			m.toggleBlock(m.blockCursor)
 		}
 		return m, nil
-	case "]":
+	case keys.OutputPaneBlockNext:
 		m.moveBlockCursor(1)
-	case "[":
+	case keys.OutputPaneBlockPrev:
 		m.moveBlockCursor(-1)
-	case "i":
+	case keys.OutputPaneToPrompt:
 		m.focus = focusPrompt
 		m.prompt.Focus()
 		return m, textarea.Blink
-	case "up", "k":
+	case keys.OutputPaneUp:
 		m.output.LineUp(1)
-	case "down", "j":
+	case keys.OutputPaneDown:
 		m.output.LineDown(1)
-	case "u", "ctrl+u":
+	case keys.OutputPaneHalfUp:
 		m.output.HalfViewUp()
-	case "d", "ctrl+d":
+	case keys.OutputPaneHalfDown:
 		m.output.HalfViewDown()
-	case "g", "home":
+	case keys.OutputPaneTop:
 		m.output.GotoTop()
-	case "G", "end":
+	case keys.OutputPaneBottom:
 		m.output.GotoBottom()
 	}
 	return m, nil
@@ -346,27 +342,32 @@ func (m Model) taskKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if half < 1 {
 		half = 1
 	}
-	switch msg.String() {
-	case "esc":
+	if msg.String() == "esc" {
 		m.focus = focusOutput
 		return m, nil
-	case "tab":
+	}
+	a, ok := m.keys.Action(keys.CtxTask, msg.String())
+	if !ok {
+		return m, nil
+	}
+	switch a {
+	case keys.TaskFocusNext:
 		return m.toggleFocus()
-	case "up", "k":
+	case keys.TaskUp:
 		m.taskScroll--
-	case "down", "j":
+	case keys.TaskDown:
 		m.taskScroll++
-	case "u", "ctrl+u":
+	case keys.TaskHalfUp:
 		m.taskScroll -= half
-	case "d", "ctrl+d":
+	case keys.TaskHalfDown:
 		m.taskScroll += half
-	case "pgup":
+	case keys.TaskPageUp:
 		m.taskScroll -= m.taskPage()
-	case "pgdown":
+	case keys.TaskPageDown:
 		m.taskScroll += m.taskPage()
-	case "g", "home":
+	case keys.TaskTop:
 		m.taskScroll = 0
-	case "G", "end":
+	case keys.TaskBottom:
 		m.taskScroll = len(m.taskPanelLines())
 	}
 	m.clampTaskScroll()
@@ -382,17 +383,22 @@ func (m Model) taskPage() int {
 }
 
 func (m Model) sidebarKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	switch msg.String() {
-	case "esc":
+	if msg.String() == "esc" {
 		if m.searchActive() {
 			m.clearSearch()
 		}
 		return m, nil
-	case "up", "k":
+	}
+	a, ok := m.keys.Action(keys.CtxSidebar, msg.String())
+	if !ok {
+		return m, nil
+	}
+	switch a {
+	case keys.SidebarUp:
 		return m.move(-1)
-	case "down", "j":
+	case keys.SidebarDown:
 		return m.move(1)
-	case "enter", "i":
+	case keys.SidebarEnter:
 		if item, ok := m.selectedRow(); ok && !item.running() {
 			return m.resumeSelected()
 		}

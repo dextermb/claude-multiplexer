@@ -10,6 +10,9 @@ the files a session reads. See [../../config.md](../../config.md).
 | `get_template_path` | `session` | The directories a session reads a preset prompt from, in the order they are read. | open |
 | `set_config` | `path`, `value` | Sets one settings key by a dot path, such as `blockCaps.tool`. It rejects a key or a type the settings do not allow. | open |
 | `unset_config` | `path` | Removes one settings key by a dot path, so that key takes its default again. | open |
+| `get_keybindings` | `action` | The resolved keybindings: every action, the keys it answers to now, and whether the settings changed it. `action` filters to one action or context. | open |
+| `set_keybinding` | `action`, `keys` | Binds keys to an action, such as `session.rename`. It refuses a reserved key or a clash, and warns on a displaced default. | open |
+| `reset_keybinding` | `action` | Clears one keybinding, so the action takes its built-in keys again. | open |
 | `set_editor` | `editor`, `terminal` | Sets the editor the human opens a directory with, in the settings file. | open |
 | `unset_editor` | `field` | Takes the editor, the terminal flag, or both out of the settings file. | open |
 | `set_block_cap` | `rows` | Sets the rows one block draws in the session pane before the pane caps it. `0` caps nothing. | open |
@@ -110,3 +113,28 @@ each stopped session past the limit. See [../../sessions.md](../../sessions.md).
 `unset_auto_archive` turns the feature off again, so a stopped session stays until
 the human archives it. It answers with `changed: false` when the file held no
 setting. `set_config` reaches the same field by the path `autoArchiveDays`.
+
+### Keybindings
+
+`get_keybindings` lists the resolved keybindings: every action, the keys it
+answers to now, and a `custom` flag that is true when the settings changed it
+from the default. Give `action` to filter to one action, such as
+`session.rename`, or to one context, such as `session`. Read it to see a binding
+before you change it.
+
+`set_keybinding` binds keys to an action of the interface. Give `action` as
+`<context>.<action>`, such as `session.rename` or `global.quit`, and `keys` as
+the keys, such as `["N"]` or `["n","ctrl+n"]`. It validates the whole keymap
+before it writes, so it refuses a reserved key (`?`, `esc`, `ctrl+c`), an unknown
+action, or a clash with another user binding. It answers with a `warning` when
+the new binding takes a key a default action used, so you know to rebind that
+action too.
+
+`reset_keybinding` clears one action, so it takes its built-in keys again. Give
+`action`, and the tool answers with `changed: false` when the action was not
+bound.
+
+The interface reads the settings file again at each notice, so a rebind takes
+effect at once. `set_config` reaches the same fields by the path
+`keybindings.<context>.<action>`, and `list_config_keys` lists every path. See
+[../../config/keybindings.md](../../config/keybindings.md).

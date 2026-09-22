@@ -58,6 +58,63 @@ func (s *Server) addConfigTools(server *sdk.Server, caller string) {
 	})
 
 	sdk.AddTool(server, &sdk.Tool{
+		Name: ToolGetKeybindings,
+		Description: "The resolved keybindings of the interface: every action, the keys it answers to now, and whether the settings changed it from the default. " +
+			"Give 'action' to filter to one action, such as 'session.rename', or to one context, such as 'session'. " +
+			"Read this to see a binding before you change it with " + ToolSetKeybinding + ".",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, in getKeybindingsIn) (*sdk.CallToolResult, getKeybindingsOut, error) {
+		return nil, getKeybindings(s.sessions, in), nil
+	})
+
+	sdk.AddTool(server, &sdk.Tool{
+		Name: ToolSetKeybinding,
+		Description: "Bind one or more keys to an action of the interface, such as 'session.rename' or 'global.quit'. " +
+			"Give 'action' as '<context>.<action>' and 'keys' as the keys, such as [\"N\"] or [\"n\",\"ctrl+n\"]. " +
+			"It refuses a reserved key (?, esc, ctrl+c), an unknown action, or a clash with another binding. " +
+			"It answers with 'warning' when the new binding takes a key a default action used, so you can rebind that action too. " +
+			"Read " + ToolConfigKeys + " for the 'keybindings.<context>.<action>' paths.",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, in setKeybindingIn) (*sdk.CallToolResult, setKeybindingOut, error) {
+		out, err := setKeybinding(s.sessions, caller, in)
+		return nil, out, err
+	})
+
+	sdk.AddTool(server, &sdk.Tool{
+		Name:        ToolResetKeybinding,
+		Description: "Clear one keybinding, so the action takes its built-in keys again. Give 'action' as '<context>.<action>', such as 'session.rename'.",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, in resetKeybindingIn) (*sdk.CallToolResult, resetKeybindingOut, error) {
+		out, err := resetKeybinding(s.sessions, caller, in)
+		return nil, out, err
+	})
+
+	sdk.AddTool(server, &sdk.Tool{
+		Name: ToolGetCommands,
+		Description: "The key commands of the interface: each trigger, its label, and its script. " +
+			"A command binds a key trigger to a script, so a press runs the script. " +
+			"Read this to see a command before you change it with " + ToolAddCommand + " or " + ToolRemoveCommand + ".",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, _ struct{}) (*sdk.CallToolResult, getCommandsOut, error) {
+		return nil, getCommands(s.sessions), nil
+	})
+
+	sdk.AddTool(server, &sdk.Tool{
+		Name: ToolAddCommand,
+		Description: "Bind a key trigger to a script, so a press runs the script. " +
+			"Give 'keys' as the trigger (a standalone key such as 'ctrl+g', or a leader and a second key such as 'b o'), 'label' as a name, and 'script' as the file. " +
+			"The script runs off the main loop, reads the selected session as JSON on stdin, and its first stdout line shows as a notice. " +
+			"A command with the same label is replaced. It validates the whole set before it writes, so it refuses a reserved key (?, esc, ctrl+c), a bad trigger, or a clash with a key of the interface.",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, in addCommandIn) (*sdk.CallToolResult, addCommandOut, error) {
+		out, err := addCommand(s.sessions, caller, in)
+		return nil, out, err
+	})
+
+	sdk.AddTool(server, &sdk.Tool{
+		Name:        ToolRemoveCommand,
+		Description: "Remove a key command by its label, so its trigger runs nothing again. Give 'label' as the name of the command to remove.",
+	}, func(_ context.Context, _ *sdk.CallToolRequest, in removeCommandIn) (*sdk.CallToolResult, removeCommandOut, error) {
+		out, err := removeCommand(s.sessions, caller, in)
+		return nil, out, err
+	})
+
+	sdk.AddTool(server, &sdk.Tool{
 		Name: ToolSetEditor,
 		Description: "Set the editor the human opens a session directory with, and whether it draws in the terminal. " +
 			"It writes the settings file of the multiplexer, and makes that file when there is none. " +
@@ -207,7 +264,7 @@ func setConfig(cfg ConfigPort, caller string, in setConfigIn) (setConfigOut, err
 	if path == "" {
 		return setConfigOut{}, ErrNoConfigPath
 	}
-	value, err := json.Marshal(in.Value)
+	value, err := configValue(in.Value)
 	if err != nil {
 		return setConfigOut{}, err
 	}
@@ -216,6 +273,29 @@ func setConfig(cfg ConfigPort, caller string, in setConfigIn) (setConfigOut, err
 		return setConfigOut{}, err
 	}
 	return setConfigOut{OK: true, Path: file, Message: path + " is set in " + file}, nil
+}
+
+// configValue turns the tool input into the JSON value to write. A client that
+// cannot send a JSON array or object sends it as a string of that JSON instead,
+// so a string that holds an array or an object is unwrapped to the value it
+// holds. A scalar, and a plain string, pass through as themselves.
+func configValue(v any) (json.RawMessage, error) {
+	raw, err := json.Marshal(v)
+	if err != nil {
+		return nil, err
+	}
+	s, ok := v.(string)
+	if !ok {
+		return raw, nil
+	}
+	trimmed := strings.TrimSpace(s)
+	if trimmed == "" || (trimmed[0] != '[' && trimmed[0] != '{') {
+		return raw, nil
+	}
+	if !json.Valid([]byte(trimmed)) {
+		return raw, nil
+	}
+	return json.RawMessage(trimmed), nil
 }
 
 func unsetConfig(cfg ConfigPort, caller string, in unsetConfigIn) (unsetConfigOut, error) {
@@ -232,6 +312,100 @@ func unsetConfig(cfg ConfigPort, caller string, in unsetConfigIn) (unsetConfigOu
 		message = path + " is no longer set in " + file
 	}
 	return unsetConfigOut{OK: true, Path: file, Changed: changed, Message: message}, nil
+}
+
+func getKeybindings(cfg ConfigPort, in getKeybindingsIn) getKeybindingsOut {
+	filter := strings.TrimSpace(in.Action)
+	var out getKeybindingsOut
+	for _, e := range cfg.Keybindings() {
+		if filter != "" && string(e.Action) != filter && string(e.Context) != filter {
+			continue
+		}
+		out.Keybindings = append(out.Keybindings, keybindingEntry{
+			Action:  string(e.Action),
+			Context: string(e.Context),
+			Keys:    e.Keys,
+			Custom:  e.Custom,
+		})
+	}
+	return out
+}
+
+func setKeybinding(cfg ConfigPort, caller string, in setKeybindingIn) (setKeybindingOut, error) {
+	action := strings.TrimSpace(in.Action)
+	if action == "" {
+		return setKeybindingOut{}, ErrNoKeyAction
+	}
+	if len(in.Keys) == 0 {
+		return setKeybindingOut{}, ErrNoKeys
+	}
+	file, warning, err := cfg.SetKeybinding(action, in.Keys, caller)
+	if err != nil {
+		return setKeybindingOut{}, err
+	}
+	message := action + " is bound to " + strings.Join(in.Keys, " ") + " in " + file
+	return setKeybindingOut{OK: true, Path: file, Message: message, Warning: warning}, nil
+}
+
+func resetKeybinding(cfg ConfigPort, caller string, in resetKeybindingIn) (resetKeybindingOut, error) {
+	action := strings.TrimSpace(in.Action)
+	if action == "" {
+		return resetKeybindingOut{}, ErrNoKeyAction
+	}
+	file, changed, err := cfg.ResetKeybinding(action, caller)
+	if err != nil {
+		return resetKeybindingOut{}, err
+	}
+	message := action + " was not bound in " + file
+	if changed {
+		message = action + " takes its default keys again, in " + file
+	}
+	return resetKeybindingOut{OK: true, Path: file, Changed: changed, Message: message}, nil
+}
+
+func getCommands(cfg ConfigPort) getCommandsOut {
+	var out getCommandsOut
+	for _, c := range cfg.Commands() {
+		out.Commands = append(out.Commands, commandEntry{Keys: c.Keys, Label: c.Label, Script: c.Script})
+	}
+	return out
+}
+
+func addCommand(cfg ConfigPort, caller string, in addCommandIn) (addCommandOut, error) {
+	keyList := strings.TrimSpace(in.Keys)
+	label := strings.TrimSpace(in.Label)
+	script := strings.TrimSpace(in.Script)
+	if keyList == "" {
+		return addCommandOut{}, ErrNoKeys
+	}
+	if label == "" {
+		return addCommandOut{}, ErrNoCommandLabel
+	}
+	if script == "" {
+		return addCommandOut{}, ErrNoCommandScript
+	}
+	file, err := cfg.AddCommand(keyList, label, script, caller)
+	if err != nil {
+		return addCommandOut{}, err
+	}
+	message := label + " runs " + script + " on " + keyList + " in " + file
+	return addCommandOut{OK: true, Path: file, Message: message}, nil
+}
+
+func removeCommand(cfg ConfigPort, caller string, in removeCommandIn) (removeCommandOut, error) {
+	label := strings.TrimSpace(in.Label)
+	if label == "" {
+		return removeCommandOut{}, ErrNoCommandLabel
+	}
+	file, changed, err := cfg.RemoveCommand(label, caller)
+	if err != nil {
+		return removeCommandOut{}, err
+	}
+	message := label + " was not a command in " + file
+	if changed {
+		message = label + " is no longer a command in " + file
+	}
+	return removeCommandOut{OK: true, Path: file, Changed: changed, Message: message}, nil
 }
 
 func setEditor(cfg ConfigPort, caller string, in setEditorIn) (setEditorOut, error) {

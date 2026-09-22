@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/manager"
 )
 
@@ -66,6 +67,60 @@ func TestSessionBarHidesTheCacheRateWithoutAPromptToken(t *testing.T) {
 	}
 }
 
+func TestStatusBarShowsTheSelectedSessionCacheHitRate(t *testing.T) {
+	item := busyRow()
+	item.name = "alpha"
+	m := Model{
+		rows: []row{item},
+		sel:  "alpha",
+		barSpecs: map[string]config.BarSpec{
+			config.BarStatus: {Right: []config.BarElement{{ID: "cache"}}},
+		},
+	}
+	if got := m.statusRight(); !strings.Contains(got, "cache 94%") {
+		t.Fatalf("statusRight = %q, want it to contain cache 94%%", got)
+	}
+}
+
+func TestStatusBarHidesTheCacheRateWithoutASelectedSession(t *testing.T) {
+	m := Model{
+		barSpecs: map[string]config.BarSpec{
+			config.BarStatus: {Right: []config.BarElement{{ID: "cache"}}},
+		},
+	}
+	if got := m.statusRight(); strings.Contains(got, "cache ") {
+		t.Fatalf("statusRight = %q, want no cache rate with no selection", got)
+	}
+}
+
+func TestStatusBarShowsASelectedSessionElement(t *testing.T) {
+	item := busyRow()
+	item.name = "alpha"
+	item.model = "opus"
+	m := Model{
+		rows: []row{item},
+		sel:  "alpha",
+		barSpecs: map[string]config.BarSpec{
+			config.BarStatus: {Left: []config.BarElement{{ID: "model"}}},
+		},
+	}
+	texts := segTexts(m.statusLeftSegs())
+	if indexOfPrefix(texts, "opus") < 0 {
+		t.Fatalf("statusLeftSegs = %v, want the selected session model", texts)
+	}
+}
+
+func TestStatusBarSessionElementNeedsASelection(t *testing.T) {
+	m := Model{
+		barSpecs: map[string]config.BarSpec{
+			config.BarStatus: {Left: []config.BarElement{{ID: "model"}}},
+		},
+	}
+	if segs := m.statusLeftSegs(); len(segs) != 0 {
+		t.Fatalf("statusLeftSegs = %v, want none with no selection", segTexts(segs))
+	}
+}
+
 func TestSessionBarShowsThePullRequest(t *testing.T) {
 	var m Model
 	item := busyRow()
@@ -100,6 +155,45 @@ func TestSessionBarHidesThePullRequestWithoutOne(t *testing.T) {
 	texts := segTexts(m.rightSegs(busyRow()))
 	if indexOfPrefix(texts, "#") >= 0 || indexOfPrefix(texts, "!") >= 0 {
 		t.Fatalf("segments = %v, want no PR segment", texts)
+	}
+}
+
+func TestSessionBarReordersAndRemovesByConfig(t *testing.T) {
+	m := Model{barSpecs: map[string]config.BarSpec{
+		config.BarSession: {Right: []config.BarElement{{ID: "cost"}, {ID: "state"}}},
+	}}
+	texts := segTexts(m.rightSegs(busyRow()))
+	if len(texts) != 2 {
+		t.Fatalf("segments = %v, want only the two named elements", texts)
+	}
+	if indexOfPrefix(texts, "$") != 0 || texts[1] != "idle" {
+		t.Fatalf("segments = %v, want the cost first and the state second", texts)
+	}
+}
+
+func TestSessionBarDrawsACustomElementFromTheCache(t *testing.T) {
+	item := busyRow()
+	item.name = "api"
+	m := Model{
+		barSpecs: map[string]config.BarSpec{
+			config.BarSession: {Right: []config.BarElement{{Script: "branch.sh", Label: "branch"}}},
+		},
+		barOutputs: map[string]string{
+			barOutputKey(config.BarSession, "api", "branch"): "main",
+		},
+	}
+	texts := segTexts(m.rightSegs(item))
+	if len(texts) != 1 || texts[0] != "main" {
+		t.Fatalf("segments = %v, want the custom output main", texts)
+	}
+}
+
+func TestSessionBarHidesACustomElementWithNoOutput(t *testing.T) {
+	m := Model{barSpecs: map[string]config.BarSpec{
+		config.BarSession: {Right: []config.BarElement{{Script: "branch.sh", Label: "branch"}}},
+	}}
+	if texts := segTexts(m.rightSegs(busyRow())); len(texts) != 0 {
+		t.Fatalf("segments = %v, want none without a cached output", texts)
 	}
 }
 

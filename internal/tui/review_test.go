@@ -73,6 +73,37 @@ func TestReviewHunkPromptNamesTheLineRange(t *testing.T) {
 	}
 }
 
+func TestReviewLineNumbersToggle(t *testing.T) {
+	m := reviewModel()
+	width := m.reviewDiffWidth()
+
+	off := visible(strings.Join(firstOf(m.reviewDiffContent(width)), "\n"))
+
+	next, _ := m.reviewToggleNumbers()
+	m = next.(Model)
+	if !m.reviewLineNumbers {
+		t.Fatal("n must turn the line numbers on")
+	}
+	on := visible(strings.Join(firstOf(m.reviewDiffContent(width)), "\n"))
+
+	// +five is the new-side line 22 of the second hunk, a number the diff text
+	// carries nowhere else, so it can only come from the gutter.
+	if strings.Contains(off, "22") {
+		t.Errorf("line numbers must be off by default:\n%s", off)
+	}
+	if !strings.Contains(on, "22") {
+		t.Errorf("n must show the new-side line numbers:\n%s", on)
+	}
+
+	next, _ = m.reviewToggleNumbers()
+	m = next.(Model)
+	if m.reviewLineNumbers {
+		t.Fatal("n again must turn the line numbers off")
+	}
+}
+
+func firstOf(lines []string, _ int) []string { return lines }
+
 func TestReviewTabCyclesFocus(t *testing.T) {
 	m := reviewModel()
 	m.reviewFocus = reviewDiff

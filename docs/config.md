@@ -64,6 +64,8 @@ a typing mistake.
 | `archivedWindow` | The rolling window `l a` clamps the archived list to: `1d`, `1w`, `1m`, `1y`, or `unset` for no limit. The default is `1d` | [sessions.md](sessions.md) |
 | `workItems` | The Jira and Linear work-item providers, keyed by provider, each with a token | [work-items.md](work-items.md) |
 | `pullRequests` | The GitHub and GitLab pull-request providers, keyed by provider, each with a token or a CLI mode | [pull-requests.md](pull-requests.md) |
+| `bars` | The composition of the session bar and the status bar: the ordered elements, and any custom script elements | [config/bars.md](config/bars.md) |
+| `commands` | Key commands: a trigger, a label, and a script the press runs | [config/commands.md](config/commands.md) |
 
 ## Write any key by its path
 
@@ -89,11 +91,19 @@ with `unset_config`. Both tools take a dot path and reach a nested key:
 | `workItems.linear.token` | A work-item provider token, keyed by provider |
 | `pullRequests.github.token` | A pull-request provider token, keyed by provider (`github` or `gitlab`) |
 | `pullRequests.gitlab.mode` | The transport of a pull-request provider: `auto`, `api`, or `cli` |
+| `bars.session.left` | The ordered elements of the session bar left side |
+| `bars.status.right` | The ordered elements of the status bar right side |
+| `commands` | The whole list of key commands; `add_command` and `remove_command` are the tools that own it |
 
 `set_config` also takes a `value`, as any JSON value: a string, a number, a
-boolean, an object, or `null`. It checks the path and the value against the
-settings before it writes, so an unknown field or a wrong type fails and the
+boolean, an array, an object, or `null`. It checks the path and the value against
+the settings before it writes, so an unknown field or a wrong type fails and the
 file stays as it was. A field inside a layout is checked the same way.
+
+A client that cannot send an array or an object sends it as a string of that
+JSON instead. So `set_config` reads a string that holds an array or an object as
+the value it holds, and a scalar or a plain string passes through unchanged. So
+`"[]"` sets an empty list, the same as `[]`.
 
 The check cannot catch a mistyped map key, because `blockCaps` and `layouts`
 take any key. So `blockCaps.tol` writes a key the program never reads. Read the
@@ -124,3 +134,6 @@ reload. See [manager.md](manager.md).
 | [config/blocks.md](config/blocks.md) | The block cap: the default, a cap for one type, the question modal caps, and the tool |
 | [config/layouts.md](config/layouts.md) | The named interface layouts and the global active layout |
 | [config/new-session.md](config/new-session.md) | The option each field of the new session form opens on |
+| [config/bars.md](config/bars.md) | The composition of the two status bars, the built-in elements, and custom script elements |
+| [config/keybindings.md](config/keybindings.md) | Rebinding the keys of the interface, the reserved set, the action catalogue, and the precedence rule |
+| [config/commands.md](config/commands.md) | Binding a key trigger to a script, the trigger forms, the payload the script reads, and the tools |

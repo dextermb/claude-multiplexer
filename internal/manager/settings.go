@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/dextermb/claude-multiplexer/internal/commands"
 	"github.com/dextermb/claude-multiplexer/internal/config"
+	"github.com/dextermb/claude-multiplexer/internal/keys"
 )
 
 // SetEditor writes the editor settings, so a session can name the editor the
@@ -142,6 +144,136 @@ func (m *Manager) UnsetConfig(path string) (string, bool, error) {
 		return "", false, err
 	}
 	return file, true, nil
+}
+
+// SetKeybinding rebinds one action to the given keys in the settings file. It
+// validates the whole keymap before it writes, so it refuses a reserved key, an
+// unknown action, or a clash with another user binding. It reports a warning
+// when the new binding displaces a default action. See docs/config/keybindings.md.
+func (m *Manager) SetKeybinding(action string, keyList []string) (string, string, error) {
+	file := config.Target(m.opts.ConfigPaths...)
+	if file == "" {
+		return "", "", errors.New("manager: no settings file to write")
+	}
+	current, err := config.Load(file)
+	if err != nil {
+		return "", "", err
+	}
+	raw, err := json.Marshal(keyList)
+	if err != nil {
+		return "", "", err
+	}
+	next, err := config.SetPath(current, "keybindings."+action, raw)
+	if err != nil {
+		return "", "", err
+	}
+	_, warnings, errs := keys.LoadKeymap(next.Keybindings)
+	if len(errs) > 0 {
+		return "", "", errs[0]
+	}
+	if err := config.Write(file, next); err != nil {
+		return "", "", err
+	}
+	warning := ""
+	if len(warnings) > 0 {
+		warning = warnings[0].String()
+	}
+	return file, warning, nil
+}
+
+// ResetKeybinding clears one action, so it takes its default keys again. See
+// docs/config/keybindings.md.
+func (m *Manager) ResetKeybinding(action string) (string, bool, error) {
+	return m.UnsetConfig("keybindings." + action)
+}
+
+// Keybindings lists the resolved keymap: every action, the keys it answers to
+// now, and whether the user changed it from the default. See
+// docs/config/keybindings.md.
+func (m *Manager) Keybindings() []keys.Entry {
+	var kb *config.Keybindings
+	if file, err := config.Load(m.opts.ConfigPaths...); err == nil {
+		kb = file.Keybindings
+	}
+	km, _, _ := keys.LoadKeymap(kb)
+	return keys.Entries(km)
+}
+
+// Commands lists the key commands from the settings file, in order. See
+// docs/config/commands.md.
+func (m *Manager) Commands() []config.Command {
+	if file, err := config.Load(m.opts.ConfigPaths...); err == nil {
+		return file.Commands
+	}
+	return nil
+}
+
+// AddCommand binds a key trigger to a script in the settings file. A command
+// with the same label is replaced. It validates the whole command set against
+// the keymap before it writes, so it refuses a reserved key, a bad trigger, or a
+// clash with a key of the interface. See docs/config/commands.md.
+func (m *Manager) AddCommand(keyList, label, script string) (string, error) {
+	file := config.Target(m.opts.ConfigPaths...)
+	if file == "" {
+		return "", errors.New("manager: no settings file to write")
+	}
+	current, err := config.Load(file)
+	if err != nil {
+		return "", err
+	}
+	next := current
+	next.Commands = upsertCommand(current.Commands, config.Command{Keys: keyList, Label: label, Script: script})
+	km, _, _ := keys.LoadKeymap(next.Keybindings)
+	if _, errs := commands.Resolve(next.Commands, km); len(errs) > 0 {
+		return "", errs[0]
+	}
+	if err := config.Write(file, next); err != nil {
+		return "", err
+	}
+	return file, nil
+}
+
+// RemoveCommand takes the command with a label out of the settings file. It
+// reports whether the file held it. See docs/config/commands.md.
+func (m *Manager) RemoveCommand(label string) (string, bool, error) {
+	file := config.Target(m.opts.ConfigPaths...)
+	if file == "" {
+		return "", false, errors.New("manager: no settings file to write")
+	}
+	current, err := config.Load(file)
+	if err != nil {
+		return "", false, err
+	}
+	kept := make([]config.Command, 0, len(current.Commands))
+	for _, c := range current.Commands {
+		if c.Label != label {
+			kept = append(kept, c)
+		}
+	}
+	if len(kept) == len(current.Commands) {
+		return file, false, nil
+	}
+	next := current
+	if len(kept) == 0 {
+		kept = nil
+	}
+	next.Commands = kept
+	if err := config.Write(file, next); err != nil {
+		return "", false, err
+	}
+	return file, true, nil
+}
+
+func upsertCommand(list []config.Command, c config.Command) []config.Command {
+	out := make([]config.Command, len(list))
+	copy(out, list)
+	for i := range out {
+		if out[i].Label == c.Label {
+			out[i] = c
+			return out
+		}
+	}
+	return append(out, c)
 }
 
 // SetBlockCap writes the rows a block draws before the pane caps it, so a

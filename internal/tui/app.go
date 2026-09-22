@@ -8,7 +8,9 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/dextermb/claude-multiplexer/internal/commands"
 	"github.com/dextermb/claude-multiplexer/internal/config"
+	"github.com/dextermb/claude-multiplexer/internal/keys"
 	"github.com/dextermb/claude-multiplexer/internal/manager"
 	"github.com/dextermb/claude-multiplexer/internal/markdown"
 	"github.com/dextermb/claude-multiplexer/internal/protocol"
@@ -81,6 +83,8 @@ type Model struct {
 	pending        string
 	seq            *sequence
 	seqGen         int
+	keys           keys.Keymap
+	commands       commands.Resolved
 	sel            string
 	listOffset     int
 
@@ -96,6 +100,10 @@ type Model struct {
 	caps            map[string]int
 	layouts         map[string]config.Layout
 	activeLayout    string
+	barSpecs        map[string]config.BarSpec
+	barOutputs      map[string]string
+	barRuns         map[string]time.Time
+	barTicking      bool
 	sessionDefaults newSessionDefaults
 	layout          config.ResolvedLayout
 	content         string
@@ -121,13 +129,14 @@ type Model struct {
 	diffLineNumbers bool
 	diffTicking     bool
 
-	reviewMode    bool
-	reviewPending bool
-	reviewFile    int
-	reviewHunk    int
-	reviewScroll  int
-	reviewFocus   reviewSide
-	reviewSidebar bool
+	reviewMode        bool
+	reviewPending     bool
+	reviewFile        int
+	reviewHunk        int
+	reviewScroll      int
+	reviewFocus       reviewSide
+	reviewSidebar     bool
+	reviewLineNumbers bool
 
 	sidebarHidden bool
 	taskScroll    int
@@ -189,8 +198,11 @@ func New(opts Options) Model {
 		pathPicked:      -1,
 		blockCursor:     -1,
 		caps:            config.ResolveBlockCaps(config.Config{}),
+		barOutputs:      make(map[string]string),
+		barRuns:         make(map[string]time.Time),
 		archivedWindow:  config.DefaultLastActive,
 		layout:          config.DefaultLayout(),
+		keys:            defaultKeymap(),
 		focus:           focusSidebar,
 		mouseOn:         true,
 		burst:           &burst{},
@@ -293,6 +305,12 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleDiffTick()
 	case ageTickMsg:
 		return m.handleAgeTick()
+	case barTickMsg:
+		return m.handleBarTick(msg)
+	case barOutputMsg:
+		return m.handleBarOutput(msg)
+	case commandOutputMsg:
+		return m.handleCommandOutput(msg)
 	case tea.MouseMsg:
 		return m.handleMouse(msg)
 	case tea.KeyMsg:

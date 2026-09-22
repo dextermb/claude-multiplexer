@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/dextermb/claude-multiplexer/internal/config"
+	"github.com/dextermb/claude-multiplexer/internal/keys"
 )
 
 func (b *bridge) SetWorkingDir(path, by string) (string, error) {
@@ -110,6 +111,52 @@ func (b *bridge) UnsetConfig(path, by string) (string, bool, error) {
 	}
 	if changed {
 		b.m.notify(by, by+" cleared "+path+" from the settings", false)
+	}
+	return file, changed, nil
+}
+
+func (b *bridge) SetKeybinding(action string, keyList []string, by string) (string, string, error) {
+	file, warning, err := b.m.SetKeybinding(action, keyList)
+	if err != nil {
+		return "", "", err
+	}
+	b.m.notify(by, by+" bound "+action+" in the settings", false)
+	return file, warning, nil
+}
+
+func (b *bridge) Keybindings() []keys.Entry {
+	return b.m.Keybindings()
+}
+
+func (b *bridge) ResetKeybinding(action, by string) (string, bool, error) {
+	file, changed, err := b.m.ResetKeybinding(action)
+	if err != nil {
+		return "", false, err
+	}
+	if changed {
+		b.m.notify(by, by+" reset "+action+" to its default", false)
+	}
+	return file, changed, nil
+}
+
+func (b *bridge) Commands() []config.Command { return b.m.Commands() }
+
+func (b *bridge) AddCommand(keyList, label, script, by string) (string, error) {
+	file, err := b.m.AddCommand(keyList, label, script)
+	if err != nil {
+		return "", err
+	}
+	b.m.notify(by, by+" bound the "+label+" command in the settings", false)
+	return file, nil
+}
+
+func (b *bridge) RemoveCommand(label, by string) (string, bool, error) {
+	file, changed, err := b.m.RemoveCommand(label)
+	if err != nil {
+		return "", false, err
+	}
+	if changed {
+		b.m.notify(by, by+" removed the "+label+" command from the settings", false)
 	}
 	return file, changed, nil
 }

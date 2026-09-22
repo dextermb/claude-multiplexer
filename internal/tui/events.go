@@ -13,18 +13,36 @@ func (m Model) handleSettings(msg settingsMsg) (tea.Model, tea.Cmd) {
 	prev := m.layout
 	m.layouts = msg.layouts
 	m.activeLayout = msg.activeLayout
+	m.barSpecs = msg.bars
 	m.sessionDefaults = msg.defaults
+	if msg.keysOK {
+		m.keys = msg.keys
+	}
+	if msg.keyNote != "" {
+		m.status = msg.keyNote
+	}
+	if msg.commandsOK {
+		m.commands = msg.commands
+	}
+	if msg.commandNote != "" {
+		m.status = msg.commandNote
+	}
 	windowChanged := msg.archivedWindow != m.archivedWindow
 	m.archivedWindow = msg.archivedWindow
 	m.applyLayout()
+	var barCmd tea.Cmd
+	if m.hasBarScripts() && !m.barTicking {
+		m.barTicking = true
+		barCmd = barTick()
+	}
 	if windowChanged {
 		m.refresh()
 	}
 	if !capsChanged && m.layout == prev && !windowChanged {
-		return m, nil
+		return m, barCmd
 	}
 	m.rebuildOutput()
-	return m, nil
+	return m, barCmd
 }
 
 func sameCaps(a, b map[string]int) bool {

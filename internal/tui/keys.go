@@ -5,43 +5,68 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/dextermb/claude-multiplexer/internal/keys"
 )
 
 const sequenceTimeout = time.Second
 
 type sequenceTimeoutMsg struct{ gen int }
 
+// sequence tracks a two-key chord in progress. A built-in chord sets target; a
+// command chord sets leader to its first key. See docs/config/commands.md.
 type sequence struct {
-	target string
+	target keys.Action
+	leader string
 	gen    int
 }
 
-var sequenceTargets = map[string]string{
-	"s":      "s",
-	"l":      "l",
-	"o":      "o",
-	"ctrl+s": "s",
-	"ctrl+l": "l",
-	"ctrl+o": "o",
+func defaultKeymap() keys.Keymap {
+	km, _, _ := keys.LoadKeymap(nil)
+	return km
 }
 
-// Inside the prompt only the control forms start a sequence, so every other key
-// stays text. The d target starts only while the diff panel is open, so d keeps
-// its output-scroll meaning at every other time.
-func sequenceTarget(key string, inPrompt, diffOpen bool) (string, bool) {
+// sequenceTarget reports the target action a key starts, if any. Inside the
+// prompt only the control forms start a sequence, so every other key stays text.
+// The diff target starts only while the diff panel is open. See docs/tui/keys.md.
+func (m Model) sequenceTarget(key string, inPrompt, diffOpen bool) (keys.Action, bool) {
 	if inPrompt && !strings.HasPrefix(key, "ctrl+") {
 		return "", false
 	}
-	if key == "d" && diffOpen {
-		return "d", true
+	action, ok := m.keys.Action(keys.CtxTarget, key)
+	if !ok {
+		return "", false
 	}
-	target, ok := sequenceTargets[key]
-	return target, ok
+	if action == keys.TargetDiff && !diffOpen {
+		return "", false
+	}
+	return action, true
 }
 
-func (m Model) startSequence(target string) (tea.Model, tea.Cmd) {
+func (m Model) startSequence(target keys.Action) (tea.Model, tea.Cmd) {
+	return m.armSequence(sequence{target: target})
+}
+
+// commandLeader reports the leader a key starts a command sequence with. Inside
+// the prompt only the control forms start one, the same as a built-in target.
+// See docs/config/commands.md.
+func (m Model) commandLeader(key string, inPrompt bool) (string, bool) {
+	if inPrompt && !strings.HasPrefix(key, "ctrl+") {
+		return "", false
+	}
+	if m.commands.IsLeader(key) {
+		return key, true
+	}
+	return "", false
+}
+
+func (m Model) startCommandSequence(leader string) (tea.Model, tea.Cmd) {
+	return m.armSequence(sequence{leader: leader})
+}
+
+func (m Model) armSequence(seq sequence) (tea.Model, tea.Cmd) {
 	m.seqGen++
-	m.seq = &sequence{target: target, gen: m.seqGen}
+	seq.gen = m.seqGen
+	m.seq = &seq
 	m.errText = ""
 	gen := m.seqGen
 	return m, tea.Tick(sequenceTimeout, func(time.Time) tea.Msg {
@@ -50,16 +75,26 @@ func (m Model) startSequence(target string) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) resolveSequence(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	target := m.seq.target
+	seq := *m.seq
 	m.seq = nil
 	key := msg.String()
 	if key == "esc" {
 		return m, nil
 	}
-	if run, ok := sequenceActions[target+" "+key]; ok {
-		return run(m)
+	if seq.leader != "" {
+		if cmd, ok := m.commands.Second(seq.leader, key); ok {
+			return m.runCommand(cmd)
+		}
+		m.status = "no key " + seq.leader + " " + key
+		return m, nil
 	}
-	m.status = "no key " + target + " " + key
+	ctx, _ := keys.TargetContext(seq.target)
+	if action, ok := m.keys.Action(ctx, key); ok {
+		if run, ok := chordActions[action]; ok {
+			return run(m)
+		}
+	}
+	m.status = "no key " + targetLabel(m.keys, seq.target) + " " + key
 	return m, nil
 }
 
@@ -72,54 +107,87 @@ func (m Model) handleSequenceTimeout(msg sequenceTimeoutMsg) (tea.Model, tea.Cmd
 
 type action func(Model) (tea.Model, tea.Cmd)
 
-var sequenceActions = map[string]action{
-	"s c": Model.openNewForm,
-	"s t": Model.openPicker,
-	"s r": Model.resumeSelected,
-	"s n": Model.openRename,
-	"s a": Model.archiveSelected,
-	"s x": Model.askToStop,
-	"s j": Model.openJobs,
-	"s k": Model.focusTaskPanel,
-	"s f": Model.openInFiles,
-	"s d": Model.toggleDiffPanel,
-	"s R": Model.reviewSelected,
-	"s E": Model.openInEditor,
-	"s m": func(m Model) (tea.Model, tea.Cmd) { return m.openChoice(settingModel) },
-	"s e": func(m Model) (tea.Model, tea.Cmd) { return m.openChoice(settingEffort) },
-	"s p": func(m Model) (tea.Model, tea.Cmd) { return m.openChoice(settingMode) },
-	"s C": Model.toggleControl,
-	"s h": Model.clearContextHold,
+// chordActions runs the second key of a two-key sequence. The keymap resolves a
+// key to an action; this maps an action to its handler. See docs/tui/keys.md.
+var chordActions = map[keys.Action]action{
+	keys.SessionNew:        Model.openNewForm,
+	keys.SessionPresets:    Model.openPicker,
+	keys.SessionResume:     Model.resumeSelected,
+	keys.SessionRename:     Model.openRename,
+	keys.SessionArchive:    Model.archiveSelected,
+	keys.SessionStop:       Model.askToStop,
+	keys.SessionJobs:       Model.openJobs,
+	keys.SessionFocusTasks: Model.focusTaskPanel,
+	keys.SessionFiles:      Model.openInFiles,
+	keys.SessionDiff:       Model.toggleDiffPanel,
+	keys.SessionReview:     Model.reviewSelected,
+	keys.SessionEditor:     Model.openInEditor,
+	keys.SessionModel:      func(m Model) (tea.Model, tea.Cmd) { return m.openChoice(settingModel) },
+	keys.SessionEffort:     func(m Model) (tea.Model, tea.Cmd) { return m.openChoice(settingEffort) },
+	keys.SessionMode:       func(m Model) (tea.Model, tea.Cmd) { return m.openChoice(settingMode) },
+	keys.SessionControl:    Model.toggleControl,
+	keys.SessionClearHold:  Model.clearContextHold,
 
-	"l f": Model.toggleFold,
-	"l F": Model.foldOthers,
-	"l u": Model.unfoldAll,
-	"l a": Model.toggleArchived,
-	"l s": Model.focusSearch,
-	"l t": Model.toggleSidebar,
-	"l c": Model.collapseSidebar,
-	"l e": Model.expandSidebar,
+	keys.ListFold:       Model.toggleFold,
+	keys.ListFoldOthers: Model.foldOthers,
+	keys.ListUnfold:     Model.unfoldAll,
+	keys.ListArchived:   Model.toggleArchived,
+	keys.ListSearch:     Model.focusSearch,
+	keys.ListSidebar:    Model.toggleSidebar,
+	keys.ListCollapse:   Model.collapseSidebar,
+	keys.ListExpand:     Model.expandSidebar,
 
-	"o m": Model.toggleMarkdown,
-	"o l": Model.openLayoutSwitcher,
-	"o a": Model.toggleAge,
+	keys.OutputMarkdown: Model.toggleMarkdown,
+	keys.OutputLayouts:  Model.openLayoutSwitcher,
+	keys.OutputAge:      Model.toggleAge,
 
-	"d +": Model.widenDiff,
-	"d -": Model.narrowDiff,
-	"d /": Model.toggleHalfDiff,
-	"d n": Model.toggleDiffNumbers,
-	"d p": Model.openSelectedPR,
-	"d P": Model.openAllPRs,
+	keys.DiffWider:    Model.widenDiff,
+	keys.DiffNarrower: Model.narrowDiff,
+	keys.DiffHalf:     Model.toggleHalfDiff,
+	keys.DiffNumbers:  Model.toggleDiffNumbers,
+	keys.DiffPr:       Model.openSelectedPR,
+	keys.DiffAllPrs:   Model.openAllPRs,
 }
 
-// sequenceHints lists the action keys of a target, for the status bar.
-func sequenceHints(target string) string {
-	var out []string
-	for _, item := range bindings {
-		if item.target != target || item.brief == "" {
-			continue
-		}
-		out = append(out, item.brief)
+// targetLabel is the first key of a target, for the status bar and the notices.
+func targetLabel(km keys.Keymap, target keys.Action) string {
+	if ks := km.Keys(target); len(ks) > 0 {
+		return ks[0]
 	}
-	return strings.Join(out, " · ")
+	return string(target)
+}
+
+// globalEverywhere reports whether a global key works while the prompt has the
+// focus, the same as the control forms, tab, and the page keys did before.
+func globalEverywhere(key string) bool {
+	return strings.HasPrefix(key, "ctrl+") || key == "tab" || key == "pgup" || key == "pgdown"
+}
+
+func (m Model) runGlobal(a keys.Action) (tea.Model, tea.Cmd) {
+	switch a {
+	case keys.GlobalNewSession:
+		return m.openNewForm()
+	case keys.GlobalPresets:
+		return m.openPicker()
+	case keys.GlobalToggleMouse:
+		m.mouseOn = !m.mouseOn
+		if m.mouseOn {
+			return m, tea.EnableMouseCellMotion
+		}
+		return m, tea.DisableMouse
+	case keys.GlobalQuit:
+		return m.startQuit()
+	case keys.GlobalFocusNext:
+		if m.focus == focusPrompt {
+			return m.complete()
+		}
+		return m.toggleFocus()
+	case keys.GlobalPageUp:
+		m.output.ViewUp()
+		return m, nil
+	case keys.GlobalPageDown:
+		m.output.ViewDown()
+		return m, nil
+	}
+	return m, nil
 }

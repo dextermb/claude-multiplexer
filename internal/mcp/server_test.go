@@ -12,52 +12,59 @@ import (
 
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 
+	"github.com/dextermb/claude-multiplexer/internal/commands"
+	"github.com/dextermb/claude-multiplexer/internal/config"
+	"github.com/dextermb/claude-multiplexer/internal/keys"
 	"github.com/dextermb/claude-multiplexer/internal/mcp"
 	"github.com/dextermb/claude-multiplexer/internal/usage"
 )
 
 type fakeSessions struct {
-	titles        map[string]string
-	sent          []string
-	stopped       []string
-	archived      map[string]bool
-	created       []string
-	createModel   string
-	createEffort  string
-	createProfile string
-	list          []mcp.Session
-	messages      map[string][]mcp.Message
-	jobs          map[string][]mcp.Job
-	stoppedJobs   []string
-	configSet     map[string]json.RawMessage
-	configUnset   []string
-	editor        string
-	terminal      *bool
-	editorPath    string
-	cleared       []string
-	blockCap      *int
-	blockCaps     map[string]*int
-	autoArchive   *int
-	workingDir    string
-	project       []string
-	locks         map[string][]string
-	layouts       map[string]mcp.LayoutDims
-	activeLayout  string
-	sessionLayout map[string]string
-	failWorkDir   error
-	failStop      error
-	failStopJob   error
-	schedules     map[string]mcp.Schedule
-	scheduleRuns  []string
-	failSchedule  error
-	usage         usage.Usage
-	peers         []mcp.PeerReport
-	peerView      mcp.PeersView
-	hostingPaused bool
-	lastControl   bool
-	idleArmed     []idleArm
-	work          workItemState
-	pr            prState
+	titles          map[string]string
+	sent            []string
+	stopped         []string
+	archived        map[string]bool
+	created         []string
+	createModel     string
+	createEffort    string
+	createProfile   string
+	list            []mcp.Session
+	messages        map[string][]mcp.Message
+	jobs            map[string][]mcp.Job
+	stoppedJobs     []string
+	configSet       map[string]json.RawMessage
+	configUnset     []string
+	keybindingSet   map[string][]string
+	keybindingReset []string
+	commands        []config.Command
+	commandRemoved  []string
+	editor          string
+	terminal        *bool
+	editorPath      string
+	cleared         []string
+	blockCap        *int
+	blockCaps       map[string]*int
+	autoArchive     *int
+	workingDir      string
+	project         []string
+	locks           map[string][]string
+	layouts         map[string]mcp.LayoutDims
+	activeLayout    string
+	sessionLayout   map[string]string
+	failWorkDir     error
+	failStop        error
+	failStopJob     error
+	schedules       map[string]mcp.Schedule
+	scheduleRuns    []string
+	failSchedule    error
+	usage           usage.Usage
+	peers           []mcp.PeerReport
+	peerView        mcp.PeersView
+	hostingPaused   bool
+	lastControl     bool
+	idleArmed       []idleArm
+	work            workItemState
+	pr              prState
 }
 
 type prState struct {
@@ -149,6 +156,89 @@ func (f *fakeSessions) SetConfig(path string, value json.RawMessage, by string) 
 func (f *fakeSessions) UnsetConfig(path, by string) (string, bool, error) {
 	f.configUnset = append(f.configUnset, path)
 	return "/tmp/config.json", true, nil
+}
+
+func (f *fakeSessions) SetKeybinding(action string, keyList []string, by string) (string, string, error) {
+	raw, err := json.Marshal(keyList)
+	if err != nil {
+		return "", "", err
+	}
+	next, err := config.SetPath(config.Config{}, "keybindings."+action, raw)
+	if err != nil {
+		return "", "", err
+	}
+	_, warnings, errs := keys.LoadKeymap(next.Keybindings)
+	if len(errs) > 0 {
+		return "", "", errs[0]
+	}
+	if f.keybindingSet == nil {
+		f.keybindingSet = make(map[string][]string)
+	}
+	f.keybindingSet[action] = keyList
+	warning := ""
+	if len(warnings) > 0 {
+		warning = warnings[0].String()
+	}
+	return "/tmp/config.json", warning, nil
+}
+
+func (f *fakeSessions) ResetKeybinding(action, by string) (string, bool, error) {
+	f.keybindingReset = append(f.keybindingReset, action)
+	return "/tmp/config.json", true, nil
+}
+
+func (f *fakeSessions) Commands() []config.Command { return f.commands }
+
+func (f *fakeSessions) AddCommand(keyList, label, script, by string) (string, error) {
+	km, _, _ := keys.LoadKeymap(nil)
+	next := append([]config.Command(nil), f.commands...)
+	replaced := false
+	for i := range next {
+		if next[i].Label == label {
+			next[i] = config.Command{Keys: keyList, Label: label, Script: script}
+			replaced = true
+		}
+	}
+	if !replaced {
+		next = append(next, config.Command{Keys: keyList, Label: label, Script: script})
+	}
+	if _, errs := commands.Resolve(next, km); len(errs) > 0 {
+		return "", errs[0]
+	}
+	f.commands = next
+	return "/tmp/config.json", nil
+}
+
+func (f *fakeSessions) RemoveCommand(label, by string) (string, bool, error) {
+	kept := make([]config.Command, 0, len(f.commands))
+	for _, c := range f.commands {
+		if c.Label != label {
+			kept = append(kept, c)
+		}
+	}
+	if len(kept) == len(f.commands) {
+		return "/tmp/config.json", false, nil
+	}
+	f.commands = kept
+	f.commandRemoved = append(f.commandRemoved, label)
+	return "/tmp/config.json", true, nil
+}
+
+func (f *fakeSessions) Keybindings() []keys.Entry {
+	kb := &config.Keybindings{}
+	for action, keyList := range f.keybindingSet {
+		raw, err := json.Marshal(keyList)
+		if err != nil {
+			continue
+		}
+		next, err := config.SetPath(config.Config{Keybindings: kb}, "keybindings."+action, raw)
+		if err != nil {
+			continue
+		}
+		kb = next.Keybindings
+	}
+	km, _, _ := keys.LoadKeymap(kb)
+	return keys.Entries(km)
 }
 
 func (f *fakeSessions) SetEditor(editor string, terminal *bool, by string) (string, error) {
@@ -1129,6 +1219,198 @@ func TestSetConfigToolPassesTheRawValue(t *testing.T) {
 	}
 	if string(got) != "3" {
 		t.Fatalf("value = %s, want 3", got)
+	}
+}
+
+func TestSetConfigToolUnwrapsAStringifiedArray(t *testing.T) {
+	sessions := newFakeSessions()
+	server := startServer(t, sessions)
+	token, err := server.Register("docs", mcp.DefaultProfile, false)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+
+	client := connect(t, server, token)
+	result := call(t, client, mcp.ToolSetConfig, map[string]any{"path": "bars.status.right", "value": "[]"})
+	if result.IsError {
+		t.Fatalf("set_config failed: %s", resultText(result))
+	}
+	got, ok := sessions.configSet["bars.status.right"]
+	if !ok {
+		t.Fatal("set_config did not record the path")
+	}
+	if string(got) != "[]" {
+		t.Fatalf("value = %s, want [] (an array, not a string)", got)
+	}
+}
+
+func TestSetConfigToolKeepsAPlainString(t *testing.T) {
+	sessions := newFakeSessions()
+	server := startServer(t, sessions)
+	token, err := server.Register("docs", mcp.DefaultProfile, false)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+
+	client := connect(t, server, token)
+	result := call(t, client, mcp.ToolSetConfig, map[string]any{"path": "editor", "value": "nvim"})
+	if result.IsError {
+		t.Fatalf("set_config failed: %s", resultText(result))
+	}
+	got, ok := sessions.configSet["editor"]
+	if !ok {
+		t.Fatal("set_config did not record the path")
+	}
+	if string(got) != `"nvim"` {
+		t.Fatalf("value = %s, want the string \"nvim\"", got)
+	}
+}
+
+func TestGetKeybindingsTool(t *testing.T) {
+	sessions := newFakeSessions()
+	server := startServer(t, sessions)
+	token, err := server.Register("docs", mcp.DefaultProfile, false)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+
+	client := connect(t, server, token)
+
+	def := call(t, client, mcp.ToolGetKeybindings, map[string]any{"action": "session.rename"})
+	if def.IsError {
+		t.Fatalf("get_keybindings failed: %s", resultText(def))
+	}
+	if text := resultText(def); !strings.Contains(text, "session.rename") || !strings.Contains(text, `"n"`) {
+		t.Fatalf("want session.rename bound to n:\n%s", text)
+	}
+
+	if r := call(t, client, mcp.ToolSetKeybinding, map[string]any{"action": "output.age", "keys": []any{"A"}}); r.IsError {
+		t.Fatalf("set_keybinding failed: %s", resultText(r))
+	}
+	got := call(t, client, mcp.ToolGetKeybindings, map[string]any{"action": "output.age"})
+	if got.IsError {
+		t.Fatalf("get_keybindings failed: %s", resultText(got))
+	}
+	if text := resultText(got); !strings.Contains(text, `"A"`) || !strings.Contains(text, `"custom":true`) {
+		t.Fatalf("want output.age bound to A and marked custom:\n%s", text)
+	}
+}
+
+func TestSetKeybindingTool(t *testing.T) {
+	sessions := newFakeSessions()
+	server := startServer(t, sessions)
+	token, err := server.Register("docs", mcp.DefaultProfile, false)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+
+	client := connect(t, server, token)
+	result := call(t, client, mcp.ToolSetKeybinding, map[string]any{"action": "session.rename", "keys": []any{"N"}})
+	if result.IsError {
+		t.Fatalf("set_keybinding failed: %s", resultText(result))
+	}
+	got, ok := sessions.keybindingSet["session.rename"]
+	if !ok || len(got) != 1 || got[0] != "N" {
+		t.Fatalf("recorded = %v, want [N]", got)
+	}
+}
+
+func TestAddCommandTool(t *testing.T) {
+	sessions := newFakeSessions()
+	server := startServer(t, sessions)
+	token, err := server.Register("docs", mcp.DefaultProfile, false)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+
+	client := connect(t, server, token)
+	result := call(t, client, mcp.ToolAddCommand, map[string]any{"keys": "b o", "label": "browser", "script": "open.sh"})
+	if result.IsError {
+		t.Fatalf("add_command failed: %s", resultText(result))
+	}
+	if len(sessions.commands) != 1 || sessions.commands[0].Label != "browser" {
+		t.Fatalf("recorded = %v, want the browser command", sessions.commands)
+	}
+
+	removed := call(t, client, mcp.ToolRemoveCommand, map[string]any{"label": "browser"})
+	if removed.IsError {
+		t.Fatalf("remove_command failed: %s", resultText(removed))
+	}
+	if len(sessions.commands) != 0 {
+		t.Fatalf("commands = %v, want none after remove", sessions.commands)
+	}
+}
+
+func TestAddCommandToolRefusesAClash(t *testing.T) {
+	sessions := newFakeSessions()
+	server := startServer(t, sessions)
+	token, err := server.Register("docs", mcp.DefaultProfile, false)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+
+	client := connect(t, server, token)
+	// q quits, so it cannot be a standalone command.
+	result := call(t, client, mcp.ToolAddCommand, map[string]any{"keys": "q", "label": "boom", "script": "x.sh"})
+	if !result.IsError {
+		t.Fatalf("add_command must refuse a clash with a key of the interface, got: %s", resultText(result))
+	}
+	if len(sessions.commands) != 0 {
+		t.Fatal("a refused command must not be recorded")
+	}
+}
+
+func TestSetKeybindingToolRefusesAReservedKey(t *testing.T) {
+	sessions := newFakeSessions()
+	server := startServer(t, sessions)
+	token, err := server.Register("docs", mcp.DefaultProfile, false)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+
+	client := connect(t, server, token)
+	result := call(t, client, mcp.ToolSetKeybinding, map[string]any{"action": "session.rename", "keys": []any{"esc"}})
+	if !result.IsError {
+		t.Fatalf("set_keybinding must refuse a reserved key, got: %s", resultText(result))
+	}
+	if _, ok := sessions.keybindingSet["session.rename"]; ok {
+		t.Fatal("a refused binding must not be recorded")
+	}
+}
+
+func TestSetKeybindingToolWarnsOnDisplacement(t *testing.T) {
+	sessions := newFakeSessions()
+	server := startServer(t, sessions)
+	token, err := server.Register("docs", mcp.DefaultProfile, false)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+
+	client := connect(t, server, token)
+	result := call(t, client, mcp.ToolSetKeybinding, map[string]any{"action": "output.age", "keys": []any{"m"}})
+	if result.IsError {
+		t.Fatalf("set_keybinding failed: %s", resultText(result))
+	}
+	if !strings.Contains(resultText(result), "output.markdown") {
+		t.Fatalf("the result must warn about the displaced action:\n%s", resultText(result))
+	}
+}
+
+func TestResetKeybindingTool(t *testing.T) {
+	sessions := newFakeSessions()
+	server := startServer(t, sessions)
+	token, err := server.Register("docs", mcp.DefaultProfile, false)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+
+	client := connect(t, server, token)
+	result := call(t, client, mcp.ToolResetKeybinding, map[string]any{"action": "session.rename"})
+	if result.IsError {
+		t.Fatalf("reset_keybinding failed: %s", resultText(result))
+	}
+	if len(sessions.keybindingReset) != 1 || sessions.keybindingReset[0] != "session.rename" {
+		t.Fatalf("recorded = %v, want [session.rename]", sessions.keybindingReset)
 	}
 }
 

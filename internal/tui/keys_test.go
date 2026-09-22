@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/dextermb/claude-multiplexer/internal/keys"
 )
 
 func chord(t *testing.T, m Model, target, action string) (Model, tea.Cmd) {
@@ -31,7 +32,7 @@ func TestATargetKeyWaitsForTheActionKey(t *testing.T) {
 	m, _ := sequenceModel(t)
 
 	m, cmd := step(t, m, key("s"))
-	if m.seq == nil || m.seq.target != "s" {
+	if m.seq == nil || m.seq.target != keys.TargetSession {
 		t.Fatalf("seq = %+v, want the s target", m.seq)
 	}
 	if cmd == nil {
@@ -128,7 +129,7 @@ func TestAStaleTimeoutLeavesANewerSequence(t *testing.T) {
 	m, _ = step(t, m, key("esc"))
 	m, _ = step(t, m, key("l"))
 	m, _ = step(t, m, sequenceTimeoutMsg{gen: stale})
-	if m.seq == nil || m.seq.target != "l" {
+	if m.seq == nil || m.seq.target != keys.TargetList {
 		t.Fatalf("seq = %+v, want the newer l sequence", m.seq)
 	}
 }
@@ -179,27 +180,25 @@ func TestTheStatusBarShowsTheFollowUpKeys(t *testing.T) {
 }
 
 func TestEveryBindingHasAnAction(t *testing.T) {
+	km := defaultKeymap()
 	for _, item := range bindings {
-		if item.target == "" {
+		if item.action == "" {
 			continue
 		}
-		if _, ok := sequenceActions[item.keys]; !ok {
-			t.Errorf("the key list names %q, which runs nothing", item.keys)
-		}
-		if item.brief == "" {
-			t.Errorf("%q has no short form for the status bar", item.keys)
+		if len(km.Keys(item.action)) == 0 {
+			t.Errorf("the key list names %q, which resolves to no key", item.action)
 		}
 	}
-	for keys := range sequenceActions {
+	for a := range chordActions {
 		found := false
 		for _, item := range bindings {
-			if item.keys == keys {
+			if item.action == a {
 				found = true
 				break
 			}
 		}
 		if !found {
-			t.Errorf("%q runs, but the key list does not name it", keys)
+			t.Errorf("%q runs, but the key list does not name it", a)
 		}
 	}
 }

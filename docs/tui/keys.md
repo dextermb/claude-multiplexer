@@ -1,7 +1,11 @@
 # Keys and the mouse
 
 Every key, what the mouse does, and how to leave. This page is the reference of
-tables. Two pages carry the detail of how each action behaves:
+tables. The keys are rebindable, so the keys in these tables are the defaults;
+see [../config/keybindings.md](../config/keybindings.md) to change them, and the
+help overlay (`?`) for the keys as they are set now.
+
+Two pages carry the detail of how each action behaves:
 
 | Page | Read it for |
 |---|---|
@@ -27,6 +31,11 @@ second key also cancels it, and the status bar shows a short notice, such as
 
 The plain target keys work when the focus is the list or the output. The control
 forms work everywhere, so a sequence still starts while you type a prompt.
+
+You can add your own two-key sequences and standalone keys, each of which runs a
+script. A custom leader (such as `b`) works the same as a built-in target, and a
+standalone key (such as `ctrl+g`) works on its own. See
+[../config/commands.md](../config/commands.md).
 
 ## The session: `s`
 
@@ -98,6 +107,7 @@ not the panes below it:
 | `}` `{` | Jump to the next or previous file |
 | `g` `G` | Go to the first or the last file |
 | `e` `E` | Explain the selected hunk, or the whole file |
+| `n` | Show or hide the line numbers of the diff |
 | `tab` | Move between the diff, the explanation, and the prompt |
 | `esc` | Close the review screen |
 

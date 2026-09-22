@@ -176,31 +176,60 @@ func (m Model) reviewFileRow(index int, entry diffEntry, width int) string {
 	return left + strings.Repeat(" ", gap) + rightCounts
 }
 
+// reviewHunkLines colours a hunk and wraps it to the diff width. When the line
+// numbers are on it prefixes each row with a gutter of the new-side line number,
+// the same as the diff panel. A removed line has no new-side number, so its
+// gutter is blank. See docs/tui/review.md.
 func (m Model) reviewHunkLines(h git.Hunk, width int, marked bool) []string {
-	render := func(style lipgloss.Style, text string) []string {
-		var rows []string
-		for _, chunk := range wrapHard(text, width) {
+	content := width
+	if m.reviewLineNumbers {
+		content -= diffNumGutter
+	}
+	if content < 1 {
+		content = 1
+	}
+	var out []string
+	render := func(style lipgloss.Style, text, number string) {
+		for i, chunk := range wrapHard(text, content) {
 			if marked {
-				style = style.Background(reviewSelBg).Width(width)
+				style = style.Background(reviewSelBg).Width(content)
 			}
-			rows = append(rows, style.Render(chunk))
+			row := style.Render(chunk)
+			if m.reviewLineNumbers {
+				gutter := ""
+				if i == 0 {
+					gutter = number
+				}
+				numStyle := diffNumStyle
+				if marked {
+					numStyle = diffCurNumStyle.Background(reviewSelBg)
+				}
+				row = numStyle.Render(padLeft(gutter, diffNumGutter-1)+" ") + row
+			}
+			out = append(out, row)
 		}
-		return rows
 	}
 	headerStyle := diffHunkStyle
 	if marked {
 		headerStyle = headerStyle.Bold(true)
 	}
-	out := render(headerStyle, h.Header)
+	render(headerStyle, h.Header, "")
+	newLine := h.NewStart
 	for _, line := range h.Body {
 		style := rowStyle
+		number := ""
 		switch {
 		case strings.HasPrefix(line, "+"):
 			style = diffAddStyle
+			number = strconv.Itoa(newLine)
+			newLine++
 		case strings.HasPrefix(line, "-"):
 			style = diffDelStyle
+		default:
+			number = strconv.Itoa(newLine)
+			newLine++
 		}
-		out = append(out, render(style, line)...)
+		render(style, line, number)
 	}
 	return out
 }

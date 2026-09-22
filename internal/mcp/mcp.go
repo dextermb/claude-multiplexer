@@ -28,6 +28,7 @@ const (
 	ToolListJobs      = "list_jobs"
 	ToolConfigPath    = "get_config_path"
 	ToolConfigKeys    = "list_config_keys"
+	ToolBarDefaults   = "get_bar_defaults"
 	ToolTemplatePath  = "get_template_path"
 	ToolSetConfig     = "set_config"
 	ToolUnsetConfig   = "unset_config"
@@ -35,6 +36,14 @@ const (
 	ToolUnsetEditor   = "unset_editor"
 	ToolSetBlockCap   = "set_block_cap"
 	ToolUnsetBlockCap = "unset_block_cap"
+
+	ToolGetKeybindings  = "get_keybindings"
+	ToolSetKeybinding   = "set_keybinding"
+	ToolResetKeybinding = "reset_keybinding"
+
+	ToolGetCommands   = "get_commands"
+	ToolAddCommand    = "add_command"
+	ToolRemoveCommand = "remove_command"
 
 	ToolSetAutoArchive   = "set_auto_archive"
 	ToolUnsetAutoArchive = "unset_auto_archive"
@@ -153,7 +162,7 @@ func ParseProfile(name string) (Profile, error) {
 // MinimalTools are the open tools of the minimal profile: the session reads, and
 // the description of the REST API.
 var MinimalTools = []string{ToolRename, ToolList, ToolListInactive, ToolListArchived, ToolMessages, ToolListJobs,
-	ToolConfigPath, ToolConfigKeys, ToolTemplatePath, ToolAPIDocs}
+	ToolConfigPath, ToolConfigKeys, ToolBarDefaults, ToolTemplatePath, ToolAPIDocs}
 
 // OpenToolsFor names the open tools of a profile.
 func OpenToolsFor(profile Profile) []string {
@@ -166,8 +175,10 @@ func OpenToolsFor(profile Profile) []string {
 // OpenTools go to every session on the standard profile. ControlTools go only to
 // a session that holds the control grant.
 var (
-	OpenTools = []string{ToolRename, ToolList, ToolListInactive, ToolListArchived, ToolMessages, ToolListJobs, ToolConfigPath, ToolConfigKeys, ToolTemplatePath,
+	OpenTools = []string{ToolRename, ToolList, ToolListInactive, ToolListArchived, ToolMessages, ToolListJobs, ToolConfigPath, ToolConfigKeys, ToolBarDefaults, ToolTemplatePath,
 		ToolSetConfig, ToolUnsetConfig,
+		ToolGetKeybindings, ToolSetKeybinding, ToolResetKeybinding,
+		ToolGetCommands, ToolAddCommand, ToolRemoveCommand,
 		ToolSetEditor, ToolUnsetEditor, ToolSetBlockCap, ToolUnsetBlockCap,
 		ToolSetAutoArchive, ToolUnsetAutoArchive, ToolSetWorkingDir, ToolUnsetWorkingDir,
 		ToolListProject, ToolAddProjectDir, ToolRemoveProject, ToolSetProject, ToolClearProject,
@@ -217,6 +228,10 @@ var (
 	ErrNoPrompt     = errors.New("mcp: this tool needs a prompt")
 	ErrNoSchedule   = errors.New("mcp: this tool needs a schedule name")
 	ErrNoConfigPath = errors.New("mcp: this tool needs a settings path")
+	ErrNoKeyAction  = errors.New("mcp: this tool needs a keybinding action")
+	ErrNoKeys       = errors.New("mcp: this tool needs one or more keys")
+	ErrNoCommandLabel  = errors.New("mcp: this tool needs a command label")
+	ErrNoCommandScript = errors.New("mcp: this tool needs a script path")
 	ErrNoEditor     = errors.New("mcp: this tool needs an editor, a terminal flag, or both")
 	ErrNoDir        = errors.New("mcp: this tool needs a directory path")
 	ErrNoLock       = errors.New("mcp: this tool needs a lock label")

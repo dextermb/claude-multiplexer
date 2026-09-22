@@ -150,6 +150,16 @@ type Config struct {
 	// block, or a provider with no token and no CLI, keeps that provider off. See
 	// docs/pull-requests.md.
 	PullRequests *PullRequests `json:"pullRequests,omitempty"`
+	// Bars composes the two status bars: the ordered elements of each, including
+	// custom elements that run a script. A nil block takes the built-in defaults.
+	// See docs/config/bars.md.
+	Bars *Bars `json:"bars,omitempty"`
+	// Keybindings rebinds the keys of the interface. A nil block keeps every
+	// default. See docs/config/keybindings.md.
+	Keybindings *Keybindings `json:"keybindings,omitempty"`
+	// Commands bind a key trigger to a script, so a press runs the script. An
+	// empty list binds nothing. See docs/config/commands.md.
+	Commands []Command `json:"commands,omitempty"`
 }
 
 // Peers holds the cross-host settings. Enabled off keeps the peer listener off.
@@ -524,6 +534,9 @@ func Load(paths ...string) (Config, error) {
 		}
 		var cfg Config
 		if err := json.Unmarshal(data, &cfg); err != nil {
+			return Config{}, errors.New(path + ": " + err.Error())
+		}
+		if err := ValidateBars(cfg.Bars); err != nil {
 			return Config{}, errors.New(path + ": " + err.Error())
 		}
 		return cfg, nil
