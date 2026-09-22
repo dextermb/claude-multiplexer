@@ -190,6 +190,7 @@ func (m *Model) toggleBlock(index int) {
 }
 
 func (m *Model) setPartial(name, text string) {
+	text = render.Clean(text)
 	if text == "" {
 		delete(m.partials, name)
 		return
@@ -250,14 +251,14 @@ func (m Model) wrap(lines []render.Line) string {
 			continue
 		}
 		if line.Class == render.ClassSkill && !m.showRaw {
-			wrapped = append(wrapped, m.mdMuted.Render(line.Text, width))
+			wrapped = append(wrapped, m.mdMuted.Render(render.Clean(line.Text), width))
 			continue
 		}
 		if line.Class == render.ClassText && !m.showRaw {
-			wrapped = append(wrapped, m.md.Render(line.Text, width))
+			wrapped = append(wrapped, m.md.Render(render.Clean(line.Text), width))
 			continue
 		}
-		text := line.Text
+		text := render.Clean(line.Text)
 		if line.Class == render.ClassPrompt && !m.showRaw {
 			styled := inlineEmphasis(text, classStyle(render.ClassPrompt))
 			wrapped = append(wrapped, lipgloss.NewStyle().Width(width).Render(styled))
