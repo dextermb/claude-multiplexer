@@ -137,6 +137,9 @@ type Manager struct {
 
 	prStop chan struct{}
 	prWG   sync.WaitGroup
+
+	wiStop chan struct{}
+	wiWG   sync.WaitGroup
 }
 
 func New(opts Options) (*Manager, error) {
