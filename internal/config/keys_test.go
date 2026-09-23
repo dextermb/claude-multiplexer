@@ -63,6 +63,7 @@ func TestKeysListsTheSchema(t *testing.T) {
 		{"keybindings.session.resume", "array"},
 		{"keybindings.session.rename", "array"},
 		{"keybindings.session.archive", "array"},
+		{"keybindings.session.archiveAll", "array"},
 		{"keybindings.session.stop", "array"},
 		{"keybindings.session.jobs", "array"},
 		{"keybindings.session.focusTasks", "array"},
@@ -99,6 +100,7 @@ func TestKeysListsTheSchema(t *testing.T) {
 		{"keybindings.global.focusNext", "array"},
 		{"keybindings.global.pageUp", "array"},
 		{"keybindings.global.pageDown", "array"},
+		{"keybindings.global.dismissUpdate", "array"},
 		{"keybindings.outputPane.openBlock", "array"},
 		{"keybindings.outputPane.toggleBlock", "array"},
 		{"keybindings.outputPane.blockNext", "array"},
@@ -152,6 +154,7 @@ func TestKeysListsTheSchema(t *testing.T) {
 		{"keybindings.review.explainFile", "array"},
 		{"keybindings.review.focusNext", "array"},
 		{"commands", "array"},
+		{"checkUpdates", "boolean"},
 	}
 	got := Keys()
 	if len(got) != len(want) {

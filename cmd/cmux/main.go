@@ -23,6 +23,7 @@ import (
 	"github.com/dextermb/claude-multiplexer/internal/session"
 	"github.com/dextermb/claude-multiplexer/internal/template"
 	"github.com/dextermb/claude-multiplexer/internal/tui"
+	"github.com/dextermb/claude-multiplexer/internal/update"
 )
 
 const usage = `cmux — a Claude Code multiplexer
@@ -214,6 +215,7 @@ func tuiCommand(argv []string) int {
 		initialDir = abs
 	}
 
+	version, buildTime := update.Current()
 	if err := tui.Run(tui.Options{
 		Manager:               mgr,
 		Config:                editorFlags,
@@ -223,6 +225,8 @@ func tuiCommand(argv []string) int {
 		DefaultPermissionMode: *mode,
 		InitialDir:            initialDir,
 		InitialControl:        *control,
+		Version:               version,
+		BuildTime:             buildTime,
 	}); err != nil {
 		fmt.Fprintf(os.Stderr, "cmux: %v\n", err)
 		return 1

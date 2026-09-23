@@ -37,6 +37,7 @@ const (
 	SessionResume     Action = "session.resume"
 	SessionRename     Action = "session.rename"
 	SessionArchive    Action = "session.archive"
+	SessionArchiveAll Action = "session.archiveAll"
 	SessionStop       Action = "session.stop"
 	SessionJobs       Action = "session.jobs"
 	SessionFocusTasks Action = "session.focusTasks"
@@ -70,13 +71,14 @@ const (
 	DiffPr       Action = "diff.pr"
 	DiffAllPrs   Action = "diff.allPrs"
 
-	GlobalNewSession  Action = "global.newSession"
-	GlobalPresets     Action = "global.presets"
-	GlobalToggleMouse Action = "global.toggleMouse"
-	GlobalQuit        Action = "global.quit"
-	GlobalFocusNext   Action = "global.focusNext"
-	GlobalPageUp      Action = "global.pageUp"
-	GlobalPageDown    Action = "global.pageDown"
+	GlobalNewSession    Action = "global.newSession"
+	GlobalPresets       Action = "global.presets"
+	GlobalToggleMouse   Action = "global.toggleMouse"
+	GlobalQuit          Action = "global.quit"
+	GlobalFocusNext     Action = "global.focusNext"
+	GlobalPageUp        Action = "global.pageUp"
+	GlobalPageDown      Action = "global.pageDown"
+	GlobalDismissUpdate Action = "global.dismissUpdate"
 
 	OutputPaneOpenBlock   Action = "outputPane.openBlock"
 	OutputPaneToggleBlock Action = "outputPane.toggleBlock"
@@ -159,6 +161,7 @@ var Defaults = []Def{
 	{SessionResume, CtxSession, []string{"r"}, "session: resume the selected session"},
 	{SessionRename, CtxSession, []string{"n"}, "session: rename the selected session"},
 	{SessionArchive, CtxSession, []string{"a"}, "session: archive the selected session"},
+	{SessionArchiveAll, CtxSession, []string{"A"}, "session: archive every session attached to the control session"},
 	{SessionStop, CtxSession, []string{"x"}, "session: stop the selected session"},
 	{SessionJobs, CtxSession, []string{"j"}, "session: show the background jobs"},
 	{SessionFocusTasks, CtxSession, []string{"k"}, "session: focus the task and job panel"},
@@ -199,6 +202,7 @@ var Defaults = []Def{
 	{GlobalFocusNext, CtxGlobal, []string{"tab"}, "move to the next pane"},
 	{GlobalPageUp, CtxGlobal, []string{"pgup"}, "scroll the output up a page"},
 	{GlobalPageDown, CtxGlobal, []string{"pgdown"}, "scroll the output down a page"},
+	{GlobalDismissUpdate, CtxGlobal, []string{"ctrl+g"}, "dismiss the update notice for a day"},
 
 	{OutputPaneOpenBlock, CtxOutputPane, []string{"enter"}, "output: open the block, or move to the prompt"},
 	{OutputPaneToggleBlock, CtxOutputPane, []string{" "}, "output: open or close the block"},

@@ -29,11 +29,16 @@ func (m Model) handleSettings(msg settingsMsg) (tea.Model, tea.Cmd) {
 	}
 	windowChanged := msg.archivedWindow != m.archivedWindow
 	m.archivedWindow = msg.archivedWindow
+	prevCheck := m.checkUpdates
+	m.checkUpdates = msg.checkUpdates
 	m.applyLayout()
 	var barCmd tea.Cmd
 	if m.hasBarScripts() && !m.barTicking {
 		m.barTicking = true
 		barCmd = barTick()
+	}
+	if m.checkUpdates && !prevCheck {
+		barCmd = tea.Batch(barCmd, m.updateCheck())
 	}
 	if windowChanged {
 		m.refresh()

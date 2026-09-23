@@ -12,7 +12,7 @@ import (
 )
 
 func (m Model) bodyHeight() int {
-	height := m.height - m.promptHeight() - statusHeight
+	height := m.height - m.promptHeight() - statusHeight - m.bannerHeight()
 	if height < 1 {
 		return 1
 	}
@@ -186,7 +186,11 @@ func (m Model) View() string {
 		body = dialog
 	}
 	prompt := withEdge(promptPanelStyle.Width(m.width-gutterWidth).Render(m.promptView()), m.focus == focusPrompt)
-	return lipgloss.JoinVertical(lipgloss.Left, body, prompt, m.statusView())
+	parts := []string{body, prompt, m.statusView()}
+	if m.updateVisible() {
+		parts = append(parts, m.updateBannerView())
+	}
+	return lipgloss.JoinVertical(lipgloss.Left, parts...)
 }
 
 // A session dialog draws in the pane, not over the whole body; see docs/tui.md.

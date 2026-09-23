@@ -33,6 +33,7 @@ type SessionKeys struct {
 	Resume     []string `json:"resume,omitempty"`
 	Rename     []string `json:"rename,omitempty"`
 	Archive    []string `json:"archive,omitempty"`
+	ArchiveAll []string `json:"archiveAll,omitempty"`
 	Stop       []string `json:"stop,omitempty"`
 	Jobs       []string `json:"jobs,omitempty"`
 	FocusTasks []string `json:"focusTasks,omitempty"`
@@ -78,13 +79,14 @@ type DiffKeys struct {
 
 // GlobalKeys are the keys that work on their own.
 type GlobalKeys struct {
-	NewSession  []string `json:"newSession,omitempty"`
-	Presets     []string `json:"presets,omitempty"`
-	ToggleMouse []string `json:"toggleMouse,omitempty"`
-	Quit        []string `json:"quit,omitempty"`
-	FocusNext   []string `json:"focusNext,omitempty"`
-	PageUp      []string `json:"pageUp,omitempty"`
-	PageDown    []string `json:"pageDown,omitempty"`
+	NewSession    []string `json:"newSession,omitempty"`
+	Presets       []string `json:"presets,omitempty"`
+	ToggleMouse   []string `json:"toggleMouse,omitempty"`
+	Quit          []string `json:"quit,omitempty"`
+	FocusNext     []string `json:"focusNext,omitempty"`
+	PageUp        []string `json:"pageUp,omitempty"`
+	PageDown      []string `json:"pageDown,omitempty"`
+	DismissUpdate []string `json:"dismissUpdate,omitempty"`
 }
 
 // OutputPaneKeys move and scroll the output pane.

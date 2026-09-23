@@ -160,6 +160,15 @@ type Config struct {
 	// Commands bind a key trigger to a script, so a press runs the script. An
 	// empty list binds nothing. See docs/config/commands.md.
 	Commands []Command `json:"commands,omitempty"`
+	// CheckUpdates turns the hourly GitHub update check on or off. A nil value,
+	// or true, keeps the check on; false turns it off. See docs/version-updates.md.
+	CheckUpdates *bool `json:"checkUpdates,omitempty"`
+}
+
+// CheckUpdates reports whether the update check is on, which it is unless the
+// settings turn it off. See docs/version-updates.md.
+func CheckUpdates(cfg Config) bool {
+	return cfg.CheckUpdates == nil || *cfg.CheckUpdates
 }
 
 // Peers holds the cross-host settings. Enabled off keeps the peer listener off.

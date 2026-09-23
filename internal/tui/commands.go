@@ -70,6 +70,17 @@ func archiveCmd(mgr *manager.Manager, name string, archived bool) tea.Cmd {
 	}
 }
 
+func archiveManyCmd(mgr *manager.Manager, names []string, skipped int) tea.Cmd {
+	return func() tea.Msg {
+		for _, name := range names {
+			if err := mgr.Archive(name, true); err != nil {
+				return archivedManyMsg{err: err}
+			}
+		}
+		return archivedManyMsg{count: len(names), skipped: skipped}
+	}
+}
+
 func spawnCmd(mgr *manager.Manager, spec manager.Spec) tea.Cmd {
 	return func() tea.Msg {
 		name, err := mgr.Spawn(context.Background(), spec)

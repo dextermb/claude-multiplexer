@@ -115,6 +115,7 @@ var chordActions = map[keys.Action]action{
 	keys.SessionResume:     Model.resumeSelected,
 	keys.SessionRename:     Model.openRename,
 	keys.SessionArchive:    Model.archiveSelected,
+	keys.SessionArchiveAll: Model.archiveAttached,
 	keys.SessionStop:       Model.askToStop,
 	keys.SessionJobs:       Model.openJobs,
 	keys.SessionFocusTasks: Model.focusTaskPanel,
@@ -188,6 +189,8 @@ func (m Model) runGlobal(a keys.Action) (tea.Model, tea.Cmd) {
 	case keys.GlobalPageDown:
 		m.output.ViewDown()
 		return m, nil
+	case keys.GlobalDismissUpdate:
+		return m.dismissUpdate()
 	}
 	return m, nil
 }

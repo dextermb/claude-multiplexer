@@ -35,6 +35,7 @@ type settingsMsg struct {
 	commands       commands.Resolved
 	commandsOK     bool
 	commandNote    string
+	checkUpdates   bool
 }
 
 type stoppedMsg struct {
@@ -62,4 +63,10 @@ type archivedMsg struct {
 	name     string
 	archived bool
 	err      error
+}
+
+type archivedManyMsg struct {
+	count   int
+	skipped int
+	err     error
 }
