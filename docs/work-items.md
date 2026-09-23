@@ -168,9 +168,25 @@ The multiplexer stores the link and a mirror of the status in the session
   key, so the key names the row.
 - **Set status.** `set_workitem_status` changes the status on the provider, then
   writes the new status into the mirror.
-- **Read.** The mirror refreshes when a work-item tool runs. There is no
-  background poll, and no status changes on a session start or stop. The only
-  writer is `set_workitem_status`.
+- **Read.** The mirror refreshes when a work-item tool runs, and on the status
+  poll below. A session start or stop changes no status.
+
+## The status poll
+
+A status changes on the provider, not only through `set_workitem_status`. A
+person moves an item in Jira or Linear, and the mirror must follow. So the
+multiplexer reads the status of every linked session on a clock, once a minute.
+This is the sibling of the pull request poll; see [pull-requests.md](pull-requests.md).
+
+The poll covers **every** linked session, not only the selected one. It groups
+the sessions by item, so two sessions on one item cost one request, not two.
+
+The poll mirrors the status only. It writes `workitem_status`,
+`workitem_status_id`, `workitem_url`, and `workitem_synced_at`, and it leaves the
+link and the session name alone, because a poll must not rename a session the way
+`set_workitem` does. It writes only when the status changed, so an idle item does
+not churn the `meta.json`. A transient provider error keeps the last known
+status. The code is `internal/manager/workitems_poll.go`.
 
 ## In the interface
 
