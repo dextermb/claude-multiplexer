@@ -218,6 +218,13 @@ the fields. `←` and `→` change the value of the select you are on, and the v
 wraps at each end. Each select opens on a default option, and the settings file
 sets that option; see [../config/new-session.md](../config/new-session.md).
 
+The label of the field you are on is white, and the others are grey. A text
+field sits in `[ ]` brackets, white when it has the focus. A select shows all of
+its options in one row, and the chosen one is filled white, so every choice reads
+at a glance. A select too wide for the row, such as a long host list, shows only
+its value between `‹` and `›`. The first prompt sits in a box, with a white
+border when it has the focus.
+
 The model and the effort have a `default` option. This option sends nothing, so
 Claude Code takes the model or the effort from your project or global
 configuration. The permission mode always sends a mode. You can change the model,
