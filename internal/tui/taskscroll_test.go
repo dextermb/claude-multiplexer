@@ -26,7 +26,7 @@ func manyTodos(n int) []protocol.Todo {
 func panelWithTasks(t *testing.T, n int) Model {
 	t.Helper()
 	m, mgr := newTestModel(t, "")
-	m = start(t, m, 100, 24)
+	m = start(t, m, 110, 24)
 	m, _ = step(t, m, key("esc"))
 	m = spawn(t, m, mgr, "alpha", t.TempDir())
 	m, _ = step(t, m, eventMsg(manager.Event{Seq: 1, Session: m.sel, Todos: manyTodos(n)}))
@@ -113,7 +113,7 @@ func TestFocusRetreatsWhenTheTaskPanelHides(t *testing.T) {
 
 func TestFocusingTheTaskPanelIsANoOpWhenItIsHidden(t *testing.T) {
 	m, mgr := newTestModel(t, "")
-	m = start(t, m, 100, 24)
+	m = start(t, m, 110, 24)
 	m, _ = step(t, m, key("esc"))
 	m = spawn(t, m, mgr, "alpha", t.TempDir())
 	m, _ = step(t, m, key("esc"))
@@ -149,7 +149,7 @@ func TestTheTaskScrollResetsWhenTheSelectionChanges(t *testing.T) {
 
 func TestASidebarRefreshKeepsThePlaceInTheOutput(t *testing.T) {
 	m, mgr := newTestModel(t, "")
-	m = start(t, m, 100, 24)
+	m = start(t, m, 110, 24)
 	m, _ = step(t, m, key("esc"))
 	m = spawn(t, m, mgr, "alpha", t.TempDir())
 

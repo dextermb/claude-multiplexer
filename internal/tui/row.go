@@ -130,30 +130,18 @@ func rowFromMeta(meta manager.Meta) row {
 func (r row) style() lipgloss.Style {
 	if !r.live {
 		if r.archived {
-			return lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+			return fgStyle(colFaint)
 		}
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("242"))
+		return fgStyle(colDimmed)
 	}
 	return stateStyle(r.state)
 }
 
-func rowGlyph(item row, frame int) string {
+func rowGlyph(item row) string {
 	if !item.live {
-		if item.archived {
-			return "·"
-		}
-		return "○"
+		return "·"
 	}
-	switch item.state {
-	case session.StateStarting:
-		return "◌"
-	case session.StateBusy:
-		return spinnerFrame(frame)
-	case session.StateWaiting:
-		return "?"
-	default:
-		return "●"
-	}
+	return "■"
 }
 
 func (r row) running() bool {

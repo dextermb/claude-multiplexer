@@ -324,7 +324,7 @@ func ResolveBlockCaps(cfg Config) map[string]int {
 // The built-in layout dimensions, used when no layout sets one. See
 // docs/config.md and docs/tui.md.
 const (
-	DefaultSidebarSize = 26
+	DefaultSidebarSize = 30
 	DefaultTaskSize    = 32
 	DefaultDiffSize    = 32
 	DefaultDiffRows    = 12

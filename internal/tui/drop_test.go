@@ -306,8 +306,8 @@ func TestTheOutputRendersMarkdownAndTheKeyShowsTheRawText(t *testing.T) {
 	if !strings.Contains(rendered, "problems") {
 		t.Errorf("the words were lost:\n%s", rendered)
 	}
-	if !strings.Contains(m.outputText, ";1m") && !strings.Contains(m.outputText, "[1m") {
-		t.Error("nothing was made bold")
+	if !strings.Contains(m.outputText, "38;5;231m") {
+		t.Error("nothing was made strong")
 	}
 
 	m.focus = focusSidebar

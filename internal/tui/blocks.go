@@ -216,7 +216,7 @@ func (m Model) liveView() string {
 		parts = append(parts, m.wrap(render.PromptLines(text)))
 	}
 	if m.thinkingSelected() {
-		parts = append(parts, spinnerStyle.Render(spinnerFrame(m.spinFrame)+" thinking…"))
+		parts = append(parts, spinnerStyle.Render("thinking…"))
 	}
 	if len(parts) == 0 {
 		return ""

@@ -57,7 +57,7 @@ the panel, and the live refresh.
 
 `s k` moves the focus to the task and job panel, and `Tab` reaches it too. The
 panel takes the focus only when it shows. A focused panel draws its left border
-in the highlight colour. While the panel holds the focus, these keys work:
+in white. While the panel holds the focus, these keys work:
 
 | Key | Action |
 |---|---|
@@ -91,7 +91,7 @@ to return to the bottom and start following again.
 ## Opening a large block
 
 A block of more than 20 rows draws its first 20 rows and a marker row, such as
-`⋯ 4193 more lines`. `blockCap` in the settings file changes the 20, and `0`
+`[+] 4193 more lines`. `blockCap` in the settings file changes the 20, and `0`
 caps nothing. See [../../config.md](../../config.md). A block is one piece of
 content: your prompt, one message, one tool result, or the output of a `!`
 command. See [../output.md](../output.md).

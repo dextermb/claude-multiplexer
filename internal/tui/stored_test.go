@@ -77,8 +77,8 @@ func TestStoredSessionsFillTheSidebar(t *testing.T) {
 	if !strings.Contains(view, "yesterday") {
 		t.Fatalf("the stored session is missing from the sidebar:\n%s", view)
 	}
-	if g := rowGlyph(m.rows[0], 0); g != "○" {
-		t.Fatalf("the stored glyph is %q, want ○", g)
+	if g, w := rowGlyph(m.rows[0]), m.stateWord(m.rows[0]); g != "·" || w != "stored" {
+		t.Fatalf("the stored mark is %q %q, want · stored", g, w)
 	}
 	if m.form != nil {
 		t.Fatal("the form must not open when there is stored work to show")
@@ -166,7 +166,7 @@ func TestArchivingHidesASessionAndAShowsItAgain(t *testing.T) {
 	if len(m.rows) != 1 || !m.rows[0].archived {
 		t.Fatalf("rows = %+v, want the archived session back", m.rows)
 	}
-	if g := rowGlyph(m.rows[0], 0); g != "·" {
+	if g := rowGlyph(m.rows[0]); g != "·" {
 		t.Fatalf("the archived glyph is %q, want ·", g)
 	}
 

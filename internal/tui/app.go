@@ -8,6 +8,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/dextermb/claude-multiplexer/internal/commands"
 	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/keys"
@@ -67,6 +68,7 @@ type Model struct {
 	replays        map[string][]render.Line
 	partials       map[string]string
 	queued         map[string][]string
+	busySince      map[string]time.Time
 	history        []string
 	histIdx        int
 	histDraft      string
@@ -185,6 +187,7 @@ func New(opts Options) Model {
 		replays:         make(map[string][]render.Line),
 		partials:        make(map[string]string),
 		queued:          make(map[string][]string),
+		busySince:       make(map[string]time.Time),
 		todos:           make(map[string][]protocol.Todo),
 		questions:       make(map[string]*questionDialog),
 		diffs:           make(map[string]projectDiff),
@@ -225,6 +228,8 @@ func New(opts Options) Model {
 }
 
 func Run(opts Options) error {
+	// The theme reads the terminal background here, before Bubble Tea owns the input.
+	lipgloss.HasDarkBackground()
 	program := tea.NewProgram(New(opts), tea.WithAltScreen(), tea.WithMouseCellMotion())
 	_, err := program.Run()
 	return err

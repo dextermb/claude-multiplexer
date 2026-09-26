@@ -252,7 +252,7 @@ func (h *help) rows(km keys.Keymap, cmds []config.Command, width int) []string {
 			group = item.group
 			out = append(out, titleStyle.Render(group))
 		}
-		out = append(out, "  "+fieldLabelStyle.Render(pad(shown, 17))+truncate(item.what, width-21))
+		out = append(out, "  "+keyStyle.Render(pad(shown, 17))+truncate(item.what, width-21))
 	}
 	for _, c := range cmds {
 		if needle != "" &&
@@ -265,7 +265,7 @@ func (h *help) rows(km keys.Keymap, cmds []config.Command, width int) []string {
 			group = "Your commands"
 			out = append(out, titleStyle.Render(group))
 		}
-		out = append(out, "  "+fieldLabelStyle.Render(pad(c.Keys, 17))+truncate(c.Label, width-21))
+		out = append(out, "  "+keyStyle.Render(pad(c.Keys, 17))+truncate(c.Label, width-21))
 	}
 	return out
 }

@@ -10,9 +10,10 @@ events.
   On resume, a job that stopped between sessions arrives as a
   `<task-notification>` turn, which the pane draws the same way. See
   [../output.md](../output.md).
-- The sidebar row shows `⚙n` for `n` running jobs, next to the queue badge. The
+- The sidebar row shows `jn` for `n` running jobs, next to the queue badge. The
   badge clears when the last job stops.
-- The session bar shows a `⚙n` segment while jobs run, next to the queue segment.
+- The session bar shows a `jobs (n)` segment while jobs run, next to the queue
+  segment.
 - The side panel lists every job above the task list. See [../tasks.md](../tasks.md).
 
 Press `s j` to open the jobs dialog for the selected session. The dialog draws in

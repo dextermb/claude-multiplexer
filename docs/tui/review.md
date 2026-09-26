@@ -8,12 +8,12 @@ and the capped blocks. See [diff.md](diff.md) for the diff the screen reads,
 [output.md](output.md) for the blocks, and [keys.md](keys.md) for the key model.
 
 ```
- review · alpha · +120 −30 · 3 files          │ Explanation
+ review · alpha · +120 −30 · 3 files          │ EXPLANATION
                                               │
  M internal/tui/app.go            +12 −3      │ › Explain the change at
    @@ -1,3 +1,4 @@ func A()                    │   internal/tui/diff.go:128-131.
     one                                       │ ● reads internal/tui/diff.go
-   +two                                       │   ⋯ 12 more lines
+   +two                                       │   [+] 12 more lines
  A internal/git/hunks.go          +48 −0      │ This hunk caches the open-file map
    @@ -0,0 +1,48 @@                            │ before the lookup, so the toggle
    +package git                               │ does not allocate on every keypress.
@@ -49,8 +49,8 @@ and the hunks:
 - `pgup` and `pgdown` scroll the diff a page.
 - `n` shows or hides the new-side line numbers of the diff.
 
-The selected file has a blue background. The selected hunk sits on a subtle
-grey band, and its header is bold. The diff side scrolls to keep the selected
+The selected file inverts (white fill, black text). The selected hunk sits on a
+grey band, and its header is white. The diff side scrolls to keep the selected
 hunk in view.
 
 `n` shows a gutter with the new-side line number of each line, the same as `d n`
@@ -59,7 +59,7 @@ The gutter narrows the text, so a long line may re-wrap, and the diff side scrol
 to keep the selected hunk in view. See [diff.md](diff.md).
 
 `tab` moves the focus across the split: the diff, then the explanation, then the
-prompt, then back to the diff. The focused pane has a blue header, so it is clear
+prompt, then back to the diff. The focused pane has an inverted header, so it is clear
 which side takes the keys. The prompt bar shows "follow-up" when the prompt has
 the focus.
 

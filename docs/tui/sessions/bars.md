@@ -82,8 +82,8 @@ A transient message (for example `copied 3 lines`, or `docs archived landing`
 when a session did it through a tool) also appears on the left, for its moment.
 The right side gives the keys, and the keys stay in one place.
 
-The bar is a footer, so its palette is muted. The default text is grey, and
-colour marks only the cost, which keeps the green of the session bar so the same
+The bar is a footer, so its palette is muted. The text is grey on the surface
+grey, and the cost is a lighter grey, the same as in the session bar, so the same
 number reads the same in both places. The busy count is hidden when no session
 is busy, so a zero never shows.
 

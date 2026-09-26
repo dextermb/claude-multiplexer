@@ -12,12 +12,12 @@ import (
 // diffBandStyle is the style of a horizontal diff panel: a plain band, flush
 // with the output and its full width, with one border row that separates it from
 // the output. The rule is above a bottom panel and below a top panel, and it
-// carries the highlight colour when the panel holds the focus. A vertical panel
+// carries the accent colour when the panel holds the focus. A vertical panel
 // keeps the left border of sidePanelStyle. See docs/tui/diff.md.
 func diffBandStyle(focused, bottom bool) lipgloss.Style {
-	color := lipgloss.Color("240")
+	var color lipgloss.TerminalColor = colBorder
 	if focused {
-		color = lipgloss.Color("62")
+		color = colAccent
 	}
 	return lipgloss.NewStyle().
 		Border(lipgloss.NormalBorder(), bottom, false, !bottom, false).
@@ -259,7 +259,7 @@ func (m Model) renderDiffBody(text string, current int) []string {
 			marked := len(out) == current
 			lineStyle := style
 			if marked && !m.diffLineNumbers {
-				lineStyle = lineStyle.Bold(true)
+				lineStyle = lineStyle.Foreground(colFg)
 			}
 			row := lineStyle.Render(chunk)
 			if m.diffLineNumbers {

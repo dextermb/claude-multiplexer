@@ -9,7 +9,7 @@ prompt at those dimensions.
 | Dimension | What it sets | Built-in default |
 |---|---|---|
 | prompt bar | the least and the most rows the prompt bar draws | 1 and 4 |
-| session list | the width of the session list sidebar | 26 |
+| session list | the width of the session list sidebar | 30 |
 | task panel | the width of the task and background job panel | 32 |
 | diff position | the side the diff panel draws on | right |
 | diff panel | the size of the diff panel | 32 columns, 12 rows |

@@ -35,13 +35,13 @@ func jobsOpen(t *testing.T, width, height int) Model {
 func TestSessionDialogKeepsTheSidebar(t *testing.T) {
 	m := jobsOpen(t, 100, 24)
 	view := visible(m.View())
-	if !strings.Contains(view, "Background jobs") {
+	if !strings.Contains(view, "BACKGROUND JOBS") {
 		t.Fatalf("the jobs dialog must draw:\n%s", view)
 	}
 	if !strings.Contains(view, foldOpenMark) {
 		t.Fatalf("the sidebar must stay beside the dialog:\n%s", view)
 	}
-	if !strings.Contains(view, "starting") {
+	if !strings.Contains(view, "■ start") {
 		t.Fatalf("the bar must stay above the dialog:\n%s", view)
 	}
 }

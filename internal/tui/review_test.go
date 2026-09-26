@@ -158,7 +158,7 @@ func TestReviewEnterHidesSidebarAndLeaveRestores(t *testing.T) {
 	if m.output.Width != m.reviewExplainWidth() {
 		t.Fatalf("the output pane must size to the explain width %d, got %d", m.reviewExplainWidth(), m.output.Width)
 	}
-	if view := visible(m.View()); !strings.Contains(view, "Explanation") {
+	if view := visible(m.View()); !strings.Contains(view, "EXPLANATION") {
 		t.Fatalf("the review view must show the explanation pane:\n%s", view)
 	}
 

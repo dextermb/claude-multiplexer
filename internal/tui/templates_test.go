@@ -62,7 +62,7 @@ func TestThePickerFillsThePromptFromATemplate(t *testing.T) {
 		t.Fatal("t must open the picker")
 	}
 	view := visible(m.View())
-	for _, want := range []string{"Preset prompts", "/linear", "Work a Linear issue", "/review"} {
+	for _, want := range []string{"PRESET PROMPTS", "/linear", "Work a Linear issue", "/review"} {
 		if !strings.Contains(view, want) {
 			t.Errorf("the picker does not show %q:\n%s", want, view)
 		}
@@ -72,7 +72,7 @@ func TestThePickerFillsThePromptFromATemplate(t *testing.T) {
 	if pickerOf(m) != nil || fieldsOf(m) == nil {
 		t.Fatal("choosing a template must open the field form")
 	}
-	if got := visible(m.View()); !strings.Contains(got, "issue") || !strings.Contains(got, "focus") {
+	if got := visible(m.View()); !strings.Contains(got, "ISSUE") || !strings.Contains(got, "FOCUS") {
 		t.Errorf("the form does not ask for the fields:\n%s", got)
 	}
 

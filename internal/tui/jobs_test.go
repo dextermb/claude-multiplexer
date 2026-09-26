@@ -30,7 +30,7 @@ func TestJobsModalViewListsEveryJob(t *testing.T) {
 		{ID: "j2", Description: "run the tests", Status: session.JobDone},
 	}
 	view := newJobsModal("api", jobs, 80, 24).View(80, 24)
-	for _, want := range []string{"Background jobs", "api", "build the binary", "run the tests", "running", "done"} {
+	for _, want := range []string{"BACKGROUND JOBS", "API", "build the binary", "run the tests", "running", "done"} {
 		if !strings.Contains(view, want) {
 			t.Fatalf("view does not show %q:\n%s", want, view)
 		}
@@ -47,7 +47,7 @@ func TestJobsModalEmptyState(t *testing.T) {
 func TestSessionRowShowsJobBadge(t *testing.T) {
 	m := Model{}
 	got := m.sessionRow(row{name: "api", live: true, state: session.StateBusy, jobs: 2})
-	if !strings.Contains(got, "⚙2") {
+	if !strings.Contains(got, "j2") {
 		t.Fatalf("row must show the job badge:\n%q", got)
 	}
 }

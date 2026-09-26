@@ -21,14 +21,15 @@ recedes:
 
 | Class | What it is | Colour |
 |---|---|---|
-| `ClassPrompt` | What you asked, marked `› ` | Violet, bold, with inline emphasis (see [markdown.md](../markdown.md)) |
-| `ClassText` | What the assistant says | Rendered as markdown |
-| `ClassToolUse` | A tool call, such as `→ Bash ls` | Blue |
-| `ClassToolResult` | What the tool returned | Muted |
-| `ClassMeta` | The `init` line, the turn result, and state changes | Muted, darkest |
-| `ClassThinking` | Thinking, when the verbose flag is on | Muted, italic |
-| `ClassStderr` | A line from the child stderr | Amber |
-| `ClassError` | A failure, or a line that is not JSON | Red |
+| `ClassPrompt` | What you asked, marked `› ` | Heading grey, with inline emphasis (see [markdown.md](../markdown.md)) |
+| `ClassText` | What the assistant says | Rendered as markdown, in secondary grey |
+| `ClassToolUse` | A tool call, such as `→ Bash ls` | Muted grey |
+| `ClassToolResult` | What the tool returned | Muted grey |
+| `ClassMeta` | The `init` line, the turn result, and state changes | Dimmed grey |
+| `ClassThinking` | Thinking, when the verbose flag is on | Dimmed grey |
+| `ClassStderr` | A line from the child stderr | Warning (amber) |
+| `ClassError` | A failure, or a line that is not JSON | Danger (red) |
+| `ClassBash` | A `!` command and its output | Secondary grey |
 | `ClassSkill` | The content of a skill, loaded into the transcript | Muted markdown, capped to one row |
 
 What the assistant says is rendered as markdown, so a heading, a list, and a
@@ -42,7 +43,7 @@ Claude Code then echoes the turn back through the stream. See
 copy, so the prompt is never shown twice. The echoed prompt is in the transcript
 for a later replay, and the pane reads as a conversation.
 
-A slash command echoes as a `» /name` line, not a violet prompt. So the drop
+A slash command echoes as a `» /name` line, not a prompt. So the drop
 keys on the echo of the turn, and not on the prompt line. The manager marks the
 replay of a turn you sent, a prompt or a slash command. The interface drops the
 held copy on that mark. An injected callback, such as a task notification, is
@@ -85,7 +86,7 @@ across the tool result, and marks the next user text message `ClassSkill`. A
 one-line printer draws the row count in place of the whole dump.
 
 The pane renders the dump as markdown, the same as a message. Every heading
-renders as bold text, so a `#` heading in a skill does not draw large. See
+renders as uppercase text, so a `#` heading in a skill does not draw large. See
 [../markdown.md](../markdown.md).
 
 ```
@@ -93,14 +94,14 @@ renders as bold text, so a `#` heading in a skill does not draw large. See
 ← go: downloading github.com/charmbracelet/bubbletea v1.3.4
   go: downloading github.com/charmbracelet/lipgloss v1.1.0
   … 18 more rows of the body …
-▸ ⋯ 4193 more lines
+▸ [+] 4193 more lines
 ```
 
 The cap counts the rows the pane draws, after the text is wrapped to the width
 of the pane. So one block never takes more than the cap and one marker row,
 however wide its lines are.
 
-An open block draws every row, and its marker says `⋯ show less`. The first row
+An open block draws every row, and its marker says `[−] show less`. The first row
 of the block holds its place on the screen while it opens and closes, so the
 text under your eyes does not jump.
 
@@ -149,10 +150,11 @@ column.
 
 ## Text as it arrives
 
-Before the first word arrives, the pane shows a spinner and the word
-`thinking…` below your prompt. It marks the gap between the send and the first
-token, so the session never looks stuck. The spinner shows while the session is
-busy and no text streams yet. The first token replaces it.
+Before the first word arrives, the pane shows the word `thinking…` below your
+prompt. It marks the gap between the send and the first token, so the session
+never looks stuck. The word shows while the session is busy and no text streams
+yet. The first token replaces it. The busy timer in the list and the session bar
+shows that the turn still runs.
 
 The pane shows the answer while the model writes it. The unfinished text sits
 below the settled lines and ends with a `▌`, so you can tell what is still
@@ -175,7 +177,7 @@ Claude Code injects some turns as a synthetic user message whose text is one XML
 wrapper. A background job that stops between sessions arrives as
 `<task-notification>`. A slash command arrives as `<command-name>`. A local
 command writes `<local-command-stdout>`, and the harness appends
-`<system-reminder>`. Without help, the pane draws the raw XML as a violet prompt,
+`<system-reminder>`. Without help, the pane draws the raw XML as a prompt,
 as though you typed it.
 
 So the renderer knows these wrappers and draws each as a muted `ClassMeta` line,
@@ -190,7 +192,7 @@ status line:
 | `<local-command-caveat>` | dropped |
 | `<system-reminder>` | `· system reminder`, one faint marker for each |
 
-The renderer reads each text block on its own. So a real prompt keeps its violet
+The renderer reads each text block on its own. So a real prompt keeps its prompt
 line, and a `<system-reminder>` appended after it collapses to the marker. A
 live `task_notification` system event stays silent, because the sidebar and the
 job list already show the job; see [sessions/jobs.md](sessions/jobs.md).

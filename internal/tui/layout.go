@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/dextermb/claude-multiplexer/internal/config"
@@ -287,36 +288,63 @@ func (m Model) sidebarView() string {
 
 func (m Model) sessionRow(item row) string {
 	width := m.sidebarInnerCols()
-	counts := ""
+	tail := ""
+	if flags := rowFlags(item); flags != "" {
+		tail += " " + flags
+	}
 	if item.jobs > 0 {
-		counts += fmt.Sprintf(" ⚙%d", item.jobs)
+		tail += fmt.Sprintf(" j%d", item.jobs)
 	}
 	if item.queued > 0 {
-		counts += fmt.Sprintf(" ⇢%d", item.queued)
+		tail += fmt.Sprintf(" q%d", item.queued)
 	}
-	flagText := ""
-	if flags := rowFlags(item); flags != "" {
-		flagText = " " + flags
-	}
-	nameWidth := width - 3 - lipgloss.Width(flagText) - lipgloss.Width(counts)
+	word := " " + m.stateWord(item) + " "
+	nameWidth := width - 3 - lipgloss.Width(tail) - lipgloss.Width(word)
 	if nameWidth < 1 {
 		nameWidth = 1
 	}
-	glyph := rowGlyph(item, m.spinFrame)
+	glyph := rowGlyph(item)
+	name := " " + pad(item.displayName(), nameWidth)
 	if item.name == m.sel {
-		rest := " " + pad(item.displayName(), nameWidth) + flagText + counts
-		return selectedRowStyle.Render(" ") +
-			item.style().Background(lipgloss.Color("62")).Render(glyph) +
-			selectedRowStyle.Width(width-2).Render(rest)
+		base, state := subduedStyle, item.style().Background(colSubdued)
+		if m.focus == focusSidebar {
+			base, state = invertStyle, invertStyle
+		}
+		return base.Render(" ") + state.Render(glyph) + base.Render(name+tail) + state.Render(word)
 	}
 	nameStyle := rowStyle
 	if item.archived || item.hosted {
 		nameStyle = rowMutedStyle
 	}
-	return " " + item.style().Render(glyph) +
-		nameStyle.Render(" "+pad(item.displayName(), nameWidth)) +
-		rowMutedStyle.Render(flagText) +
-		nameStyle.Render(counts)
+	return " " + item.style().Render(glyph) + nameStyle.Render(name) +
+		rowMutedStyle.Render(tail) + item.style().Render(word)
+}
+
+// stateWord names the state of a session next to its colour, so the colour is
+// never the only mark. A busy session shows how long its turn has run. See
+// docs/tui/sessions.md.
+func (m Model) stateWord(item row) string {
+	if !item.live {
+		return item.label
+	}
+	switch item.state {
+	case session.StateStarting:
+		return "start"
+	case session.StateBusy:
+		return "busy " + elapsed(time.Since(m.busySince[item.name]))
+	}
+	return item.state.String()
+}
+
+func elapsed(d time.Duration) string {
+	if d < 0 {
+		d = 0
+	}
+	secs := int(d / time.Second)
+	if secs >= 3600 {
+		return fmt.Sprintf("%d:%02d:%02d", secs/3600, secs/60%60, secs%60)
+	}
+	return fmt.Sprintf("%d:%02d", secs/60, secs%60)
 }
 
 // rowFlags is the muted single-letter flags for a session row, concatenated in a
@@ -370,7 +398,7 @@ func (m Model) groupHeader(item group) string {
 	if item.folded {
 		lead := row{live: item.live, archived: item.archived, state: item.state}
 		mark = foldShutMark
-		glyph = lead.style().Render(rowGlyph(lead, m.spinFrame)) + " "
+		glyph = lead.style().Render(rowGlyph(lead)) + " "
 	}
 	label := item.label
 	if item.creator {
@@ -444,10 +472,8 @@ func (m Model) taskPanelLines() []string {
 			}
 		}
 		rows = append(rows, taskHeaderStyle.Render(fmt.Sprintf("Tasks · %d/%d", done, len(todos))), "")
-		item, ok := m.selectedRow()
-		busy := ok && item.live && item.state == session.StateBusy
 		for _, todo := range todos {
-			rows = append(rows, m.taskRow(todo, busy))
+			rows = append(rows, m.taskRow(todo))
 		}
 	}
 	return rows
@@ -457,12 +483,12 @@ func (m *Model) clampTaskScroll() {
 	m.taskScroll = clampScroll(m.taskScroll, len(m.taskPanelLines()), m.bodyHeight())
 }
 
-// sidePanelStyle is the border of a side panel: the highlight colour when the
+// sidePanelStyle is the border of a side panel: the accent colour when the
 // panel holds the focus, and the muted colour otherwise. The task panel and the
 // diff panel share it.
 func sidePanelStyle(focused bool) lipgloss.Style {
 	if focused {
-		return taskPanelStyle.BorderForeground(lipgloss.Color("62"))
+		return taskPanelStyle.BorderForeground(colAccent)
 	}
 	return taskPanelStyle
 }
@@ -476,25 +502,23 @@ func (m Model) panelJobRow(job session.Job) string {
 	if !job.Status.Running() {
 		textStyle = rowMutedStyle
 	}
-	return jobStyle(job.Status).Render(jobGlyph(job.Status)) + " " + textStyle.Render(truncate(desc, m.taskInnerCols()-2))
+	status := jobStyle(job.Status).Render(jobGlyph(job.Status) + " " + pad(job.Status.String(), 8))
+	return status + textStyle.Render(truncate(desc, m.taskInnerCols()-10))
 }
 
-func (m Model) taskRow(todo protocol.Todo, busy bool) string {
-	glyph, glyphStyle, textStyle := "○", taskPendingStyle, rowStyle
+func (m Model) taskRow(todo protocol.Todo) string {
+	box, style := "[ ]", taskPendingStyle
 	text := todo.Content
 	switch todo.Status {
 	case protocol.TodoCompleted:
-		glyph, glyphStyle, textStyle = "✔", taskDoneStyle, rowMutedStyle
+		box, style = "[✓]", taskDoneStyle
 	case protocol.TodoInProgress:
-		glyph, glyphStyle = "◐", taskActiveStyle
+		box, style = "[■]", taskActiveStyle
 		if todo.ActiveForm != "" {
 			text = todo.ActiveForm
 		}
-		if busy {
-			glyph = spinnerFrame(m.spinFrame)
-		}
 	}
-	return glyphStyle.Render(glyph) + " " + textStyle.Render(truncate(text, m.taskInnerCols()-2))
+	return style.Render(box + " " + truncate(text, m.taskInnerCols()-4))
 }
 
 func plural(n int, word string) string {
@@ -511,7 +535,7 @@ func (m Model) promptView() string {
 	}
 	if m.reviewMode {
 		if m.reviewFocus == reviewPrompt {
-			return promptLabelStyle.Render(label+" — follow-up ⌁ ") + "\n" + m.prompt.View()
+			return promptLabelStyle.Render(" follow-up → "+label+" ") + "\n" + m.prompt.View()
 		}
 		return hintStyle.Render(label+" — tab to the prompt to ask a follow-up") + "\n" + m.prompt.View()
 	}
@@ -533,7 +557,7 @@ func (m Model) promptView() string {
 		return hintStyle.Render(hint) + "\n" + m.prompt.View()
 	}
 	if m.focus == focusPrompt {
-		return promptLabelStyle.Render(label+" ⌁ ") + "\n" + m.prompt.View()
+		return promptLabelStyle.Render(" prompt → "+label+" ") + "\n" + m.prompt.View()
 	}
 	return hintStyle.Render(label+" — press Enter or Tab to type") + "\n" + m.prompt.View()
 }

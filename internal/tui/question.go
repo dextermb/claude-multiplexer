@@ -202,9 +202,9 @@ func (d *questionDialog) View(width int, caps map[string]int) string {
 	rowWidth := inner - 4
 	textWidth := rowWidth - 4
 	for i, option := range question.Options {
-		mark := "○"
+		mark := "( )"
 		if d.chosen[d.step][i] {
-			mark = "◉"
+			mark = "(●)"
 		}
 		focused := i == d.cursor
 

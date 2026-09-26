@@ -32,14 +32,15 @@ inherit it, and the code block drops its highlighter. See
 
 ## A prompt gets inline emphasis only
 
-A prompt keeps its identity: the violet colour, the bold weight, and the `› `
-marker. On top of that, three inline forms render:
+A prompt keeps its identity: the heading grey and the `› ` marker. On top of
+that, three inline forms render. The interface sets no bold and no italic (see
+[tui/theme.md](./tui/theme.md)), so emphasis is white:
 
 | Markup | Result |
 |---|---|
-| `_italic_` or `*italic*` | italic |
-| `**bold**` or `__bold__` | bold |
-| `` `code` `` | a code span |
+| `_italic_` or `*italic*` | white, with the marks removed |
+| `**bold**` or `__bold__` | white, with the marks removed |
+| `` `code` `` | a code span, white on the code grey |
 
 A prompt is not a full markdown document. A heading mark, a list mark, or a code
 fence stays as plain text. So `## notes` in a prompt shows the `##`, and does not
@@ -49,29 +50,36 @@ An underscore in a word does not open emphasis, so `some_var_name` stays plain.
 A mark that does not close, such as a lone `_`, also stays plain. The whole
 prompt renders on the code path in `internal/tui/inline.go`.
 
-## Every heading is bold, and nothing more
+## Every heading is uppercase, and nothing more
 
 A terminal pane is narrow, and a large heading block looks wrong in it. So every
-heading level, from `#` to `######`, renders the same way: bold text, with one
-blank line after it. There is no background block, no coloured bar, and no `#`
+heading level, from `#` to `######`, renders the same way: uppercase text in the
+heading grey, with one blank line after it. There is no background block, no coloured bar, and no `#`
 marks.
 
 So a document with headings keeps its structure, and the pane keeps one voice.
 
-## A character the highlighter cannot read
+## Code is highlighted in greys
 
-Chroma highlights a code fence with the lexer for its language. A character that
-the lexer cannot classify becomes an `Error` token, and glamour's dark style
-paints that token white on bright red.
+Chroma highlights a code fence with the lexer for its language. The style gives
+each kind of token a grey, not a hue: keywords and function names are white,
+types and numbers are the heading grey, strings and punctuation are softer, and
+comments are dim. Only a diff keeps its two state colours for the inserted and
+the deleted lines. The fence sits on the code grey (`#262626`).
 
-A pipe is legal in a shell, but not in JSON, TOML, or a makefile. So a fence
-tagged with one of those languages painted every pipe red, which read as a
-warning the pane never meant.
+The style is in `internal/markdown/style.go`. Glamour takes a grey as an xterm
+number, so a 256-colour terminal shows it exactly. Chroma reads only hex, so the
+chroma greys are written as hex, and each one is an exact xterm grey.
 
-The renderer therefore gives the `Error` token the colour of plain code text and
-no background. An unclassified character now looks like the rest of the fence.
-The style is copied first, because glamour holds one chroma style behind a
-pointer and every renderer shares it.
+A character that the lexer cannot classify becomes an `Error` token. A pipe is
+legal in a shell, but not in JSON, TOML, or a makefile. The style gives the
+`Error` token the grey of plain code text and no background, so an unclassified
+character looks like the rest of the fence.
+
+## Light and dark
+
+`markdown.New` asks Lip Gloss whether the terminal background is dark, and picks
+the dark or the light greys. See [tui/theme.md](./tui/theme.md).
 
 ## The raw toggle
 

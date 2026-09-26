@@ -7,14 +7,9 @@ import (
 
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/glamour/ansi"
-	"github.com/charmbracelet/glamour/styles"
 )
 
 const maxCache = 512
-
-// MutedGrey is the one grey NewMuted draws every element in, so a skill dump
-// recedes and matches its launching line. See docs/markdown.md.
-const MutedGrey = "245"
 
 type Renderer struct {
 	style ansi.StyleConfig
@@ -25,13 +20,13 @@ type Renderer struct {
 }
 
 func New() *Renderer {
-	return &Renderer{style: paneStyle(), cache: make(map[string]string)}
+	return &Renderer{style: paneStyle(currentTone()), cache: make(map[string]string)}
 }
 
 // NewMuted renders markdown in one muted grey, for content that recedes, such
 // as a loaded skill. See docs/markdown.md.
 func NewMuted() *Renderer {
-	return &Renderer{style: mutedStyle(), cache: make(map[string]string)}
+	return &Renderer{style: mutedStyle(currentTone()), cache: make(map[string]string)}
 }
 
 func (r *Renderer) Render(text string, width int) string {
@@ -87,66 +82,4 @@ func trimBlankLines(text string) string {
 		lines = lines[:len(lines)-1]
 	}
 	return strings.Join(lines, "\n")
-}
-
-func paneStyle() ansi.StyleConfig {
-	style := styles.DarkStyleConfig
-	none := uint(0)
-	style.Document.Margin = &none
-	style.Document.BlockPrefix = ""
-	style.Document.BlockSuffix = ""
-	style.CodeBlock.Margin = &none
-	style.CodeBlock.Chroma = plainErrors(style.CodeBlock.Chroma)
-
-	heading := headingStyle()
-	style.Heading = heading
-	style.H1 = heading
-	style.H2 = heading
-	style.H3 = heading
-	style.H4 = heading
-	style.H5 = heading
-	style.H6 = heading
-	return style
-}
-
-// mutedStyle draws every element in one grey, so a skill dump recedes. The
-// document sets the grey, the child elements drop their own colours so they
-// inherit it, and the code block drops its highlighter. See docs/markdown.md.
-func mutedStyle() ansi.StyleConfig {
-	grey := MutedGrey
-	style := paneStyle()
-	style.Document.Color = &grey
-	style.Text.Color = &grey
-	for _, colour := range []**string{
-		&style.Paragraph.Color, &style.BlockQuote.Color, &style.Emph.Color,
-		&style.Strong.Color, &style.Item.Color, &style.Enumeration.Color,
-		&style.Link.Color, &style.LinkText.Color, &style.Image.Color,
-		&style.ImageText.Color, &style.Code.Color, &style.Code.BackgroundColor,
-	} {
-		*colour = nil
-	}
-	style.CodeBlock.Chroma = nil
-	style.CodeBlock.Color = &grey
-	return style
-}
-
-// plainErrors copies the chroma style and gives an unclassified character the
-// colour of plain code text. See docs/markdown.md.
-func plainErrors(chroma *ansi.Chroma) *ansi.Chroma {
-	if chroma == nil {
-		return nil
-	}
-	next := *chroma
-	next.Error = next.Text
-	return &next
-}
-
-func headingStyle() ansi.StyleBlock {
-	bold := true
-	return ansi.StyleBlock{
-		StylePrimitive: ansi.StylePrimitive{
-			BlockSuffix: "\n",
-			Bold:        &bold,
-		},
-	}
 }

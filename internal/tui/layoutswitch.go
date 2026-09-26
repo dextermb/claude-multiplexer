@@ -153,10 +153,10 @@ func (d *layoutSwitch) View(width int) string {
 	active := d.active()
 	labels := append([]string{"default"}, d.names...)
 	for i, label := range labels {
-		mark := "○"
+		mark := "( )"
 		isActive := (i == 0 && active == "") || (i > 0 && d.names[i-1] == active)
 		if isActive {
-			mark = "◉"
+			mark = "(●)"
 		}
 		rowText := mark + " " + label
 		if i == d.cursor {

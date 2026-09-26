@@ -28,14 +28,14 @@ func TestQuestionMarkShowsEveryKey(t *testing.T) {
 	m = openHelp(t, m)
 
 	view := visible(m.View())
-	for _, want := range []string{"Keys", "Quick keys", "Start a new session", "esc close"} {
+	for _, want := range []string{"KEYS", "QUICK KEYS", "Start a new session", "esc close"} {
 		if !strings.Contains(view, want) {
 			t.Errorf("the list is missing %q:\n%s", want, view)
 		}
 	}
 
 	rows := strings.Join(visibleAll(m.help.rows(m.keys, nil, 80)), "\n")
-	for _, want := range []string{"The session (s)", "The list (l)", "Everywhere", "Show this list"} {
+	for _, want := range []string{"THE SESSION (S)", "THE LIST (L)", "EVERYWHERE", "Show this list"} {
 		if !strings.Contains(rows, want) {
 			t.Errorf("the list holds no %q:\n%s", want, rows)
 		}
@@ -49,7 +49,7 @@ func TestTheKeyListShowsTheCommands(t *testing.T) {
 	h := newHelp()
 	cmds := []config.Command{{Keys: "b o", Label: "browser", Script: "o.sh"}}
 	rows := strings.Join(visibleAll(h.rows(defaultKeymap(), cmds, 80)), "\n")
-	for _, want := range []string{"Your commands", "b o", "browser"} {
+	for _, want := range []string{"YOUR COMMANDS", "b o", "browser"} {
 		if !strings.Contains(rows, want) {
 			t.Errorf("the list is missing %q:\n%s", want, rows)
 		}

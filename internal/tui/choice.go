@@ -129,9 +129,9 @@ func (d *choiceDialog) View(width int) string {
 
 	rowWidth := inner - 4
 	for i, option := range d.options {
-		mark := "○"
+		mark := "( )"
 		if option == d.current {
-			mark = "◉"
+			mark = "(●)"
 		}
 		row := mark + " " + option
 		if i == d.cursor {

@@ -7,31 +7,31 @@ in `internal/tui`. It talks only to the manager, which is described in
 ## The layout
 
 ```
-▎▾ C boss               3│  api · claude-opus-4-8 · auto     busy · ⇢2 · 4.2k in 0.3k out · $0.0212
-▎ ● boss                 │ › write the summary
-▎ ⠋ api                ⇢2│ ● 2127c615 · claude-opus-4-8 · 31 tools
-▎ ○ invoices             │ → Bash echo hello
-▎▾ multiplexer          1│ ← hello
-▎ ● docs                 │ ▸ ⋯ 4193 more lines
-▎▸ notes              ○ 1│ The loader has three problems▌
-▎                        │
-▎                        │
+▎▾ C BOSS                   3│  api · claude-opus-4-8 · auto   ■ busy 0:42 · queued (2) · $0.0212
+▎ ■ boss               idle  │ › write the summary
+▎ ■ api          q2 busy 0:42│ ● 2127c615 · claude-opus-4-8 · 31 tools
+▎ · invoices         stored  │ → Bash echo hello
+▎▾ MULTIPLEXER              1│ ← hello
+▎ ■ docs               idle  │ ▸ [+] 4193 more lines
+▎▸ NOTES                  ■ 1│ The loader has three problems▌
+▎                            │
+▎                            │
  api — press Enter or Tab to type
  > Type a prompt, then press Enter
  3 sessions · 1 busy · $0.0881  n new · t preset · s session · l list · o output · ? keys · q quit
 ```
 
-The sidebar is 26 columns by default, and a layout can change its width, the
+The sidebar is 30 columns by default, and a layout can change its width, the
 task panel width, the diff panel position and size, and the prompt bar height.
 See [tui/layouts.md](tui/layouts.md). The sessions are grouped under a header that names
 the group and counts its rows: one group for each repository, and one for the
 work of each control session. Each row shows a state glyph, the display name,
-the muted session flags (`H` hoisted, `S` scheduled, `C` control), and `⇢n` when
-prompts wait in the queue. The selected row has a
-highlighted background, and the focused pane carries a blue left edge. The
-palette is the Tailwind gray and blue scale. See
-[tui/sessions.md](tui/sessions.md) for the groups, the folds, and the glyph
-legend.
+the muted session flags (`H` hoisted, `S` scheduled, `C` control), `qn` when
+prompts wait in the queue, and a state word such as `idle` or `busy 0:42`. The
+selected row inverts when the list has the focus, and the focused pane carries a
+white left edge. The palette is the Blackline grey ramp, with colour only for
+state. See [tui/sessions.md](tui/sessions.md) for the groups, the folds, and the
+glyph legend, and [tui/theme.md](tui/theme.md) for the colours.
 
 When the selected session has background jobs or a task list, a panel on the
 right of the pane shows them, and the output shrinks to make room. See
@@ -59,7 +59,7 @@ draws here, but it keeps the side panel beside it. See
 
 ```
  sidebar  │ bar                                      │
- 26 cols  ├──────────────────────────────────────────┤
+ 30 cols  ├──────────────────────────────────────────┤
           │                                          │
           │           a session dialog               │
           │                                          │
@@ -105,6 +105,7 @@ the banner are described in [version-updates.md](version-updates.md).
 | [tui/keys.md](tui/keys.md) | The key sequences, every single key, the searchable key list, scrolling, the mouse, and quitting |
 | [tui/input.md](tui/input.md) | The prompt box, dropping a file, and the new session form |
 | [tui/output.md](tui/output.md) | The colour of each line, streaming text, and the layout rule |
+| [tui/theme.md](tui/theme.md) | The colour tokens, inversion, and why the greys are written as xterm numbers |
 | [tui/tasks.md](tui/tasks.md) | The side panel: the session's jobs and task list, their glyphs, and when it shows |
 | [tui/diff.md](tui/diff.md) | The git diff: the count in the bar, the file panel, the inline diff, and the refresh |
 | [tui/review.md](tui/review.md) | The code review screen: the large diff, the hunk navigation, and the explanation pane |

@@ -55,7 +55,7 @@ func TestEnterOpensTheJobUnderTheCursor(t *testing.T) {
 		t.Fatal("opening a job must start the refresh tick")
 	}
 	view := visible(m.View(80, 24))
-	for _, want := range []string{"run the tests", "go test ./...", "first", "second", "esc back"} {
+	for _, want := range []string{"RUN THE TESTS", "go test ./...", "first", "second", "esc back"} {
 		if !strings.Contains(view, want) {
 			t.Fatalf("the detail must show %q:\n%s", want, view)
 		}

@@ -79,7 +79,7 @@ func TestTheHeaderOfACreatorGroupNamesTheControlSession(t *testing.T) {
 	if !strings.Contains(header, controlMark) {
 		t.Errorf("header = %q, want the control mark", header)
 	}
-	if !strings.Contains(header, "Orchestrator") {
+	if !strings.Contains(header, "ORCHESTRATOR") {
 		t.Errorf("header = %q, want the title of the control session", header)
 	}
 }
@@ -97,7 +97,7 @@ func TestACreatorGroupFoldsLikeAnyOther(t *testing.T) {
 	if strings.Contains(view, "api") {
 		t.Errorf("the folded creator group still shows its rows:\n%s", view)
 	}
-	if !strings.Contains(view, "boss") {
+	if !strings.Contains(view, "BOSS") {
 		t.Errorf("the folded creator group must keep its header:\n%s", view)
 	}
 	if m.sel != "docs" {

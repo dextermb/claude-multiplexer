@@ -257,7 +257,7 @@ func (m Model) sessionRightSeg(item row, e config.BarElement) []barSeg {
 	}
 	switch e.ID {
 	case "state":
-		return []barSeg{{item.label, item.style().Background(barBackground)}}
+		return []barSeg{{rowGlyph(item) + " " + m.stateWord(item), item.style().Background(barBackground)}}
 	case "diff":
 		if d, ok := m.diffs[item.name]; ok && d.anyRepo() && !d.stat().Empty() {
 			return []barSeg{{barDiffCount(d.stat()), barStyle}}
@@ -290,11 +290,11 @@ func (m Model) sessionRightSeg(item row, e config.BarElement) []barSeg {
 		}
 	case "jobs":
 		if item.jobs > 0 {
-			return []barSeg{{fmt.Sprintf("⚙%d", item.jobs), barMutedStyle}}
+			return []barSeg{{fmt.Sprintf("jobs (%d)", item.jobs), barMutedStyle}}
 		}
 	case "queued":
 		if item.queued > 0 {
-			return []barSeg{{fmt.Sprintf("⇢%d", item.queued), barMutedStyle}}
+			return []barSeg{{fmt.Sprintf("queued (%d)", item.queued), barMutedStyle}}
 		}
 	case "tokens":
 		if item.input+item.output > 0 {

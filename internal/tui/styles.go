@@ -15,12 +15,6 @@ const cursorMark = "▌"
 
 const spinInterval = 120 * time.Millisecond
 
-var spinnerFrames = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
-
-func spinnerFrame(n int) string {
-	return spinnerFrames[n%len(spinnerFrames)]
-}
-
 // These name the built-in layout dimensions, so a Model with no layout draws the
 // same as before. A layout overrides them; see docs/tui.md and docs/config.md.
 const (
@@ -78,225 +72,179 @@ func modalInner(width int) int {
 }
 
 var (
-	titleStyle = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(lipgloss.Color("15")).
-			Background(lipgloss.Color("62")).
-			Padding(0, 1)
+	titleStyle = headingLabelStyle.Padding(0, 1)
 
 	sidebarStyle = lipgloss.NewStyle().
 			Border(lipgloss.NormalBorder(), false, true, false, false).
-			BorderForeground(lipgloss.Color("240"))
+			BorderForeground(colBorder)
 
 	promptPanelStyle = lipgloss.NewStyle().
 				Border(lipgloss.NormalBorder(), true, false, false, false).
-				BorderForeground(lipgloss.Color("240"))
+				BorderForeground(colBorder)
 
-	selectedRowStyle = lipgloss.NewStyle().
-				Bold(true).
-				Foreground(lipgloss.Color("15")).
-				Background(lipgloss.Color("62"))
+	selectedRowStyle = invertStyle
 
-	rowStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("252"))
+	rowStyle = fgStyle(colSecondary)
 
-	rowMutedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+	rowMutedStyle = fgStyle(colDimmed)
 
-	groupMarkStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
+	groupMarkStyle = fgStyle(colDimmed)
 
-	groupLabelStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("111"))
+	groupLabelStyle = labelStyle
 
-	groupMutedStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("240"))
+	groupMutedStyle = fgStyle(colDimmed).Transform(strings.ToUpper)
 
-	groupCountStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+	groupCountStyle = fgStyle(colDimmed)
 
-	sectionLabelStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("250"))
+	sectionLabelStyle = fgStyle(colDimmed).Transform(strings.ToUpper)
 
-	sectionRuleStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("238"))
+	sectionRuleStyle = fgStyle(colSubtle)
 
-	sectionParentStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("111"))
+	sectionParentStyle = labelStyle
 
-	hintStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
+	hintStyle = fgStyle(colMuted)
 
 	searchStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("252")).
-			Background(lipgloss.Color("236"))
+			Foreground(colFg).
+			Background(colSurface)
 
-	pickedPathStyle = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(lipgloss.Color("15")).
-			Background(lipgloss.Color("62"))
+	pickedPathStyle = invertStyle
 
-	statusBackground = lipgloss.Color("236")
+	statusBackground lipgloss.TerminalColor = colSurface
 
 	statusStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("252")).
+			Foreground(colSecondary).
 			Background(statusBackground).
 			Padding(0, 1)
 
-	statusMutedStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("244")).
-				Background(statusBackground)
+	statusMutedStyle = fgStyle(colMuted).Background(statusBackground)
 
-	statusKeyStyle = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(lipgloss.Color("15")).
-			Background(statusBackground)
+	statusKeyStyle = fgStyle(colFg).Background(statusBackground)
 
-	statusCostStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("108")).
-			Background(statusBackground)
+	statusCostStyle = fgStyle(colSecondary).Background(statusBackground)
 
-	errorStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("203")).Bold(true)
+	errorStyle = fgStyle(colDanger)
 
 	updateBannerStyle = lipgloss.NewStyle().
-				Bold(true).
-				Foreground(lipgloss.Color("232")).
-				Background(lipgloss.Color("214")).
+				Foreground(colWarning).
+				Background(colWarningBg).
 				Padding(0, 1)
 
-	promptLabelStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("62")).Bold(true)
+	promptLabelStyle = invertStyle
 
-	spinnerStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
+	spinnerStyle = fgStyle(colDimmed)
 
-	ageStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+	ageStyle = fgStyle(colDimmed)
 
-	markerStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
+	markerStyle = fgStyle(colMuted)
 
-	markerCursorStyle = lipgloss.NewStyle().
-				Bold(true).
-				Foreground(lipgloss.Color("15")).
-				Background(lipgloss.Color("62"))
+	markerCursorStyle = invertStyle
 
-	focusEdgeStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("62"))
+	focusEdgeStyle = fgStyle(colAccent)
 
 	modalStyle = lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("62")).
+			Border(lipgloss.NormalBorder()).
+			BorderForeground(colBorder).
 			Padding(1, 2)
 
-	fieldLabelStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
+	fieldLabelStyle = labelStyle
 
-	selectArrowStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("62"))
+	selectArrowStyle = fgStyle(colDimmed)
 
-	selectValueStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("15"))
+	selectValueStyle = fgStyle(colFg)
 
-	questionTextStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("15")).Bold(true)
+	questionTextStyle = fgStyle(colHeading)
 
-	emptyStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("244")).Padding(2, 4)
+	emptyStyle = fgStyle(colMuted).Padding(2, 4)
 
-	selectionStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("15")).
-			Background(lipgloss.Color("62"))
+	selectionStyle = invertStyle
 
-	barBackground = lipgloss.Color("237")
+	barBackground lipgloss.TerminalColor = lipgloss.NoColor{}
 
-	barStyle = lipgloss.NewStyle().Background(barBackground)
+	barStyle = lipgloss.NewStyle()
 
-	barNameStyle = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(lipgloss.Color("252")).
-			Background(barBackground)
+	barNameStyle = fgStyle(colHeading)
 
-	barMutedStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("244")).
-			Background(barBackground)
+	barMutedStyle = fgStyle(colMuted)
 
-	barCostStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("108")).
-			Background(barBackground)
+	barCostStyle = fgStyle(colSecondary)
 
-	barPRStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("214")).
-			Background(barBackground)
+	barPRStyle = fgStyle(colWarning)
 
 	taskPanelStyle = lipgloss.NewStyle().
 			Border(lipgloss.NormalBorder(), false, false, false, true).
-			BorderForeground(lipgloss.Color("240")).
+			BorderForeground(colBorder).
 			PaddingLeft(1)
 
-	taskHeaderStyle = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(lipgloss.Color("252"))
+	taskHeaderStyle = labelStyle
 
-	taskDoneStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("42"))
-	taskActiveStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("214")).Bold(true)
-	taskPendingStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
+	taskDoneStyle    = fgStyle(colDimmed)
+	taskActiveStyle  = fgStyle(colFg)
+	taskPendingStyle = fgStyle(colMuted)
 
-	barAddStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("42")).Background(barBackground)
-	barDelStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("203")).Background(barBackground)
+	barAddStyle = fgStyle(colPositive)
+	barDelStyle = fgStyle(colDanger)
 
-	diffAddStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("42"))
-	diffDelStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("203"))
-	diffHunkStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("39"))
-	diffMetaStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
-	diffNumStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
-	diffCurNumStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("252")).Bold(true)
+	diffAddStyle    = fgStyle(colPositive)
+	diffDelStyle    = fgStyle(colDanger)
+	diffHunkStyle   = fgStyle(colDimmed)
+	diffMetaStyle   = fgStyle(colMuted)
+	diffNumStyle    = fgStyle(colDimmed)
+	diffCurNumStyle = fgStyle(colFg)
 )
 
 func classStyle(class render.Class) lipgloss.Style {
 	switch class {
 	case render.ClassPrompt:
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("141")).Bold(true)
-	case render.ClassMeta:
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
-	case render.ClassToolUse:
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("74"))
-	case render.ClassToolResult:
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("245"))
-	case render.ClassThinking:
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("245")).Italic(true)
+		return fgStyle(colHeading)
+	case render.ClassMeta, render.ClassThinking:
+		return fgStyle(colDimmed)
+	case render.ClassToolUse, render.ClassToolResult, render.ClassSkill:
+		return fgStyle(colMuted)
 	case render.ClassStderr:
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("179"))
+		return fgStyle(colWarning)
 	case render.ClassError:
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("203"))
-	case render.ClassBash:
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("114"))
-	case render.ClassSkill:
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("245"))
+		return fgStyle(colDanger)
 	}
-	return lipgloss.NewStyle().Foreground(lipgloss.Color("252"))
+	return fgStyle(colSecondary)
 }
 
 func jobGlyph(status session.JobStatus) string {
 	switch status {
 	case session.JobDone:
 		return "✓"
-	case session.JobFailed:
-		return "✗"
-	case session.JobKilled:
-		return "⊗"
+	case session.JobFailed, session.JobKilled:
+		return "×"
 	default:
-		return "⚙"
+		return "■"
 	}
 }
 
 func jobStyle(status session.JobStatus) lipgloss.Style {
 	switch status {
 	case session.JobDone:
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("42"))
+		return fgStyle(colPositive)
 	case session.JobFailed:
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("203"))
+		return fgStyle(colDanger)
 	case session.JobKilled:
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
+		return fgStyle(colDimmed)
 	default:
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("214"))
+		return fgStyle(colWarning)
 	}
 }
 
 func stateStyle(state session.State) lipgloss.Style {
 	switch state {
 	case session.StateIdle:
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("42"))
+		return fgStyle(colPositive)
 	case session.StateBusy:
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("214"))
+		return fgStyle(colWarning)
 	case session.StateWaiting:
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("213"))
-	case session.StateStarting:
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("39"))
+		return fgStyle(colInfo)
 	case session.StateFailed:
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("203"))
+		return fgStyle(colDanger)
 	}
-	return lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
+	return fgStyle(colDimmed)
 }
 
 func truncate(text string, width int) string {

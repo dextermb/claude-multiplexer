@@ -275,7 +275,7 @@ func (f *fieldForm) View(width int) string {
 	inner := modalInner(width)
 
 	var b strings.Builder
-	b.WriteString(titleStyle.Render("/" + f.tpl.Name))
+	b.WriteString(fgStyle(colHeading).Padding(0, 1).Render("/" + f.tpl.Name))
 	if f.tpl.Description != "" {
 		b.WriteString("\n" + hintStyle.Render(truncate(f.tpl.Description, inner-2)))
 	}

@@ -33,37 +33,37 @@ func panelModel(width, height int, jobs []session.Job, todos []protocol.Todo) Mo
 }
 
 func TestTheSidePanelShowsJobsAboveTasks(t *testing.T) {
-	m := panelModel(100, 30, sampleJobs, sampleTodos)
+	m := panelModel(110, 30, sampleJobs, sampleTodos)
 	if !m.showSidePanel() {
 		t.Fatal("the panel must show when the session has jobs and tasks")
 	}
 	view := visible(m.sidePanelView())
-	for _, want := range []string{"Jobs · 1/2", "build the binary", "run the tests", "Tasks · 1/3"} {
+	for _, want := range []string{"JOBS · 1/2", "build the binary", "run the tests", "TASKS · 1/3"} {
 		if !strings.Contains(view, want) {
 			t.Errorf("the panel has no %q:\n%s", want, view)
 		}
 	}
-	if strings.Index(view, "Jobs · 1/2") > strings.Index(view, "Tasks · 1/3") {
+	if strings.Index(view, "JOBS · 1/2") > strings.Index(view, "TASKS · 1/3") {
 		t.Errorf("jobs must sit above the tasks list:\n%s", view)
 	}
 }
 
 func TestTheSidePanelShowsForJobsWithNoTasks(t *testing.T) {
-	m := panelModel(100, 30, sampleJobs, nil)
+	m := panelModel(110, 30, sampleJobs, nil)
 	if !m.showSidePanel() {
 		t.Fatal("the panel must show when the session has only jobs")
 	}
 	view := visible(m.sidePanelView())
-	if !strings.Contains(view, "Jobs · 1/2") {
+	if !strings.Contains(view, "JOBS · 1/2") {
 		t.Errorf("the panel must show the jobs header:\n%s", view)
 	}
-	if strings.Contains(view, "Tasks ·") {
+	if strings.Contains(view, "TASKS ·") {
 		t.Error("the panel must not show a tasks header with no tasks")
 	}
 }
 
 func TestTheSidePanelHidesWithNoJobsOrTasks(t *testing.T) {
-	m := panelModel(100, 30, nil, nil)
+	m := panelModel(110, 30, nil, nil)
 	if m.showSidePanel() {
 		t.Fatal("the panel must hide when the session has no jobs and no tasks")
 	}
@@ -71,7 +71,7 @@ func TestTheSidePanelHidesWithNoJobsOrTasks(t *testing.T) {
 
 func TestTheTaskPanelShowsTheListAndShrinksTheOutput(t *testing.T) {
 	m, mgr := newTestModel(t, "")
-	m = start(t, m, 100, 30)
+	m = start(t, m, 110, 30)
 	m, _ = step(t, m, key("esc"))
 	m = spawn(t, m, mgr, "alpha", t.TempDir())
 
@@ -85,7 +85,7 @@ func TestTheTaskPanelShowsTheListAndShrinksTheOutput(t *testing.T) {
 		t.Fatalf("output width = %d, want %d (shrunk by the panel)", m.outputWidth(), base-taskPanelWidth)
 	}
 	view := visible(m.View())
-	for _, want := range []string{"Tasks · 1/3", "First task", "Doing the second task", "Third task"} {
+	for _, want := range []string{"TASKS · 1/3", "First task", "Doing the second task", "Third task"} {
 		if !strings.Contains(view, want) {
 			t.Errorf("the panel has no %q:\n%s", want, view)
 		}
@@ -97,7 +97,7 @@ func TestTheTaskPanelShowsTheListAndShrinksTheOutput(t *testing.T) {
 
 func TestTheTaskPanelHidesWhenTheListIsEmpty(t *testing.T) {
 	m, mgr := newTestModel(t, "")
-	m = start(t, m, 100, 30)
+	m = start(t, m, 110, 30)
 	m, _ = step(t, m, key("esc"))
 	m = spawn(t, m, mgr, "alpha", t.TempDir())
 
@@ -111,7 +111,7 @@ func TestTheTaskPanelHidesWhenTheListIsEmpty(t *testing.T) {
 	if m.outputWidth() != base {
 		t.Fatalf("output width = %d, want the full %d again", m.outputWidth(), base)
 	}
-	if strings.Contains(visible(m.View()), "Tasks ·") {
+	if strings.Contains(visible(m.View()), "TASKS ·") {
 		t.Error("the panel must leave no header behind")
 	}
 }
@@ -156,7 +156,7 @@ func TestTheViewFillsTheWindowWithTheTaskPanel(t *testing.T) {
 
 func TestATaskEventForAnotherSessionDoesNotShowThePanel(t *testing.T) {
 	m, mgr := newTestModel(t, "")
-	m = start(t, m, 100, 30)
+	m = start(t, m, 110, 30)
 	m, _ = step(t, m, key("esc"))
 	dir := t.TempDir()
 	m = spawn(t, m, mgr, "alpha", dir)

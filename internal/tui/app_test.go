@@ -149,7 +149,7 @@ func TestTheFormOpensWhenThereAreNoSessions(t *testing.T) {
 	if m.form == nil {
 		t.Fatal("the new session form must open when the list is empty")
 	}
-	if view := m.View(); !strings.Contains(view, "New session") {
+	if view := m.View(); !strings.Contains(view, "NEW SESSION") {
 		t.Fatalf("view does not show the form:\n%s", view)
 	}
 	m, _ = step(t, m, key("esc"))

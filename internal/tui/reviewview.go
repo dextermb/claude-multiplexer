@@ -11,20 +11,20 @@ import (
 const reviewMinExplain = 24
 
 // reviewSelBg is the subtle band behind the selected hunk on the diff side.
-var reviewSelBg = lipgloss.Color("237")
+var reviewSelBg lipgloss.TerminalColor = colSubdued
 
 // reviewHeadOn is the header of the focused pane, and reviewHeadOff the header
 // of an unfocused pane, so the split shows which side takes the keys.
 var (
-	reviewHeadOn  = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("231")).Background(lipgloss.Color("62"))
-	reviewHeadOff = diffMetaStyle
+	reviewHeadOn  = invertStyle.Transform(strings.ToUpper)
+	reviewHeadOff = labelStyle
 )
 
-// reviewHeader draws a pane header that shows the focus: a blue bar and a filled
-// label when focused, a muted label otherwise. See docs/tui/review.md.
+// reviewHeader draws a pane header that shows the focus: an inverted label when
+// focused, a muted label otherwise. See docs/tui/review.md.
 func reviewHeader(title string, width int, focused bool) string {
 	if focused {
-		return lipgloss.NewStyle().Width(width).Render(focusEdgeStyle.Render("▌") + reviewHeadOn.Render(" "+title+" "))
+		return lipgloss.NewStyle().Width(width).Render(" " + reviewHeadOn.Render(" "+title+" "))
 	}
 	return lipgloss.NewStyle().Width(width).Render("  " + reviewHeadOff.Render(title))
 }
@@ -211,7 +211,7 @@ func (m Model) reviewHunkLines(h git.Hunk, width int, marked bool) []string {
 	}
 	headerStyle := diffHunkStyle
 	if marked {
-		headerStyle = headerStyle.Bold(true)
+		headerStyle = headerStyle.Foreground(colFg)
 	}
 	render(headerStyle, h.Header, "")
 	newLine := h.NewStart

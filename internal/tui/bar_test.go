@@ -6,6 +6,7 @@ import (
 
 	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/manager"
+	"github.com/dextermb/claude-multiplexer/internal/session"
 )
 
 func segTexts(segs []barSeg) []string {
@@ -28,6 +29,7 @@ func indexOfPrefix(texts []string, prefix string) int {
 func busyRow() row {
 	return row{
 		label:     "idle",
+		state:     session.StateIdle,
 		live:      true,
 		input:     1000,
 		cacheRead: 940,
@@ -166,7 +168,7 @@ func TestSessionBarReordersAndRemovesByConfig(t *testing.T) {
 	if len(texts) != 2 {
 		t.Fatalf("segments = %v, want only the two named elements", texts)
 	}
-	if indexOfPrefix(texts, "$") != 0 || texts[1] != "idle" {
+	if indexOfPrefix(texts, "$") != 0 || texts[1] != "■ idle" {
 		t.Fatalf("segments = %v, want the cost first and the state second", texts)
 	}
 }
