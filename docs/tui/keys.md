@@ -156,9 +156,20 @@ stop confirmation — draws in the pane, so the sidebar stays on the screen. A d
 
 ## The key list
 
-Press `?` for every key in one place, grouped by target. Type to search it: the
-search reads the keys, what they do, and the group names, so `scroll` finds the
-keys that scroll and `ctrl+j` finds itself. Press `esc` to close.
+Press `?` for every key in one place, grouped by target. The groups sit in
+columns, as many as fit at 64 columns each, up to three, split by a rule. Each
+group name is set in a rule above its keys, and the stop key is in the danger
+colour. The code is in `internal/tui/keylist.go`.
+
+Type to search it: the search reads the keys, what they do, and the group names,
+so `scroll` finds the keys that scroll and `ctrl+j` finds itself.
+
+The row under the cursor inverts. `↑` and `↓` move the cursor, and `←` and `→`
+move it to the column beside, to the nearest row. `enter` closes the list and
+runs the key under the cursor, the same as if you pressed it. A key that works
+only in one pane, such as a prompt key, cannot run from the list, so the status
+bar says where it works. A row whose key can run shows `→` at its end. Press
+`esc` to close the list and run nothing.
 
 The list in this page and the list on the screen come from one table in the
 code, so they cannot drift apart. The status bar reads the same table. It shows

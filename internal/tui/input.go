@@ -90,9 +90,12 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	}
 	m.armedQuit = false
 	if m.help != nil {
-		open, cmd := m.help.Update(msg)
+		open, run, cmd := m.help.Update(msg, m.keys, m.commands.List())
 		if !open {
 			m.help = nil
+		}
+		if run != nil {
+			return m.runHelpEntry(*run)
 		}
 		return m, cmd
 	}

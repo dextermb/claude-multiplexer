@@ -44,3 +44,26 @@ func TestTheViewIsPaintedOnTheGround(t *testing.T) {
 		}
 	}
 }
+
+func TestTheGroundFollowsEveryBackgroundReset(t *testing.T) {
+	ground := "\x1b[48;2;0;0;0m"
+	for _, tc := range []struct {
+		code  string
+		clear bool
+	}{
+		{"\x1b[m", true},
+		{"\x1b[0m", true},
+		{"\x1b[49m", true},
+		{"\x1b[39;49m", true},
+		{"\x1b[22;0m", true},
+		{"\x1b[39m", false},
+		{"\x1b[38;2;49;49;49m", false},
+		{"\x1b[48;5;49m", false},
+		{"\x1b[38;5;0m", false},
+	} {
+		out := paintGround(tc.code+"x", 3, 1)
+		if got := strings.Contains(out, tc.code+ground); got != tc.clear {
+			t.Errorf("%q: ground after it = %v, want %v", tc.code, got, tc.clear)
+		}
+	}
+}
