@@ -5,7 +5,8 @@ merged. Built: the tokens, the palette, the state words, the grey markdown, the
 frame of labelled rules, the painted black ground, the move to Charm v2, huh
 forms for the settings and rename dialogs, the danger stop dialog, the scrim
 under every dialog, the key list in columns, the restyled new-session form, the
-inline question dialog, the review frame, and the prompt label in its rule. What they do is described in
+inline question dialog, the review frame, the prompt label in its rule, and the
+tool name as a label in the transcript. What they do is described in
 [../tui/theme.md](../tui/theme.md), [../tui.md](../tui.md) and
 [../markdown.md](../markdown.md). This file holds only the work that is not
 built.
@@ -52,10 +53,7 @@ The design canvas: <https://claude.ai/artifact/B53CvRFbfHa1UnkisHtGjC>.
 
 ## Still ahead
 
-1. **Tool lines in the transcript.** The canvas sets the tool name as an
-   uppercase label (`→ READ  path  412 lines`). Today the whole `→ Tool summary`
-   line is one muted grey.
-2. **Remove the light theme board** from the canvas, or change it: the app has
+1. **Remove the light theme board** from the canvas, or change it: the app has
    no light theme now.
 
 Verify each step with `just check`, and in a real terminal at 256 colours and at

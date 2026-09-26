@@ -11,7 +11,7 @@ in `internal/tui`. It talks only to the manager, which is described in
 ── SESSIONS (5) ─────────────┬── API ─ claude-opus-4-8 · auto ──── ■ busy 0:42 · queued (2) · $0.0212 ─
  ▾ C BOSS                   3│ › write the summary
   ■ boss               idle  │ ● 2127c615 · claude-opus-4-8 · 31 tools
-  ■ api          q2 busy 0:42│ → Bash echo hello
+  ■ api          q2 busy 0:42│ → BASH   echo hello
   · invoices         stored  │ ← hello
  ▾ MULTIPLEXER              1│ [+] 4193 more lines
   ■ docs            waiting  │ The loader has three problems▌

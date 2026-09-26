@@ -30,8 +30,8 @@ apart.
 | `colCode` | `#262626` | 235 | inline code and code blocks |
 | `colFg` | `#ffffff` | 231 | keys, strong text, the focused value |
 | `colHeading` | `#eeeeee` | 255 | your prompts, dialog titles, headings |
-| `colSecondary` | `#c6c6c6` | 251 | assistant text, session names |
-| `colMuted` | `#8a8a8a` | 245 | labels, hints, tool lines |
+| `colSecondary` | `#c6c6c6` | 251 | assistant text, session names, tool input |
+| `colMuted` | `#8a8a8a` | 245 | labels, hints, tool names and results |
 | `colDimmed` | `#6c6c6c` | 242 | glyphs, separators, meta lines |
 | `colFaint` | `#3a3a3a` | 237 | archived rows |
 | `colBorder` | `#3a3a3a` | 237 | every rule and border |

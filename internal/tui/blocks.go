@@ -264,6 +264,10 @@ func (m Model) wrap(lines []render.Line) string {
 			wrapped = append(wrapped, lipgloss.NewStyle().Width(width).Render(styled))
 			continue
 		}
+		if line.Class == render.ClassToolUse && !m.showRaw {
+			wrapped = append(wrapped, toolLineView(text, width))
+			continue
+		}
 		wrapped = append(wrapped, classStyle(line.Class).Width(width).Render(text))
 	}
 	return strings.Join(wrapped, "\n")

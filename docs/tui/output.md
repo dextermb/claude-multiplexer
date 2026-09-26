@@ -23,7 +23,7 @@ recedes:
 |---|---|---|
 | `ClassPrompt` | What you asked, marked `› ` | Heading grey, with inline emphasis (see [markdown.md](../markdown.md)) |
 | `ClassText` | What the assistant says | Rendered as markdown, in secondary grey |
-| `ClassToolUse` | A tool call, such as `→ Bash ls` | Muted grey |
+| `ClassToolUse` | A tool call, such as `→ Bash ls` | The tool name as an uppercase label, the input in secondary grey (see below) |
 | `ClassToolResult` | What the tool returned | Muted grey |
 | `ClassMeta` | The `init` line, the turn result, and state changes | Dimmed grey |
 | `ClassThinking` | Thinking, when the verbose flag is on | Dimmed grey |
@@ -35,6 +35,13 @@ recedes:
 What the assistant says is rendered as markdown, so a heading, a list, and a
 code fence all read as themselves. Press `o m` for the raw text. See
 [markdown.md](../markdown.md).
+
+A tool call draws as `→ READ   internal/auth/middleware.go`. The arrow is
+dimmed, and the tool name is an uppercase label in muted grey. The name fills a
+slot of six columns, so the input of each call starts in the same column. The
+input is secondary grey. The renderer writes `→ Read …`, and only the pane sets
+the label, so a transcript and the `run` command keep the name as the tool gives
+it. The raw view (`o m`) shows the line as the renderer writes it.
 
 Your prompt appears the moment you send it. The interface holds a copy and
 shows it at once, so there is no wait for the round trip through Claude Code.
@@ -90,7 +97,7 @@ renders as uppercase text, so a `#` heading in a skill does not draw large. See
 [../markdown.md](../markdown.md).
 
 ```
-→ Bash ./scripts/build.sh
+→ BASH   ./scripts/build.sh
 ← go: downloading github.com/charmbracelet/bubbletea v1.3.4
   go: downloading github.com/charmbracelet/lipgloss v1.1.0
   … 18 more rows of the body …
