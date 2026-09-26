@@ -314,3 +314,11 @@ func TestTaskAndQuestionInputsReadAsText(t *testing.T) {
 		}
 	}
 }
+
+func TestAVerboseThinkingLineReadsAsALabel(t *testing.T) {
+	ev := decode(t, `{"type":"assistant","message":{"role":"assistant","content":[{"type":"thinking","thinking":"the race detector needs cgo"}]}}`)
+	got := Renderer{Verbose: true}.Lines(ev)
+	if len(got) != 1 || got[0].Class != ClassThinking || got[0].Text != "thinking · the race detector needs cgo" {
+		t.Fatalf("lines = %+v", got)
+	}
+}

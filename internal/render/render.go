@@ -256,7 +256,7 @@ func (r Renderer) nonTextLines(block protocol.Block) []Line {
 	switch block.Type {
 	case "thinking":
 		if r.Verbose && block.Thinking != "" {
-			return []Line{{Class: ClassThinking, Text: "  thinking: " + r.clip(block.Thinking)}}
+			return []Line{{Class: ClassThinking, Text: "thinking · " + r.clip(block.Thinking)}}
 		}
 	case "tool_use":
 		return []Line{{Class: ClassToolUse,
