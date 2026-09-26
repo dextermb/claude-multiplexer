@@ -1,9 +1,8 @@
 package tui
 
 import (
-	"strings"
-
 	tea "charm.land/bubbletea/v2"
+	"charm.land/huh/v2"
 
 	"github.com/dextermb/claude-multiplexer/internal/session"
 )
@@ -25,14 +24,16 @@ type choiceDialog struct {
 	kind    settingKind
 	session string
 	title   string
-	note    string
 	options []string
-	cursor  int
-	current string
+	value   string
+	form    *huh.Form
 }
 
+// newChoiceDialog asks for one setting in a huh select. The current value
+// carries a filled mark, and the cursor starts on it.
 func newChoiceDialog(kind settingKind, name, current string) *choiceDialog {
-	d := &choiceDialog{kind: kind, session: name, current: current}
+	d := &choiceDialog{kind: kind, session: name, value: current}
+	note := ""
 	switch kind {
 	case settingModel:
 		d.title, d.options = "Model", modelChoices
@@ -40,35 +41,33 @@ func newChoiceDialog(kind settingKind, name, current string) *choiceDialog {
 		d.title, d.options = "Permission mode", modeChoices
 	case settingEffort:
 		d.title, d.options = "Effort", session.EffortLevels
-		d.note = "resumes the session — Claude Code has no live effort switch"
+		note = "resumes the session — Claude Code has no live effort switch"
 	}
+	options := make([]huh.Option[string], len(d.options))
 	for i, option := range d.options {
+		mark := "( ) "
 		if option == current {
-			d.cursor = i
+			mark = "(●) "
 		}
+		options[i] = huh.NewOption(mark+option, option)
 	}
+	field := huh.NewSelect[string]().Options(options...).Value(&d.value)
+	if note != "" {
+		field.Description(note)
+	}
+	d.form = newHuhForm(huh.NewGroup(field))
+	d.form.Init()
 	return d
 }
 
 func (d *choiceDialog) Update(msg tea.Msg) (formResult, tea.Cmd) {
-	key, ok := msg.(tea.KeyPressMsg)
-	if !ok {
-		return formOpen, nil
-	}
-	switch key.String() {
-	case "esc":
-		return formCancelled, nil
-	case "up", "k":
-		d.cursor = (d.cursor - 1 + len(d.options)) % len(d.options)
-	case "down", "j":
-		d.cursor = (d.cursor + 1) % len(d.options)
-	case "enter":
-		return formSubmitted, nil
-	}
-	return formOpen, nil
+	var result formResult
+	var cmd tea.Cmd
+	d.form, result, cmd = runForm(d.form, msg)
+	return result, cmd
 }
 
-func (d *choiceDialog) chosen() string { return d.options[d.cursor] }
+func (d *choiceDialog) chosen() string { return d.value }
 
 func (d *choiceDialog) region() modalRegion      { return modalPane }
 func (d *choiceDialog) view(width, _ int) string { return d.View(width) }
@@ -119,32 +118,5 @@ func (m Model) openChoice(kind settingKind) (tea.Model, tea.Cmd) {
 }
 
 func (d *choiceDialog) View(width int) string {
-	inner := modalInner(width)
-
-	var b strings.Builder
-	b.WriteString(titleStyle.Render(d.title))
-	b.WriteString("\n")
-	b.WriteString(hintStyle.Render("for " + d.session))
-	b.WriteString("\n\n")
-
-	rowWidth := inner - 4
-	for i, option := range d.options {
-		mark := "( )"
-		if option == d.current {
-			mark = "(●)"
-		}
-		row := mark + " " + option
-		if i == d.cursor {
-			b.WriteString(selectedRowStyle.Width(rowWidth).Render("▸ " + row))
-		} else {
-			b.WriteString(rowStyle.Width(rowWidth).Render("  " + row))
-		}
-		b.WriteString("\n")
-	}
-
-	if d.note != "" {
-		b.WriteString("\n" + hintStyle.Render(truncate(d.note, rowWidth)))
-	}
-	b.WriteString("\n\n" + hintStyle.Render("↑↓ move · enter apply · esc cancel"))
-	return modalStyle.Width(inner + 2).Render(b.String())
+	return formBox(width, d.title, "for "+d.session, d.form, "↑↓ move · enter apply · esc cancel")
 }

@@ -557,7 +557,21 @@ func (m Model) promptView() string {
 	return hintStyle.Render(label+" — press Enter or Tab to type") + "\n" + m.prompt.View()
 }
 
+// confirmView asks before a stop. The stop is the one destructive action, so its
+// button takes the danger colour. See docs/tui/theme.md.
 func (m Model) confirmView(width int) string {
-	return modalStyle.Width(modalInner(width) + 2).Render(fmt.Sprintf("Stop session %q?\n\n%s",
-		m.confirm, hintStyle.Render("y stop · any other key cancel")))
+	inner := modalInner(width)
+	keep := fgStyle(colStrong).Render("[ ") + rowStyle.Render("keep running") + fgStyle(colStrong).Render(" ]")
+	stop := lipgloss.NewStyle().Foreground(colAccentFg).Background(colDanger).Padding(0, 2).Render("stop session")
+
+	var b strings.Builder
+	b.WriteString(titleStyle.Render("Stop session"))
+	b.WriteString("\n")
+	b.WriteString(hintStyle.Render("for " + m.confirm))
+	b.WriteString("\n\n")
+	b.WriteString(rowStyle.Render("the running turn ends and the session stops · enter resumes it later"))
+	b.WriteString("\n\n")
+	b.WriteString(keep + "   " + stop)
+	b.WriteString("\n\n" + hintStyle.Render("y or enter stops · any other key keeps it running"))
+	return modalStyle.Width(inner + 2).Render(b.String())
 }

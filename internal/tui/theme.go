@@ -22,6 +22,7 @@ var (
 	colFaint      = lipgloss.Color("#3a3a3a")
 	colBorder     = lipgloss.Color("#3a3a3a")
 	colSubtle     = lipgloss.Color("#1d1d1d")
+	colStrong     = lipgloss.Color("#585858")
 	colAccent     = lipgloss.Color("#ffffff")
 	colAccentFg   = lipgloss.Color("#000000")
 	colSubdued    = lipgloss.Color("#2e2e2e")

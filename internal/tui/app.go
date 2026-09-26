@@ -358,6 +358,9 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleKey(msg)
 	}
 
+	if m.modal != nil {
+		return m.routeModal(msg)
+	}
 	var cmd tea.Cmd
 	promptFocused := m.focus == focusPrompt || (m.reviewMode && m.reviewFocus == reviewPrompt)
 	if promptFocused && m.form == nil {

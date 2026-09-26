@@ -83,6 +83,16 @@ interface sets no bold and no italic. Hierarchy comes from case, colour, and
 rules. Labels, titles, and group names are uppercase through
 `lipgloss.Style.Transform`, so the text in the code stays in lowercase.
 
+## Forms
+
+The huh forms take the theme `blacklineForm` in `internal/tui/huhdialog.go`. The
+focused field has a white rule on its left, and a field at rest has none. The
+option under the cursor inverts, and the current value of a setting carries a
+filled mark (`(●)`). The focused button inverts. Titles are uppercase labels.
+
+The stop confirmation is the one dialog with a coloured button: `stop session`
+fills with the danger colour, because the stop is destructive.
+
 ## Inputs
 
 The prompt, the search box, and every input in a dialog are Bubbles text areas

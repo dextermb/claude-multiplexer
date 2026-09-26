@@ -5,39 +5,31 @@ import (
 
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
+	"charm.land/huh/v2"
 )
 
 type renameDialog struct {
 	session string
-	input   textinput.Model
+	title   string
+	form    *huh.Form
 }
 
 func newRenameDialog(name, current string) *renameDialog {
-	input := newTextInput()
-	input.Placeholder = name
-	input.CharLimit = 512
-	input.SetWidth(40)
-	input.SetValue(current)
-	input.CursorEnd()
-	input.Focus()
-	return &renameDialog{session: name, input: input}
+	d := &renameDialog{session: name, title: current}
+	field := huh.NewInput().Prompt("› ").Placeholder(name).CharLimit(512).Value(&d.title)
+	d.form = newHuhForm(huh.NewGroup(field))
+	d.form.Init()
+	return d
 }
 
 func (d *renameDialog) Update(msg tea.Msg) (formResult, tea.Cmd) {
-	if key, ok := msg.(tea.KeyPressMsg); ok {
-		switch key.String() {
-		case "esc":
-			return formCancelled, nil
-		case "enter":
-			return formSubmitted, nil
-		}
-	}
+	var result formResult
 	var cmd tea.Cmd
-	d.input, cmd = d.input.Update(msg)
-	return formOpen, cmd
+	d.form, result, cmd = runForm(d.form, msg)
+	return result, cmd
 }
 
-func (d *renameDialog) value() string { return strings.TrimSpace(d.input.Value()) }
+func (d *renameDialog) value() string { return strings.TrimSpace(d.title) }
 
 func (d *renameDialog) region() modalRegion      { return modalPane }
 func (d *renameDialog) view(width, _ int) string { return d.View(width) }
@@ -81,14 +73,5 @@ func (m Model) openRename() (tea.Model, tea.Cmd) {
 }
 
 func (d *renameDialog) View(width int) string {
-	inner := modalInner(width)
-
-	var b strings.Builder
-	b.WriteString(titleStyle.Render("Rename"))
-	b.WriteString("\n")
-	b.WriteString(hintStyle.Render("for " + d.session))
-	b.WriteString("\n\n")
-	b.WriteString(d.input.View())
-	b.WriteString("\n\n" + hintStyle.Render("enter apply · esc cancel · empty clears the title"))
-	return modalStyle.Width(inner + 2).Render(b.String())
+	return formBox(width, "Rename", "for "+d.session, d.form, "enter apply · esc cancel · empty clears the title")
 }

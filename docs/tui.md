@@ -96,11 +96,23 @@ to that one field, the view draws it in the region its `region()` names, and the
 mouse guard blocks the wheel for a pane modal. So a new dialog is one adapter in
 its own file, not a branch in the router, the view, and the mouse guard.
 
+A message the Model does not handle goes to the active modal before the prompt.
+That is how a [huh](https://charm.land) form works inside a modal: huh finishes a
+form through a command whose message must come back to it.
+
+The model, effort and mode dialogs and the rename dialog are huh forms. They are
+built in `internal/tui/huhdialog.go`: `newHuhForm` gives a form the Blackline
+theme and makes `esc` close it, `runForm` reads its state after each message, and
+`formBox` draws it in a dialog box with a title and a hint. See
+[tui/theme.md](tui/theme.md) for the theme.
+
 Three dialogs stay outside the seam, because each has couplings beyond the
 router. The question dialog is a per-session map, arrives from a manager event,
 and keeps the side panel beside it. The new session form takes a dropped path
 and suppresses the prompt while it is open. The stop confirmation guards the
-paste and the mouse as a bare string.
+paste and the mouse as a bare string. It draws as the danger dialog: a grey
+`[ keep running ]` and a `stop session` button in the danger colour. `y` or
+`enter` stops, and any other key keeps the session running.
 
 ## The update banner
 

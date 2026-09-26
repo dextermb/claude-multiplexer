@@ -479,7 +479,7 @@ func TestStopAsksForConfirmationFirst(t *testing.T) {
 	if m.confirm != "alpha" {
 		t.Fatalf("confirm = %q, want alpha", m.confirm)
 	}
-	if !strings.Contains(m.screen(), "Stop session") {
+	if !strings.Contains(m.screen(), "STOP SESSION") {
 		t.Fatalf("the confirmation is not shown:\n%s", m.screen())
 	}
 	m, _ = step(t, m, key("n"))
