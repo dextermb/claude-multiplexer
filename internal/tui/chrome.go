@@ -156,6 +156,9 @@ func (m Model) bandAlerts() string {
 // vertical rule of the body, so the rules meet.
 func (m Model) promptRule() string {
 	joins := map[int]bool{}
+	if _, dialog := m.bodyDialogView(); !dialog && m.reviewMode {
+		joins[gutterWidth+m.reviewDiffWidth()] = true
+	}
 	if _, dialog := m.bodyDialogView(); !dialog && !m.reviewMode {
 		if !m.sidebarHidden {
 			joins[m.sidebarCols()-1] = true

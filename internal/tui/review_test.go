@@ -155,8 +155,8 @@ func TestReviewEnterHidesSidebarAndLeaveRestores(t *testing.T) {
 	if m.focus != focusReview {
 		t.Fatalf("the focus must move to the review screen, got %v", m.focus)
 	}
-	if m.output.Width() != m.reviewExplainWidth() {
-		t.Fatalf("the output pane must size to the explain width %d, got %d", m.reviewExplainWidth(), m.output.Width())
+	if m.output.Width() != m.reviewExplainWidth()-1 {
+		t.Fatalf("the output pane must size to the explain width %d less its one column of padding, got %d", m.reviewExplainWidth(), m.output.Width())
 	}
 	if view := visible(m.screen()); !strings.Contains(view, "EXPLANATION") {
 		t.Fatalf("the review view must show the explanation pane:\n%s", view)

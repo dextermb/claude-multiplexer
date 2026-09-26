@@ -128,7 +128,7 @@ func (m Model) baseOutputWidth() int {
 
 func (m Model) outputWidth() int {
 	if m.reviewMode {
-		return m.reviewExplainWidth()
+		return m.reviewExplainWidth() - 1
 	}
 	if m.showSidePanel() && !m.sidePanelHorizontal() {
 		return m.baseOutputWidth() - m.sidePanelWidth()

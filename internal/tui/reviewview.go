@@ -14,20 +14,11 @@ const reviewMinExplain = 24
 // reviewSelBg is the subtle band behind the selected hunk on the diff side.
 var reviewSelBg color.Color = colSubdued
 
-// reviewHeadOn is the header of the focused pane, and reviewHeadOff the header
-// of an unfocused pane, so the split shows which side takes the keys.
-var (
-	reviewHeadOn  = invertStyle.Transform(strings.ToUpper)
-	reviewHeadOff = labelStyle
-)
-
-// reviewHeader draws a pane header that shows the focus: an inverted label when
-// focused, a muted label otherwise. See docs/tui/review.md.
+// reviewHeader draws a pane header as a label set in a rule, inverted when the
+// pane holds the focus, so the split shows which side takes the keys. See
+// docs/tui/review.md.
 func reviewHeader(title string, width int, focused bool) string {
-	if focused {
-		return lipgloss.NewStyle().Width(width).Render(" " + reviewHeadOn.Render(" "+title+" "))
-	}
-	return lipgloss.NewStyle().Width(width).Render("  " + reviewHeadOff.Render(title))
+	return ruleLabel(title, width, focused)
 }
 
 // reviewView draws the review screen: the session bar, then the split of the
@@ -73,7 +64,7 @@ func (m Model) reviewSplit() string {
 	diffLines, _ := m.reviewDiffContent(diffW)
 	left := reviewBlock(diffLines, m.reviewScroll, diffW, height)
 	right := m.reviewExplainPane()
-	sep := reviewRule(height)
+	sep := reviewRule(height, isRule(strings.SplitN(left, "\n", 2)[0]))
 	return lipgloss.JoinHorizontal(lipgloss.Top, left, sep, right)
 }
 
@@ -81,8 +72,9 @@ func (m Model) reviewSplit() string {
 // pane, so the reply carries the block cursor and its capped blocks. See
 // docs/tui/review.md.
 func (m Model) reviewExplainPane() string {
-	head := reviewHeader("Explanation", m.reviewExplainWidth(), m.reviewFocus == reviewExplain)
-	return lipgloss.JoinVertical(lipgloss.Left, head, m.output.View())
+	head := reviewHeader("explanation", m.reviewExplainWidth(), m.reviewFocus == reviewExplain)
+	body := lipgloss.NewStyle().PaddingLeft(1).Render(m.output.View())
+	return lipgloss.JoinVertical(lipgloss.Left, head, body)
 }
 
 func reviewBlock(lines []string, scroll, width, height int) string {
@@ -95,10 +87,15 @@ func reviewBlock(lines []string, scroll, width, height int) string {
 	return lipgloss.NewStyle().Width(width).Height(height).MaxHeight(height).Render(strings.Join(window, "\n"))
 }
 
-func reviewRule(height int) string {
+// reviewRule is the rule between the diff and the explanation. It joins the
+// header rules with a junction when the diff header is on the screen.
+func reviewRule(height int, headed bool) string {
 	col := make([]string, height)
 	for i := range col {
-		col[i] = diffMetaStyle.Render("│")
+		col[i] = ruleStyle.Render("│")
+	}
+	if headed && height > 0 {
+		col[0] = ruleStyle.Render("┬")
 	}
 	return strings.Join(col, "\n")
 }
@@ -116,7 +113,7 @@ func (m Model) reviewDiffContent(width int) (lines []string, selLine int) {
 		return []string{diffMetaStyle.Render("not a git repository")}, -1
 	}
 	entries := m.diffEntries()
-	label := reviewHeader("Review · "+m.sel, width, m.reviewFocus == reviewDiff)
+	label := reviewHeader("review · "+m.sel, width, m.reviewFocus == reviewDiff)
 	stat := p.stat()
 	counts := diffAddStyle.Render("+"+strconv.Itoa(stat.Insertions)) + " " +
 		diffDelStyle.Render("−"+strconv.Itoa(stat.Deletions)) + "  " +

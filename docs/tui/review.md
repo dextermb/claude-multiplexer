@@ -8,7 +8,8 @@ and the capped blocks. See [diff.md](diff.md) for the diff the screen reads,
 [output.md](output.md) for the blocks, and [keys.md](keys.md) for the key model.
 
 ```
- review · alpha · +120 −30 · 3 files          │ EXPLANATION
+─ REVIEW · ALPHA ─────────────────────────────┬─ EXPLANATION ──────────────────
+ +120 −30  3 files                            │
                                               │
  M internal/tui/app.go            +12 −3      │ › Explain the change at
    @@ -1,3 +1,4 @@ func A()                    │   internal/tui/diff.go:128-131.
@@ -59,7 +60,8 @@ The gutter narrows the text, so a long line may re-wrap, and the diff side scrol
 to keep the selected hunk in view. See [diff.md](diff.md).
 
 `tab` moves the focus across the split: the diff, then the explanation, then the
-prompt, then back to the diff. The focused pane has an inverted header, so it is clear
+prompt, then back to the diff. Each pane has its label set in a rule, and the
+label of the focused pane inverts, so it is clear
 which side takes the keys. The prompt bar shows "follow-up" when the prompt has
 the focus.
 
