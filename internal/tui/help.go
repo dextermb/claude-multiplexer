@@ -216,19 +216,28 @@ func (m Model) reviewHints() string {
 // styleHints sets each key of a hint list in white between dimmed brackets, and
 // its word in grey, on the status bar: [n] new.
 func styleHints(plain string) string {
+	return bracketHints(plain, statusSepStyle, statusKeyStyle, statusMutedStyle)
+}
+
+// paneHints sets a hint list the same way, on the black ground of a pane.
+func paneHints(plain string) string {
+	return bracketHints(plain, fgStyle(colDimmed), keyStyle, fgStyle(colMuted))
+}
+
+func bracketHints(plain string, sep, key, word lipgloss.Style) string {
 	if plain == "…" {
-		return statusSepStyle.Render(plain)
+		return sep.Render(plain)
 	}
 	parts := strings.Split(plain, " · ")
 	for i, part := range parts {
 		if part == "…" {
-			parts[i] = statusSepStyle.Render(part)
+			parts[i] = sep.Render(part)
 			continue
 		}
-		key, word, _ := strings.Cut(part, " ")
-		parts[i] = statusSepStyle.Render("[") + statusKeyStyle.Render(key) + statusSepStyle.Render("]") + statusMutedStyle.Render(" "+word)
+		k, w, _ := strings.Cut(part, " ")
+		parts[i] = sep.Render("[") + key.Render(k) + sep.Render("]") + word.Render(" "+w)
 	}
-	return strings.Join(parts, statusMutedStyle.Render("  "))
+	return strings.Join(parts, word.Render("  "))
 }
 
 // fitHints keeps the whole hints that fit in width, as styleHints sets them, and

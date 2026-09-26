@@ -180,9 +180,11 @@ it. See [sessions.md](../sessions.md) and
 The dialog belongs to the session that asked. It draws in the output pane of
 that session only, in place of the output, and only when that session is
 selected. It draws at the top of the pane, not in a box: a rule that holds its
-label (`A QUESTION FOR YOU`, or `QUESTION 1 OF 2`), the question, the options,
-and an `ANSWER` field in `[ ]` brackets. The option under the cursor inverts,
-with its description. So a question never moves the selection. You move between sessions
+label (`A QUESTION FOR YOU`, or `QUESTION 1 OF 2`), the question, a line that
+says where the answer goes, the options, an `ANSWER` field in `[ ]` brackets, and
+the keys in brackets (`[space] choose`). A short option shows its description on
+the same row, after the label; a long one wraps it under the label. The option
+under the cursor inverts, with its description. So a question never moves the selection. You move between sessions
 while a question waits, and each waiting session keeps its own dialog. The
 dialog shows one question at a time, with its options and a text field.
 

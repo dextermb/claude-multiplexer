@@ -197,14 +197,16 @@ func (d *questionDialog) View(width int, caps map[string]int) string {
 	b.WriteString("\n\n")
 	b.WriteString(questionTextStyle.Width(inner - 2).Render(" " + question.Question))
 	b.WriteString("\n")
+	choose := "choose one"
 	if question.MultiSelect {
-		b.WriteString(hintStyle.Render(" choose one or more"))
-		b.WriteString("\n")
+		choose = "choose one or more"
 	}
-	b.WriteString("\n")
+	b.WriteString(hintStyle.Width(inner - 2).Render(" " + choose + " · the answer goes to " + d.session + " as the next prompt"))
+	b.WriteString("\n\n")
 
 	rowWidth := inner - 2
 	textWidth := rowWidth - 6
+	labelCol := optionLabelColumn(question.Options, textWidth)
 	for i, option := range question.Options {
 		mark := "( )"
 		if d.chosen[d.step][i] {
@@ -217,12 +219,18 @@ func (d *questionDialog) View(width int, caps map[string]int) string {
 			quiet = lipgloss.NewStyle()
 		}
 		var content []string
+		if line, ok := inlineOption(option, labelCol, textWidth, quiet); ok {
+			content = append(content, line)
+		}
 		labelLines, labelHidden := capLines(wrapText(option.Label, textWidth), optionCap, focused)
+		if len(content) > 0 {
+			labelLines, labelHidden = nil, 0
+		}
 		content = append(content, labelLines...)
 		if labelHidden > 0 {
 			content = append(content, quiet.Render(markerText(labelHidden)))
 		}
-		if option.Description != "" {
+		if option.Description != "" && len(labelLines) > 0 {
 			descLines, descHidden := capLines(wrapText(option.Description, textWidth), descriptionCap, focused)
 			for _, line := range descLines {
 				content = append(content, quiet.Render(line))
@@ -258,8 +266,31 @@ func (d *questionDialog) View(width int, caps map[string]int) string {
 	if d.err != "" {
 		b.WriteString("\n" + errorStyle.Render(d.err))
 	}
-	b.WriteString("\n\n" + hintStyle.Render(" ↑↓ move · space choose · enter send · esc cancel"))
+	b.WriteString("\n\n " + paneHints("↑/↓ move · space choose · enter send · esc dismiss"))
 	return b.String()
+}
+
+// optionLabelColumn is the width of the label column when every short label
+// sits on one row with its description, and 0 when the options are too wide.
+func optionLabelColumn(options []protocol.Option, textWidth int) int {
+	widest := 0
+	for _, option := range options {
+		widest = maxInt(widest, lipgloss.Width(option.Label))
+	}
+	if widest == 0 || widest+3 > textWidth/2 {
+		return 0
+	}
+	return widest + 3
+}
+
+// inlineOption draws a short option on one row: the label in its column, and
+// the description after it, muted.
+func inlineOption(option protocol.Option, labelCol, textWidth int, quiet lipgloss.Style) (string, bool) {
+	if labelCol == 0 || lipgloss.Width(option.Description) > textWidth-labelCol {
+		return "", false
+	}
+	pad := strings.Repeat(" ", labelCol-lipgloss.Width(option.Label))
+	return option.Label + pad + quiet.Render(option.Description), true
 }
 
 // answerView is the free-text answer in brackets, white when it has the focus.

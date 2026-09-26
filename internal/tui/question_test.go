@@ -280,3 +280,29 @@ func TestQuestionIgnoresKeysUntilItsPaneHasFocus(t *testing.T) {
 		t.Fatal("a key must not reach the dialog while the pane is not focused")
 	}
 }
+
+func TestAShortDescriptionSitsOnItsOptionRow(t *testing.T) {
+	q := colourQuestion(false)
+	q[0].Options = []protocol.Option{{Label: "Red", Description: "You prefer red."}, {Label: "Blue", Description: "You prefer blue."}}
+	d := newQuestionDialog("alpha", q)
+	rows := strings.Split(visible(d.View(80, defaultCaps())), "\n")
+	var red string
+	for _, row := range rows {
+		if strings.Contains(row, "Red") {
+			red = row
+		}
+	}
+	if !strings.Contains(red, "You prefer red.") {
+		t.Fatalf("the description must share the option row, got %q", red)
+	}
+}
+
+func TestTheQuestionSaysWhereTheAnswerGoes(t *testing.T) {
+	d := newQuestionDialog("alpha", colourQuestion(false))
+	view := visible(d.View(100, defaultCaps()))
+	for _, want := range []string{"choose one · the answer goes to alpha as the next prompt", "[space] choose", "[esc] dismiss"} {
+		if !strings.Contains(view, want) {
+			t.Errorf("the dialog is missing %q:\n%s", want, view)
+		}
+	}
+}
