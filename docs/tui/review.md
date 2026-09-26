@@ -62,8 +62,8 @@ to keep the selected hunk in view. See [diff.md](diff.md).
 `tab` moves the focus across the split: the diff, then the explanation, then the
 prompt, then back to the diff. Each pane has its label set in a rule, and the
 label of the focused pane inverts, so it is clear
-which side takes the keys. The prompt bar shows "follow-up" when the prompt has
-the focus.
+which side takes the keys. The prompt rule reads `FOLLOW-UP → name`, and it
+inverts when the prompt has the focus.
 
 `esc` closes the screen. In the prompt, `esc` returns the focus to the diff. The
 sidebar hides while the screen is open, for the full width, and returns when the

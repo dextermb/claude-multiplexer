@@ -534,38 +534,39 @@ func plural(n int, word string) string {
 	return fmt.Sprintf("%d %ss", n, word)
 }
 
+// promptView is the hint row and the text area. The rule above it names the
+// session; see promptRule.
 func (m Model) promptView() string {
-	label := "prompt"
-	if m.sel != "" {
-		label = m.sel
-	}
+	return m.promptHint() + "\n" + m.prompt.View()
+}
+
+func (m Model) promptHint() string {
 	if m.reviewMode {
 		if m.reviewFocus == reviewPrompt {
-			return promptLabelStyle.Render(" follow-up → "+label+" ") + "\n" + m.prompt.View()
+			return hintStyle.Render("ask about the diff · enter sends · esc back")
 		}
-		return hintStyle.Render(label+" — tab to the prompt to ask a follow-up") + "\n" + m.prompt.View()
+		return hintStyle.Render("tab to the prompt to ask a follow-up")
 	}
 	if hint, ok := m.mentionHint(); ok {
-		return hint + "\n" + m.prompt.View()
+		return hint
 	}
 	if names := completionNames(m.templates, m.prompt.Value()); len(names) > 0 && m.focus == focusPrompt {
-		return hintStyle.Render(truncate(strings.Join(names, "  ")+"   tab completes", m.width-2)) +
-			"\n" + m.prompt.View()
+		return hintStyle.Render(truncate(strings.Join(names, "  ")+"   tab completes", m.width-2))
 	}
-	if item, ok := m.selectedRow(); ok && !item.running() {
-		return hintStyle.Render(label+" — not running, press Enter to resume") + "\n" + m.prompt.View()
-	}
-	if item, ok := m.selectedRow(); ok && item.state == session.StateBusy && m.focus == focusPrompt {
-		hint := label + " — esc stops"
+	item, ok := m.selectedRow()
+	switch {
+	case ok && !item.running():
+		return hintStyle.Render("not running · enter resumes it")
+	case ok && item.state == session.StateBusy && m.focus == focusPrompt:
+		hint := "esc stops the turn"
 		if len(m.queued[m.sel]) > 0 {
-			hint += " · enter sends queued"
+			hint += " · enter sends the queued prompt"
 		}
-		return hintStyle.Render(hint) + "\n" + m.prompt.View()
+		return hintStyle.Render(hint)
+	case m.focus == focusPrompt:
+		return hintStyle.Render("enter sends · ctrl+j new line · @ adds a file · ! runs a command")
 	}
-	if m.focus == focusPrompt {
-		return promptLabelStyle.Render(" prompt → "+label+" ") + "\n" + m.prompt.View()
-	}
-	return hintStyle.Render(label+" — press Enter or Tab to type") + "\n" + m.prompt.View()
+	return hintStyle.Render("enter or tab to type")
 }
 
 // confirmView asks before a stop. The stop is the one destructive action, so its

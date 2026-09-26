@@ -179,5 +179,43 @@ func (m Model) promptRule() string {
 			b.WriteString("─")
 		}
 	}
-	return ruleStyle.Render(b.String())
+	line := []rune(b.String())
+
+	start := 1
+	if !m.sidebarHidden && !m.reviewMode {
+		start = m.sidebarCols() + 1
+	}
+	end := len(line)
+	for x := start; x < len(line); x++ {
+		if joins[x] {
+			end = x - 1
+			break
+		}
+	}
+	style := labelStyle
+	if m.promptFocused() {
+		style = focusLabelStyle
+	}
+	room := end - start
+	if start >= len(line) || room < 4 {
+		return ruleStyle.Render(string(line))
+	}
+	label := style.Render(truncate(" "+m.promptLabel()+" ", room))
+	after := start + lipgloss.Width(label)
+	return ruleStyle.Render(string(line[:start])) + label + ruleStyle.Render(string(line[after:]))
+}
+
+// promptLabel names what the prompt sends to.
+func (m Model) promptLabel() string {
+	switch {
+	case m.sel == "":
+		return "prompt"
+	case m.reviewMode:
+		return "follow-up → " + m.sel
+	}
+	return "prompt → " + m.sel
+}
+
+func (m Model) promptFocused() bool {
+	return m.focus == focusPrompt || (m.reviewMode && m.reviewFocus == reviewPrompt)
 }

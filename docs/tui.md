@@ -16,9 +16,9 @@ in `internal/tui`. It talks only to the manager, which is described in
  ▾ MULTIPLEXER              1│ [+] 4193 more lines
   ■ docs            waiting  │ The loader has three problems▌
  ▸ NOTES                  ■ 1│
-─────────────────────────────┴───────────────────────────────────────────────────────────────────────
- api — press Enter or Tab to type
- > Type a prompt, then press Enter
+─────────────────────────────┴─ PROMPT → API ─────────────────────────────────────────────────────────
+ enter or tab to type
+ › type a prompt
  3 sessions · 1 busy · $0.0881           n new  t preset  s session  l list  o output  ? keys  q quit
 ```
 

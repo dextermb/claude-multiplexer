@@ -2,6 +2,25 @@
 
 The prompt box, a file dropped on the window, and the new session form.
 
+## The prompt label and the hint
+
+The rule above the prompt holds its label, `PROMPT → name`, set at the start of
+the pane column so it never covers the junction of the sidebar. The label
+inverts while the prompt has the focus. On the review screen it reads
+`FOLLOW-UP → name`.
+
+The row under the rule is a hint that follows the focus and the state of the
+session:
+
+| When | The hint |
+|---|---|
+| The prompt has the focus | `enter sends · ctrl+j new line · @ adds a file · ! runs a command` |
+| The session is busy and the prompt has the focus | `esc stops the turn`, and `· enter sends the queued prompt` when a prompt waits |
+| The session is not running | `not running · enter resumes it` |
+| Another pane has the focus | `enter or tab to type` |
+
+An `@` path or a `/preset` name in progress replaces the hint with its matches.
+
 ## The size of the box
 
 The box holds one row of text, and it grows to four as you type. It counts the

@@ -122,8 +122,6 @@ var (
 				Background(colWarningBg).
 				Padding(0, 1)
 
-	promptLabelStyle = invertStyle
-
 	spinnerStyle = fgStyle(colDimmed)
 
 	ageStyle = fgStyle(colDimmed)

@@ -241,7 +241,7 @@ func TestAnExitedSessionResumesAndKeepsItsHistory(t *testing.T) {
 	}
 	m.refresh()
 
-	if !strings.Contains(m.promptView(), "press Enter to resume") {
+	if !strings.Contains(m.promptView(), "enter resumes it") {
 		t.Fatalf("the prompt does not offer a resume:\n%s", m.promptView())
 	}
 

@@ -176,8 +176,8 @@ func New(opts Options) Model {
 	}
 
 	prompt := newTextArea()
-	prompt.Placeholder = "Type a prompt, then press Enter"
-	prompt.Prompt = "> "
+	prompt.Placeholder = "type a prompt"
+	prompt.Prompt = "› "
 	prompt.ShowLineNumbers = false
 	prompt.CharLimit = 0
 	prompt.SetHeight(config.DefaultPromptMin)
