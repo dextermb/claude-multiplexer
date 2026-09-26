@@ -195,7 +195,7 @@ func (m Model) screen() string {
 		body = lipgloss.JoinHorizontal(lipgloss.Top, m.sidebarView(), body)
 	}
 	if dialog, ok := m.bodyDialogView(); ok {
-		body = dialog
+		body = overlay(body, dialog, m.width, m.bodyHeight())
 	}
 	prompt := m.promptRule() + "\n" + withGutter(lipgloss.NewStyle().Width(m.width-gutterWidth).Render(m.promptView()))
 	parts := []string{m.bandView(), body, prompt, m.statusView()}
@@ -205,11 +205,21 @@ func (m Model) screen() string {
 	return paintGround(lipgloss.JoinVertical(lipgloss.Left, parts...), m.width, m.height)
 }
 
-// A session dialog draws in the pane, not over the whole body; see docs/tui.md.
+// A session dialog draws in the pane, under its head rule, over a faint copy of
+// the pane; see docs/tui.md.
 func (m Model) paneView() string {
-	if dialog, ok := m.sessionDialogView(); ok {
-		return lipgloss.JoinVertical(lipgloss.Left, m.barView(), dialog)
+	pane := m.livePane()
+	dialog, ok := m.sessionDialogView()
+	if !ok {
+		return pane
 	}
+	lines := strings.Split(pane, "\n")
+	under := strings.Join(lines[barHeight:], "\n")
+	body := overlay(under, dialog, m.baseOutputWidth(), len(lines)-barHeight)
+	return lines[0] + "\n" + body
+}
+
+func (m Model) livePane() string {
 	if m.reviewMode {
 		return m.reviewView()
 	}
@@ -233,10 +243,10 @@ func (m Model) paneView() string {
 func (m Model) sessionDialogView() (string, bool) {
 	width, height := m.baseOutputWidth(), m.outputHeight()
 	if m.confirm != "" {
-		return centre(width, height, m.confirmView(width)), true
+		return m.confirmView(width), true
 	}
 	if m.modal != nil && m.modal.region() == modalPane {
-		return centre(width, height, m.modal.view(width, height)), true
+		return m.modal.view(width, height), true
 	}
 	return "", false
 }
@@ -244,13 +254,13 @@ func (m Model) sessionDialogView() (string, bool) {
 func (m Model) bodyDialogView() (string, bool) {
 	width, height := m.width, m.bodyHeight()
 	if m.help != nil {
-		return centre(width, height, m.help.View(m.keys, m.commands.List(), width, height)), true
+		return m.help.View(m.keys, m.commands.List(), width, height), true
 	}
 	if m.form != nil {
-		return centre(width, height, m.form.View(width)), true
+		return m.form.View(width), true
 	}
 	if m.modal != nil && m.modal.region() == modalBody {
-		return centre(width, height, m.modal.view(width, height)), true
+		return m.modal.view(width, height), true
 	}
 	return "", false
 }

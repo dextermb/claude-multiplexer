@@ -36,6 +36,7 @@ apart.
 | `colFaint` | `#3a3a3a` | 237 | archived rows |
 | `colBorder` | `#3a3a3a` | 237 | every rule and border |
 | `colSubtle` | `#1d1d1d` | 234 | rules inside a pane |
+| `colScrim` | `#262626` | 235 | the faint copy under a dialog |
 | `colAccent` | `#ffffff` | 231 | the inverted fill |
 | `colAccentFg` | `#000000` | 16 | text on the inverted fill |
 | `colSubdued` | `#2e2e2e` | 236 | the selected row when its pane has no focus |

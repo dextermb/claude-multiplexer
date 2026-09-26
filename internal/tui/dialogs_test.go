@@ -67,9 +67,14 @@ func TestBodyDialogCoversTheSidebar(t *testing.T) {
 	if m.help == nil {
 		t.Fatal("? must open the key list")
 	}
-	view := visible(m.screen())
-	if strings.Contains(view, foldOpenMark) {
-		t.Fatalf("the key list belongs to no session, so it covers the sidebar:\n%s", view)
+	raw := m.screen()
+	at := strings.Index(raw, foldOpenMark)
+	if at < 0 {
+		t.Fatalf("the sidebar must stay under the key list, as a faint copy:\n%s", visible(raw))
+	}
+	lastCode := raw[strings.LastIndex(raw[:at], "\x1b["):at]
+	if !strings.Contains(lastCode, "38;2;38;38;38m") {
+		t.Fatalf("the key list belongs to no session, so the sidebar under it is faint, got %q", lastCode)
 	}
 }
 

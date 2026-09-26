@@ -61,7 +61,7 @@ See [config/bars.md](config/bars.md).
 A dialog draws in one of two regions.
 
 A **session dialog** names one session, so it draws in the pane, under the
-session bar, in place of the output. The sidebar, the session bar, the prompt
+session bar, over a faint copy of the output. The sidebar, the session bar, the prompt
 and the status bar stay on the screen. The jobs list, the model,
 effort and mode dialogs, the rename dialog, and the stop confirmation draw here,
 and each one covers the side panel as well. The question dialog also
@@ -80,11 +80,16 @@ draws here, but it keeps the side panel beside it. See
 ```
 
 A **body dialog** names no session, so it covers the sidebar and the pane
-together. The new session form, the preset picker, the preset field form, and
+together, over a faint copy of both. The new session form, the preset picker, the preset field form, and
 the key list draw here.
 
 A dialog is at most two columns narrower than its region, so a narrow terminal
 never pushes the sidebar out of line.
+
+The faint copy is the scrim. `overlay` in `internal/tui/scrim.go` strips the
+colours from the region, draws its text in one dark grey (`colScrim`), and lays
+the dialog over its centre with the Lip Gloss compositor. So you still see where
+you are, but only the dialog reads as live.
 
 ## The modal seam
 
