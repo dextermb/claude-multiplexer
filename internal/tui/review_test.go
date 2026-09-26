@@ -6,6 +6,8 @@ import (
 
 	"charm.land/bubbles/v2/textarea"
 	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/x/ansi"
 	"github.com/dextermb/claude-multiplexer/internal/git"
 	"github.com/dextermb/claude-multiplexer/internal/manager"
 )
@@ -231,5 +233,44 @@ func TestReviewCapturesSequenceKeys(t *testing.T) {
 	m, _ = step(t, m, key("esc"))
 	if m.reviewMode {
 		t.Fatal("esc must still close the review screen")
+	}
+}
+
+func TestReviewTintsTheAddedAndRemovedRows(t *testing.T) {
+	var m Model
+	h := git.Hunk{Header: "@@ -1,2 +1,2 @@", NewStart: 1, Body: []string{" same", "-old", "+new"}}
+	rows := m.reviewHunkLines(h, 40, false)
+	if len(rows) != 4 {
+		t.Fatalf("rows = %d, want the header and three lines", len(rows))
+	}
+	removed, added := rows[2], rows[3]
+	if !strings.Contains(removed, "48;2;20;8;8") || !strings.Contains(added, "48;2;6;17;10") {
+		t.Fatalf("the changed rows need the danger and positive tints:\n%q\n%q", removed, added)
+	}
+	if strings.Contains(rows[1], "48;2;") {
+		t.Fatalf("an unchanged row takes no tint: %q", rows[1])
+	}
+	if !strings.Contains(added, "38;2;198;198;198") {
+		t.Fatalf("the code of a changed row is secondary grey, only the mark takes the hue: %q", added)
+	}
+	for _, row := range rows {
+		if w := lipgloss.Width(row); w != 40 {
+			t.Fatalf("a row is %d wide, want the full 40, so the tint spans the row: %q", w, row)
+		}
+	}
+}
+
+func TestReviewMarksTheSelectedHunkAtItsEdge(t *testing.T) {
+	var m Model
+	h := git.Hunk{Header: "@@ -1,1 +1,1 @@", NewStart: 1, Body: []string{"-old", "+new"}}
+	for _, row := range m.reviewHunkLines(h, 40, true) {
+		if !strings.HasPrefix(ansi.Strip(row), "▌") {
+			t.Fatalf("each row of the selected hunk starts with the edge mark: %q", ansi.Strip(row))
+		}
+	}
+	for _, row := range m.reviewHunkLines(h, 40, false) {
+		if strings.HasPrefix(ansi.Strip(row), "▌") {
+			t.Fatalf("a hunk that is not selected has no edge mark: %q", ansi.Strip(row))
+		}
 	}
 }
