@@ -21,14 +21,14 @@ func reviewHeader(title string, width int, focused bool) string {
 	return ruleLabel(title, width, focused)
 }
 
-// reviewView draws the review screen: the session bar, then the split of the
-// diff and the explanation thread. See docs/tui/review.md.
+// reviewView draws the review screen: the split of the diff and the explanation
+// thread. The band names the session. See docs/tui/review.md.
 func (m Model) reviewView() string {
-	return lipgloss.JoinVertical(lipgloss.Left, m.barViewWidth(m.baseOutputWidth()), m.reviewSplit())
+	return m.reviewSplit()
 }
 
 func (m Model) reviewHeight() int {
-	if h := m.bodyHeight() - barHeight; h > 1 {
+	if h := m.bodyHeight(); h > 1 {
 		return h
 	}
 	return 1
@@ -113,12 +113,10 @@ func (m Model) reviewDiffContent(width int) (lines []string, selLine int) {
 		return []string{diffMetaStyle.Render("not a git repository")}, -1
 	}
 	entries := m.diffEntries()
-	label := reviewHeader("review · "+m.sel, width, m.reviewFocus == reviewDiff)
 	stat := p.stat()
-	counts := diffAddStyle.Render("+"+strconv.Itoa(stat.Insertions)) + " " +
-		diffDelStyle.Render("−"+strconv.Itoa(stat.Deletions)) + "  " +
-		diffMetaStyle.Render(plural(len(entries), "file"))
-	lines = append(lines, label, counts, "")
+	title := "diff · " + m.sel + " (" + plural(len(entries), "file") + " · +" +
+		strconv.Itoa(stat.Insertions) + " −" + strconv.Itoa(stat.Deletions) + ")"
+	lines = append(lines, reviewHeader(title, width, m.reviewFocus == reviewDiff), "")
 	if len(entries) == 0 {
 		return append(lines, diffMetaStyle.Render("no changes")), -1
 	}

@@ -117,6 +117,9 @@ func (m Model) bandView() string {
 		left += " " + style.Render(" "+s.name+" ")
 	}
 	right := m.bandRight(m.width - lipgloss.Width(left) - 1)
+	if m.reviewMode {
+		right = m.reviewBand()
+	}
 	gap := maxInt(0, m.width-lipgloss.Width(left)-lipgloss.Width(right))
 	return lipgloss.NewStyle().MaxWidth(m.width).Render(left + strings.Repeat(" ", gap) + right)
 }
@@ -141,6 +144,20 @@ func (m Model) bandRight(width int) string {
 		}
 		parts = dropLeast(parts)
 	}
+}
+
+// reviewBand names the session under review, in the place of the counts: its
+// name, its state, its pull requests, and its cost.
+func (m Model) reviewBand() string {
+	item, ok := m.selectedRow()
+	if !ok {
+		return ""
+	}
+	parts := []bandPart{{barMutedStyle.Render(item.displayName()), 0}}
+	for _, id := range []string{"state", "pr", "cost"} {
+		parts = append(parts, renderBandSegs(m.sessionSeg(item, config.BarElement{ID: id}))...)
+	}
+	return joinBand(parts)
 }
 
 func joinBand(parts []bandPart) string {

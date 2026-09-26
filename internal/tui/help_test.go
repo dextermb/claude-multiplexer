@@ -304,3 +304,18 @@ func TestTheArrowsMoveBetweenColumns(t *testing.T) {
 		t.Fatalf("left must move the cursor back, got column %d", col)
 	}
 }
+
+func TestTheReviewScreenHintsComeFromTheKeymap(t *testing.T) {
+	m, mgr := newTestModel(t, "")
+	m = start(t, m, 160, 26)
+	m, _ = step(t, m, key("esc"))
+	m = spawn(t, m, mgr, "alpha", t.TempDir())
+	m.reviewMode = true
+
+	got := m.statusHints()
+	for _, want := range []string{"j/k hunk", "}/{ file", "e explain", "tab pane", "esc workspace"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("the review hints %q are missing %q", got, want)
+		}
+	}
+}

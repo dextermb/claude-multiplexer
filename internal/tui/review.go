@@ -48,7 +48,7 @@ func (m Model) reviewSelected() (tea.Model, tea.Cmd) {
 	m.sidebarHidden = true
 	m.focus = focusReview
 	m.prompt.Blur()
-	m.status = "review — j/k hunk · }/{ file · e explain · E file · n numbers · tab pane · esc close"
+	m.status = ""
 	m.output.SetWidth(m.outputWidth())
 	m.output.SetHeight(m.outputHeight())
 	m.rebuildOutput()

@@ -161,6 +161,9 @@ func displayKeys(km keys.Keymap, a keys.Action) string {
 
 // statusHints lists the keys that work on their own, for the status bar.
 func (m Model) statusHints() string {
+	if m.reviewMode {
+		return m.reviewHints()
+	}
 	order := []keys.Action{
 		keys.GlobalNewSession, keys.GlobalPresets,
 		keys.TargetSession, keys.TargetList, keys.TargetOutput,
@@ -174,6 +177,38 @@ func (m Model) statusHints() string {
 	out = append(out, "? keys")
 	if b := brief(m.keys, keys.GlobalQuit); b != "" {
 		out = append(out, b)
+	}
+	return strings.Join(out, " · ")
+}
+
+// reviewHints lists the keys of the review screen, from the same keymap.
+func (m Model) reviewHints() string {
+	pair := func(next, prev keys.Action, word string) string {
+		a, b := firstKey(m.keys, next), firstKey(m.keys, prev)
+		if a == "" || b == "" {
+			return ""
+		}
+		return a + "/" + b + " " + word
+	}
+	one := func(a keys.Action, word string) string {
+		if k := firstKey(m.keys, a); k != "" {
+			return k + " " + word
+		}
+		return ""
+	}
+	var out []string
+	for _, hint := range []string{
+		pair(keys.ReviewHunkNext, keys.ReviewHunkPrev, "hunk"),
+		pair(keys.ReviewFileNext, keys.ReviewFilePrev, "file"),
+		one(keys.ReviewExplainHunk, "explain"),
+		one(keys.ReviewExplainFile, "explain the file"),
+		one(keys.ReviewNumbers, "numbers"),
+		one(keys.ReviewFocusNext, "pane"),
+		"esc workspace",
+	} {
+		if hint != "" {
+			out = append(out, hint)
+		}
 	}
 	return strings.Join(out, " · ")
 }

@@ -8,8 +8,8 @@ and the capped blocks. See [diff.md](diff.md) for the diff the screen reads,
 [output.md](output.md) for the blocks, and [keys.md](keys.md) for the key model.
 
 ```
-─ REVIEW · ALPHA ─────────────────────────────┬─ EXPLANATION ──────────────────
- +120 −30  3 files                            │
+ MULTIPLEXER  WORKSPACE  REVIEW  KEYS             alpha · ■ busy 0:58 · $0.9100
+─ DIFF · ALPHA (3 FILES · +120 −30) ──────────┬─ EXPLANATION ──────────────────
                                               │
  M internal/tui/app.go            +12 −3      │ › Explain the change at
    @@ -1,3 +1,4 @@ func A()                    │   internal/tui/diff.go:128-131.
@@ -68,6 +68,12 @@ inverts when the prompt has the focus.
 `esc` closes the screen. In the prompt, `esc` returns the focus to the diff. The
 sidebar hides while the screen is open, for the full width, and returns when the
 screen closes.
+
+The screen has no session bar. The band names the session under review in the
+place of the counts: its name, its state, its pull requests, and its cost. The
+diff rule gives the file count and the line counts. The status bar lists the
+keys of the screen, from the same keymap as the rest of the interface, such as
+`[j/k] hunk  [}/{] file  [e] explain`.
 
 The screen is modal, so it captures every key. The two-key sequences (`s`, `l`,
 `o`, `d`) do not start while it is open, because their actions would move the
