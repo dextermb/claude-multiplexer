@@ -33,7 +33,8 @@ The label of the pane that holds the focus inverts. There is no other focus
 mark. The prompt shows its focus the same way, in its hint row. The code is in
 `internal/tui/chrome.go`, and the colours are in [tui/theme.md](tui/theme.md).
 
-The sidebar is 30 columns by default, and a layout can change its width, the
+The sidebar is 30 columns by default, so a row fits the state word and the busy
+timer. A layout can change its width, the
 task panel width, the diff panel position and size, and the prompt bar height.
 See [tui/layouts.md](tui/layouts.md). The sessions are grouped under a header that names
 the group and counts its rows: one group for each repository, and one for the

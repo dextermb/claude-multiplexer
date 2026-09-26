@@ -57,6 +57,10 @@ beside it, so the colour is never the only mark.
 | `colDanger` | `#ff6666` | 203 | failed, errors, deleted lines |
 | `colInfo` | `#60a5fa` | 75 | waiting for an answer |
 
+The waiting state needs you, but it takes the quietest hue, info blue. The word
+`waiting` and the count in the top band call you, so the colour does not have
+to. Amber would give busy and waiting one colour, and inversion means the focus.
+
 Three tints (`colPositiveBg`, `colWarningBg`, `colDangerBg`) sit behind a notice
 row. They are truecolor only, and a 256-colour terminal draws no tint.
 
@@ -94,6 +98,15 @@ filled mark (`(●)`). The focused button inverts. Titles are uppercase labels.
 The stop confirmation is the one dialog with a coloured button: `stop session`
 fills with the danger colour, because the stop is destructive.
 
+A dialog sets no background, so it shows the black ground. Blackline puts a
+dialog on `color-elevated`, but here the scrim under the dialog already sets it
+apart from the screen.
+
+The new session form is not a huh form. Its directory field completes a path on
+`tab` and walks the matches on `shift+tab`, and its peer mode depends on the
+host. huh has no field for either, so the form is custom, drawn in the same
+look.
+
 ## Inputs
 
 The prompt, the search box, and every input in a dialog are Bubbles text areas
@@ -120,7 +133,8 @@ ground under it.
 The interface does not ask the terminal to change its own background (OSC 11).
 Not every terminal honours that request, and the terminal keeps the new colour
 if the program stops without a restore. Painting the cells works on every
-terminal that shows colour.
+terminal that shows colour. For the same reason the interface does not set
+`tea.View.BackgroundColor`, which sends that request.
 
 On a 16-colour terminal the ground is ANSI colour 0. Many terminal themes set
 colour 0 to a dark grey, not to black, so the ground follows the theme there. On

@@ -185,8 +185,9 @@ A `waiting` row asked a question and holds for the answer. See
 A row marked `C` can prompt, stop, and archive the other sessions. Give a
 session that mark only when you mean it. See [mcp/grant.md](../mcp/grant.md).
 
-A busy row shows how long its turn has run, such as `busy 0:42`. The interface
-records the time a session becomes busy when it refreshes the list, and it
+A busy row shows how long its turn has run, such as `busy 0:42`. Claude Code
+reports no start time for a turn, so the interface records the time a session
+becomes busy when it refreshes the list, and it
 forgets the time when the session stops being busy. The timer is the only thing
 on the screen that moves on its own. There is no spinner.
 
