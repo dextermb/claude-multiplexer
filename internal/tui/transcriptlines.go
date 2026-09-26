@@ -6,6 +6,7 @@ import (
 	"charm.land/lipgloss/v2"
 
 	"github.com/dextermb/claude-multiplexer/internal/render"
+	"github.com/dextermb/claude-multiplexer/internal/session"
 )
 
 const toolNameWidth = 6
@@ -25,6 +26,16 @@ func toolLineView(text string, width int) string {
 	if args != "" {
 		pad := max(toolNameWidth-len([]rune(name)), 0) + 1
 		styled += strings.Repeat(" ", pad) + toolArgsStyle.Render(args)
+	}
+	return lipgloss.NewStyle().Width(width).Render(styled)
+}
+
+func jobLineView(text string, width int) string {
+	head, label, found := strings.Cut(text, " · ")
+	_, word, _ := strings.Cut(head, " ")
+	styled := jobStyle(session.ParseJobStatus(word)).Render(head)
+	if found {
+		styled += classStyle(render.ClassJob).Render(" · " + label)
 	}
 	return lipgloss.NewStyle().Width(width).Render(styled)
 }

@@ -508,7 +508,7 @@ func (m Model) panelJobRow(job session.Job) string {
 	if !job.Status.Running() {
 		textStyle = rowMutedStyle
 	}
-	status := jobStyle(job.Status).Render(jobGlyph(job.Status) + " " + pad(job.Status.String(), 8))
+	status := jobStyle(job.Status).Render(job.Status.Glyph() + " " + pad(job.Status.String(), 8))
 	return status + textStyle.Render(truncate(desc, m.taskInnerCols()-10))
 }
 

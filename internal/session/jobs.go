@@ -28,6 +28,17 @@ func (s JobStatus) String() string {
 
 func (s JobStatus) Running() bool { return s == JobRunning }
 
+func (s JobStatus) Glyph() string {
+	switch s {
+	case JobDone:
+		return "✓"
+	case JobFailed, JobKilled:
+		return "×"
+	default:
+		return "■"
+	}
+}
+
 // ParseJobStatus is the inverse of String, so a job status that crossed the peer
 // stream as a word reads back to a JobStatus. An unknown word reads as
 // JobRunning.
@@ -44,11 +55,11 @@ func ParseJobStatus(word string) JobStatus {
 	}
 }
 
-// StatusWord maps a Claude Code task status to the job status word shown to the
-// user, so the pane, the badge, and the modal use one vocabulary.
-func StatusWord(status string) string {
+// StatusOf maps a Claude Code task status to the job status shown to the user,
+// so the pane, the badge, and the modal use one vocabulary.
+func StatusOf(status string) JobStatus {
 	st, _ := classifyStatus(status)
-	return st.String()
+	return st
 }
 
 // Job is one background job that Claude Code runs for a session. The session

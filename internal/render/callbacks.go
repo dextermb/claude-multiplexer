@@ -67,16 +67,16 @@ func reminderLine() Line {
 // taskNotificationLines renders an injected background-job notification in the
 // job vocabulary, so it matches a live job line. See docs/tui/sessions/jobs.md.
 func (r Renderer) taskNotificationLines(text string) []Line {
-	word := session.StatusWord(innerField(text, "status"))
+	head := jobHead(session.StatusOf(innerField(text, "status")))
 	label := innerField(text, "summary")
 	if label == "" {
 		label = innerField(text, "task-id")
 	}
-	line := "⚙ " + word
+	line := head
 	if label != "" {
 		line += " · " + r.clip(label)
 	}
-	return []Line{{Class: ClassMeta, Text: line}}
+	return []Line{{Class: ClassJob, Text: line}}
 }
 
 // commandLines renders a slash command the user ran. The wrapper carries the

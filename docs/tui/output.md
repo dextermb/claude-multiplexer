@@ -11,7 +11,7 @@ you return to the bottom.
 
 The pane shows the turns of the session, not the turns of its local agents. A
 local agent is a job, and its turns go to that job's output, which you open from
-the jobs dialog. The pane keeps the job's lifecycle line (`⚙ started`) and the
+the jobs dialog. The pane keeps the job's lifecycle line (`■ started`) and the
 agent's final report, which returns as a parent turn. See
 [sessions/jobs.md](sessions/jobs.md).
 
@@ -31,6 +31,7 @@ recedes:
 | `ClassError` | A failure, or a line that is not JSON | Danger (red) |
 | `ClassBash` | A `!` command and its output | Secondary grey |
 | `ClassSkill` | The content of a skill, loaded into the transcript | Muted markdown, capped to one row |
+| `ClassJob` | A background job starts or stops, such as `✓ done · b1` | The mark and the word in the status colour, the rest dimmed |
 
 What the assistant says is rendered as markdown, so a heading, a list, and a
 code fence all read as themselves. Press `o m` for the raw text. See
@@ -193,7 +194,7 @@ status line:
 
 | Wrapper | The line |
 |---|---|
-| `<task-notification>` | `⚙ <status> · <summary>`, the job vocabulary (see [sessions/jobs.md](sessions/jobs.md)) |
+| `<task-notification>` | `<mark> <status> · <summary>`, such as `✓ done · …`, the job vocabulary (see [sessions/jobs.md](sessions/jobs.md)) |
 | `<command-name>` | `» /name args` |
 | `<local-command-stdout>` | `← <output>` |
 | `<local-command-caveat>` | dropped |

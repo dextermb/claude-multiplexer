@@ -7,6 +7,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 
 	"github.com/dextermb/claude-multiplexer/internal/render"
+	"github.com/dextermb/claude-multiplexer/internal/session"
 )
 
 func TestToolLineSetsTheNameAsALabel(t *testing.T) {
@@ -41,5 +42,27 @@ func TestRawOutputKeepsTheToolLineAsWritten(t *testing.T) {
 	got := ansi.Strip(m.wrap([]render.Line{{Class: render.ClassToolUse, Text: "→ Read a.go"}}))
 	if !strings.HasPrefix(got, "→ Read a.go") {
 		t.Fatalf("raw tool line = %q", got)
+	}
+}
+
+func TestJobLineColoursTheMarkByStatus(t *testing.T) {
+	cases := []struct {
+		text   string
+		status session.JobStatus
+		head   string
+	}{
+		{"■ started · sleep 20", session.JobRunning, "■ started"},
+		{"✓ done · b1", session.JobDone, "✓ done"},
+		{"× failed · b2", session.JobFailed, "× failed"},
+		{"× killed · b3", session.JobKilled, "× killed"},
+	}
+	for _, c := range cases {
+		line := jobLineView(c.text, 80)
+		if want := jobStyle(c.status).Render(c.head); !strings.Contains(line, want) {
+			t.Errorf("jobLineView(%q) = %q, want the head %q", c.text, line, want)
+		}
+		if got := strings.TrimRight(ansi.Strip(line), " "); got != c.text {
+			t.Errorf("jobLineView(%q) reads %q", c.text, got)
+		}
 	}
 }

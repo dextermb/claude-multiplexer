@@ -124,3 +124,12 @@ func TestClassifyStatus(t *testing.T) {
 		}
 	}
 }
+
+func TestJobGlyph(t *testing.T) {
+	cases := map[JobStatus]string{JobRunning: "■", JobDone: "✓", JobFailed: "×", JobKilled: "×"}
+	for status, want := range cases {
+		if got := status.Glyph(); got != want {
+			t.Errorf("%v.Glyph() = %q, want %q", status, got, want)
+		}
+	}
+}

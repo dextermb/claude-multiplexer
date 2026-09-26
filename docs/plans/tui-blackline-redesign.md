@@ -44,9 +44,6 @@ The design canvas: <https://claude.ai/artifact/B53CvRFbfHa1UnkisHtGjC>.
 
 1. **Waiting state.** Info blue is the quietest state colour, but `waiting` is
    the state that needs the user. It is info for now.
-2. **Job lines in the transcript.** `internal/render` still writes `⚙ started`
-   and `⚙ done`. Change them to `■ started` and `✓ done`, or leave the
-   transcript text alone?
 3. **The Windows paste rule.** Bubble Tea v2 marks a paste on Windows, so the
    timing rule in `internal/tui/burst_windows.go` may be unnecessary. Test a
    multi-line paste on Windows before removing it.

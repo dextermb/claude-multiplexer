@@ -259,7 +259,7 @@ func (m *jobsModal) list(width int) string {
 }
 
 func jobLine(job session.Job, width int, selected bool) string {
-	head := jobStyle(job.Status).Render(fmt.Sprintf("%s %s", jobGlyph(job.Status), job.Status.String()))
+	head := jobStyle(job.Status).Render(fmt.Sprintf("%s %s", job.Status.Glyph(), job.Status.String()))
 	mark, textStyle := "  ", rowStyle
 	if selected {
 		mark, textStyle = "▸ ", selectedRowStyle
@@ -282,7 +282,7 @@ func jobLabel(job session.Job) string {
 }
 
 func jobTitle(job session.Job) string {
-	return jobGlyph(job.Status) + " " + job.Status.String() + " · " + jobLabel(job)
+	return job.Status.Glyph() + " " + job.Status.String() + " · " + jobLabel(job)
 }
 
 const jobLabelWidth = 9

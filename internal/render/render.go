@@ -27,6 +27,7 @@ const (
 	ClassError
 	ClassBash
 	ClassSkill
+	ClassJob
 )
 
 // BucketFor names the block-cap bucket a class falls in. See docs/tui/output.md.
@@ -173,14 +174,18 @@ func taskLines(subtype string, task *protocol.Task) []Line {
 		if label == "" {
 			label = task.TaskID
 		}
-		return []Line{{Class: ClassMeta, Text: "⚙ started · " + label}}
+		return []Line{{Class: ClassJob, Text: session.JobRunning.Glyph() + " started · " + label}}
 	case protocol.SubtypeTaskUpdated:
 		if task.Patch == nil || task.Patch.Status == "" {
 			return nil
 		}
-		return []Line{{Class: ClassMeta, Text: "⚙ " + session.StatusWord(task.Patch.Status) + " · " + task.TaskID}}
+		return []Line{{Class: ClassJob, Text: jobHead(session.StatusOf(task.Patch.Status)) + " · " + task.TaskID}}
 	}
 	return nil
+}
+
+func jobHead(status session.JobStatus) string {
+	return status.Glyph() + " " + status.String()
 }
 
 func PromptLines(text string) []Line {

@@ -178,7 +178,7 @@ func classStyle(class render.Class) lipgloss.Style {
 	switch class {
 	case render.ClassPrompt:
 		return fgStyle(colHeading)
-	case render.ClassMeta, render.ClassThinking:
+	case render.ClassMeta, render.ClassThinking, render.ClassJob:
 		return fgStyle(colDimmed)
 	case render.ClassToolUse, render.ClassToolResult, render.ClassSkill:
 		return fgStyle(colMuted)
@@ -188,17 +188,6 @@ func classStyle(class render.Class) lipgloss.Style {
 		return fgStyle(colDanger)
 	}
 	return fgStyle(colSecondary)
-}
-
-func jobGlyph(status session.JobStatus) string {
-	switch status {
-	case session.JobDone:
-		return "✓"
-	case session.JobFailed, session.JobKilled:
-		return "×"
-	default:
-		return "■"
-	}
 }
 
 func jobStyle(status session.JobStatus) lipgloss.Style {
