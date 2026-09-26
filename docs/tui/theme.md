@@ -88,6 +88,14 @@ interface sets no bold and no italic. Hierarchy comes from case, colour, and
 rules. Labels, titles, and group names are uppercase through
 `lipgloss.Style.Transform`, so the text in the code stays in lowercase.
 
+## Key hints
+
+A key hint reads `[n] new`: the brackets dimmed, the key white, and the word
+muted. Two spaces separate one hint from the next. The status bar, the question
+dialog, and the key list use this form, from `styleHints` and `paneHints` in
+`internal/tui/help.go`. A hint list that does not fit sheds whole hints from its
+end and ends with `…`.
+
 ## Forms
 
 The huh forms take the theme `blacklineForm` in `internal/tui/huhdialog.go`. The

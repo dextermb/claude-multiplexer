@@ -292,11 +292,11 @@ func (h *help) View(km keys.Keymap, cmds []config.Command, width, height int) st
 		b.WriteString(lipgloss.JoinHorizontal(lipgloss.Top, parts...))
 	}
 
-	footer := "↑↓ move · enter run the key · esc close"
+	footer := "↑/↓ move · enter run the key · esc close"
 	if cols > 1 {
-		footer = "↑↓ move · ←→ column · enter run the key · esc close"
+		footer = "↑/↓ move · ←/→ column · enter run the key · esc close"
 	}
-	b.WriteString("\n\n" + hintStyle.Render(footer))
+	b.WriteString("\n\n" + paneHints(footer))
 	return modalStyle.Width(inner + 2).Render(b.String())
 }
 

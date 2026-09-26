@@ -29,7 +29,7 @@ func TestQuestionMarkShowsEveryKey(t *testing.T) {
 	m = openHelp(t, m)
 
 	view := visible(m.screen())
-	for _, want := range []string{"KEYS", "QUICK KEYS", "start a new session", "esc close"} {
+	for _, want := range []string{"KEYS", "QUICK KEYS", "start a new session", "[esc] close"} {
 		if !strings.Contains(view, want) {
 			t.Errorf("the list is missing %q:\n%s", want, view)
 		}
