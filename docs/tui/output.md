@@ -208,11 +208,15 @@ job list already show the job; see [sessions/jobs.md](sessions/jobs.md).
 ## How the output stays correct
 
 The interface subscribes to the manager bus and appends the lines of each event
-for the selected session. Two rules keep the pane honest:
+for the selected session. Three rules keep the pane honest:
 
-- A change of selection rebuilds the pane from `Lines(name)`.
+- A change of selection rebuilds the pane from `LinesAt(name)`.
 - A gap in the sequence number means the bus dropped an event, so the pane is
   rebuilt as well, and not appended to.
+- A rebuild reads the buffer, which can hold the lines of an event that still
+  waits in the channel. `LinesAt` also gives the sequence of the last event in
+  the buffer, and the pane does not append an event at or below it. Without
+  this rule, a rebuild while events wait draws their lines twice.
 
 A rebuild of the same session keeps your place, the blocks you opened, and the
 block cursor. A rebuild also runs when the sidebar reloads its stored sessions,

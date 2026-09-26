@@ -97,7 +97,7 @@ func (m Model) handleEvent(ev manager.Event) (tea.Model, tea.Cmd) {
 	switch {
 	case gap || widthChanged || replaced:
 		m.rebuildOutput()
-	case ev.Session == m.sel && len(ev.Lines) > 0:
+	case ev.Session == m.sel && len(ev.Lines) > 0 && ev.Seq > m.outputSeq:
 		m.appendOutput(ev.Lines)
 	case ev.Session == m.sel:
 		m.setContent()

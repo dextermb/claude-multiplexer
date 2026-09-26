@@ -25,6 +25,7 @@ func (m *Model) rebuildOutput() {
 		m.output.SetContent("")
 		return
 	}
+	m.outputSeq = 0
 	lines := m.linesFor(m.sel)
 	m.output.SetWidth(m.outputWidth())
 	m.output.SetHeight(m.outputHeight())
@@ -239,7 +240,9 @@ func (m *Model) linesFor(name string) []render.Line {
 		m.todos[name] = m.mgr.Todos(name)
 		return lines
 	}
-	return m.mgr.Lines(name)
+	lines, seq := m.mgr.LinesAt(name)
+	m.outputSeq = seq
+	return lines
 }
 
 func (m Model) wrap(lines []render.Line) string {

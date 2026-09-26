@@ -144,6 +144,7 @@ type Model struct {
 	sidebarHidden bool
 	taskScroll    int
 	outputFor     string
+	outputSeq     uint64
 
 	width      int
 	height     int
