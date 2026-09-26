@@ -302,7 +302,7 @@ func TestAClickOnAHeaderFoldsTheGroup(t *testing.T) {
 	}
 
 	m, _ = step(t, m, tea.MouseMsg{
-		X: 3, Y: titleHeight, Action: tea.MouseActionPress, Button: tea.MouseButtonLeft,
+		X: 3, Y: bandHeight + titleHeight, Action: tea.MouseActionPress, Button: tea.MouseButtonLeft,
 	})
 	if !m.groups[0].folded {
 		t.Fatal("a click on a header must fold that group")
@@ -312,7 +312,7 @@ func TestAClickOnAHeaderFoldsTheGroup(t *testing.T) {
 	}
 
 	m, _ = step(t, m, tea.MouseMsg{
-		X: 3, Y: titleHeight, Action: tea.MouseActionPress, Button: tea.MouseButtonLeft,
+		X: 3, Y: bandHeight + titleHeight, Action: tea.MouseActionPress, Button: tea.MouseButtonLeft,
 	})
 	if m.groups[0].folded {
 		t.Fatal("a second click must unfold the group")

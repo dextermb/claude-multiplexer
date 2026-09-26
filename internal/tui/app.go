@@ -345,6 +345,10 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case commandOutputMsg:
 		return m.handleCommandOutput(msg)
 	case tea.MouseMsg:
+		if msg.Y < bandHeight {
+			return m, nil
+		}
+		msg.Y -= bandHeight
 		return m.handleMouse(msg)
 	case tea.KeyMsg:
 		if isMouseArtifact(msg) {

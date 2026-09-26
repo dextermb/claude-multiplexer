@@ -162,9 +162,10 @@ keys that scroll and `ctrl+j` finds itself. Press `esc` to close.
 
 The list in this page and the list on the screen come from one table in the
 code, so they cannot drift apart. The status bar reads the same table. It shows
-the keys that work on their own and the three targets (`n new · t preset ·
-s session · l list · o output · ? keys · q quit`). While a sequence waits, it
-shows the actions of that target instead.
+the keys that work on their own and the three targets (`n new  t preset
+s session  l list  o output  ? keys  q quit`), each key in white and its word in
+grey. While a sequence waits, it shows the target inverted (` s → `) and the
+actions of that target after it.
 
 ## The mouse
 

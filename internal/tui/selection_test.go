@@ -63,7 +63,7 @@ func TestDragInTheOutputCopies(t *testing.T) {
 	t.Cleanup(func() { copyToClipboard = orig })
 
 	drag := func(x, y int, action tea.MouseAction) tea.MouseMsg {
-		return tea.MouseMsg{X: x, Y: y, Action: action, Button: tea.MouseButtonLeft}
+		return tea.MouseMsg{X: x, Y: bandHeight + y, Action: action, Button: tea.MouseButtonLeft}
 	}
 	m, _ = step(t, m, drag(sidebarWidth+gutterWidth, barHeight, tea.MouseActionPress))
 	m, _ = step(t, m, drag(sidebarWidth+gutterWidth+6, barHeight+1, tea.MouseActionMotion))
@@ -87,10 +87,10 @@ func TestAClickClearsTheSelection(t *testing.T) {
 	m.selection = selRange{active: true, anchor: pos{0, 0}, cursor: pos{0, 5}}
 
 	m, _ = step(t, m, tea.MouseMsg{
-		X: sidebarWidth + gutterWidth, Y: barHeight, Action: tea.MouseActionPress, Button: tea.MouseButtonLeft,
+		X: sidebarWidth + gutterWidth, Y: bandHeight + barHeight, Action: tea.MouseActionPress, Button: tea.MouseButtonLeft,
 	})
 	m, _ = step(t, m, tea.MouseMsg{
-		X: sidebarWidth + gutterWidth, Y: barHeight, Action: tea.MouseActionRelease, Button: tea.MouseButtonLeft,
+		X: sidebarWidth + gutterWidth, Y: bandHeight + barHeight, Action: tea.MouseActionRelease, Button: tea.MouseButtonLeft,
 	})
 	if m.selection.active {
 		t.Fatal("a click with no drag must leave no selection")

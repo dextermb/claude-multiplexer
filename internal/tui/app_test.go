@@ -205,7 +205,7 @@ func TestAClickInTheSidebarSelectsASession(t *testing.T) {
 
 	// The first line of the sidebar is the group header, so the rows follow it.
 	m, _ = step(t, m, tea.MouseMsg{
-		X: 3, Y: titleHeight + 1, Action: tea.MouseActionPress, Button: tea.MouseButtonLeft,
+		X: 3, Y: bandHeight + titleHeight + 1, Action: tea.MouseActionPress, Button: tea.MouseButtonLeft,
 	})
 	if m.sel != "alpha" {
 		t.Fatalf("selected = %q, want alpha", m.sel)
@@ -215,7 +215,7 @@ func TestAClickInTheSidebarSelectsASession(t *testing.T) {
 	}
 
 	m, _ = step(t, m, tea.MouseMsg{
-		X: 3, Y: titleHeight + 2, Action: tea.MouseActionPress, Button: tea.MouseButtonLeft,
+		X: 3, Y: bandHeight + titleHeight + 2, Action: tea.MouseActionPress, Button: tea.MouseButtonLeft,
 	})
 	if m.sel != "beta" {
 		t.Fatalf("selected = %q, want beta", m.sel)
@@ -229,7 +229,7 @@ func TestAClickBelowTheListChangesNothing(t *testing.T) {
 	m = spawn(t, m, mgr, "alpha", t.TempDir())
 
 	m, _ = step(t, m, tea.MouseMsg{
-		X: 3, Y: titleHeight + 5, Action: tea.MouseActionPress, Button: tea.MouseButtonLeft,
+		X: 3, Y: bandHeight + titleHeight + 5, Action: tea.MouseActionPress, Button: tea.MouseButtonLeft,
 	})
 	if m.sel != "alpha" {
 		t.Fatalf("selected = %q, want alpha", m.sel)
@@ -373,7 +373,7 @@ func TestAClickInTheOutputFocusesIt(t *testing.T) {
 	m = spawn(t, m, mgr, "alpha", t.TempDir())
 
 	m, _ = step(t, m, tea.MouseMsg{
-		X: sidebarWidth + 5, Y: 3, Action: tea.MouseActionPress, Button: tea.MouseButtonLeft,
+		X: sidebarWidth + 5, Y: bandHeight + 3, Action: tea.MouseActionPress, Button: tea.MouseButtonLeft,
 	})
 	if m.focus != focusOutput {
 		t.Fatalf("focus = %v, want the output", m.focus)
@@ -543,7 +543,7 @@ func TestTheSessionBarShowsTheNumbers(t *testing.T) {
 	m.refresh()
 
 	bar := m.barView()
-	for _, want := range []string{"alpha", "fake-model", "auto", "idle", "$0.2500"} {
+	for _, want := range []string{"ALPHA", "fake-model", "auto", "idle", "$0.2500"} {
 		if !strings.Contains(bar, want) {
 			t.Errorf("the bar has no %q:\n%s", want, bar)
 		}
@@ -588,7 +588,7 @@ func TestTheSessionBarDropsDetailsBeforeTheName(t *testing.T) {
 		if strings.Contains(bar, "\n") {
 			t.Errorf("width %d: the bar must stay on one line", width)
 		}
-		if !strings.Contains(bar, "alpha") {
+		if !strings.Contains(bar, "ALPHA") {
 			t.Errorf("width %d: the name must survive:\n%s", width, bar)
 		}
 		if width == 140 {
@@ -625,7 +625,7 @@ func TestTheSessionBarSaysWhenThereIsNoSession(t *testing.T) {
 	m, _ := newTestModel(t, "")
 	m = start(t, m, 90, 24)
 	m, _ = step(t, m, key("esc"))
-	if !strings.Contains(m.barView(), "no session") {
+	if !strings.Contains(m.barView(), "NO SESSION") {
 		t.Fatalf("bar = %q", m.barView())
 	}
 }
@@ -658,7 +658,7 @@ func TestTheStatusBarCountsTheSessions(t *testing.T) {
 	m = spawn(t, m, mgr, "alpha", dir)
 	m = spawn(t, m, mgr, "beta", dir)
 
-	status := m.statusView()
+	status := visible(m.statusView())
 	for _, want := range []string{"2 sessions", "$0.0000", "q quit"} {
 		if !strings.Contains(status, want) {
 			t.Errorf("status %q has no %q", status, want)

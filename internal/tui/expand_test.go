@@ -207,7 +207,7 @@ func TestAClickOnAMarkerOpensThatBlock(t *testing.T) {
 		Action: tea.MouseActionPress,
 		Button: tea.MouseButtonLeft,
 		X:      sidebarWidth + gutterWidth + 2,
-		Y:      barHeight + m.markerAt[index] - m.output.YOffset,
+		Y:      bandHeight + barHeight + m.markerAt[index] - m.output.YOffset,
 	})
 	if !m.expanded[index] {
 		t.Fatal("a click on the marker row must open the block")

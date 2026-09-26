@@ -191,9 +191,9 @@ forgets the time when the session stops being busy. The timer is the only thing
 on the screen that moves on its own. There is no spinner.
 
 The selected row inverts (white fill, black text) when the list has the focus.
-When another pane has the focus, the selected row keeps a grey band. The focused
-pane (the list, the prompt, or the output) carries a white left edge. See
-[theme.md](./theme.md).
+When another pane has the focus, the selected row keeps a grey band. The label of
+the focused pane inverts in its rule: `SESSIONS (n)` for the list, the session
+name for the output. See [theme.md](./theme.md) and [../tui.md](../tui.md).
 
 Select a stored row and the pane shows that conversation, replayed from its
 transcript. It is a record: you cannot type into it. Press `Enter` and the

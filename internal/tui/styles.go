@@ -24,7 +24,8 @@ const (
 	promptRowsMin    = config.DefaultPromptMin
 	promptRowsMax    = config.DefaultPromptMax
 	statusHeight     = 1
-	titleHeight      = 0
+	titleHeight      = 1
+	bandHeight       = 1
 	barHeight        = 1
 	gutterWidth      = 1
 
@@ -32,8 +33,6 @@ const (
 	minOutputWithPanel       = 40
 	minOutputHeightWithPanel = 6
 )
-
-const edgeMark = "▎"
 
 const (
 	foldOpenMark = "▾"
@@ -73,14 +72,6 @@ func modalInner(width int) int {
 
 var (
 	titleStyle = headingLabelStyle.Padding(0, 1)
-
-	sidebarStyle = lipgloss.NewStyle().
-			Border(lipgloss.NormalBorder(), false, true, false, false).
-			BorderForeground(colBorder)
-
-	promptPanelStyle = lipgloss.NewStyle().
-				Border(lipgloss.NormalBorder(), true, false, false, false).
-				BorderForeground(colBorder)
 
 	selectedRowStyle = invertStyle
 
@@ -140,8 +131,6 @@ var (
 
 	markerCursorStyle = invertStyle
 
-	focusEdgeStyle = fgStyle(colAccent)
-
 	modalStyle = lipgloss.NewStyle().
 			Border(lipgloss.NormalBorder()).
 			BorderForeground(colBorder).
@@ -170,11 +159,6 @@ var (
 	barCostStyle = fgStyle(colSecondary)
 
 	barPRStyle = fgStyle(colWarning)
-
-	taskPanelStyle = lipgloss.NewStyle().
-			Border(lipgloss.NormalBorder(), false, false, false, true).
-			BorderForeground(colBorder).
-			PaddingLeft(1)
 
 	taskHeaderStyle = labelStyle
 

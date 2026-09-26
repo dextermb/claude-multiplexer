@@ -163,7 +163,7 @@ func TestThePullRequestKeysAreRegistered(t *testing.T) {
 
 func TestTheDiffKeyListNamesThePullRequestKeys(t *testing.T) {
 	m, _ := openModel(t, "")
-	m = start(t, m, 160, 60)
+	m = start(t, m, 160, 64)
 	m, _ = step(t, m, key("?"))
 
 	view := m.View()

@@ -180,6 +180,18 @@ func (m Model) statusHints() string {
 	return strings.Join(out, " · ")
 }
 
+// styleHints sets each key of a hint list in white and its word in grey, on the
+// status bar. The two spaces between hints are no wider than the dot they
+// replace, so a list cut to fit still fits.
+func styleHints(plain string) string {
+	parts := strings.Split(plain, " · ")
+	for i, part := range parts {
+		key, word, _ := strings.Cut(part, " ")
+		parts[i] = statusKeyStyle.Render(key) + statusMutedStyle.Render(" "+word)
+	}
+	return strings.Join(parts, statusMutedStyle.Render("  "))
+}
+
 // sequenceHints lists the action keys of a target, for the status bar.
 func (m Model) sequenceHints(target keys.Action) string {
 	ctx, ok := keys.TargetContext(target)

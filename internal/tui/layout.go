@@ -13,7 +13,7 @@ import (
 )
 
 func (m Model) bodyHeight() int {
-	height := m.height - m.promptHeight() - statusHeight - m.bannerHeight()
+	height := m.height - bandHeight - m.promptHeight() - statusHeight - m.bannerHeight()
 	if height < 1 {
 		return 1
 	}
@@ -179,15 +179,15 @@ func (m Model) View() string {
 	if !m.ready {
 		return "starting…"
 	}
-	body := withEdge(m.paneView(), m.focus == focusOutput)
+	body := withGutter(m.paneView())
 	if !m.sidebarHidden {
 		body = lipgloss.JoinHorizontal(lipgloss.Top, m.sidebarView(), body)
 	}
 	if dialog, ok := m.bodyDialogView(); ok {
 		body = dialog
 	}
-	prompt := withEdge(promptPanelStyle.Width(m.width-gutterWidth).Render(m.promptView()), m.focus == focusPrompt)
-	parts := []string{body, prompt, m.statusView()}
+	prompt := m.promptRule() + "\n" + withGutter(lipgloss.NewStyle().Width(m.width-gutterWidth).Render(m.promptView()))
+	parts := []string{m.bandView(), body, prompt, m.statusView()}
 	if m.updateVisible() {
 		parts = append(parts, m.updateBannerView())
 	}
@@ -244,21 +244,9 @@ func (m Model) bodyDialogView() (string, bool) {
 	return "", false
 }
 
-func withEdge(block string, on bool) string {
-	ch := " "
-	if on {
-		ch = focusEdgeStyle.Render(edgeMark)
-	}
-	height := lipgloss.Height(block)
-	edge := make([]string, height)
-	for i := range edge {
-		edge[i] = ch
-	}
-	return lipgloss.JoinHorizontal(lipgloss.Top, strings.Join(edge, "\n"), block)
-}
-
 func (m Model) sidebarView() string {
 	rows := make([]string, 0, m.bodyHeight())
+	rows = append(rows, ruleLabel(fmt.Sprintf("sessions (%d)", len(m.rows)), m.sidebarInnerCols(), m.focus == focusSidebar))
 
 	if m.searchActive() {
 		rows = append(rows, m.searchView())
@@ -282,8 +270,15 @@ func (m Model) sidebarView() string {
 	for len(rows) < m.bodyHeight() {
 		rows = append(rows, strings.Repeat(" ", m.sidebarInnerCols()))
 	}
-	block := sidebarStyle.Width(m.sidebarInnerCols()).Height(m.bodyHeight()).Render(strings.Join(rows, "\n"))
-	return withEdge(block, m.focus == focusSidebar)
+	inner := m.sidebarInnerCols()
+	if len(rows) > m.bodyHeight() {
+		rows = rows[:m.bodyHeight()]
+	}
+	border := borderColumn(rows, false)
+	for i, line := range rows {
+		rows[i] = lipgloss.NewStyle().Width(inner).MaxWidth(inner).Render(line) + border[i]
+	}
+	return withGutter(strings.Join(rows, "\n"))
 }
 
 func (m Model) sessionRow(item row) string {
@@ -443,8 +438,7 @@ func (m Model) sidePanelView() string {
 	if end > len(lines) {
 		end = len(lines)
 	}
-	block := strings.Join(lines[scroll:end], "\n")
-	return sidePanelStyle(m.focus == focusTask).Width(m.taskCols() - 1).Height(height).Render(block)
+	return sideColumn(lines[scroll:end], m.taskCols(), height, m.focus == focusTask)
 }
 
 func (m Model) taskPanelLines() []string {
@@ -456,7 +450,7 @@ func (m Model) taskPanelLines() []string {
 				running++
 			}
 		}
-		rows = append(rows, taskHeaderStyle.Render(fmt.Sprintf("Jobs · %d/%d", running, len(jobs))), "")
+		rows = append(rows, ruleLabel(fmt.Sprintf("jobs · %d/%d", running, len(jobs)), m.taskCols()-1, m.focus == focusTask), "")
 		for _, job := range jobs {
 			rows = append(rows, m.panelJobRow(job))
 		}
@@ -471,7 +465,7 @@ func (m Model) taskPanelLines() []string {
 				done++
 			}
 		}
-		rows = append(rows, taskHeaderStyle.Render(fmt.Sprintf("Tasks · %d/%d", done, len(todos))), "")
+		rows = append(rows, ruleLabel(fmt.Sprintf("tasks · %d/%d", done, len(todos)), m.taskCols()-1, m.focus == focusTask && len(rows) == 0), "")
 		for _, todo := range todos {
 			rows = append(rows, m.taskRow(todo))
 		}
@@ -481,16 +475,6 @@ func (m Model) taskPanelLines() []string {
 
 func (m *Model) clampTaskScroll() {
 	m.taskScroll = clampScroll(m.taskScroll, len(m.taskPanelLines()), m.bodyHeight())
-}
-
-// sidePanelStyle is the border of a side panel: the accent colour when the
-// panel holds the focus, and the muted colour otherwise. The task panel and the
-// diff panel share it.
-func sidePanelStyle(focused bool) lipgloss.Style {
-	if focused {
-		return taskPanelStyle.BorderForeground(colAccent)
-	}
-	return taskPanelStyle
 }
 
 func (m Model) panelJobRow(job session.Job) string {

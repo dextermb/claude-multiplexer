@@ -120,7 +120,7 @@ func (m Model) barView() string {
 func (m Model) barViewWidth(width int) string {
 	item, ok := m.selectedRow()
 	if !ok {
-		return barStyle.Width(width).Render(barMutedStyle.Render(" no session"))
+		return ruleLabel("no session", width, m.focus == focusOutput)
 	}
 
 	lefts, rights := m.barLefts(item), m.barRights(item)
@@ -132,9 +132,7 @@ func (m Model) barViewWidth(width int) string {
 		}
 	}
 
-	room := maxInt(3, width-1)
-	left := barNameStyle.Render(" " + truncate(item.displayName(), room))
-	return barLine(width, left, "", maxInt(0, width-lipgloss.Width(left)))
+	return ruleLabel(item.displayName(), width, m.focus == focusOutput)
 }
 
 func barLadder(lefts, rights int) [][2]int {
@@ -155,14 +153,22 @@ func barLadder(lefts, rights int) [][2]int {
 	return pairs
 }
 
+// barLine is the head of the output pane: the left segments and the right
+// segments set in one rule. See docs/tui/sessions/bars.md.
 func barLine(width int, left, right string, gap int) string {
-	return barStyle.MaxHeight(1).Width(width).
-		Render(left + barStyle.Render(strings.Repeat(" ", gap)) + right)
+	return barStyle.MaxHeight(1).Width(width).Render(left + rule(gap) + right)
 }
 
 type barSeg struct {
 	text  string
 	style lipgloss.Style
+}
+
+func (m Model) barLabelStyle() lipgloss.Style {
+	if m.focus == focusOutput {
+		return focusLabelStyle
+	}
+	return headingLabelStyle
 }
 
 // leftSegs builds the ordered left segments of the session bar from the resolved
@@ -208,29 +214,42 @@ func (m Model) sessionLeftSeg(item row, e config.BarElement) []barSeg {
 // first, so the ladder sheds the trailing segments to make the line fit.
 func (m Model) barLefts(item row) []string {
 	segs := m.leftSegs(item)
+	spec := m.barSpec(config.BarSession).Left
+	labelled := len(spec) > 0 && spec[0].ID == "name"
 	if len(segs) == 0 {
-		return []string{renderLeft(nil)}
+		return []string{renderLeft(nil, false, m.barLabelStyle())}
 	}
 	out := make([]string, 0, len(segs))
 	for n := len(segs); n >= 1; n-- {
-		out = append(out, renderLeft(segs[:n]))
+		out = append(out, renderLeft(segs[:n], labelled, m.barLabelStyle()))
 	}
 	return out
 }
 
-func renderLeft(segs []barSeg) string {
-	if len(segs) == 0 {
-		return barNameStyle.Render(" ")
-	}
+// renderLeft sets the name segment, when it comes first, as the pane label in
+// its own gap in the rule, and the other segments after it, separated by dots.
+func renderLeft(segs []barSeg, labelled bool, label lipgloss.Style) string {
 	var b strings.Builder
-	for i, seg := range segs {
-		if i == 0 {
-			b.WriteString(seg.style.Render(" " + seg.text))
-			continue
+	b.WriteString(rule(1))
+	rest := segs
+	if len(segs) > 0 && labelled {
+		b.WriteString(label.Render(" " + segs[0].text + " "))
+		rest = segs[1:]
+		if len(rest) > 0 {
+			b.WriteString(rule(1))
 		}
-		b.WriteString(barMutedStyle.Render(" · "))
+	}
+	if len(rest) == 0 {
+		return b.String()
+	}
+	b.WriteString(" ")
+	for i, seg := range rest {
+		if i > 0 {
+			b.WriteString(barMutedStyle.Render(" · "))
+		}
 		b.WriteString(seg.style.Render(seg.text))
 	}
+	b.WriteString(" ")
 	return b.String()
 }
 
@@ -326,13 +345,14 @@ func renderRight(segs []barSeg) string {
 		return ""
 	}
 	var b strings.Builder
+	b.WriteString(" ")
 	for i, seg := range segs {
 		if i > 0 {
 			b.WriteString(barMutedStyle.Render(" · "))
 		}
 		b.WriteString(seg.style.Render(seg.text))
 	}
-	b.WriteString(barStyle.Render(" "))
+	b.WriteString(" " + rule(1))
 	return b.String()
 }
 
@@ -366,9 +386,9 @@ func (m Model) statusView() string {
 		return statusStyle.Width(m.width).Render(errorStyle.Render(truncate(m.errText, m.width-2)))
 	}
 	if m.seq != nil {
-		hints := truncate(m.sequenceHints(m.seq.target), m.width-6)
-		return statusStyle.Width(m.width).Render(
-			statusKeyStyle.Render(targetLabel(m.keys, m.seq.target)) + statusMutedStyle.Render("  "+hints))
+		label := invertStyle.Render(" " + targetLabel(m.keys, m.seq.target) + " → ")
+		hints := truncate(m.sequenceHints(m.seq.target), m.width-lipgloss.Width(label)-4)
+		return statusStyle.Width(m.width).Render(label + statusMutedStyle.Render("  ") + styleHints(hints))
 	}
 	left := m.statusLeftSegs()
 	right := m.statusRight()
@@ -444,7 +464,7 @@ func (m Model) statusRight() string {
 			continue
 		}
 		if e.ID == "hints" {
-			parts = append(parts, statusMutedStyle.Render(m.statusHints()))
+			parts = append(parts, styleHints(m.statusHints()))
 			continue
 		}
 		for _, seg := range m.statusSessionSeg(e) {

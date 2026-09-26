@@ -7,19 +7,31 @@ in `internal/tui`. It talks only to the manager, which is described in
 ## The layout
 
 ```
-▎▾ C BOSS                   3│  api · claude-opus-4-8 · auto   ■ busy 0:42 · queued (2) · $0.0212
-▎ ■ boss               idle  │ › write the summary
-▎ ■ api          q2 busy 0:42│ ● 2127c615 · claude-opus-4-8 · 31 tools
-▎ · invoices         stored  │ → Bash echo hello
-▎▾ MULTIPLEXER              1│ ← hello
-▎ ■ docs               idle  │ ▸ [+] 4193 more lines
-▎▸ NOTES                  ■ 1│ The loader has three problems▌
-▎                            │
-▎                            │
+ MULTIPLEXER     WORKSPACE   REVIEW   KEYS                                    ■ 1 waiting
+── SESSIONS (5) ─────────────┬── API ─ claude-opus-4-8 · auto ──── ■ busy 0:42 · queued (2) · $0.0212 ─
+ ▾ C BOSS                   3│ › write the summary
+  ■ boss               idle  │ ● 2127c615 · claude-opus-4-8 · 31 tools
+  ■ api          q2 busy 0:42│ → Bash echo hello
+  · invoices         stored  │ ← hello
+ ▾ MULTIPLEXER              1│ [+] 4193 more lines
+  ■ docs            waiting  │ The loader has three problems▌
+ ▸ NOTES                  ■ 1│
+─────────────────────────────┴───────────────────────────────────────────────────────────────────────
  api — press Enter or Tab to type
  > Type a prompt, then press Enter
- 3 sessions · 1 busy · $0.0881  n new · t preset · s session · l list · o output · ? keys · q quit
+ 3 sessions · 1 busy · $0.0881           n new  t preset  s session  l list  o output  ? keys  q quit
 ```
+
+The screen is one frame of rules. The top row is the band: the product name,
+the screens (`WORKSPACE`, `REVIEW`, `KEYS`) with the current one inverted, and
+on the right the live sessions that wait for an answer or failed. Below it, each
+pane has its label set in its top rule: `SESSIONS (n)` for the list, the session
+name for the output, and `JOBS` or `TASKS` for the side panel. The rules meet at
+junctions (`┬`, `├`, `┴`), so two panes share one rule and never draw two.
+
+The label of the pane that holds the focus inverts. There is no other focus
+mark. The prompt shows its focus the same way, in its hint row. The code is in
+`internal/tui/chrome.go`, and the colours are in [tui/theme.md](tui/theme.md).
 
 The sidebar is 30 columns by default, and a layout can change its width, the
 task panel width, the diff panel position and size, and the prompt bar height.
@@ -28,9 +40,8 @@ the group and counts its rows: one group for each repository, and one for the
 work of each control session. Each row shows a state glyph, the display name,
 the muted session flags (`H` hoisted, `S` scheduled, `C` control), `qn` when
 prompts wait in the queue, and a state word such as `idle` or `busy 0:42`. The
-selected row inverts when the list has the focus, and the focused pane carries a
-white left edge. The palette is the Blackline grey ramp, with colour only for
-state. See [tui/sessions.md](tui/sessions.md) for the groups, the folds, and the
+selected row inverts when the list has the focus. The palette is the Blackline
+grey ramp, with colour only for state. See [tui/sessions.md](tui/sessions.md) for the groups, the folds, and the
 glyph legend, and [tui/theme.md](tui/theme.md) for the colours.
 
 When the selected session has background jobs or a task list, a panel on the

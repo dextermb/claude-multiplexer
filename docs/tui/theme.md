@@ -60,6 +60,9 @@ row. They are truecolor only, and a 256-colour terminal draws no tint.
 The inverted style (`invertStyle`) is white fill with black text. It marks the
 thing that has the focus or the cursor:
 
+- the label of the focused pane, set in its rule,
+- the current screen in the band,
+- the target of a key sequence, in the status bar,
 - the selected row, when its pane has the focus,
 - the row under the cursor in a dialog,
 - the block marker under the output cursor,

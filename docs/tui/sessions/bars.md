@@ -6,7 +6,9 @@ number that belongs to every session appears at the bottom, in the status bar.
 ## The session bar
 
 The **session bar** sits above the output, and it describes the selected session
-only. The left side names it: the display name (the title or the name),
+only. It is set in the top rule of the output pane: the name is the pane label,
+uppercase, and it inverts when the output has the focus. The other segments sit
+in gaps in the rule. The left side names it: the display name (the title or the name),
 `control` when the session holds that grant, the model in use, and the
 permission mode. The right side gives the numbers: the state, the running-job
 count, the queue length, the tokens, the cache hit rate, the cost, and the

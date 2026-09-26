@@ -13,7 +13,7 @@ import (
 // with the output and its full width, with one border row that separates it from
 // the output. The rule is above a bottom panel and below a top panel, and it
 // carries the accent colour when the panel holds the focus. A vertical panel
-// keeps the left border of sidePanelStyle. See docs/tui/diff.md.
+// keeps the left border that sideColumn draws. See docs/tui/diff.md.
 func diffBandStyle(focused, bottom bool) lipgloss.Style {
 	var color lipgloss.TerminalColor = colBorder
 	if focused {
@@ -34,7 +34,7 @@ func (m Model) diffPanelView() string {
 	}
 	height := m.diffPanelHeight()
 	block := m.diffWindow(lines, height)
-	return sidePanelStyle(m.focus == focusDiff).Width(m.diffPanelWidth() - 1).Height(height).Render(block)
+	return sideColumn(strings.Split(block, "\n"), m.diffPanelWidth(), height, m.focus == focusDiff)
 }
 
 // diffWindow is the slice of panel lines the view shows, scrolled and clamped to
@@ -59,7 +59,7 @@ func (m Model) diffPanelLines() []string {
 	if m.diffHorizontal() {
 		return m.diffGridLines(p)
 	}
-	out := []string{taskHeaderStyle.Render("Changes · " + strconv.Itoa(p.totalFiles())), ""}
+	out := []string{ruleLabel("changes · "+strconv.Itoa(p.totalFiles()), m.diffPanelWidth()-1, m.focus == focusDiff), ""}
 	multi := len(p.groups) > 1
 	if !multi && p.totalFiles() == 0 {
 		return append(out, diffMetaStyle.Render("no changes"))
