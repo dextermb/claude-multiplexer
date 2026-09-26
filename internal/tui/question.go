@@ -6,6 +6,7 @@ import (
 
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 
 	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/protocol"
@@ -27,6 +28,7 @@ func newQuestionDialog(session string, questions []protocol.Question) *questionD
 		d.chosen = append(d.chosen, make(map[int]bool))
 		input := newTextInput()
 		input.Placeholder = "or type an answer"
+		input.Prompt = ""
 		input.CharLimit = 512
 		input.SetWidth(40)
 		d.text = append(d.text, input)
@@ -178,29 +180,31 @@ func capLines(lines []string, cap int, focused bool) ([]string, int) {
 	return lines[:cap:cap], len(lines) - cap
 }
 
+// View draws the dialog inline, at the top of the output pane: a label set in a
+// rule, the question, the options, and the answer field. See docs/tui/input.md.
 func (d *questionDialog) View(width int, caps map[string]int) string {
-	inner := modalInner(width)
+	inner := width
 	optionCap := questionCap(caps, config.BucketQuestionOption)
 	descriptionCap := questionCap(caps, config.BucketQuestionDescription)
 
 	question := d.current()
 	var b strings.Builder
+	head := "a question for you"
 	if len(d.questions) > 1 {
-		b.WriteString(titleStyle.Render(fmt.Sprintf("Question %d of %d", d.step+1, len(d.questions))))
-	} else {
-		b.WriteString(titleStyle.Render("A question for you"))
+		head = fmt.Sprintf("question %d of %d", d.step+1, len(d.questions))
 	}
+	b.WriteString(ruleLabel(head, inner, true))
 	b.WriteString("\n\n")
-	b.WriteString(questionTextStyle.Width(inner - 2).Render(question.Question))
+	b.WriteString(questionTextStyle.Width(inner - 2).Render(" " + question.Question))
 	b.WriteString("\n")
 	if question.MultiSelect {
-		b.WriteString(hintStyle.Render("choose one or more"))
+		b.WriteString(hintStyle.Render(" choose one or more"))
 		b.WriteString("\n")
 	}
 	b.WriteString("\n")
 
-	rowWidth := inner - 4
-	textWidth := rowWidth - 4
+	rowWidth := inner - 2
+	textWidth := rowWidth - 6
 	for i, option := range question.Options {
 		mark := "( )"
 		if d.chosen[d.step][i] {
@@ -208,19 +212,23 @@ func (d *questionDialog) View(width int, caps map[string]int) string {
 		}
 		focused := i == d.cursor
 
+		quiet := hintStyle
+		if focused {
+			quiet = lipgloss.NewStyle()
+		}
 		var content []string
 		labelLines, labelHidden := capLines(wrapText(option.Label, textWidth), optionCap, focused)
 		content = append(content, labelLines...)
 		if labelHidden > 0 {
-			content = append(content, hintStyle.Render(markerText(labelHidden)))
+			content = append(content, quiet.Render(markerText(labelHidden)))
 		}
 		if option.Description != "" {
 			descLines, descHidden := capLines(wrapText(option.Description, textWidth), descriptionCap, focused)
 			for _, line := range descLines {
-				content = append(content, hintStyle.Render(line))
+				content = append(content, quiet.Render(line))
 			}
 			if descHidden > 0 {
-				content = append(content, hintStyle.Render(markerText(descHidden)))
+				content = append(content, quiet.Render(markerText(descHidden)))
 			}
 		}
 		if len(content) == 0 {
@@ -232,25 +240,36 @@ func (d *questionDialog) View(width int, caps map[string]int) string {
 			if j == 0 {
 				block.WriteString(mark + " " + line)
 			} else {
-				block.WriteString("\n    " + line)
+				block.WriteString("\n      " + line)
 			}
 		}
 		if focused {
-			b.WriteString(selectedRowStyle.Width(rowWidth).Render("▸ " + block.String()))
+			b.WriteString(" " + selectedRowStyle.Width(rowWidth).Render("▸ "+block.String()))
 		} else {
-			b.WriteString(rowStyle.Width(rowWidth).Render("  " + block.String()))
+			b.WriteString(" " + rowStyle.Width(rowWidth).Render("  "+block.String()))
 		}
 		b.WriteString("\n")
 	}
 
 	b.WriteString("\n")
-	b.WriteString(fieldLabelStyle.Render("  "))
-	b.WriteString(d.text[d.step].View())
+	b.WriteString(d.answerView(inner))
 	b.WriteString("\n")
 
 	if d.err != "" {
 		b.WriteString("\n" + errorStyle.Render(d.err))
 	}
-	b.WriteString("\n\n" + hintStyle.Render("↑↓ move · space choose · enter send · esc cancel"))
-	return modalStyle.Width(inner + 2).Render(b.String())
+	b.WriteString("\n\n" + hintStyle.Render(" ↑↓ move · space choose · enter send · esc cancel"))
+	return b.String()
+}
+
+// answerView is the free-text answer in brackets, white when it has the focus.
+func (d *questionDialog) answerView(width int) string {
+	label, bracket := fieldLabelStyle, fgStyle(colStrong)
+	if d.onText() {
+		label, bracket = labelStyle.Foreground(colFg), keyStyle
+	}
+	w := maxInt(8, minInt(64, width-14))
+	d.text[d.step].SetWidth(w - 1)
+	body := lipgloss.NewStyle().Width(w).MaxWidth(w).Render(d.text[d.step].View())
+	return label.Render(" answer   ") + bracket.Render("[ ") + body + bracket.Render(" ]")
 }

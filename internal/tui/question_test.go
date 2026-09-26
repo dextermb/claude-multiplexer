@@ -102,7 +102,7 @@ func TestQuestionWrapsLongOptionText(t *testing.T) {
 }
 
 func TestQuestionCapsAnUnfocusedOption(t *testing.T) {
-	long := "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen"
+	long := "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty twenty-one twenty-two"
 	q := []protocol.Question{{
 		Question: "Pick one",
 		Header:   "Pick",
@@ -127,7 +127,7 @@ func TestQuestionCapsAnUnfocusedOption(t *testing.T) {
 }
 
 func TestQuestionUnlimitedCapNeverCapsAnOption(t *testing.T) {
-	long := "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen"
+	long := "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty twenty-one twenty-two"
 	q := []protocol.Question{{
 		Question: "Pick one",
 		Header:   "Pick",

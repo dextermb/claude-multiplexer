@@ -144,21 +144,26 @@ runs as a key command. Put the focus on the prompt box before you paste.
 A paste that holds `\r\n` goes into the box with `\n`. This also cleans a
 clipboard that a Windows file filled and a different platform reads.
 
-The timing rule exists because Bubble Tea v1 gives no way to read the Windows
+The timing rule exists because Bubble Tea v1 gave no way to read the Windows
 console through its escape-sequence parser, which is the path that understands
-bracketed paste. Bubble Tea v2 holds a Windows parser that marks a paste
-correctly. An upgrade to v2 removes the need for this rule.
+bracketed paste. The multiplexer now runs on Bubble Tea v2, which holds a
+Windows parser that marks a paste. The rule stays until a test on Windows
+confirms that a paste arrives as one piece there.
 
 ## Answering a question
 
 A session asks the human a multiple-choice question with the `AskUserQuestion`
-tool. When that tool arrives, the session interrupts its turn and waits, and its
-sidebar row shows a `?`. See [sessions.md](../sessions.md) and
+tool. When that tool arrives, the session interrupts its turn and waits. Its
+sidebar row shows `waiting` in the info colour, and the band at the top counts
+it. See [sessions.md](../sessions.md) and
 [protocol.md](../protocol.md).
 
 The dialog belongs to the session that asked. It draws in the output pane of
 that session only, in place of the output, and only when that session is
-selected. So a question never moves the selection. You move between sessions
+selected. It draws at the top of the pane, not in a box: a rule that holds its
+label (`A QUESTION FOR YOU`, or `QUESTION 1 OF 2`), the question, the options,
+and an `ANSWER` field in `[ ]` brackets. The option under the cursor inverts,
+with its description. So a question never moves the selection. You move between sessions
 while a question waits, and each waiting session keeps its own dialog. The
 dialog shows one question at a time, with its options and a text field.
 

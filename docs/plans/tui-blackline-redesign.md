@@ -40,6 +40,10 @@ The design canvas: <https://claude.ai/artifact/B53CvRFbfHa1UnkisHtGjC>.
    and `⚙ done`. Change them to `■ started` and `✓ done`, or leave the
    transcript text alone?
 
+3. **The Windows paste rule.** Bubble Tea v2 marks a paste on Windows, so the
+   timing rule in `internal/tui/burst_windows.go` may be unnecessary. Test a
+   multi-line paste on Windows before removing it.
+
 ## Still ahead
 
 1. **The key list in three columns.** The canvas board "key list" shows it: a
@@ -53,5 +57,6 @@ The design canvas: <https://claude.ai/artifact/B53CvRFbfHa1UnkisHtGjC>.
    segmented selects and `[ ]` input brackets.
 3. **Key hints from bubbles.** Replace the hand-built hint list with
    `bubbles/key` and `bubbles/help`.
+
 Verify each step with `just check`, and in a real terminal at 256 colours and at
 truecolor.

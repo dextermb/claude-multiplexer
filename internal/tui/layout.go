@@ -436,7 +436,8 @@ func (m Model) groupHeader(item group) string {
 
 func (m Model) outputView() string {
 	if q := m.questions[m.sel]; q != nil {
-		return centre(m.outputWidth(), m.outputHeight(), q.View(m.outputWidth(), m.caps))
+		return lipgloss.NewStyle().Width(m.outputWidth()).Height(m.outputHeight()).
+			MaxHeight(m.outputHeight()).Render("\n" + q.View(m.outputWidth()-1, m.caps))
 	}
 	if len(m.rows) == 0 {
 		text := "No sessions yet.\n\nPress n to start one.\nPress ctrl+c to quit."
