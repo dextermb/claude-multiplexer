@@ -77,7 +77,7 @@ func TestEveryLineCarriesItsClass(t *testing.T) {
 		{
 			name:  "the turn result",
 			event: decode(t, `{"type":"result","subtype":"success","num_turns":1}`),
-			want:  []Class{ClassMeta},
+			want:  []Class{ClassResult},
 		},
 		{
 			name:  "a stderr line",
@@ -227,11 +227,12 @@ func TestRenderAReplayedPrompt(t *testing.T) {
 
 func TestRenderResult(t *testing.T) {
 	ev := decode(t, `{"type":"result","subtype":"success","duration_ms":1234,"num_turns":2,"total_cost_usd":0.1234,"usage":{"input_tokens":10,"output_tokens":20}}`)
-	got := Text(Renderer{}.Lines(ev))
-	if len(got) != 1 {
-		t.Fatalf("lines = %q", got)
+	lines := Renderer{}.Lines(ev)
+	if len(lines) != 1 || lines[0].Class != ClassResult {
+		t.Fatalf("lines = %+v", lines)
 	}
-	for _, want := range []string{"✓ success", "1.2s", "$0.1234", "2 turns", "10 in / 20 out"} {
+	got := Text(lines)
+	for _, want := range []string{"✓ done", "1.2s", "$0.1234", "2 turns", "10 in / 20 out"} {
 		if !strings.Contains(got[0], want) {
 			t.Errorf("%q does not contain %q", got[0], want)
 		}
@@ -270,6 +271,46 @@ func TestBucketForMapsEveryClass(t *testing.T) {
 	for class, want := range cases {
 		if got := BucketFor(class); got != want {
 			t.Errorf("BucketFor(%d) = %q, want %q", class, got, want)
+		}
+	}
+}
+
+func TestToolLinesCarryTheToolID(t *testing.T) {
+	call := Renderer{}.Lines(decode(t, `{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"toolu_1","name":"Read","input":{"file_path":"a.go"}}]}}`))
+	if len(call) != 1 || call[0].Tool != "toolu_1" || call[0].Note != "" {
+		t.Fatalf("call = %+v", call)
+	}
+	result := Renderer{}.Lines(decode(t, `{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_1","content":"1\n2"}]}}`))
+	if len(result) != 1 || result[0].Tool != "toolu_1" {
+		t.Fatalf("result = %+v", result)
+	}
+}
+
+func TestAnEditCallNotesTheLinesItChanges(t *testing.T) {
+	cases := map[string]string{
+		`"name":"Edit","input":{"file_path":"a.go","old_string":"a\nb\nc","new_string":"x"}`:                                                  "+1 −3",
+		`"name":"Write","input":{"file_path":"a.go","content":"a\nb\n"}`:                                                                      "+2 −0",
+		`"name":"MultiEdit","input":{"file_path":"a.go","edits":[{"old_string":"a","new_string":"b\nc"},{"old_string":"d","new_string":""}]}`: "+2 −2",
+	}
+	for block, want := range cases {
+		got := Renderer{}.Lines(decode(t, `{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t",`+block+`}]}}`))
+		if len(got) != 1 || got[0].Note != want {
+			t.Errorf("%s: note = %+v, want %q", block, got, want)
+		}
+	}
+}
+
+func TestTaskAndQuestionInputsReadAsText(t *testing.T) {
+	cases := map[string]string{
+		`"name":"TaskCreate","input":{"subject":"First task","activeForm":"Doing it"}`:       "→ TaskCreate First task",
+		`"name":"TaskUpdate","input":{"taskId":"2","status":"in_progress"}`:                  "→ TaskUpdate 2 in_progress",
+		`"name":"AskUserQuestion","input":{"questions":[{"question":"a"},{"question":"b"}]}`: "→ AskUserQuestion 2 questions",
+		`"name":"Grep","input":{"pattern":"owner:","path":"docs/"}`:                          "→ Grep owner: docs/",
+	}
+	for block, want := range cases {
+		got := Renderer{}.Lines(decode(t, `{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t",`+block+`}]}}`))
+		if len(got) != 1 || got[0].Text != want {
+			t.Errorf("%s: text = %+v, want %q", block, got, want)
 		}
 	}
 }

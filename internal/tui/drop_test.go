@@ -342,11 +342,11 @@ func TestOnlyAssistantTextIsTreatedAsMarkdown(t *testing.T) {
 	m.appendOutput([]render.Line{
 		{Class: render.ClassPrompt, Text: "› read ## the notes"},
 		{Class: render.ClassToolResult, Text: "← 3 lines of **plain** output"},
-		{Class: render.ClassMeta, Text: "✓ success · 1 turn"},
+		{Class: render.ClassMeta, Text: "✓ done · 1 turn"},
 	})
 
 	got := visible(m.outputText)
-	for _, want := range []string{"› read ## the notes", "← 3 lines of **plain** output", "✓ success · 1 turn"} {
+	for _, want := range []string{"› read ## the notes", "← 3 lines of **plain** output", "✓ done · 1 turn"} {
 		if !strings.Contains(got, want) {
 			t.Errorf("%q was changed:\n%s", want, got)
 		}

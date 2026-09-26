@@ -189,6 +189,9 @@ func main() {
 		if text == "agent" {
 			emitAgentJob(sessionID)
 		}
+		if text == "tools" {
+			emitToolCalls(sessionID)
+		}
 		emit(map[string]any{
 			"type":       "assistant",
 			"session_id": sessionID,

@@ -134,6 +134,7 @@ the banner are described in [version-updates.md](version-updates.md).
 | [tui/keys.md](tui/keys.md) | The key sequences, every single key, the searchable key list, scrolling, the mouse, and quitting |
 | [tui/input.md](tui/input.md) | The prompt box, dropping a file, and the new session form |
 | [tui/output.md](tui/output.md) | The colour of each line, streaming text, and the layout rule |
+| [tui/tool-calls.md](tui/tool-calls.md) | A tool call as one row: the note, the running timer, and the folded result |
 | [tui/theme.md](tui/theme.md) | The colour tokens, inversion, and why the greys are written as xterm numbers |
 | [tui/tasks.md](tui/tasks.md) | The side panel: the session's jobs and task list, their glyphs, and when it shows |
 | [tui/diff.md](tui/diff.md) | The git diff: the count in the bar, the file panel, the inline diff, and the refresh |

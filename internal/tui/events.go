@@ -103,6 +103,8 @@ func (m Model) handleEvent(ev manager.Event) (tea.Model, tea.Cmd) {
 		m.setContent()
 	}
 	if turnEnded {
+		m.tickCalls()
+		m.setContent()
 		m.resetBlockCursor()
 	}
 	cmds := []tea.Cmd{waitEvent(m.sub)}
@@ -202,6 +204,7 @@ func (m Model) handleSpin() (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 	m.spinFrame++
+	m.tickCalls()
 	m.setContent()
 	return m, spinTick()
 }

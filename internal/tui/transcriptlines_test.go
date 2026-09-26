@@ -66,3 +66,14 @@ func TestJobLineColoursTheMarkByStatus(t *testing.T) {
 		}
 	}
 }
+
+func TestTheTurnResultColoursItsHead(t *testing.T) {
+	done := resultLineView("✓ done · 3.2s · 2 turns", 80)
+	if !strings.Contains(done, fgStyle(colPositive).Render("✓ done")) {
+		t.Fatalf("done = %q", done)
+	}
+	failed := resultLineView("✗ error · 338ms", 80)
+	if !strings.Contains(failed, fgStyle(colDanger).Render("✗ error")) {
+		t.Fatalf("error = %q", failed)
+	}
+}

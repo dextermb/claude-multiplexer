@@ -23,9 +23,10 @@ recedes:
 |---|---|---|
 | `ClassPrompt` | What you asked, marked `› ` | Heading grey, with inline emphasis (see [markdown.md](../markdown.md)) |
 | `ClassText` | What the assistant says | Rendered as markdown, in secondary grey |
-| `ClassToolUse` | A tool call, such as `→ Bash ls` | The tool name as an uppercase label, the input in secondary grey (see below) |
-| `ClassToolResult` | What the tool returned | Muted grey |
-| `ClassMeta` | The `init` line, the turn result, and state changes | Dimmed grey |
+| `ClassToolUse` | A tool call, such as `→ Bash ls` | One row: the tool name as an uppercase label, the input in secondary grey, and a note (see [tool-calls.md](tool-calls.md)) |
+| `ClassToolResult` | What the tool returned | Muted grey, or folded into the call row |
+| `ClassMeta` | The `init` line and state changes | Dimmed grey |
+| `ClassResult` | The turn result, such as `✓ done · 3.2s · …` | The mark and the word in green (`✗ error` in red), the rest dimmed |
 | `ClassThinking` | Thinking, when the verbose flag is on | Dimmed grey |
 | `ClassStderr` | A line from the child stderr | Warning (amber) |
 | `ClassError` | A failure, or a line that is not JSON | Danger (red) |
@@ -37,12 +38,9 @@ What the assistant says is rendered as markdown, so a heading, a list, and a
 code fence all read as themselves. Press `o m` for the raw text. See
 [markdown.md](../markdown.md).
 
-A tool call draws as `→ READ   internal/auth/middleware.go`. The arrow is
-dimmed, and the tool name is an uppercase label in muted grey. The name fills a
-slot of six columns, so the input of each call starts in the same column. The
-input is secondary grey. The renderer writes `→ Read …`, and only the pane sets
-the label, so a transcript and the `run` command keep the name as the tool gives
-it. The raw view (`o m`) shows the line as the renderer writes it.
+A tool call draws as one row, `→ READ   internal/auth/middleware.go  412 lines`.
+The result of a read, an edit, or a search folds into that row. See
+[tool-calls.md](tool-calls.md).
 
 Your prompt appears the moment you send it. The interface holds a copy and
 shows it at once, so there is no wait for the round trip through Claude Code.
@@ -117,7 +115,9 @@ text under your eyes does not jump.
 the block cursor, and it names the block that `Enter` opens. `Space` does the
 same as `Enter` here. `]` and `[` move it
 to the next capped block and to the block before, and the pane scrolls to it
-only when it is out of sight. A click on any marker row opens that block.
+only when it is out of sight. A click on any marker row opens that block. A
+folded tool result has no marker row: its call row is the marker. See
+[tool-calls.md](tool-calls.md).
 
 The cursor sits on the newest capped block. It returns there at the end of every
 turn, and when you select another session, because that is the block you most

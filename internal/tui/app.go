@@ -145,6 +145,7 @@ type Model struct {
 	taskScroll    int
 	outputFor     string
 	outputSeq     uint64
+	tools         toolPairs
 
 	width      int
 	height     int

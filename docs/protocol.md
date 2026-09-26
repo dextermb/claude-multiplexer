@@ -144,7 +144,8 @@ decoder does not model these. It keeps the raw line, and the caller ignores it.
 version therefore cannot stop a session.
 
 A `result` can carry `is_error: true` with the subtype `success`. The renderer
-reads `is_error`, not the subtype.
+reads `is_error`, not the subtype. It writes the subtype `success` as `✓ done`,
+the word of the job vocabulary, and any other subtype as it arrives.
 
 ### Content blocks
 

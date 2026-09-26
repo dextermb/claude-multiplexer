@@ -178,7 +178,7 @@ func classStyle(class render.Class) lipgloss.Style {
 	switch class {
 	case render.ClassPrompt:
 		return fgStyle(colHeading)
-	case render.ClassMeta, render.ClassThinking, render.ClassJob:
+	case render.ClassMeta, render.ClassThinking, render.ClassJob, render.ClassResult:
 		return fgStyle(colDimmed)
 	case render.ClassToolUse, render.ClassToolResult, render.ClassSkill:
 		return fgStyle(colMuted)

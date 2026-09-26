@@ -31,11 +31,24 @@ func toolLineView(text string, width int) string {
 }
 
 func jobLineView(text string, width int) string {
-	head, label, found := strings.Cut(text, " · ")
-	_, word, _ := strings.Cut(head, " ")
-	styled := jobStyle(session.ParseJobStatus(word)).Render(head)
+	_, word, _ := strings.Cut(text, " ")
+	word, _, _ = strings.Cut(word, " ")
+	return headLineView(text, jobStyle(session.ParseJobStatus(word)), width)
+}
+
+func resultLineView(text string, width int) string {
+	style := fgStyle(colPositive)
+	if strings.HasPrefix(text, "✗") {
+		style = fgStyle(colDanger)
+	}
+	return headLineView(text, style, width)
+}
+
+func headLineView(text string, headStyle lipgloss.Style, width int) string {
+	head, rest, found := strings.Cut(text, " · ")
+	styled := headStyle.Render(head)
 	if found {
-		styled += classStyle(render.ClassJob).Render(" · " + label)
+		styled += classStyle(render.ClassMeta).Render(" · " + rest)
 	}
 	return lipgloss.NewStyle().Width(width).Render(styled)
 }
