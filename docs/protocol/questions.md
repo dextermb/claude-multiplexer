@@ -20,8 +20,8 @@ interrupt cuts the turn before the model recovers and acts on a guess. The
 interrupt result ends the turn in the `waiting` state, not `idle`, so the
 sidebar shows which session needs an answer. The human answer then runs as the
 next prompt, and it moves the session to `busy`. See
-[../sessions.md](../sessions.md) for the state, and [../tui/input.md](../tui/input.md)
-for the pane.
+[../sessions.md](../sessions.md) for the state, and
+[../tui/questions.md](../tui/questions.md) for the pane.
 
 `Event.AskUserQuestion` reads the questions and the block id from the `tool_use`
 block. Each question holds a `question`, a `header`, a list of `options` (each

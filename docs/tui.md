@@ -70,7 +70,7 @@ and the status bar stay on the screen. The jobs list, the model,
 effort and mode dialogs, the rename dialog, and the stop confirmation draw here,
 and each one covers the side panel as well. The question dialog also
 draws here, but it keeps the side panel beside it. See
-[tui/input.md](tui/input.md).
+[tui/questions.md](tui/questions.md).
 
 ```
  sidebar  │ bar                                      │
@@ -136,6 +136,7 @@ the banner are described in [version-updates.md](version-updates.md).
 | [tui/sessions.md](tui/sessions.md) | The sidebar: the sections, the groups, live and stored rows, and its pages for jobs and the bars |
 | [tui/keys.md](tui/keys.md) | The key sequences, every single key, the searchable key list, scrolling, the mouse, and quitting |
 | [tui/input.md](tui/input.md) | The prompt box, dropping a file, and the new session form |
+| [tui/questions.md](tui/questions.md) | The question dialog: the options, the answer field, and where the answer goes |
 | [tui/output.md](tui/output.md) | The colour of each line, streaming text, and the layout rule |
 | [tui/tool-calls.md](tui/tool-calls.md) | A tool call as one row: the note, the running timer, and the folded result |
 | [tui/theme.md](tui/theme.md) | The colour tokens, inversion, and why the greys are written as xterm numbers |

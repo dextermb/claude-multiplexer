@@ -172,7 +172,7 @@ func questionCap(caps map[string]int, bucket string) int {
 }
 
 // capLines keeps at most cap lines and reports the rest as hidden. A focused
-// option draws in full, and a cap below zero never caps. See docs/tui/input.md.
+// option draws in full, and a cap below zero never caps. See docs/tui/questions.md.
 func capLines(lines []string, cap int, focused bool) ([]string, int) {
 	if focused || cap < 0 || len(lines) <= cap {
 		return lines, 0
@@ -181,7 +181,7 @@ func capLines(lines []string, cap int, focused bool) ([]string, int) {
 }
 
 // View draws the dialog inline, at the top of the output pane: a label set in a
-// rule, the question, the options, and the answer field. See docs/tui/input.md.
+// rule, the question, the options, and the answer field. See docs/tui/questions.md.
 func (d *questionDialog) View(width int, caps map[string]int) string {
 	inner := width
 	optionCap := questionCap(caps, config.BucketQuestionOption)
