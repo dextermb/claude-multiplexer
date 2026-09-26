@@ -177,7 +177,7 @@ func (m Model) showSidePanel() bool {
 
 func (m Model) View() string {
 	if !m.ready {
-		return "starting…"
+		return paintGround("starting…", m.width, m.height)
 	}
 	body := withGutter(m.paneView())
 	if !m.sidebarHidden {
@@ -191,7 +191,7 @@ func (m Model) View() string {
 	if m.updateVisible() {
 		parts = append(parts, m.updateBannerView())
 	}
-	return lipgloss.JoinVertical(lipgloss.Left, parts...)
+	return paintGround(lipgloss.JoinVertical(lipgloss.Left, parts...), m.width, m.height)
 }
 
 // A session dialog draws in the pane, not over the whole body; see docs/tui.md.

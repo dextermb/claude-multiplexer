@@ -9,9 +9,10 @@ its colour from a token. No other file names a colour.
 
 ## Three values for each token
 
-Each token has a light value and a dark value. Each value is written three
-times: as truecolor hex, as an xterm-256 number, and as an ANSI-16 number. Lip
-Gloss picks the one that the terminal supports.
+Each token is written three times: as truecolor hex, as an xterm-256 number, and
+as an ANSI-16 number. Lip Gloss picks the one that the terminal supports. There
+is one set of tokens, the dark set, because the ground is always black (see
+below).
 
 The numbers are written by hand, because the automatic match is wrong for the
 greys. Lip Gloss v1 maps `#3a3a3a` to 59, not to 237. With the numbers written,
@@ -31,7 +32,6 @@ is an xterm grey.
 | `colFaint` | `#3a3a3a` | 237 | archived rows |
 | `colBorder` | `#3a3a3a` | 237 | every rule and border |
 | `colSubtle` | `#1d1d1d` | 234 | rules inside a pane |
-| `colStrong` | `#585858` | 240 | reserved for input brackets |
 | `colAccent` | `#ffffff` | 231 | the inverted fill |
 | `colAccentFg` | `#000000` | 16 | text on the inverted fill |
 | `colSubdued` | `#2e2e2e` | 236 | the selected row when its pane has no focus |
@@ -79,8 +79,27 @@ interface sets no bold and no italic. Hierarchy comes from case, colour, and
 rules. Labels, titles, and group names are uppercase through
 `lipgloss.Style.Transform`, so the text in the code stays in lowercase.
 
-## Light and dark
+## The ground is black on every terminal
 
-`tui.Run` asks the terminal for its background before Bubble Tea starts, so the
-tokens resolve to the light or the dark set. The markdown renderer asks the same
-question. See [../markdown.md](../markdown.md).
+The interface paints every cell with `colGround`, so the screen looks the same
+whatever background the terminal has. `paintGround` in `internal/tui/ground.go`
+does it as the last step of `View`:
+
+1. Each line starts with the ground as its background.
+2. A reset (`ESC[0m`, `ESC[m`, or `ESC[49m`) clears the background with the other
+   attributes, so the ground is set again after each one.
+3. Each line is padded to the full width, and the view to the full height, so no
+   cell is left to the terminal.
+
+A style that sets its own background, such as the inverted style, still wins,
+because its code comes after the ground. A style with no background shows the
+ground under it.
+
+The interface does not ask the terminal to change its own background (OSC 11).
+Not every terminal honours that request, and the terminal keeps the new colour
+if the program stops without a restore. Painting the cells works on every
+terminal that shows colour.
+
+On a 16-colour terminal the ground is ANSI colour 0. Many terminal themes set
+colour 0 to a dark grey, not to black, so the ground follows the theme there. On
+a terminal with no colour the interface paints nothing.

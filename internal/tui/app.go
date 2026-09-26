@@ -8,7 +8,6 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/dextermb/claude-multiplexer/internal/commands"
 	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/keys"
@@ -228,8 +227,6 @@ func New(opts Options) Model {
 }
 
 func Run(opts Options) error {
-	// The theme reads the terminal background here, before Bubble Tea owns the input.
-	lipgloss.HasDarkBackground()
 	program := tea.NewProgram(New(opts), tea.WithAltScreen(), tea.WithMouseCellMotion())
 	_, err := program.Run()
 	return err

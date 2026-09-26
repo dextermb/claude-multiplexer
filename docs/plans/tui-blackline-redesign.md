@@ -13,11 +13,13 @@ The design canvas: <https://claude.ai/artifact/B53CvRFbfHa1UnkisHtGjC>.
 
 ## Decisions
 
-1. **Dialogs are black.** A dialog sets no background, so each cell takes the
-   terminal background. Blackline puts dialogs on `color-elevated`; this design
-   does not.
-2. **The terminal background stays the user's.** The interface does not force
-   pure black. The tokens pick the light or the dark set from the terminal.
+1. **Dialogs are black.** A dialog sets no background, so it shows the painted
+   black ground. Blackline puts dialogs on `color-elevated`; this design does
+   not.
+2. **The ground is black on every terminal.** The interface paints every cell,
+   so no terminal background shows. So there is one set of tokens, the dark set,
+   and no light theme. Rejected: asking the terminal to change its background
+   (OSC 11), because not every terminal honours it.
 3. **The sidebar is 30 columns by default**, to fit the state word.
 4. **The busy timer replaces the spinner.** The interface records when a session
    becomes busy. The session reports no turn start time.
@@ -30,9 +32,7 @@ The design canvas: <https://claude.ai/artifact/B53CvRFbfHa1UnkisHtGjC>.
 
 1. **Waiting state.** Info blue is the quietest state colour, but `waiting` is
    the state that needs the user. It is info for now.
-2. **Light theme borders.** The light `color-border` (`#e4e4e4`) is 1.3:1 on
-   white. It is kept for now. `color-border-strong` is the fallback.
-3. **Job lines in the transcript.** `internal/render` still writes `⚙ started`
+2. **Job lines in the transcript.** `internal/render` still writes `⚙ started`
    and `⚙ done`. Change them to `■ started` and `✓ done`, or leave the
    transcript text alone?
 
@@ -44,8 +44,9 @@ The design canvas: <https://claude.ai/artifact/B53CvRFbfHa1UnkisHtGjC>.
    is one column with a filter, and it runs nothing.
 2. **Move to Charm v2.** `charm.land/bubbletea/v2`, `charm.land/lipgloss/v2`,
    `charm.land/bubbles/v2` and `charm.land/glamour/v2`: `tea.View`,
-   `KeyPressMsg`, and `BackgroundColorMsg` in place of the warm-up call in
-   `tui.Run`. Check whether v2 maps the hex greys exactly; if it does, the
+   and `KeyPressMsg`. v2 can also set the terminal background from
+   `tea.View.BackgroundColor`; keep the painted ground, because it works on
+   every terminal. Check whether v2 maps the hex greys exactly; if it does, the
    hand-written numbers in `theme.go` can go.
 3. **Dialogs on layers, over a scrim.** With the Lip Gloss v2 compositor, draw a
    dialog over a faint copy of the screen, in place of the region it replaces

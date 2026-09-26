@@ -76,10 +76,10 @@ legal in a shell, but not in JSON, TOML, or a makefile. The style gives the
 `Error` token the grey of plain code text and no background, so an unclassified
 character looks like the rest of the fence.
 
-## Light and dark
+## One set of greys
 
-`markdown.New` asks Lip Gloss whether the terminal background is dark, and picks
-the dark or the light greys. See [tui/theme.md](./tui/theme.md).
+The renderer always uses the dark greys, because the interface always paints a
+black ground. See [tui/theme.md](./tui/theme.md).
 
 ## The raw toggle
 

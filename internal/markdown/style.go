@@ -3,15 +3,14 @@ package markdown
 import (
 	"github.com/charmbracelet/glamour/ansi"
 	"github.com/charmbracelet/glamour/styles"
-	"github.com/charmbracelet/lipgloss"
 )
 
 // MutedGrey is the one grey NewMuted draws every element in, so a skill dump
 // recedes and matches its launching line. See docs/markdown.md.
 const MutedGrey = "245"
 
-// A tone is the Blackline greys for one theme: xterm-256 numbers for glamour,
-// and hex for chroma, which reads only hex. See docs/markdown.md.
+// A tone is the Blackline greys: xterm-256 numbers for glamour, and hex for
+// chroma, which reads only hex. See docs/markdown.md.
 type tone struct {
 	body, heading, strong, muted, dimmed, rule, code string
 	chroma                                           chromaTone
@@ -27,21 +26,6 @@ var darkTone = tone{
 		text: "#c6c6c6", bright: "#ffffff", heading: "#eeeeee", muted: "#8a8a8a", dimmed: "#6c6c6c",
 		str: "#a8a8a8", inserted: "#4ade80", deleted: "#ff6666", background: "#262626",
 	},
-}
-
-var lightTone = tone{
-	body: "237", heading: "16", strong: "16", muted: "240", dimmed: "245", rule: "254", code: "255",
-	chroma: chromaTone{
-		text: "#3a3a3a", bright: "#000000", heading: "#000000", muted: "#585858", dimmed: "#8a8a8a",
-		str: "#585858", inserted: "#008000", deleted: "#b91c1c", background: "#eeeeee",
-	},
-}
-
-func currentTone() tone {
-	if lipgloss.HasDarkBackground() {
-		return darkTone
-	}
-	return lightTone
 }
 
 func paneStyle(t tone) ansi.StyleConfig {

@@ -20,13 +20,13 @@ type Renderer struct {
 }
 
 func New() *Renderer {
-	return &Renderer{style: paneStyle(currentTone()), cache: make(map[string]string)}
+	return &Renderer{style: paneStyle(darkTone), cache: make(map[string]string)}
 }
 
 // NewMuted renders markdown in one muted grey, for content that recedes, such
 // as a loaded skill. See docs/markdown.md.
 func NewMuted() *Renderer {
-	return &Renderer{style: mutedStyle(currentTone()), cache: make(map[string]string)}
+	return &Renderer{style: mutedStyle(darkTone), cache: make(map[string]string)}
 }
 
 func (r *Renderer) Render(text string, width int) string {
