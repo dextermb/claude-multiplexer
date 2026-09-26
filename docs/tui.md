@@ -7,30 +7,32 @@ in `internal/tui`. It talks only to the manager, which is described in
 ## The layout
 
 ```
- MULTIPLEXER     WORKSPACE   REVIEW   KEYS                                    ■ 1 waiting
-── SESSIONS (5) ─────────────┬── API ─ claude-opus-4-8 · auto ──── ■ busy 0:42 · queued (2) · $0.0212 ─
- ▾ C BOSS                   3│ › write the summary
-  ■ boss               idle  │ ● 2127c615 · claude-opus-4-8 · 31 tools
-  ■ api          q2 busy 0:42│ → BASH   echo hello
-  · invoices         stored  │ ← hello
- ▾ MULTIPLEXER              1│ [+] 4193 more lines
-  ■ docs            waiting  │ The loader has three problems▌
- ▸ NOTES                  ■ 1│
+ MULTIPLEXER     WORKSPACE   REVIEW   KEYS   sessions (5 · 3 live) · 1 busy · 1 waiting · $0.0881 / 1d
+── SESSIONS (5) ─────────────┬── API ────────────────────────────────────────────────────────────────
+ ▾ C BOSS                   3│ claude-opus-4-8 · auto         ■ busy 0:42 · queued (2) · $0.0212
+  ■ boss               idle  │ › write the summary
+  ■ api          q2 busy 0:42│ ● 2127c615 · claude-opus-4-8 · 31 tools
+  · invoices         stored  │ → BASH   echo hello
+ ▾ MULTIPLEXER              1│ ← hello
+  ■ docs            waiting  │ [+] 4193 more lines
+ ▸ NOTES                  ■ 1│ The loader has three problems▌
 ─────────────────────────────┴─ PROMPT → API ─────────────────────────────────────────────────────────
- enter or tab to type
  › type a prompt
- 3 sessions · 1 busy · $0.0881           n new  t preset  s session  l list  o output  ? keys  q quit
+                                                                               enter or tab to type
+ [n] new  [t] preset  [s] session  [l] list  [o] output  [?] keys  [q] quit             started api
 ```
 
 The screen is one frame of rules. The top row is the band: the product name,
 the screens (`WORKSPACE`, `REVIEW`, `KEYS`) with the current one inverted, and
-on the right the live sessions that wait for an answer or failed. Below it, each
-pane has its label set in its top rule: `SESSIONS (n)` for the list, the session
-name for the output, and `JOBS` or `TASKS` for the side panel. The rules meet at
+on the right the counts of the sessions and the total cost. Below it, each pane
+has its label set in its top rule: `SESSIONS (n)` for the list, the session name
+for the output, and `JOBS` or `TASKS` for the side panel. The row under the
+output rule holds the details of the session. The bottom row holds the keys and
+the last message. The rules meet at
 junctions (`┬`, `├`, `┴`), so two panes share one rule and never draw two.
 
 The label of the pane that holds the focus inverts. There is no other focus
-mark. The prompt shows its focus the same way, in its hint row. The code is in
+mark. The prompt shows its focus the same way, in its rule. The code is in
 `internal/tui/chrome.go`, and the colours are in [tui/theme.md](tui/theme.md).
 
 The sidebar is 30 columns by default, so a row fits the state word and the busy
@@ -53,8 +55,9 @@ The session bar shows the git diff count of the session, for example `+120 −30
 `s d` opens a diff panel that lists the changed files and expands each one to its
 diff. See [tui/diff.md](tui/diff.md).
 
-The settings file composes the session bar and the status bar: it reorders the
-built-in elements, removes one, and adds a custom element that runs a script.
+The settings file composes the session bar, the status bar, and the band: it
+reorders the built-in elements, removes one, and adds a custom element that runs
+a script.
 See [config/bars.md](config/bars.md).
 
 ## Where a dialog draws

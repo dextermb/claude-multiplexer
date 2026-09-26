@@ -178,14 +178,20 @@ func (m Model) statusHints() string {
 	return strings.Join(out, " · ")
 }
 
-// styleHints sets each key of a hint list in white and its word in grey, on the
-// status bar. The two spaces between hints are no wider than the dot they
-// replace, so a list cut to fit still fits.
+// styleHints sets each key of a hint list in white between dimmed brackets, and
+// its word in grey, on the status bar: [n] new.
 func styleHints(plain string) string {
+	if plain == "…" {
+		return statusSepStyle.Render(plain)
+	}
 	parts := strings.Split(plain, " · ")
 	for i, part := range parts {
+		if part == "…" {
+			parts[i] = statusSepStyle.Render(part)
+			continue
+		}
 		key, word, _ := strings.Cut(part, " ")
-		parts[i] = statusKeyStyle.Render(key) + statusMutedStyle.Render(" "+word)
+		parts[i] = statusSepStyle.Render("[") + statusKeyStyle.Render(key) + statusSepStyle.Render("]") + statusMutedStyle.Render(" "+word)
 	}
 	return strings.Join(parts, statusMutedStyle.Render("  "))
 }
@@ -194,20 +200,28 @@ func styleHints(plain string) string {
 // marks with an ellipsis that more are left.
 func fitHints(plain string, width int) string {
 	parts := strings.Split(plain, " · ")
+	hint := func(i int) int { return lipgloss.Width(parts[i]) + 2 }
+	used := 0
+	for i := range parts {
+		if i > 0 {
+			used += 2
+		}
+		used += hint(i)
+	}
+	if used <= width {
+		return plain
+	}
 	used, keep := 0, 0
-	for i, part := range parts {
-		w := lipgloss.Width(part)
+	for i := range parts {
+		w := hint(i)
 		if i > 0 {
 			w += 2
 		}
-		if used+w > width-2 {
+		if used+w+3 > width {
 			break
 		}
 		used += w
 		keep++
-	}
-	if keep == len(parts) {
-		return plain
 	}
 	if keep == 0 {
 		return "…"

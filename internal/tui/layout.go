@@ -216,7 +216,7 @@ func (m Model) paneView() string {
 	lines := strings.Split(pane, "\n")
 	under := strings.Join(lines[barHeight:], "\n")
 	body := overlay(under, dialog, m.baseOutputWidth(), len(lines)-barHeight)
-	return lines[0] + "\n" + body
+	return strings.Join(lines[:barHeight], "\n") + "\n" + body
 }
 
 func (m Model) livePane() string {
@@ -534,10 +534,12 @@ func plural(n int, word string) string {
 	return fmt.Sprintf("%d %ss", n, word)
 }
 
-// promptView is the hint row and the text area. The rule above it names the
-// session; see promptRule.
+// promptView is the text area and the hint row under it, set to the right. The
+// rule above it names the session; see promptRule.
 func (m Model) promptView() string {
-	return m.promptHint() + "\n" + m.prompt.View()
+	width := m.width - gutterWidth
+	hint := lipgloss.NewStyle().Width(width).MaxWidth(width).Align(lipgloss.Right).Render(m.promptHint() + " ")
+	return m.prompt.View() + "\n" + hint
 }
 
 func (m Model) promptHint() string {

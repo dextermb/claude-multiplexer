@@ -27,7 +27,7 @@ const (
 	statusHeight     = 1
 	titleHeight      = 1
 	bandHeight       = 1
-	barHeight        = 1
+	barHeight        = 2
 	gutterWidth      = 1
 
 	taskPanelWidth           = config.DefaultTaskSize
@@ -113,6 +113,8 @@ var (
 
 	statusKeyStyle = fgStyle(colFg).Background(statusBackground)
 
+	statusSepStyle = fgStyle(colDimmed).Background(statusBackground)
+
 	statusCostStyle = fgStyle(colSecondary).Background(statusBackground)
 
 	errorStyle = fgStyle(colDanger)
@@ -152,6 +154,8 @@ var (
 	barNameStyle = fgStyle(colHeading)
 
 	barMutedStyle = fgStyle(colMuted)
+
+	barSepStyle = fgStyle(colDimmed)
 
 	barCostStyle = fgStyle(colSecondary)
 

@@ -569,8 +569,8 @@ func TestTheSessionBarShowsTheNumbers(t *testing.T) {
 	if lipgloss.Width(bar) != m.outputWidth() {
 		t.Errorf("the bar is %d wide, want %d", lipgloss.Width(bar), m.outputWidth())
 	}
-	if strings.Contains(bar, "\n") {
-		t.Error("the bar must stay on one line")
+	if rows := strings.Count(bar, "\n") + 1; rows != barHeight {
+		t.Errorf("the bar has %d rows, want the name rule and one row of details", rows)
 	}
 }
 
@@ -598,8 +598,8 @@ func TestTheSessionBarDropsDetailsBeforeTheName(t *testing.T) {
 			t.Errorf("width %d: the bar is %d wide, want %d:\n%s",
 				width, lipgloss.Width(bar), m.outputWidth(), bar)
 		}
-		if strings.Contains(bar, "\n") {
-			t.Errorf("width %d: the bar must stay on one line", width)
+		if rows := strings.Count(bar, "\n") + 1; rows != barHeight {
+			t.Errorf("width %d: the bar has %d rows, want %d", width, rows, barHeight)
 		}
 		if !strings.Contains(bar, "ALPHA") {
 			t.Errorf("width %d: the name must survive:\n%s", width, bar)
@@ -663,7 +663,7 @@ func TestMetaLinesAreMutedAndTextIsNot(t *testing.T) {
 	}
 }
 
-func TestTheStatusBarCountsTheSessions(t *testing.T) {
+func TestTheBandCountsTheSessions(t *testing.T) {
 	m, mgr := newTestModel(t, "")
 	m = start(t, m, 120, 30)
 	m, _ = step(t, m, key("esc"))
@@ -671,23 +671,44 @@ func TestTheStatusBarCountsTheSessions(t *testing.T) {
 	m = spawn(t, m, mgr, "alpha", dir)
 	m = spawn(t, m, mgr, "beta", dir)
 
-	status := visible(m.statusView())
-	for _, want := range []string{"2 sessions", "$0.0000", "q quit"} {
-		if !strings.Contains(status, want) {
-			t.Errorf("status %q has no %q", status, want)
+	band := visible(m.bandView())
+	for _, want := range []string{"sessions (2 · 2 live)", "$0.0000"} {
+		if !strings.Contains(band, want) {
+			t.Errorf("band %q has no %q", band, want)
 		}
 	}
-	if strings.Contains(status, "busy") {
-		t.Errorf("status %q shows a busy count when no session is busy", status)
+	if strings.Contains(band, "busy") {
+		t.Errorf("band %q shows a busy count when no session is busy", band)
+	}
+	if status := visible(m.statusView()); !strings.Contains(status, "[q] quit") {
+		t.Errorf("status %q has no key hints", status)
 	}
 
-	for i := range m.rows {
-		if m.rows[i].live {
-			m.rows[i].state = session.StateBusy
-			break
+	m.rows[0].state = session.StateBusy
+	m.rows[1].state = session.StateWaiting
+	band = visible(m.bandView())
+	for _, want := range []string{"1 busy", "1 waiting"} {
+		if !strings.Contains(band, want) {
+			t.Errorf("band %q has no %q", band, want)
 		}
 	}
-	if busy := m.statusView(); !strings.Contains(busy, "1 busy") {
-		t.Errorf("status %q has no %q with one busy session", busy, "1 busy")
+}
+
+func TestANarrowBandKeepsWhatCallsYou(t *testing.T) {
+	m, mgr := newTestModel(t, "")
+	m = start(t, m, 120, 30)
+	m, _ = step(t, m, key("esc"))
+	dir := t.TempDir()
+	m = spawn(t, m, mgr, "alpha", dir)
+	m = spawn(t, m, mgr, "beta", dir)
+	m.rows[0].state = session.StateBusy
+	m.rows[1].state = session.StateWaiting
+
+	got := visible(m.bandRight(22))
+	if !strings.Contains(got, "1 busy · 1 waiting") || strings.Contains(got, "sessions") || strings.Contains(got, "$") {
+		t.Fatalf("a narrow band = %q, want the busy and waiting counts only", got)
+	}
+	if got := visible(m.bandRight(10)); !strings.Contains(got, "1 waiting") {
+		t.Fatalf("the narrowest band = %q, want the waiting count", got)
 	}
 }

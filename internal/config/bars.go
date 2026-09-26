@@ -10,18 +10,21 @@ import (
 	"time"
 )
 
-// The default composition of the two status bars. The multiplexer reads these
+// The default composition of the three bars. The multiplexer reads these
 // to build the default bars, and the MCP tool get_bar_defaults returns them, so
 // the render, the tool, and the doc read one source. See docs/config/bars.md.
 //
-//go:embed bars/session.json bars/status.json
+//go:embed bars/session.json bars/status.json bars/band.json
 var barDefaults embed.FS
 
-// The two bars a settings file may compose.
+// The three bars a settings file may compose.
 const (
 	BarSession = "session"
 	BarStatus  = "status"
+	BarBand    = "band"
 )
+
+var BarNames = []string{BarSession, BarStatus, BarBand}
 
 // DefaultBarRefresh is the interval a custom element re-runs its script when it
 // names none. See docs/config/bars.md.
@@ -31,11 +34,12 @@ const DefaultBarRefresh = 3 * time.Second
 // faster than this.
 const MinBarRefresh = 500 * time.Millisecond
 
-// Bars holds the composition of the two status bars. A nil bar, or a nil side,
-// takes the embedded default. See docs/config/bars.md.
+// Bars holds the composition of the three bars. A nil bar, or a nil side, takes
+// the embedded default. See docs/config/bars.md.
 type Bars struct {
 	Session *BarSpec `json:"session,omitempty"`
 	Status  *BarSpec `json:"status,omitempty"`
+	Band    *BarSpec `json:"band,omitempty"`
 }
 
 // BarSpec is the ordered elements of one bar. A nil side takes the default of
@@ -92,13 +96,15 @@ var builtinBarIDs = map[string]map[string][]string{
 		"right": {"state", "diff", "pr", "context", "raw", "scroll", "jobs", "queued", "tokens", "cache", "cost"},
 	},
 	BarStatus: {
-		"left":  {"sessions", "busy", "cost", "status"},
-		"right": {"hints"},
+		"left":  {"hints", "sessions", "busy", "cost", "status"},
+		"right": {"hints", "sessions", "busy", "cost", "status"},
+	},
+	BarBand: {
+		"right": {"sessions", "busy", "waiting", "failed", "cost"},
 	},
 }
 
-// DefaultBarSpec parses the embedded default of one bar: BarSession or
-// BarStatus.
+// DefaultBarSpec parses the embedded default of one bar.
 func DefaultBarSpec(bar string) (BarSpec, error) {
 	data, err := DefaultBarJSON(bar)
 	if err != nil {
@@ -114,7 +120,7 @@ func DefaultBarSpec(bar string) (BarSpec, error) {
 // DefaultBarJSON returns the embedded default of one bar as text, for the MCP
 // tool and the doc.
 func DefaultBarJSON(bar string) (string, error) {
-	if bar != BarSession && bar != BarStatus {
+	if !slices.Contains(BarNames, bar) {
 		return "", errors.New("config: unknown bar " + bar)
 	}
 	data, err := barDefaults.ReadFile("bars/" + bar + ".json")
@@ -154,6 +160,8 @@ func barSide(bars *Bars, bar string) *BarSpec {
 		return bars.Session
 	case BarStatus:
 		return bars.Status
+	case BarBand:
+		return bars.Band
 	default:
 		return nil
 	}
@@ -182,10 +190,13 @@ func ValidateBars(bars *Bars) error {
 	if bars == nil {
 		return nil
 	}
-	for _, bar := range []string{BarSession, BarStatus} {
+	for _, bar := range BarNames {
 		spec := barSide(bars, bar)
 		if spec == nil {
 			continue
+		}
+		if bar == BarBand && len(spec.Left) > 0 {
+			return errors.New("config: bars.band has no left side, because the screens fill it")
 		}
 		if err := validateBarSide(bar, "left", spec.Left); err != nil {
 			return err
@@ -228,9 +239,9 @@ func validBuiltinID(bar, side, id string) bool {
 	if slices.Contains(builtinBarIDs[bar][side], id) {
 		return true
 	}
-	// The status bar also accepts every session element, drawn for the selected
-	// session; see docs/config/bars.md.
-	if bar == BarStatus {
+	// The status bar and the band also accept every session element, drawn for
+	// the selected session; see docs/config/bars.md.
+	if bar == BarStatus || bar == BarBand {
 		return SessionElementSide(id) != ""
 	}
 	return false

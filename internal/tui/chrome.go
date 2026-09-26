@@ -98,7 +98,7 @@ func sideColumn(lines []string, width, height int, focused bool) string {
 }
 
 // bandView is the top row: the product name, the screens with the current one
-// inverted, and the sessions that need you. See docs/tui.md.
+// inverted, and the band bar on the right. See docs/tui.md.
 func (m Model) bandView() string {
 	screens := []struct {
 		name string
@@ -116,40 +116,109 @@ func (m Model) bandView() string {
 		}
 		left += " " + style.Render(" "+s.name+" ")
 	}
-	right := m.bandAlerts()
-	gap := m.width - lipgloss.Width(left) - lipgloss.Width(right)
-	if gap < 1 {
-		right, gap = "", maxInt(0, m.width-lipgloss.Width(left))
-	}
+	right := m.bandRight(m.width - lipgloss.Width(left) - 1)
+	gap := maxInt(0, m.width-lipgloss.Width(left)-lipgloss.Width(right))
 	return lipgloss.NewStyle().MaxWidth(m.width).Render(left + strings.Repeat(" ", gap) + right)
 }
 
-// bandAlerts counts the live sessions that wait for an answer or failed, each
-// with its state word, so they show from any screen.
-func (m Model) bandAlerts() string {
-	var waiting, failed int
-	for _, item := range m.rows {
-		if !item.live {
-			continue
+type bandPart struct {
+	text string
+	keep int
+}
+
+// bandRight draws the band bar in width. When it does not fit, it drops the
+// parts that call you least: the custom and session parts, then the cost, the
+// session count, and the busy count. See docs/config/bars.md.
+func (m Model) bandRight(width int) string {
+	parts := m.bandParts()
+	for {
+		text := joinBand(parts)
+		if lipgloss.Width(text) <= width || len(parts) == 0 {
+			if len(parts) == 0 {
+				return ""
+			}
+			return text
 		}
-		switch item.state {
-		case session.StateWaiting:
-			waiting++
-		case session.StateFailed:
-			failed++
+		parts = dropLeast(parts)
+	}
+}
+
+func joinBand(parts []bandPart) string {
+	texts := make([]string, len(parts))
+	for i, p := range parts {
+		texts[i] = p.text
+	}
+	return strings.Join(texts, barSepStyle.Render(" · ")) + " "
+}
+
+func dropLeast(parts []bandPart) []bandPart {
+	at := len(parts) - 1
+	for i := len(parts) - 1; i >= 0; i-- {
+		if parts[i].keep < parts[at].keep {
+			at = i
 		}
 	}
-	var parts []string
-	if waiting > 0 {
-		parts = append(parts, stateStyle(session.StateWaiting).Render(fmt.Sprintf("■ %d waiting", waiting)))
+	return append(parts[:at:at], parts[at+1:]...)
+}
+
+func (m Model) bandParts() []bandPart {
+	var parts []bandPart
+	for _, e := range m.barSpec(config.BarBand).Right {
+		parts = append(parts, m.bandPart(e)...)
 	}
-	if failed > 0 {
-		parts = append(parts, stateStyle(session.StateFailed).Render(fmt.Sprintf("■ %d failed", failed)))
+	return parts
+}
+
+func (m Model) bandPart(e config.BarElement) []bandPart {
+	if e.Custom() {
+		return renderBandSegs(m.customSegs(config.BarBand, "", e))
 	}
-	if len(parts) == 0 {
-		return ""
+	count := func(state session.State) int {
+		n := 0
+		for _, item := range m.rows {
+			if item.live && item.state == state {
+				n++
+			}
+		}
+		return n
 	}
-	return strings.Join(parts, fgStyle(colDimmed).Render(" · ")) + " "
+	switch e.ID {
+	case "sessions":
+		live, _ := m.liveBusy()
+		return []bandPart{{barMutedStyle.Render("sessions ") +
+			fgStyle(colSecondary).Render(fmt.Sprintf("(%d · %d live)", len(m.rows), live)), 1}}
+	case "busy":
+		if n := count(session.StateBusy); n > 0 {
+			return []bandPart{{stateStyle(session.StateBusy).Render(fmt.Sprintf("%d busy", n)), 2}}
+		}
+	case "waiting":
+		if n := count(session.StateWaiting); n > 0 {
+			return []bandPart{{stateStyle(session.StateWaiting).Render(fmt.Sprintf("%d waiting", n)), 3}}
+		}
+	case "failed":
+		if n := count(session.StateFailed); n > 0 {
+			return []bandPart{{stateStyle(session.StateFailed).Render(fmt.Sprintf("%d failed", n)), 3}}
+		}
+	case "cost":
+		text := fgStyle(colSecondary).Render(fmt.Sprintf("$%.4f", m.cost))
+		if m.costWindow != "" {
+			text += barMutedStyle.Render(" / " + m.costWindow)
+		}
+		return []bandPart{{text, 0}}
+	default:
+		if item, ok := m.selectedRow(); ok {
+			return renderBandSegs(m.sessionSeg(item, e))
+		}
+	}
+	return nil
+}
+
+func renderBandSegs(segs []barSeg) []bandPart {
+	parts := make([]bandPart, len(segs))
+	for i, seg := range segs {
+		parts[i] = bandPart{seg.style.Render(seg.text), -1}
+	}
+	return parts
 }
 
 // promptRule is the rule above the prompt. It carries a junction under each

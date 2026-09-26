@@ -46,7 +46,7 @@ func barTick() tea.Cmd {
 // hasBarScripts reports whether any resolved bar holds a custom element, so the
 // interface runs the ticker only when there is a script to run.
 func (m Model) hasBarScripts() bool {
-	for _, bar := range []string{config.BarSession, config.BarStatus} {
+	for _, bar := range config.BarNames {
 		spec := m.barSpec(bar)
 		if anyCustom(spec.Left) || anyCustom(spec.Right) {
 			return true
@@ -111,10 +111,11 @@ func (m Model) dueBarJobs(now time.Time) []barJob {
 			jobs = m.appendDueJobs(jobs, config.BarSession, item.name, payload, side, now)
 		}
 	}
-	payload := m.statusPayload()
-	spec := m.barSpec(config.BarStatus)
-	for _, side := range [][]config.BarElement{spec.Left, spec.Right} {
-		jobs = m.appendDueJobs(jobs, config.BarStatus, "", payload, side, now)
+	for _, bar := range []string{config.BarStatus, config.BarBand} {
+		spec := m.barSpec(bar)
+		for _, side := range [][]config.BarElement{spec.Left, spec.Right} {
+			jobs = m.appendDueJobs(jobs, bar, "", m.totalsPayload(bar), side, now)
+		}
 	}
 	return jobs
 }

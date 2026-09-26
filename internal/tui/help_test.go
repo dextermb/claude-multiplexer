@@ -4,6 +4,8 @@ import (
 	"strings"
 	"testing"
 
+	"charm.land/lipgloss/v2"
+
 	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/keys"
 )
@@ -202,7 +204,7 @@ func TestTheStatusBarHintsComeFromTheSameTable(t *testing.T) {
 	m = spawn(t, m, mgr, "alpha", t.TempDir())
 
 	status := visible(m.statusView())
-	for _, want := range []string{"n new", "t preset", "? keys", "q quit"} {
+	for _, want := range []string{"[n] new", "[t] preset", "[?] keys", "[q] quit"} {
 		if !strings.Contains(status, want) {
 			t.Errorf("the status bar is missing %q:\n%s", want, status)
 		}
@@ -217,7 +219,13 @@ func TestFitHintsDropsWholeHints(t *testing.T) {
 	if got := fitHints(plain, 80); got != plain {
 		t.Fatalf("a list that fits must stay whole, got %q", got)
 	}
-	if got := fitHints(plain, 18); got != "m model · p mode · …" {
+	if got := fitHints(plain, 22); got != "m model · p mode · …" {
+		t.Fatalf("got %q, want whole hints and an ellipsis", got)
+	}
+	if got := lipgloss.Width(styleHints(fitHints(plain, 21))); got > 21 {
+		t.Fatalf("the fitted hints take %d columns, more than 21", got)
+	}
+	if got := fitHints(plain, 21); got != "m model · …" {
 		t.Fatalf("got %q, want whole hints and an ellipsis", got)
 	}
 	if got := fitHints(plain, 3); got != "…" {

@@ -8,7 +8,7 @@ The sidebar, and what a row means. For the keys that drive it, see
 | Page | Read it for |
 |---|---|
 | [sessions/jobs.md](sessions/jobs.md) | Background jobs: the four places one shows, and the jobs dialog |
-| [sessions/bars.md](sessions/bars.md) | The session bar and the status bar, and what each drops when narrow |
+| [sessions/bars.md](sessions/bars.md) | The session bar, the band, and the status bar, and what each drops when narrow |
 
 ## The sections
 

@@ -161,7 +161,7 @@ func TestTheStatusBarShowsTheFollowUpKeys(t *testing.T) {
 	m, _ := sequenceModel(t)
 
 	view := visible(m.screen())
-	for _, want := range []string{"n new", "s session", "l list", "o output"} {
+	for _, want := range []string{"[n] new", "[s] session", "[l] list", "[o] output"} {
 		if !strings.Contains(view, want) {
 			t.Errorf("the status bar is missing %q:\n%s", want, view)
 		}
@@ -169,7 +169,7 @@ func TestTheStatusBarShowsTheFollowUpKeys(t *testing.T) {
 
 	m, _ = step(t, m, key("s"))
 	view = visible(m.screen())
-	for _, want := range []string{"j jobs", "m model", "x stop"} {
+	for _, want := range []string{"[j] jobs", "[m] model", "[x] stop"} {
 		if !strings.Contains(view, want) {
 			t.Errorf("the pending bar is missing %q:\n%s", want, view)
 		}

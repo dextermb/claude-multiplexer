@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"github.com/charmbracelet/x/ansi"
 	"strings"
 	"testing"
 
@@ -79,8 +80,8 @@ func TestStatusBarShowsTheSelectedSessionCacheHitRate(t *testing.T) {
 			config.BarStatus: {Right: []config.BarElement{{ID: "cache"}}},
 		},
 	}
-	if got := m.statusRight(); !strings.Contains(got, "cache 94%") {
-		t.Fatalf("statusRight = %q, want it to contain cache 94%%", got)
+	if got := joinParts(m.statusParts(m.barSpec(config.BarStatus).Right), 80); !strings.Contains(got, "cache 94%") {
+		t.Fatalf("the right side = %q, want it to contain cache 94%%", got)
 	}
 }
 
@@ -90,8 +91,8 @@ func TestStatusBarHidesTheCacheRateWithoutASelectedSession(t *testing.T) {
 			config.BarStatus: {Right: []config.BarElement{{ID: "cache"}}},
 		},
 	}
-	if got := m.statusRight(); strings.Contains(got, "cache ") {
-		t.Fatalf("statusRight = %q, want no cache rate with no selection", got)
+	if got := joinParts(m.statusParts(m.barSpec(config.BarStatus).Right), 80); strings.Contains(got, "cache ") {
+		t.Fatalf("the right side = %q, want no cache rate with no selection", got)
 	}
 }
 
@@ -106,9 +107,8 @@ func TestStatusBarShowsASelectedSessionElement(t *testing.T) {
 			config.BarStatus: {Left: []config.BarElement{{ID: "model"}}},
 		},
 	}
-	texts := segTexts(m.statusLeftSegs())
-	if indexOfPrefix(texts, "opus") < 0 {
-		t.Fatalf("statusLeftSegs = %v, want the selected session model", texts)
+	if got := ansi.Strip(joinParts(m.statusParts(m.barSpec(config.BarStatus).Left), 80)); !strings.HasPrefix(got, "opus") {
+		t.Fatalf("the left side = %q, want the selected session model", got)
 	}
 }
 
@@ -118,8 +118,8 @@ func TestStatusBarSessionElementNeedsASelection(t *testing.T) {
 			config.BarStatus: {Left: []config.BarElement{{ID: "model"}}},
 		},
 	}
-	if segs := m.statusLeftSegs(); len(segs) != 0 {
-		t.Fatalf("statusLeftSegs = %v, want none with no selection", segTexts(segs))
+	if parts := m.statusParts(m.barSpec(config.BarStatus).Left); len(parts) != 0 {
+		t.Fatalf("the left side has %d parts, want none with no selection", len(parts))
 	}
 }
 

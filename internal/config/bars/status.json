@@ -1,4 +1,4 @@
 {
-  "left": ["sessions", "busy", "cost", "status"],
-  "right": ["hints"]
+  "left": ["hints"],
+  "right": ["status"]
 }

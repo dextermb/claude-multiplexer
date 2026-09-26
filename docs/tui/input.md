@@ -9,8 +9,8 @@ the pane column so it never covers the junction of the sidebar. The label
 inverts while the prompt has the focus. On the review screen it reads
 `FOLLOW-UP → name`.
 
-The row under the rule is a hint that follows the focus and the state of the
-session:
+The row under the prompt text is a hint, set to the right and dimmed. It
+follows the focus and the state of the session:
 
 | When | The hint |
 |---|---|

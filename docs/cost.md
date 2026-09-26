@@ -1,10 +1,10 @@
 # What the multiplexer spends
 
-The status bar shows one figure for the whole host. By default it shows the
-spend of today, from 00:00 to 24:00 UTC. This page says where that figure comes
-from, and what it can and cannot know.
+The band, the top row of the screen, shows one figure for the whole host. By
+default it shows the spend of today, from 00:00 to 24:00 UTC. This page says
+where that figure comes from, and what it can and cannot know.
 
-For the two bars and what else they draw, see
+For the three bars and what else they draw, see
 [tui/sessions/bars.md](tui/sessions/bars.md). For what a turn pays for, see
 [caching.md](caching.md).
 

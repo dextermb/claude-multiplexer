@@ -109,8 +109,8 @@ func resolveKeymap(kb *config.Keybindings) (keys.Keymap, bool, string) {
 // resolveBarSpecs resolves the composition of the two bars against the embedded
 // defaults, so the interface holds a ready spec for each. See docs/config/bars.md.
 func resolveBarSpecs(bars *config.Bars) map[string]config.BarSpec {
-	out := make(map[string]config.BarSpec, 2)
-	for _, bar := range []string{config.BarSession, config.BarStatus} {
+	out := make(map[string]config.BarSpec, len(config.BarNames))
+	for _, bar := range config.BarNames {
 		if spec, err := config.ResolveBarSpec(bars, bar); err == nil {
 			out[bar] = spec
 		}
