@@ -5,8 +5,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/charmbracelet/glamour"
-	"github.com/charmbracelet/glamour/ansi"
+	"charm.land/glamour/v2"
+	"charm.land/glamour/v2/ansi"
 )
 
 const maxCache = 512

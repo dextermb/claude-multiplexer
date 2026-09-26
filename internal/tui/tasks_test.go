@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 
 	"github.com/dextermb/claude-multiplexer/internal/manager"
 	"github.com/dextermb/claude-multiplexer/internal/protocol"
@@ -84,7 +84,7 @@ func TestTheTaskPanelShowsTheListAndShrinksTheOutput(t *testing.T) {
 	if m.outputWidth() != base-taskPanelWidth {
 		t.Fatalf("output width = %d, want %d (shrunk by the panel)", m.outputWidth(), base-taskPanelWidth)
 	}
-	view := visible(m.View())
+	view := visible(m.screen())
 	for _, want := range []string{"TASKS · 1/3", "First task", "Doing the second task", "Third task"} {
 		if !strings.Contains(view, want) {
 			t.Errorf("the panel has no %q:\n%s", want, view)
@@ -111,7 +111,7 @@ func TestTheTaskPanelHidesWhenTheListIsEmpty(t *testing.T) {
 	if m.outputWidth() != base {
 		t.Fatalf("output width = %d, want the full %d again", m.outputWidth(), base)
 	}
-	if strings.Contains(visible(m.View()), "TASKS ·") {
+	if strings.Contains(visible(m.screen()), "TASKS ·") {
 		t.Error("the panel must leave no header behind")
 	}
 }
@@ -143,7 +143,7 @@ func TestTheViewFillsTheWindowWithTheTaskPanel(t *testing.T) {
 	if !m.showSidePanel() {
 		t.Fatal("the panel must show at this width")
 	}
-	lines := strings.Split(m.View(), "\n")
+	lines := strings.Split(m.screen(), "\n")
 	if len(lines) != m.height {
 		t.Fatalf("the view has %d lines, want %d", len(lines), m.height)
 	}

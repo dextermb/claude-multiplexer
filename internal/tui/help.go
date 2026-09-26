@@ -1,10 +1,11 @@
 package tui
 
 import (
+	"charm.land/lipgloss/v2"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
+	"charm.land/bubbles/v2/textinput"
+	tea "charm.land/bubbletea/v2"
 	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/keys"
 )
@@ -192,6 +193,31 @@ func styleHints(plain string) string {
 	return strings.Join(parts, statusMutedStyle.Render("  "))
 }
 
+// fitHints keeps the whole hints that fit in width, as styleHints sets them, and
+// marks with an ellipsis that more are left.
+func fitHints(plain string, width int) string {
+	parts := strings.Split(plain, " · ")
+	used, keep := 0, 0
+	for i, part := range parts {
+		w := lipgloss.Width(part)
+		if i > 0 {
+			w += 2
+		}
+		if used+w > width-2 {
+			break
+		}
+		used += w
+		keep++
+	}
+	if keep == len(parts) {
+		return plain
+	}
+	if keep == 0 {
+		return "…"
+	}
+	return strings.Join(parts[:keep], " · ") + " · …"
+}
+
 // sequenceHints lists the action keys of a target, for the status bar.
 func (m Model) sequenceHints(target keys.Action) string {
 	ctx, ok := keys.TargetContext(target)
@@ -213,17 +239,17 @@ type help struct {
 }
 
 func newHelp() *help {
-	filter := textinput.New()
+	filter := newTextInput()
 	filter.Placeholder = "search the keys"
 	filter.Prompt = "> "
 	filter.CharLimit = 40
-	filter.Width = 30
+	filter.SetWidth(30)
 	filter.Focus()
 	return &help{filter: filter}
 }
 
 func (h *help) Update(msg tea.Msg) (bool, tea.Cmd) {
-	if key, ok := msg.(tea.KeyMsg); ok {
+	if key, ok := msg.(tea.KeyPressMsg); ok {
 		switch key.String() {
 		case "esc", "enter":
 			return false, nil
@@ -319,5 +345,5 @@ func (h *help) View(km keys.Keymap, cmds []config.Command, width, height int) st
 		footer = "↑↓ scroll · " + footer
 	}
 	b.WriteString("\n" + hintStyle.Render(footer))
-	return modalStyle.Width(inner).Render(b.String())
+	return modalStyle.Width(inner + 2).Render(b.String())
 }

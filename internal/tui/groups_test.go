@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/dextermb/claude-multiplexer/internal/session"
 )
@@ -197,7 +197,7 @@ func TestTheHeaderOfAFoldedGroupShowsTheMostUrgentRow(t *testing.T) {
 	if !strings.Contains(header, foldShutMark) {
 		t.Errorf("header = %q, want the folded mark", header)
 	}
-	if !strings.Contains(raw, "38;5;75m■") {
+	if !strings.Contains(raw, "38;2;96;165;250m■") {
 		t.Errorf("header = %q, want the glyph of the waiting session", header)
 	}
 	if !strings.Contains(header, "2") {
@@ -301,8 +301,8 @@ func TestAClickOnAHeaderFoldsTheGroup(t *testing.T) {
 		t.Fatalf("groups = %d, want one for each directory", len(m.groups))
 	}
 
-	m, _ = step(t, m, tea.MouseMsg{
-		X: 3, Y: bandHeight + titleHeight, Action: tea.MouseActionPress, Button: tea.MouseButtonLeft,
+	m, _ = step(t, m, tea.MouseClickMsg{
+		X: 3, Y: bandHeight + titleHeight, Button: tea.MouseLeft,
 	})
 	if !m.groups[0].folded {
 		t.Fatal("a click on a header must fold that group")
@@ -311,8 +311,8 @@ func TestAClickOnAHeaderFoldsTheGroup(t *testing.T) {
 		t.Fatal("the folded group still shows its row")
 	}
 
-	m, _ = step(t, m, tea.MouseMsg{
-		X: 3, Y: bandHeight + titleHeight, Action: tea.MouseActionPress, Button: tea.MouseButtonLeft,
+	m, _ = step(t, m, tea.MouseClickMsg{
+		X: 3, Y: bandHeight + titleHeight, Button: tea.MouseLeft,
 	})
 	if m.groups[0].folded {
 		t.Fatal("a second click must unfold the group")

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	"github.com/dextermb/claude-multiplexer/internal/keys"
 )
 
@@ -74,7 +74,7 @@ func (m Model) armSequence(seq sequence) (tea.Model, tea.Cmd) {
 	})
 }
 
-func (m Model) resolveSequence(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+func (m Model) resolveSequence(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	seq := *m.seq
 	m.seq = nil
 	key := msg.String()
@@ -172,10 +172,7 @@ func (m Model) runGlobal(a keys.Action) (tea.Model, tea.Cmd) {
 		return m.openPicker()
 	case keys.GlobalToggleMouse:
 		m.mouseOn = !m.mouseOn
-		if m.mouseOn {
-			return m, tea.EnableMouseCellMotion
-		}
-		return m, tea.DisableMouse
+		return m, nil
 	case keys.GlobalQuit:
 		return m.startQuit()
 	case keys.GlobalFocusNext:
@@ -184,10 +181,10 @@ func (m Model) runGlobal(a keys.Action) (tea.Model, tea.Cmd) {
 		}
 		return m.toggleFocus()
 	case keys.GlobalPageUp:
-		m.output.ViewUp()
+		m.output.PageUp()
 		return m, nil
 	case keys.GlobalPageDown:
-		m.output.ViewDown()
+		m.output.PageDown()
 		return m, nil
 	case keys.GlobalDismissUpdate:
 		return m.dismissUpdate()

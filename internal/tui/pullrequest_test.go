@@ -166,7 +166,7 @@ func TestTheDiffKeyListNamesThePullRequestKeys(t *testing.T) {
 	m = start(t, m, 160, 64)
 	m, _ = step(t, m, key("?"))
 
-	view := m.View()
+	view := m.screen()
 	for _, want := range []string{"d p", "d P", "pull request"} {
 		if !strings.Contains(view, want) {
 			t.Errorf("the key list does not name %q:\n%s", want, view)

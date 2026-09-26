@@ -7,17 +7,21 @@ black, and the thing you point at inverts to white.
 The tokens live in `internal/tui/theme.go`. Every style in the interface takes
 its colour from a token. No other file names a colour.
 
-## Three values for each token
+## One hex value for each token
 
-Each token is written three times: as truecolor hex, as an xterm-256 number, and
-as an ANSI-16 number. Lip Gloss picks the one that the terminal supports. There
-is one set of tokens, the dark set, because the ground is always black (see
-below).
+Each token is one truecolor hex value. Lip Gloss v2 always writes the full
+colour, and Bubble Tea v2 converts it to the colours the terminal supports as it
+draws the screen. There is one set of tokens, the dark set, because the ground
+is always black (see below).
 
-The numbers are written by hand, because the automatic match is wrong for the
-greys. Lip Gloss v1 maps `#3a3a3a` to 59, not to 237. With the numbers written,
-a 256-colour terminal shows every grey with no loss, because each Blackline grey
-is an xterm grey.
+Each Blackline grey is an xterm grey, and the conversion finds it exactly, so a
+256-colour terminal shows every grey with no loss. The xterm column below is
+what a 256-colour terminal gets.
+
+On a 16-colour terminal the conversion is coarse. The greys fall to three
+levels, and the warning amber becomes bright red, so there the warning and the
+danger colours look the same. The word beside each colour still tells them
+apart.
 
 | Token | Dark | xterm | Used for |
 |---|---|---|---|
@@ -78,6 +82,13 @@ The terminal sets the font and the size, and Blackline uses one weight. So the
 interface sets no bold and no italic. Hierarchy comes from case, colour, and
 rules. Labels, titles, and group names are uppercase through
 `lipgloss.Style.Transform`, so the text in the code stays in lowercase.
+
+## Inputs
+
+The prompt, the search box, and every input in a dialog are Bubbles text areas
+and text inputs, made by `newTextArea` and `newTextInput` in
+`internal/tui/inputs.go`. They take the Blackline greys: your text in the heading
+grey, the placeholder and the prompt mark dimmed, and no band on the cursor line.
 
 ## The ground is black on every terminal
 

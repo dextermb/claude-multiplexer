@@ -5,10 +5,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/textarea"
-	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/textarea"
+	"charm.land/bubbles/v2/textinput"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 
 	"github.com/dextermb/claude-multiplexer/internal/manager"
 	"github.com/dextermb/claude-multiplexer/internal/session"
@@ -110,13 +110,13 @@ func newForm(dir string, defaults newSessionDefaults, peers, hoistable []string)
 	placeholders[fieldDir] = dir
 	placeholders[fieldName] = "taken from the directory"
 	for i := range f.inputs {
-		input := textinput.New()
+		input := newTextInput()
 		input.Placeholder = placeholders[i]
 		input.CharLimit = 512
-		input.Width = 40
+		input.SetWidth(40)
 		f.inputs[i] = input
 	}
-	f.firstArea = textarea.New()
+	f.firstArea = newTextArea()
 	f.firstArea.Placeholder = "optional, and /preset works here"
 	f.firstArea.CharLimit = 512
 	f.firstArea.ShowLineNumbers = false
@@ -249,7 +249,7 @@ func (f *form) completeDir() bool {
 }
 
 func (f *form) Update(msg tea.Msg) (formResult, tea.Cmd) {
-	if key, ok := msg.(tea.KeyMsg); ok {
+	if key, ok := msg.(tea.KeyPressMsg); ok {
 		switch key.String() {
 		case "esc":
 			return formCancelled, nil
@@ -478,7 +478,7 @@ func (f *form) View(width int) string {
 		b.WriteString("\n" + errorStyle.Render(f.err) + "\n")
 	}
 	b.WriteString("\n" + hintStyle.Render(f.hint()))
-	return modalStyle.Width(inner).Render(b.String())
+	return modalStyle.Width(inner + 2).Render(b.String())
 }
 
 func (f *form) selectView(i int) string {

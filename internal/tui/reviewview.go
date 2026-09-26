@@ -1,17 +1,18 @@
 package tui
 
 import (
+	"image/color"
 	"strconv"
 	"strings"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 	"github.com/dextermb/claude-multiplexer/internal/git"
 )
 
 const reviewMinExplain = 24
 
 // reviewSelBg is the subtle band behind the selected hunk on the diff side.
-var reviewSelBg lipgloss.TerminalColor = colSubdued
+var reviewSelBg color.Color = colSubdued
 
 // reviewHeadOn is the header of the focused pane, and reviewHeadOff the header
 // of an unfocused pane, so the split shows which side takes the keys.

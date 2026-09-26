@@ -4,10 +4,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/charmbracelet/bubbles/textarea"
-	"github.com/charmbracelet/bubbles/textinput"
-	"github.com/charmbracelet/bubbles/viewport"
-	tea "github.com/charmbracelet/bubbletea"
+	"charm.land/bubbles/v2/textarea"
+	"charm.land/bubbles/v2/textinput"
+	"charm.land/bubbles/v2/viewport"
+	tea "charm.land/bubbletea/v2"
 	"github.com/dextermb/claude-multiplexer/internal/commands"
 	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/keys"
@@ -175,7 +175,7 @@ func New(opts Options) Model {
 		}
 	}
 
-	prompt := textarea.New()
+	prompt := newTextArea()
 	prompt.Placeholder = "Type a prompt, then press Enter"
 	prompt.Prompt = "> "
 	prompt.ShowLineNumbers = false
@@ -205,7 +205,7 @@ func New(opts Options) Model {
 		mgr:             opts.Manager,
 		peering:         len(opts.Manager.PeerNames()) > 0,
 		sub:             opts.Manager.Subscribe(manager.DefaultSubscriberBuffer),
-		output:          viewport.New(0, 0),
+		output:          viewport.New(),
 		prompt:          prompt,
 		search:          newSearchInput(),
 		pathPicked:      -1,
@@ -227,7 +227,7 @@ func New(opts Options) Model {
 }
 
 func Run(opts Options) error {
-	program := tea.NewProgram(New(opts), tea.WithAltScreen(), tea.WithMouseCellMotion())
+	program := tea.NewProgram(New(opts))
 	_, err := program.Run()
 	return err
 }
@@ -342,19 +342,19 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case commandOutputMsg:
 		return m.handleCommandOutput(msg)
 	case tea.MouseMsg:
-		if msg.Y < bandHeight {
+		ev := newMouseEvent(msg)
+		if ev.Y < bandHeight {
 			return m, nil
 		}
-		msg.Y -= bandHeight
-		return m.handleMouse(msg)
-	case tea.KeyMsg:
+		ev.Y -= bandHeight
+		return m.handleMouse(ev)
+	case tea.PasteMsg:
+		return m.handlePaste(msg.Content)
+	case tea.KeyPressMsg:
 		if isMouseArtifact(msg) {
 			return m, nil
 		}
 		m.inBurst = m.burstAware && m.burst.key(time.Now())
-		if msg.Paste {
-			return m.handlePaste(string(msg.Runes))
-		}
 		return m.handleKey(msg)
 	}
 
@@ -371,8 +371,8 @@ func (m Model) resize(width, height int) (tea.Model, tea.Cmd) {
 	m.height = height
 	m.ready = true
 
-	m.output.Width = m.outputWidth()
-	m.output.Height = m.outputHeight()
+	m.output.SetWidth(m.outputWidth())
+	m.output.SetHeight(m.outputHeight())
 	m.prompt.SetWidth(width - gutterWidth)
 	m.rebuildOutput()
 

@@ -120,7 +120,7 @@ func TestSearchBoxTakesOneSidebarLine(t *testing.T) {
 	if got := m.visibleLines(); got != before-1 {
 		t.Fatalf("the search box must take one list line: visibleLines %d, want %d", got, before-1)
 	}
-	if !strings.Contains(visible(m.View()), "api") {
-		t.Fatalf("the sidebar must show the search box:\n%s", visible(m.View()))
+	if !strings.Contains(visible(m.screen()), "api") {
+		t.Fatalf("the sidebar must show the search box:\n%s", visible(m.screen()))
 	}
 }

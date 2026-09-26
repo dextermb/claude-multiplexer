@@ -73,7 +73,7 @@ func TestStoredSessionsFillTheSidebar(t *testing.T) {
 	storeSession(t, mgr, "yesterday", dir, "what did we do")
 	m = start(t, m, 100, 24)
 
-	view := m.View()
+	view := m.screen()
 	if !strings.Contains(view, "yesterday") {
 		t.Fatalf("the stored session is missing from the sidebar:\n%s", view)
 	}
@@ -135,7 +135,7 @@ func TestEnterResumesAStoredSession(t *testing.T) {
 	if !ok || !item.live {
 		t.Fatalf("the resumed session is not live: %+v", item)
 	}
-	if !strings.Contains(m.View(), "old") {
+	if !strings.Contains(m.screen(), "old") {
 		t.Fatal("the resumed session left the sidebar")
 	}
 }
@@ -158,8 +158,8 @@ func TestArchivingHidesASessionAndAShowsItAgain(t *testing.T) {
 	if len(m.rows) != 0 {
 		t.Fatalf("rows = %+v, want none after archiving", m.rows)
 	}
-	if !strings.Contains(m.View(), "Press l a to show them") {
-		t.Fatalf("the empty state does not mention the archive:\n%s", m.View())
+	if !strings.Contains(m.screen(), "Press l a to show them") {
+		t.Fatalf("the empty state does not mention the archive:\n%s", m.screen())
 	}
 
 	m, _ = chord(t, m, "l", "a")

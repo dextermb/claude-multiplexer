@@ -34,7 +34,7 @@ func jobsOpen(t *testing.T, width, height int) Model {
 
 func TestSessionDialogKeepsTheSidebar(t *testing.T) {
 	m := jobsOpen(t, 100, 24)
-	view := visible(m.View())
+	view := visible(m.screen())
 	if !strings.Contains(view, "BACKGROUND JOBS") {
 		t.Fatalf("the jobs dialog must draw:\n%s", view)
 	}
@@ -48,7 +48,7 @@ func TestSessionDialogKeepsTheSidebar(t *testing.T) {
 
 func TestSessionDialogLeavesTheSidebarColumns(t *testing.T) {
 	m := jobsOpen(t, 100, 24)
-	for _, line := range strings.Split(visible(m.View()), "\n") {
+	for _, line := range strings.Split(visible(m.screen()), "\n") {
 		if strings.Contains(line, "Background jobs") {
 			if column := strings.Index(line, "Background jobs"); column < sidebarWidth {
 				t.Fatalf("the dialog starts at column %d, inside the sidebar:\n%s", column, line)
@@ -67,7 +67,7 @@ func TestBodyDialogCoversTheSidebar(t *testing.T) {
 	if m.help == nil {
 		t.Fatal("? must open the key list")
 	}
-	view := visible(m.View())
+	view := visible(m.screen())
 	if strings.Contains(view, foldOpenMark) {
 		t.Fatalf("the key list belongs to no session, so it covers the sidebar:\n%s", view)
 	}
@@ -76,7 +76,7 @@ func TestBodyDialogCoversTheSidebar(t *testing.T) {
 func TestSessionDialogFitsANarrowTerminal(t *testing.T) {
 	const width = 60
 	m := jobsOpen(t, width, 20)
-	for i, line := range strings.Split(visible(m.View()), "\n") {
+	for i, line := range strings.Split(visible(m.screen()), "\n") {
 		if got := len([]rune(line)); got > width {
 			t.Fatalf("line %d is %d columns wide, the terminal is %d:\n%s", i, got, width, line)
 		}

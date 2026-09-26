@@ -3,14 +3,14 @@ package tui
 import (
 	"strings"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 	"github.com/dextermb/claude-multiplexer/internal/render"
 )
 
 func (m *Model) rebuildOutput() {
 	sameSession := m.sel != "" && m.sel == m.outputFor
 	keepOffset := sameSession && !m.output.AtBottom()
-	offset := m.output.YOffset
+	offset := m.output.YOffset()
 	cursor := m.blockCursor
 	m.selection = selRange{}
 	if !sameSession {
@@ -26,8 +26,8 @@ func (m *Model) rebuildOutput() {
 		return
 	}
 	lines := m.linesFor(m.sel)
-	m.output.Width = m.outputWidth()
-	m.output.Height = m.outputHeight()
+	m.output.SetWidth(m.outputWidth())
+	m.output.SetHeight(m.outputHeight())
 	m.shownLines = append([]render.Line(nil), lines...)
 	m.redrawBlocks()
 	if sameSession && m.isCapped(cursor) {
@@ -171,9 +171,9 @@ func (m *Model) moveBlockCursor(delta int) {
 func (m *Model) showBlock(index int) {
 	top, bottom := m.blockStart[index], m.markerAt[index]
 	switch {
-	case top < m.output.YOffset:
+	case top < m.output.YOffset():
 		m.output.SetYOffset(top)
-	case bottom >= m.output.YOffset+m.outputHeight():
+	case bottom >= m.output.YOffset()+m.outputHeight():
 		m.output.SetYOffset(bottom - m.outputHeight() + 1)
 	}
 }
@@ -181,7 +181,7 @@ func (m *Model) showBlock(index int) {
 // toggleBlock opens or closes a block, and holds its first row where it was, so
 // the text under your eyes does not jump.
 func (m *Model) toggleBlock(index int) {
-	anchor := m.blockStart[index] - m.output.YOffset
+	anchor := m.blockStart[index] - m.output.YOffset()
 	m.expanded[index] = !m.expanded[index]
 	m.blockCursor = index
 	m.redrawBlocks()

@@ -4,8 +4,6 @@ import (
 	"strings"
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
-
 	"github.com/dextermb/claude-multiplexer/internal/config"
 )
 
@@ -27,7 +25,7 @@ func TestQuestionMarkShowsEveryKey(t *testing.T) {
 	m = spawn(t, m, mgr, "alpha", t.TempDir())
 	m = openHelp(t, m)
 
-	view := visible(m.View())
+	view := visible(m.screen())
 	for _, want := range []string{"KEYS", "QUICK KEYS", "Start a new session", "esc close"} {
 		if !strings.Contains(view, want) {
 			t.Errorf("the list is missing %q:\n%s", want, view)
@@ -72,7 +70,7 @@ func TestTheKeyListSearches(t *testing.T) {
 	m = openHelp(t, m)
 
 	for _, r := range "archive" {
-		m, _ = step(t, m, tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m, _ = step(t, m, key(string(r)))
 	}
 	narrowed := strings.Join(visibleAll(m.help.rows(m.keys, nil, 80)), "\n")
 	if !strings.Contains(narrowed, "Archive the selected session") {
@@ -86,7 +84,7 @@ func TestTheKeyListSearches(t *testing.T) {
 	}
 
 	for i := 0; i < len("archive"); i++ {
-		m, _ = step(t, m, tea.KeyMsg{Type: tea.KeyBackspace})
+		m, _ = step(t, m, key("backspace"))
 	}
 	restored := strings.Join(visibleAll(m.help.rows(m.keys, nil, 80)), "\n")
 	if !strings.Contains(restored, "Add a new line inside the prompt") {
@@ -102,7 +100,7 @@ func TestTheKeyListSearchesTheKeysThemselves(t *testing.T) {
 	m = openHelp(t, m)
 
 	for _, r := range "ctrl+j" {
-		m, _ = step(t, m, tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m, _ = step(t, m, key(string(r)))
 	}
 	rows := strings.Join(visibleAll(m.help.rows(m.keys, nil, 80)), "\n")
 	if !strings.Contains(rows, "Add a new line inside the prompt") {
@@ -118,10 +116,10 @@ func TestTheKeyListSaysWhenNothingMatches(t *testing.T) {
 	m = openHelp(t, m)
 
 	for _, r := range "zzzz" {
-		m, _ = step(t, m, tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m, _ = step(t, m, key(string(r)))
 	}
-	if !strings.Contains(visible(m.View()), "No key matches that.") {
-		t.Fatalf("view:\n%s", visible(m.View()))
+	if !strings.Contains(visible(m.screen()), "No key matches that.") {
+		t.Fatalf("view:\n%s", visible(m.screen()))
 	}
 }
 
@@ -132,17 +130,17 @@ func TestTheKeyListScrolls(t *testing.T) {
 	m = spawn(t, m, mgr, "alpha", t.TempDir())
 	m = openHelp(t, m)
 
-	first := visible(m.View())
+	first := visible(m.screen())
 	m, _ = step(t, m, key("down"))
-	if visible(m.View()) == first {
+	if visible(m.screen()) == first {
 		t.Fatal("down must scroll the list")
 	}
 	m, _ = step(t, m, key("up"))
-	if visible(m.View()) != first {
+	if visible(m.screen()) != first {
 		t.Fatal("up must scroll back")
 	}
 	m, _ = step(t, m, key("up"))
-	if visible(m.View()) != first {
+	if visible(m.screen()) != first {
 		t.Fatal("the list must stop at the top")
 	}
 }
@@ -166,7 +164,7 @@ func TestEscAndEnterCloseTheKeyList(t *testing.T) {
 	}
 
 	m = openHelp(t, m)
-	m, _ = step(t, m, tea.KeyMsg{Type: tea.KeyCtrlC})
+	m, _ = step(t, m, key("ctrl+c"))
 	if m.help != nil {
 		t.Fatal("ctrl+c must close the list")
 	}
@@ -206,5 +204,18 @@ func TestTheStatusBarHintsComeFromTheSameTable(t *testing.T) {
 	}
 	if !strings.Contains(m.statusHints(), "? keys") {
 		t.Error("statusHints must name the key list")
+	}
+}
+
+func TestFitHintsDropsWholeHints(t *testing.T) {
+	plain := "m model · p mode · e effort"
+	if got := fitHints(plain, 80); got != plain {
+		t.Fatalf("a list that fits must stay whole, got %q", got)
+	}
+	if got := fitHints(plain, 18); got != "m model · p mode · …" {
+		t.Fatalf("got %q, want whole hints and an ellipsis", got)
+	}
+	if got := fitHints(plain, 3); got != "…" {
+		t.Fatalf("got %q, want only the ellipsis", got)
 	}
 }

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/manager"
@@ -186,7 +186,7 @@ func TestEventOpensTheQuestionDialogAndSubmitSends(t *testing.T) {
 	if m.questions["alpha"] == nil {
 		t.Fatal("a question event must open the dialog for its session")
 	}
-	if view := m.View(); !strings.Contains(visible(view), "Which colour do you prefer?") {
+	if view := m.screen(); !strings.Contains(visible(view), "Which colour do you prefer?") {
 		t.Fatalf("the view does not show the question:\n%s", visible(view))
 	}
 
@@ -236,7 +236,7 @@ func TestQuestionDoesNotStealSelection(t *testing.T) {
 	if m.questions["beta"] == nil {
 		t.Fatal("the question must attach to the session that asked")
 	}
-	if view := m.View(); strings.Contains(visible(view), "Which colour do you prefer?") {
+	if view := m.screen(); strings.Contains(visible(view), "Which colour do you prefer?") {
 		t.Fatal("the pane of another session must not show the question")
 	}
 }
@@ -255,7 +255,7 @@ func TestAPasteOnTheOtherRowGoesToTheDialog(t *testing.T) {
 		t.Fatal("the cursor must sit on the Other row")
 	}
 
-	m, _ = step(t, m, tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("teal"), Paste: true})
+	m, _ = step(t, m, tea.PasteMsg{Content: "teal"})
 	if got := m.questions["alpha"].text[0].Value(); got != "teal" {
 		t.Fatalf("the Other input = %q, want the pasted text", got)
 	}

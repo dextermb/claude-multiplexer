@@ -1,12 +1,13 @@
 package tui
 
 import (
+	tea "charm.land/bubbletea/v2"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/protocol"
 	"github.com/dextermb/claude-multiplexer/internal/session"
@@ -75,8 +76,8 @@ func (m *Model) applyLayout() {
 	}
 	m.layout = config.ResolveLayout(m.layouts, m.activeLayout, name)
 	m.syncPromptHeight()
-	m.output.Width = m.outputWidth()
-	m.output.Height = m.outputHeight()
+	m.output.SetWidth(m.outputWidth())
+	m.output.SetHeight(m.outputHeight())
 }
 
 // sidebarCols is the width of the session list sidebar, from the layout, kept
@@ -175,7 +176,17 @@ func (m Model) showSidePanel() bool {
 	return m.baseOutputWidth()-m.taskCols() >= minOutputWithPanel
 }
 
-func (m Model) View() string {
+func (m Model) View() tea.View {
+	v := tea.NewView(m.screen())
+	v.AltScreen = true
+	if m.mouseOn {
+		v.MouseMode = tea.MouseModeCellMotion
+	}
+	return v
+}
+
+// screen draws the whole frame, painted on the ground.
+func (m Model) screen() string {
 	if !m.ready {
 		return paintGround("starting…", m.width, m.height)
 	}
@@ -547,6 +558,6 @@ func (m Model) promptView() string {
 }
 
 func (m Model) confirmView(width int) string {
-	return modalStyle.Width(modalInner(width)).Render(fmt.Sprintf("Stop session %q?\n\n%s",
+	return modalStyle.Width(modalInner(width) + 2).Render(fmt.Sprintf("Stop session %q?\n\n%s",
 		m.confirm, hintStyle.Render("y stop · any other key cancel")))
 }

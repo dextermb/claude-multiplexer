@@ -3,11 +3,39 @@ package tui
 import (
 	"strings"
 
-	"github.com/charmbracelet/bubbles/textarea"
-	tea "github.com/charmbracelet/bubbletea"
+	"charm.land/bubbles/v2/textarea"
+	tea "charm.land/bubbletea/v2"
 )
 
-func (m Model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
+type mouseAction int
+
+const (
+	mousePress mouseAction = iota
+	mouseRelease
+	mouseMotion
+)
+
+// mouseEvent is one mouse message as the handlers read it: the position, the
+// button, and whether it pressed, released, or moved. A wheel turn is a press.
+// raw keeps the message, for the viewport to scroll by.
+type mouseEvent struct {
+	tea.Mouse
+	action mouseAction
+	raw    tea.MouseMsg
+}
+
+func newMouseEvent(msg tea.MouseMsg) mouseEvent {
+	ev := mouseEvent{Mouse: msg.Mouse(), raw: msg}
+	switch msg.(type) {
+	case tea.MouseReleaseMsg:
+		ev.action = mouseRelease
+	case tea.MouseMotionMsg:
+		ev.action = mouseMotion
+	}
+	return ev
+}
+
+func (m Model) handleMouse(msg mouseEvent) (tea.Model, tea.Cmd) {
 	if m.form != nil || m.confirm != "" || m.quitting || m.questions[m.sel] != nil || (m.modal != nil && m.modal.region() == modalPane) {
 		return m, nil
 	}
@@ -17,18 +45,18 @@ func (m Model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	}
 
 	switch msg.Button {
-	case tea.MouseButtonWheelUp, tea.MouseButtonWheelDown:
-		if msg.Action != tea.MouseActionPress {
+	case tea.MouseWheelUp, tea.MouseWheelDown:
+		if msg.action != mousePress {
 			return m, nil
 		}
 		if !m.sidebarHidden && msg.X < m.sidebarCols() {
-			if msg.Button == tea.MouseButtonWheelUp {
+			if msg.Button == tea.MouseWheelUp {
 				return m.move(-1)
 			}
 			return m.move(1)
 		}
 		if m.inDiffPanel(msg.X, msg.Y) {
-			if msg.Button == tea.MouseButtonWheelUp {
+			if msg.Button == tea.MouseWheelUp {
 				m.diffScroll -= 3
 			} else {
 				m.diffScroll += 3
@@ -37,7 +65,7 @@ func (m Model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		if !m.diffPanel && m.showSidePanel() && msg.X >= m.width-m.taskCols() {
-			if msg.Button == tea.MouseButtonWheelUp {
+			if msg.Button == tea.MouseWheelUp {
 				m.taskScroll -= 3
 			} else {
 				m.taskScroll += 3
@@ -46,17 +74,17 @@ func (m Model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		var cmd tea.Cmd
-		m.output, cmd = m.output.Update(msg)
+		m.output, cmd = m.output.Update(msg.raw)
 		return m, cmd
-	case tea.MouseButtonLeft:
+	case tea.MouseLeft:
 		return m.handleLeftMouse(msg)
 	}
 	return m, nil
 }
 
-func (m Model) handleLeftMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
-	switch msg.Action {
-	case tea.MouseActionPress:
+func (m Model) handleLeftMouse(msg mouseEvent) (tea.Model, tea.Cmd) {
+	switch msg.action {
+	case mousePress:
 		if msg.Y >= m.bodyHeight() && msg.Y < m.bodyHeight()+m.promptHeight() {
 			m.clearSelection()
 			m.focus = focusPrompt
@@ -104,7 +132,7 @@ func (m Model) handleLeftMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 			m.rebuildOutput()
 		}
 		return m, nil
-	case tea.MouseActionMotion:
+	case mouseMotion:
 		if m.selection.dragging {
 			if p, ok := m.outputPos(msg.X, msg.Y); ok {
 				m.selection.cursor = p
@@ -112,7 +140,7 @@ func (m Model) handleLeftMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 			}
 		}
 		return m, nil
-	case tea.MouseActionRelease:
+	case mouseRelease:
 		if m.selection.dragging {
 			m.selection.dragging = false
 			if p, ok := m.outputPos(msg.X, msg.Y); ok {
@@ -147,7 +175,7 @@ func (m Model) outputPos(x, y int) (pos, bool) {
 	if row < 0 || row >= m.outputHeight() {
 		return pos{}, false
 	}
-	return pos{line: m.output.YOffset + row, col: x - m.leftWidth() - gutterWidth}, true
+	return pos{line: m.output.YOffset() + row, col: x - m.leftWidth() - gutterWidth}, true
 }
 
 func (m *Model) clearSelection() {

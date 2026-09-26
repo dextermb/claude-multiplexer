@@ -1,11 +1,12 @@
 package tui
 
 import (
+	"image/color"
 	"path/filepath"
 	"strconv"
 	"strings"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 	"github.com/dextermb/claude-multiplexer/internal/config"
 )
 
@@ -15,7 +16,7 @@ import (
 // carries the accent colour when the panel holds the focus. A vertical panel
 // keeps the left border that sideColumn draws. See docs/tui/diff.md.
 func diffBandStyle(focused, bottom bool) lipgloss.Style {
-	var color lipgloss.TerminalColor = colBorder
+	var color color.Color = colBorder
 	if focused {
 		color = colAccent
 	}
@@ -30,7 +31,7 @@ func (m Model) diffPanelView() string {
 		height := m.diffContentHeight()
 		block := m.diffWindow(lines, height)
 		bottom := m.layout.DiffPosition == config.DiffBottom
-		return diffBandStyle(m.focus == focusDiff, bottom).Width(m.diffPanelWidth()).Height(height).Render(block)
+		return diffBandStyle(m.focus == focusDiff, bottom).Width(m.diffPanelWidth()).Height(height + 1).Render(block)
 	}
 	height := m.diffPanelHeight()
 	block := m.diffWindow(lines, height)

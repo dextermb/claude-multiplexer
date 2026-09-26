@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/dextermb/claude-multiplexer/internal/manager"
 	"github.com/dextermb/claude-multiplexer/internal/render"
@@ -53,7 +53,7 @@ func TestRealSessionThroughTheInterface(t *testing.T) {
 	m, _ = step(t, m, spawnedMsg{name: name})
 
 	for _, r := range "Write two short sentences about mutexes." {
-		m, _ = step(t, m, tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m, _ = step(t, m, key(string(r)))
 	}
 	m, _ = step(t, m, key("enter"))
 

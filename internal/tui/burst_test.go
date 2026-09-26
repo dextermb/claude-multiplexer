@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 )
 
 func TestTheFirstKeyIsNeverABurstKey(t *testing.T) {
@@ -43,7 +43,7 @@ func burstModel(t *testing.T) Model {
 
 func TestAPastedEnterInsertsANewline(t *testing.T) {
 	m := burstModel(t)
-	for _, msg := range []tea.KeyMsg{key("a"), key("enter"), key("b")} {
+	for _, msg := range []tea.KeyPressMsg{key("a"), key("enter"), key("b")} {
 		m, _ = step(t, m, msg)
 	}
 	if got := m.prompt.Value(); got != "a\nb" {

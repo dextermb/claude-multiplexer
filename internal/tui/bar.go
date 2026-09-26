@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 
 	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/manager"
@@ -276,7 +276,7 @@ func (m Model) sessionRightSeg(item row, e config.BarElement) []barSeg {
 	}
 	switch e.ID {
 	case "state":
-		return []barSeg{{rowGlyph(item) + " " + m.stateWord(item), item.style().Background(barBackground)}}
+		return []barSeg{{rowGlyph(item) + " " + m.stateWord(item), item.style()}}
 	case "diff":
 		if d, ok := m.diffs[item.name]; ok && d.anyRepo() && !d.stat().Empty() {
 			return []barSeg{{barDiffCount(d.stat()), barStyle}}
@@ -387,7 +387,7 @@ func (m Model) statusView() string {
 	}
 	if m.seq != nil {
 		label := invertStyle.Render(" " + targetLabel(m.keys, m.seq.target) + " → ")
-		hints := truncate(m.sequenceHints(m.seq.target), m.width-lipgloss.Width(label)-4)
+		hints := fitHints(m.sequenceHints(m.seq.target), m.width-lipgloss.Width(label)-4)
 		return statusStyle.Width(m.width).Render(label + statusMutedStyle.Render("  ") + styleHints(hints))
 	}
 	left := m.statusLeftSegs()

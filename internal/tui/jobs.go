@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/bubbles/viewport"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/viewport"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 
 	"github.com/dextermb/claude-multiplexer/internal/session"
 )
@@ -107,7 +107,7 @@ func (m *jobsModal) Update(msg tea.Msg) (bool, tea.Cmd) {
 		m.refresh()
 		return true, jobTick()
 	}
-	key, ok := msg.(tea.KeyMsg)
+	key, ok := msg.(tea.KeyPressMsg)
 	if !ok {
 		return true, nil
 	}
@@ -131,26 +131,26 @@ func (m *jobsModal) Update(msg tea.Msg) (bool, tea.Cmd) {
 	return true, nil
 }
 
-func (m *jobsModal) scroll(key tea.KeyMsg) tea.Cmd {
+func (m *jobsModal) scroll(key tea.KeyPressMsg) tea.Cmd {
 	switch key.String() {
 	case "esc", "q":
 		m.showing = false
 	case "up", "k":
-		m.vp.LineUp(1)
+		m.vp.ScrollUp(1)
 	case "down", "j":
-		m.vp.LineDown(1)
+		m.vp.ScrollDown(1)
 	case "u", "ctrl+u":
-		m.vp.HalfViewUp()
+		m.vp.HalfPageUp()
 	case "d", "ctrl+d":
-		m.vp.HalfViewDown()
+		m.vp.HalfPageDown()
 	case "g", "home":
 		m.vp.GotoTop()
 	case "G", "end":
 		m.vp.GotoBottom()
 	case "pgup":
-		m.vp.ViewUp()
+		m.vp.PageUp()
 	case "pgdown":
-		m.vp.ViewDown()
+		m.vp.PageDown()
 	}
 	return nil
 }
@@ -166,7 +166,7 @@ func (m *jobsModal) open() tea.Cmd {
 	if _, ok := m.current(); !ok {
 		return nil
 	}
-	m.vp = viewport.New(m.contentWidth(), m.docHeight())
+	m.vp = viewport.New(viewport.WithWidth(m.contentWidth()), viewport.WithHeight(m.docHeight()))
 	m.showing = true
 	m.refresh()
 	m.vp.GotoTop()
@@ -220,11 +220,11 @@ func (m *jobsModal) View(width, height int) string {
 	inner := m.innerWidth()
 
 	if !m.ready {
-		m.vp = viewport.New(m.contentWidth(), m.docHeight())
+		m.vp = viewport.New(viewport.WithWidth(m.contentWidth()), viewport.WithHeight(m.docHeight()))
 		m.ready = true
 	}
-	m.vp.Width = m.contentWidth()
-	m.vp.Height = m.docHeight()
+	m.vp.SetWidth(m.contentWidth())
+	m.vp.SetHeight(m.docHeight())
 
 	var b strings.Builder
 	if job, ok := m.current(); m.showing && ok {
@@ -233,7 +233,7 @@ func (m *jobsModal) View(width, height int) string {
 		b.WriteString("\n\n")
 		b.WriteString(m.vp.View())
 		b.WriteString("\n\n" + hintStyle.Render("↑↓ scroll · g/G ends · esc back"))
-		return modalStyle.Width(inner).Render(b.String())
+		return modalStyle.Width(inner + 2).Render(b.String())
 	}
 
 	m.vp.SetContent(m.list(m.contentWidth()))
@@ -241,7 +241,7 @@ func (m *jobsModal) View(width, height int) string {
 	b.WriteString("\n\n")
 	b.WriteString(m.vp.View())
 	b.WriteString("\n\n" + hintStyle.Render("↑↓ move · enter open · esc close"))
-	return modalStyle.Width(inner).Render(b.String())
+	return modalStyle.Width(inner + 2).Render(b.String())
 }
 
 func (m *jobsModal) list(width int) string {

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
+	"charm.land/bubbles/v2/textinput"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/protocol"
@@ -25,10 +25,10 @@ func newQuestionDialog(session string, questions []protocol.Question) *questionD
 	d := &questionDialog{session: session, questions: questions}
 	for range questions {
 		d.chosen = append(d.chosen, make(map[int]bool))
-		input := textinput.New()
+		input := newTextInput()
 		input.Placeholder = "or type an answer"
 		input.CharLimit = 512
-		input.Width = 40
+		input.SetWidth(40)
 		d.text = append(d.text, input)
 	}
 	d.syncFocus()
@@ -52,7 +52,7 @@ func (d *questionDialog) syncFocus() {
 }
 
 func (d *questionDialog) Update(msg tea.Msg) (formResult, tea.Cmd) {
-	key, ok := msg.(tea.KeyMsg)
+	key, ok := msg.(tea.KeyPressMsg)
 	if !ok {
 		return formOpen, nil
 	}
@@ -70,7 +70,7 @@ func (d *questionDialog) Update(msg tea.Msg) (formResult, tea.Cmd) {
 			return formSubmitted, nil
 		}
 		return formOpen, nil
-	case " ":
+	case "space":
 		if !d.onText() {
 			d.toggle(d.cursor)
 			return formOpen, nil
@@ -252,5 +252,5 @@ func (d *questionDialog) View(width int, caps map[string]int) string {
 		b.WriteString("\n" + errorStyle.Render(d.err))
 	}
 	b.WriteString("\n\n" + hintStyle.Render("↑↓ move · space choose · enter send · esc cancel"))
-	return modalStyle.Width(inner).Render(b.String())
+	return modalStyle.Width(inner + 2).Render(b.String())
 }

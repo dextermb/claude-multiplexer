@@ -3,7 +3,7 @@ package tui
 import (
 	"strings"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/dextermb/claude-multiplexer/internal/session"
 )
@@ -51,7 +51,7 @@ func newChoiceDialog(kind settingKind, name, current string) *choiceDialog {
 }
 
 func (d *choiceDialog) Update(msg tea.Msg) (formResult, tea.Cmd) {
-	key, ok := msg.(tea.KeyMsg)
+	key, ok := msg.(tea.KeyPressMsg)
 	if !ok {
 		return formOpen, nil
 	}
@@ -146,5 +146,5 @@ func (d *choiceDialog) View(width int) string {
 		b.WriteString("\n" + hintStyle.Render(truncate(d.note, rowWidth)))
 	}
 	b.WriteString("\n\n" + hintStyle.Render("↑↓ move · enter apply · esc cancel"))
-	return modalStyle.Width(inner).Render(b.String())
+	return modalStyle.Width(inner + 2).Render(b.String())
 }

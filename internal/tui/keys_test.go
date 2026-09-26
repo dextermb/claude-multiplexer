@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	"github.com/dextermb/claude-multiplexer/internal/keys"
 )
 
@@ -53,20 +53,20 @@ func TestTheSequenceOpensTheJobsDialog(t *testing.T) {
 	if jobsOf(m) == nil {
 		t.Fatal("s j must open the jobs dialog")
 	}
-	if !strings.Contains(m.View(), name) {
-		t.Fatalf("the dialog does not name the session:\n%s", m.View())
+	if !strings.Contains(m.screen(), name) {
+		t.Fatalf("the dialog does not name the session:\n%s", m.screen())
 	}
 }
 
 func TestTheOldSingleKeysDoNothing(t *testing.T) {
 	for _, name := range []string{"J", "M", "e", "p", "z", "Z", "R", "A", "a", "r", "x", "m"} {
 		m, _ := sequenceModel(t)
-		before := m.View()
+		before := m.screen()
 		m, _ = step(t, m, key(name))
 		if jobsOf(m) != nil || choiceOf(m) != nil || renameOf(m) != nil || m.confirm != "" {
 			t.Errorf("%q must no longer open a dialog", name)
 		}
-		if got := m.View(); got != before {
+		if got := m.screen(); got != before {
 			t.Errorf("%q changed the screen:\n%s", name, got)
 		}
 	}
@@ -160,7 +160,7 @@ func TestTheControlFormWorksInThePrompt(t *testing.T) {
 func TestTheStatusBarShowsTheFollowUpKeys(t *testing.T) {
 	m, _ := sequenceModel(t)
 
-	view := visible(m.View())
+	view := visible(m.screen())
 	for _, want := range []string{"n new", "s session", "l list", "o output"} {
 		if !strings.Contains(view, want) {
 			t.Errorf("the status bar is missing %q:\n%s", want, view)
@@ -168,7 +168,7 @@ func TestTheStatusBarShowsTheFollowUpKeys(t *testing.T) {
 	}
 
 	m, _ = step(t, m, key("s"))
-	view = visible(m.View())
+	view = visible(m.screen())
 	for _, want := range []string{"j jobs", "m model", "x stop"} {
 		if !strings.Contains(view, want) {
 			t.Errorf("the pending bar is missing %q:\n%s", want, view)

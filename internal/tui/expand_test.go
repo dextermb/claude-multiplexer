@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 
 	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/manager"
@@ -203,11 +203,10 @@ func TestAClickOnAMarkerOpensThatBlock(t *testing.T) {
 	index := m.capped[0]
 	m.output.SetYOffset(0)
 
-	m, _ = step(t, m, tea.MouseMsg{
-		Action: tea.MouseActionPress,
-		Button: tea.MouseButtonLeft,
+	m, _ = step(t, m, tea.MouseClickMsg{
+		Button: tea.MouseLeft,
 		X:      sidebarWidth + gutterWidth + 2,
-		Y:      bandHeight + barHeight + m.markerAt[index] - m.output.YOffset,
+		Y:      bandHeight + barHeight + m.markerAt[index] - m.output.YOffset(),
 	})
 	if !m.expanded[index] {
 		t.Fatal("a click on the marker row must open the block")
@@ -227,7 +226,7 @@ func TestTheViewFillsTheWindowWithABlockOpenAndClosed(t *testing.T) {
 		if open {
 			m, _ = step(t, m, key("enter"))
 		}
-		lines := strings.Split(m.View(), "\n")
+		lines := strings.Split(m.screen(), "\n")
 		if len(lines) != m.height {
 			t.Fatalf("open=%v: the view has %d lines, want %d", open, len(lines), m.height)
 		}

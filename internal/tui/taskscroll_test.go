@@ -166,11 +166,11 @@ func TestASidebarRefreshKeepsThePlaceInTheOutput(t *testing.T) {
 	}
 
 	m.output.GotoTop()
-	before := m.output.YOffset
+	before := m.output.YOffset()
 
 	m, _ = step(t, m, storedMsg{metas: mgr.Stored()})
-	if m.output.YOffset != before {
-		t.Fatalf("a stored refresh moved the pane from %d to %d", before, m.output.YOffset)
+	if m.output.YOffset() != before {
+		t.Fatalf("a stored refresh moved the pane from %d to %d", before, m.output.YOffset())
 	}
 
 	m.output.GotoBottom()

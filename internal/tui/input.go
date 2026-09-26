@@ -3,13 +3,13 @@ package tui
 import (
 	"strings"
 
-	"github.com/charmbracelet/bubbles/textarea"
-	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
+	"charm.land/bubbles/v2/textarea"
+	"charm.land/bubbles/v2/textinput"
+	tea "charm.land/bubbletea/v2"
 	"github.com/dextermb/claude-multiplexer/internal/keys"
 )
 
-func (m Model) questionKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+func (m Model) questionKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "tab", "shift+tab":
 		return m.toggleFocus()
@@ -45,9 +45,8 @@ func (m Model) submitQuestion() (tea.Model, tea.Cmd) {
 	return m, tea.Batch(m.ensureAnimating(), textarea.Blink)
 }
 
-func looksDropped(msg tea.KeyMsg) bool {
-	return msg.Type == tea.KeyRunes && len(msg.Runes) > 1 &&
-		strings.ContainsRune(string(msg.Runes), '/')
+func looksDropped(msg tea.KeyPressMsg) bool {
+	return len([]rune(msg.Text)) > 1 && strings.ContainsRune(msg.Text, '/')
 }
 
 func (m Model) handlePaste(raw string) (tea.Model, tea.Cmd) {
@@ -82,7 +81,7 @@ func (m Model) handlePaste(raw string) (tea.Model, tea.Cmd) {
 	return m, textarea.Blink
 }
 
-func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	if m.quitting {
 		return m, nil
 	}
@@ -147,7 +146,7 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.reviewKey(msg)
 	}
 
-	if m.inBurst && msg.Type == tea.KeyRunes && m.focus != focusPrompt {
+	if m.inBurst && msg.Text != "" && m.focus != focusPrompt {
 		m.focus = focusPrompt
 		m.prompt.Focus()
 		return m.promptKey(msg)
@@ -181,7 +180,7 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	if m.focus != focusPrompt {
 		if looksDropped(msg) {
-			return m.handlePaste(string(msg.Runes))
+			return m.handlePaste(msg.Text)
 		}
 		if key == "?" {
 			m.help = newHelp()
@@ -204,7 +203,7 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m.sidebarKey(msg)
 }
 
-func (m Model) promptKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+func (m Model) promptKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	if msg.String() == "esc" {
 		if next, cmd, ok := m.stopBusy(); ok {
 			return next, cmd
@@ -240,13 +239,12 @@ func (m Model) promptKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) insertNewline() (tea.Model, tea.Cmd) {
-	var cmd tea.Cmd
-	m.prompt, cmd = m.prompt.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	return m, cmd
+	m.prompt.InsertRune('\n')
+	return m, nil
 }
 
 // historyKey walks the submitted prompts with the up and down arrow keys; see docs/tui/input.md.
-func (m Model) historyKey(msg tea.KeyMsg) (Model, bool) {
+func (m Model) historyKey(msg tea.KeyPressMsg) (Model, bool) {
 	switch msg.String() {
 	case "up":
 		if m.prompt.Line() != 0 || m.histIdx == 0 {
@@ -284,7 +282,7 @@ func (m *Model) recordHistory(text string) {
 	m.histDraft = ""
 }
 
-func (m Model) outputKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+func (m Model) outputKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	m.clearSelection()
 	if msg.String() == "esc" {
 		if next, cmd, ok := m.stopBusy(); ok {
@@ -320,13 +318,13 @@ func (m Model) outputKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.prompt.Focus()
 		return m, textarea.Blink
 	case keys.OutputPaneUp:
-		m.output.LineUp(1)
+		m.output.ScrollUp(1)
 	case keys.OutputPaneDown:
-		m.output.LineDown(1)
+		m.output.ScrollDown(1)
 	case keys.OutputPaneHalfUp:
-		m.output.HalfViewUp()
+		m.output.HalfPageUp()
 	case keys.OutputPaneHalfDown:
-		m.output.HalfViewDown()
+		m.output.HalfPageDown()
 	case keys.OutputPaneTop:
 		m.output.GotoTop()
 	case keys.OutputPaneBottom:
@@ -337,7 +335,7 @@ func (m Model) outputKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 // taskKey scrolls the task and job panel while it holds the focus. See
 // docs/tui/tasks.md.
-func (m Model) taskKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+func (m Model) taskKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	half := m.bodyHeight() / 2
 	if half < 1 {
 		half = 1
@@ -382,7 +380,7 @@ func (m Model) taskPage() int {
 	return page
 }
 
-func (m Model) sidebarKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+func (m Model) sidebarKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	if msg.String() == "esc" {
 		if m.searchActive() {
 			m.clearSearch()

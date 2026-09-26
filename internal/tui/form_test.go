@@ -3,8 +3,6 @@ package tui
 import (
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
-
 	"github.com/dextermb/claude-multiplexer/internal/config"
 )
 
@@ -66,11 +64,11 @@ func TestPeerDirNeedsNoLocalPath(t *testing.T) {
 func TestSwitchingToAPeerClearsTheDirectory(t *testing.T) {
 	f := newForm("/tmp", newSessionDefaults{mode: "auto"}, []string{"workstation"}, nil)
 	f.focus = fieldHost
-	f.Update(tea.KeyMsg{Type: tea.KeyRight}) // choose the peer
+	f.Update(key("right")) // choose the peer
 	if got := f.inputs[fieldDir].Value(); got != "" {
 		t.Errorf("directory = %q after switching to a peer, want empty", got)
 	}
-	f.Update(tea.KeyMsg{Type: tea.KeyLeft}) // back to local
+	f.Update(key("left")) // back to local
 	if got := f.inputs[fieldDir].Value(); got != "/tmp" {
 		t.Errorf("directory = %q after switching back to local, want the default", got)
 	}
@@ -80,7 +78,7 @@ func TestHoistablePeerShowsModeAndKeepsDir(t *testing.T) {
 	f := newForm("/tmp", newSessionDefaults{mode: "auto"}, []string{"studio", "plain"}, []string{"studio"})
 
 	f.focus = fieldHost
-	f.Update(tea.KeyMsg{Type: tea.KeyRight}) // local -> studio (hoistable)
+	f.Update(key("right")) // local -> studio (hoistable)
 	if f.host() != "studio" {
 		t.Fatalf("host = %q, want studio", f.host())
 	}
@@ -98,7 +96,7 @@ func TestHoistablePeerShowsModeAndKeepsDir(t *testing.T) {
 	}
 
 	f.focus = fieldHoist
-	f.Update(tea.KeyMsg{Type: tea.KeyRight}) // hoist -> stream
+	f.Update(key("right")) // hoist -> stream
 	if f.hoisting() {
 		t.Error("stream mode must not hoist")
 	}
@@ -110,7 +108,7 @@ func TestHoistablePeerShowsModeAndKeepsDir(t *testing.T) {
 	}
 
 	f.focus = fieldHost
-	f.Update(tea.KeyMsg{Type: tea.KeyRight}) // studio -> plain (no credential)
+	f.Update(key("right")) // studio -> plain (no credential)
 	if f.visible(fieldHoist) {
 		t.Error("a peer with no credential must not show the peer-mode field")
 	}
@@ -157,7 +155,7 @@ func TestLeftAndRightCycleAFocusedSelect(t *testing.T) {
 	f := newForm("/tmp", newSessionDefaults{mode: "auto"}, nil, nil)
 	f.focus = fieldModel
 	first := f.selects[fieldModel].value()
-	f.Update(tea.KeyMsg{Type: tea.KeyLeft})
+	f.Update(key("left"))
 	last := f.selects[fieldModel].value()
 	if last == first {
 		t.Fatalf("left did not cycle: still %q", last)
@@ -165,7 +163,7 @@ func TestLeftAndRightCycleAFocusedSelect(t *testing.T) {
 	if last != modelOptions[len(modelOptions)-1] {
 		t.Errorf("left from the first option = %q, want the last %q", last, modelOptions[len(modelOptions)-1])
 	}
-	f.Update(tea.KeyMsg{Type: tea.KeyRight})
+	f.Update(key("right"))
 	if got := f.selects[fieldModel].value(); got != first {
 		t.Errorf("right did not wrap back: %q, want %q", got, first)
 	}
@@ -175,7 +173,7 @@ func TestTypingDoesNotChangeASelect(t *testing.T) {
 	f := newForm("/tmp", newSessionDefaults{mode: "auto"}, nil, nil)
 	f.focus = fieldEffort
 	before := f.selects[fieldEffort].value()
-	f.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("x")})
+	f.Update(key("x"))
 	if got := f.selects[fieldEffort].value(); got != before {
 		t.Errorf("a letter changed the select to %q, want %q", got, before)
 	}

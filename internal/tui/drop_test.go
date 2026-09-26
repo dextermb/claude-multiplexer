@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/dextermb/claude-multiplexer/internal/render"
 )
@@ -107,7 +107,7 @@ func TestADropOnTheSidebarGoesToThePrompt(t *testing.T) {
 	m.prompt.Blur()
 	path := touch(t, t.TempDir(), "dropped.go")
 
-	m, _ = step(t, m, tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(path), Paste: true})
+	m, _ = step(t, m, tea.PasteMsg{Content: path})
 	if m.focus != focusPrompt {
 		t.Fatalf("focus = %v, want the prompt", m.focus)
 	}
@@ -130,7 +130,7 @@ func TestADropNeverTriggersASidebarKey(t *testing.T) {
 
 	m.focus = focusSidebar
 	m.prompt.Blur()
-	m, cmd := step(t, m, tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(path), Paste: true})
+	m, cmd := step(t, m, tea.PasteMsg{Content: path})
 	if m.quitting {
 		t.Fatal("a path holding q must not quit")
 	}
@@ -156,13 +156,13 @@ func TestADropJoinsWhatYouAlreadyTyped(t *testing.T) {
 	m.prompt.Focus()
 	m.prompt.SetValue("explain")
 
-	m, _ = step(t, m, tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(path), Paste: true})
+	m, _ = step(t, m, tea.PasteMsg{Content: path})
 	if m.prompt.Value() != "explain "+path+" " {
 		t.Fatalf("prompt = %q", m.prompt.Value())
 	}
 
 	second := touch(t, t.TempDir(), "other.go")
-	m, _ = step(t, m, tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(second), Paste: true})
+	m, _ = step(t, m, tea.PasteMsg{Content: second})
 	if m.prompt.Value() != "explain "+path+" "+second+" " {
 		t.Fatalf("prompt = %q", m.prompt.Value())
 	}
@@ -176,7 +176,7 @@ func TestAnOrdinaryPasteGoesInAsItIs(t *testing.T) {
 
 	m.focus = focusPrompt
 	m.prompt.Focus()
-	m, _ = step(t, m, tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("check the login flow"), Paste: true})
+	m, _ = step(t, m, tea.PasteMsg{Content: "check the login flow"})
 	if m.prompt.Value() != "check the login flow" {
 		t.Fatalf("prompt = %q", m.prompt.Value())
 	}
@@ -191,13 +191,13 @@ func TestADropIntoTheFormSetsTheDirectory(t *testing.T) {
 
 	dir := t.TempDir()
 	file := touch(t, dir, "readme.md")
-	m, _ = step(t, m, tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(file), Paste: true})
+	m, _ = step(t, m, tea.PasteMsg{Content: file})
 	if got := m.form.inputs[fieldDir].Value(); got != dir {
 		t.Fatalf("directory = %q, want the folder that holds the file", got)
 	}
 
 	other := t.TempDir()
-	m, _ = step(t, m, tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(other), Paste: true})
+	m, _ = step(t, m, tea.PasteMsg{Content: other})
 	if got := m.form.inputs[fieldDir].Value(); got != other {
 		t.Fatalf("directory = %q, want the dropped folder", got)
 	}
@@ -210,7 +210,7 @@ func TestADropIntoAnotherFormFieldInsertsText(t *testing.T) {
 	m.form.inputs[fieldName].SetValue("api")
 	m.form.inputs[fieldName].SetCursor(3)
 
-	m, _ = step(t, m, tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("-two"), Paste: true})
+	m, _ = step(t, m, tea.PasteMsg{Content: "-two"})
 	if got := m.form.inputs[fieldName].Value(); got != "api-two" {
 		t.Fatalf("name = %q", got)
 	}
@@ -225,12 +225,12 @@ func TestASplitDropStillReachesThePrompt(t *testing.T) {
 	m.focus = focusSidebar
 	m.prompt.Blur()
 
-	fragments := []tea.KeyMsg{
-		{Type: tea.KeyRunes, Runes: []rune(`/tmp/drop\`)},
-		{Type: tea.KeySpace, Runes: []rune{' '}},
-		{Type: tea.KeyRunes, Runes: []rune(`test/notes\`)},
-		{Type: tea.KeySpace, Runes: []rune{' '}},
-		{Type: tea.KeyRunes, Runes: []rune("file.md")},
+	fragments := []tea.KeyPressMsg{
+		key(`/tmp/drop\`),
+		key("space"),
+		key(`test/notes\`),
+		key("space"),
+		key("file.md"),
 	}
 	for _, fragment := range fragments {
 		m, _ = step(t, m, fragment)
@@ -257,7 +257,7 @@ func TestFastTypingStillReachesTheSidebar(t *testing.T) {
 
 	m.focus = focusSidebar
 	m.prompt.Blur()
-	m, _ = step(t, m, tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("kk")})
+	m, _ = step(t, m, key("kk"))
 	if m.focus != focusSidebar {
 		t.Fatal("two quick keys must not be read as a dropped path")
 	}
@@ -274,7 +274,7 @@ func TestASingleRuneWithASlashIsStillAKey(t *testing.T) {
 
 	m.focus = focusSidebar
 	m.prompt.Blur()
-	m, _ = step(t, m, tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("/")})
+	m, _ = step(t, m, key("/"))
 	if m.focus != focusSidebar {
 		t.Fatal("one slash is a key press, not a drop")
 	}

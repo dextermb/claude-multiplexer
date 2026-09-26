@@ -1,8 +1,8 @@
 package markdown
 
 import (
-	"github.com/charmbracelet/glamour/ansi"
-	"github.com/charmbracelet/glamour/styles"
+	"charm.land/glamour/v2/ansi"
+	"charm.land/glamour/v2/styles"
 )
 
 // MutedGrey is the one grey NewMuted draws every element in, so a skill dump

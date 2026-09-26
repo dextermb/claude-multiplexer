@@ -3,8 +3,8 @@ package tui
 import (
 	"strings"
 
-	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
+	"charm.land/bubbles/v2/textinput"
+	tea "charm.land/bubbletea/v2"
 )
 
 type renameDialog struct {
@@ -13,10 +13,10 @@ type renameDialog struct {
 }
 
 func newRenameDialog(name, current string) *renameDialog {
-	input := textinput.New()
+	input := newTextInput()
 	input.Placeholder = name
 	input.CharLimit = 512
-	input.Width = 40
+	input.SetWidth(40)
 	input.SetValue(current)
 	input.CursorEnd()
 	input.Focus()
@@ -24,7 +24,7 @@ func newRenameDialog(name, current string) *renameDialog {
 }
 
 func (d *renameDialog) Update(msg tea.Msg) (formResult, tea.Cmd) {
-	if key, ok := msg.(tea.KeyMsg); ok {
+	if key, ok := msg.(tea.KeyPressMsg); ok {
 		switch key.String() {
 		case "esc":
 			return formCancelled, nil
@@ -90,5 +90,5 @@ func (d *renameDialog) View(width int) string {
 	b.WriteString("\n\n")
 	b.WriteString(d.input.View())
 	b.WriteString("\n\n" + hintStyle.Render("enter apply · esc cancel · empty clears the title"))
-	return modalStyle.Width(inner).Render(b.String())
+	return modalStyle.Width(inner + 2).Render(b.String())
 }

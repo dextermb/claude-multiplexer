@@ -205,7 +205,7 @@ var Defaults = []Def{
 	{GlobalDismissUpdate, CtxGlobal, []string{"ctrl+g"}, "dismiss the update notice for a day"},
 
 	{OutputPaneOpenBlock, CtxOutputPane, []string{"enter"}, "output: open the block, or move to the prompt"},
-	{OutputPaneToggleBlock, CtxOutputPane, []string{" "}, "output: open or close the block"},
+	{OutputPaneToggleBlock, CtxOutputPane, []string{"space"}, "output: open or close the block"},
 	{OutputPaneBlockNext, CtxOutputPane, []string{"]"}, "output: move to the next capped block"},
 	{OutputPaneBlockPrev, CtxOutputPane, []string{"["}, "output: move to the previous capped block"},
 	{OutputPaneToPrompt, CtxOutputPane, []string{"i"}, "output: move to the prompt"},
@@ -246,7 +246,7 @@ var Defaults = []Def{
 	{DiffPaneBottom, CtxDiffPane, []string{"G"}, "diff panel: go to the bottom"},
 	{DiffPaneJumpDown, CtxDiffPane, []string{"}", "shift+]"}, "diff panel: jump to the next empty line"},
 	{DiffPaneJumpUp, CtxDiffPane, []string{"{", "shift+["}, "diff panel: jump to the previous empty line"},
-	{DiffPaneToggle, CtxDiffPane, []string{"enter", " "}, "diff panel: open or close the file"},
+	{DiffPaneToggle, CtxDiffPane, []string{"enter", "space"}, "diff panel: open or close the file"},
 	{DiffPaneFocusNext, CtxDiffPane, []string{"tab"}, "diff panel: move to the next pane"},
 
 	{ReviewHunkNext, CtxReview, []string{"j", "down"}, "review: step to the next hunk"},

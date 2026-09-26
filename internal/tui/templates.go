@@ -3,8 +3,8 @@ package tui
 import (
 	"strings"
 
-	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
+	"charm.land/bubbles/v2/textinput"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/dextermb/claude-multiplexer/internal/template"
 )
@@ -26,11 +26,11 @@ type picker struct {
 }
 
 func newPicker(all []template.Template, dirs []string) *picker {
-	filter := textinput.New()
+	filter := newTextInput()
 	filter.Placeholder = "name"
 	filter.Prompt = "/"
 	filter.CharLimit = 64
-	filter.Width = 30
+	filter.SetWidth(30)
 	filter.Focus()
 
 	p := &picker{all: all, dirs: dirs, filter: filter}
@@ -49,7 +49,7 @@ func (p *picker) narrow() {
 }
 
 func (p *picker) Update(msg tea.Msg) (pickerResult, tea.Cmd) {
-	if key, ok := msg.(tea.KeyMsg); ok {
+	if key, ok := msg.(tea.KeyPressMsg); ok {
 		switch key.String() {
 		case "esc":
 			return pickerCancelled, nil
@@ -141,7 +141,7 @@ func (p *picker) View(width int) string {
 	}
 
 	b.WriteString("\n" + hintStyle.Render("↑↓ move · enter choose · esc cancel"))
-	return modalStyle.Width(inner).Render(b.String())
+	return modalStyle.Width(inner + 2).Render(b.String())
 }
 
 type fieldForm struct {
@@ -154,11 +154,11 @@ type fieldForm struct {
 func newFieldForm(tpl template.Template, values map[string]string) *fieldForm {
 	f := &fieldForm{tpl: tpl}
 	for _, field := range tpl.Fields {
-		input := textinput.New()
+		input := newTextInput()
 		input.Placeholder = field.Default
 		input.SetValue(values[field.Name])
 		input.CharLimit = 512
-		input.Width = 40
+		input.SetWidth(40)
 		f.inputs = append(f.inputs, input)
 	}
 	if len(f.inputs) > 0 {
@@ -179,7 +179,7 @@ func (f *fieldForm) firstEmpty() int {
 }
 
 func (f *fieldForm) Update(msg tea.Msg) (formResult, tea.Cmd) {
-	if key, ok := msg.(tea.KeyMsg); ok {
+	if key, ok := msg.(tea.KeyPressMsg); ok {
 		switch key.String() {
 		case "esc":
 			return formCancelled, nil
@@ -289,7 +289,7 @@ func (f *fieldForm) View(width int) string {
 		b.WriteString("\n" + errorStyle.Render(f.err) + "\n")
 	}
 	b.WriteString("\n" + hintStyle.Render("tab move · enter fill the prompt · esc cancel"))
-	return modalStyle.Width(inner).Render(b.String())
+	return modalStyle.Width(inner + 2).Render(b.String())
 }
 
 func completionNames(all []template.Template, text string) []string {

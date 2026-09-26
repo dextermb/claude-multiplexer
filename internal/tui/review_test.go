@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/charmbracelet/bubbles/textarea"
-	tea "github.com/charmbracelet/bubbletea"
+	"charm.land/bubbles/v2/textarea"
+	tea "charm.land/bubbletea/v2"
 	"github.com/dextermb/claude-multiplexer/internal/git"
 	"github.com/dextermb/claude-multiplexer/internal/manager"
 )
@@ -155,10 +155,10 @@ func TestReviewEnterHidesSidebarAndLeaveRestores(t *testing.T) {
 	if m.focus != focusReview {
 		t.Fatalf("the focus must move to the review screen, got %v", m.focus)
 	}
-	if m.output.Width != m.reviewExplainWidth() {
-		t.Fatalf("the output pane must size to the explain width %d, got %d", m.reviewExplainWidth(), m.output.Width)
+	if m.output.Width() != m.reviewExplainWidth() {
+		t.Fatalf("the output pane must size to the explain width %d, got %d", m.reviewExplainWidth(), m.output.Width())
 	}
-	if view := visible(m.View()); !strings.Contains(view, "EXPLANATION") {
+	if view := visible(m.screen()); !strings.Contains(view, "EXPLANATION") {
 		t.Fatalf("the review view must show the explanation pane:\n%s", view)
 	}
 
@@ -182,7 +182,7 @@ func TestReviewMouseKeepsTheFocusOnTheScreen(t *testing.T) {
 
 	// A left click used to set m.focus by the region, which moved it off the
 	// review screen and broke tab and esc.
-	click := tea.MouseMsg{Action: tea.MouseActionPress, Button: tea.MouseButtonLeft, X: 2, Y: 3}
+	click := tea.MouseClickMsg{Button: tea.MouseLeft, X: 2, Y: 3}
 	m, _ = step(t, m, click)
 	if m.focus != focusReview {
 		t.Fatalf("a click must keep the focus on the review screen, got %v", m.focus)
@@ -191,7 +191,7 @@ func TestReviewMouseKeepsTheFocusOnTheScreen(t *testing.T) {
 		t.Fatalf("a click on the left must focus the diff side, got %v", m.reviewFocus)
 	}
 
-	right := tea.MouseMsg{Action: tea.MouseActionPress, Button: tea.MouseButtonLeft, X: m.width - 3, Y: 3}
+	right := tea.MouseClickMsg{Button: tea.MouseLeft, X: m.width - 3, Y: 3}
 	m, _ = step(t, m, right)
 	if m.reviewFocus != reviewExplain {
 		t.Fatalf("a click on the right must focus the explanation, got %v", m.reviewFocus)

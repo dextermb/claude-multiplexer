@@ -1,10 +1,11 @@
 package tui
 
 import (
+	"image/color"
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 
 	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/render"
@@ -101,7 +102,7 @@ var (
 
 	pickedPathStyle = invertStyle
 
-	statusBackground lipgloss.TerminalColor = colSurface
+	statusBackground color.Color = colSurface
 
 	statusStyle = lipgloss.NewStyle().
 			Foreground(colSecondary).
@@ -147,8 +148,6 @@ var (
 	emptyStyle = fgStyle(colMuted).Padding(2, 4)
 
 	selectionStyle = invertStyle
-
-	barBackground lipgloss.TerminalColor = lipgloss.NoColor{}
 
 	barStyle = lipgloss.NewStyle()
 

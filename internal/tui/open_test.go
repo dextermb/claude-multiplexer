@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/dextermb/claude-multiplexer/internal/config"
 )
@@ -157,7 +157,7 @@ func TestTheKeyListNamesBothKeys(t *testing.T) {
 	m = start(t, m, 160, 60)
 	m, _ = step(t, m, key("?"))
 
-	view := m.View()
+	view := m.screen()
 	for _, want := range []string{"s f", "s E", "file manager", "editor"} {
 		if !strings.Contains(view, want) {
 			t.Errorf("the key list does not name %q:\n%s", want, view)

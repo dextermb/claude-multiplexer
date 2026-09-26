@@ -3,8 +3,6 @@ package tui
 import (
 	"strings"
 	"testing"
-
-	tea "github.com/charmbracelet/bubbletea"
 )
 
 func promptModel(t *testing.T) Model {
@@ -21,7 +19,7 @@ func promptModel(t *testing.T) Model {
 
 func newline(t *testing.T, m Model) Model {
 	t.Helper()
-	m, _ = step(t, m, tea.KeyMsg{Type: tea.KeyCtrlJ})
+	m, _ = step(t, m, key("ctrl+j"))
 	return m
 }
 
@@ -74,14 +72,14 @@ func TestThePromptBoxGrowsWithNewLinesAndStopsAtFour(t *testing.T) {
 
 func TestTheOutputPaneGivesBackTheRowsThePromptTakes(t *testing.T) {
 	m := promptModel(t)
-	height := m.output.Height
+	height := m.output.Height()
 
 	m = newline(t, m)
 	m = newline(t, m)
-	if got := m.output.Height; got != height-2 {
+	if got := m.output.Height(); got != height-2 {
 		t.Fatalf("the output pane is %d rows, want %d", got, height-2)
 	}
-	if got := lines(m.View()); got != 30 {
+	if got := lines(m.screen()); got != 30 {
 		t.Fatalf("the view is %d rows, want 30", got)
 	}
 }

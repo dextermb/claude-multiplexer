@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 )
 
 const mentionMark = '@'
@@ -113,7 +113,7 @@ func (m Model) mentionHint() (string, bool) {
 	return hintStyle.Render(hint), true
 }
 
-func (m Model) mentionKey(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
+func (m Model) mentionKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
 	if msg.String() != "shift+tab" {
 		return m, nil, false
 	}

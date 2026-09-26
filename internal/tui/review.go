@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/textarea"
-	tea "github.com/charmbracelet/bubbletea"
+	"charm.land/bubbles/v2/textarea"
+	tea "charm.land/bubbletea/v2"
 	"github.com/dextermb/claude-multiplexer/internal/git"
 	"github.com/dextermb/claude-multiplexer/internal/keys"
 )
@@ -49,8 +49,8 @@ func (m Model) reviewSelected() (tea.Model, tea.Cmd) {
 	m.focus = focusReview
 	m.prompt.Blur()
 	m.status = "review — j/k hunk · }/{ file · e explain · E file · n numbers · tab pane · esc close"
-	m.output.Width = m.outputWidth()
-	m.output.Height = m.outputHeight()
+	m.output.SetWidth(m.outputWidth())
+	m.output.SetHeight(m.outputHeight())
 	m.rebuildOutput()
 	m.output.GotoBottom()
 	cmds := []tea.Cmd{m.diffRefreshCmd()}
@@ -74,8 +74,8 @@ func (m Model) leaveReview() (tea.Model, tea.Cmd) {
 	}
 	m.focus = focusOutput
 	m.status = ""
-	m.output.Width = m.outputWidth()
-	m.output.Height = m.outputHeight()
+	m.output.SetWidth(m.outputWidth())
+	m.output.SetHeight(m.outputHeight())
 	m.rebuildOutput()
 	return m, nil
 }
@@ -108,7 +108,7 @@ func (m Model) reviewFileHunks() []git.Hunk {
 	return git.Hunks(text)
 }
 
-func (m Model) reviewKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+func (m Model) reviewKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	if m.reviewFocus == reviewPrompt {
 		return m.reviewPromptKey(msg)
 	}
@@ -131,7 +131,7 @@ func (m Model) reviewKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m.reviewDiffKey(msg)
 }
 
-func (m Model) reviewDiffKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+func (m Model) reviewDiffKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	a, ok := m.keys.Action(keys.CtxReview, msg.String())
 	if !ok {
 		return m, nil
@@ -175,7 +175,7 @@ func (m Model) reviewToggleNumbers() (tea.Model, tea.Cmd) {
 // reviewExplainKey drives the explanation, which is the session output pane. It
 // scrolls the pane and moves the block cursor to open a capped block. See
 // docs/tui/output.md and docs/tui/review.md.
-func (m Model) reviewExplainKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+func (m Model) reviewExplainKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "enter", " ":
 		if m.blockCursor >= 0 {
@@ -205,7 +205,7 @@ func (m Model) reviewExplainKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m Model) reviewPromptKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+func (m Model) reviewPromptKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "esc":
 		m.reviewFocus = reviewDiff
@@ -363,15 +363,15 @@ func (m Model) reviewSend(prompt string) (tea.Model, tea.Cmd) {
 // reviewMouse drives the review screen with the mouse. It sets the review focus
 // by the side clicked, and scrolls with the wheel, but never moves m.focus off
 // the screen, so the screen stays modal. See docs/tui/review.md.
-func (m Model) reviewMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
+func (m Model) reviewMouse(msg mouseEvent) (tea.Model, tea.Cmd) {
 	onLeft := msg.X < gutterWidth+m.reviewDiffWidth()
 	switch msg.Button {
-	case tea.MouseButtonWheelUp, tea.MouseButtonWheelDown:
-		if msg.Action != tea.MouseActionPress {
+	case tea.MouseWheelUp, tea.MouseWheelDown:
+		if msg.action != mousePress {
 			return m, nil
 		}
 		if onLeft {
-			if msg.Button == tea.MouseButtonWheelUp {
+			if msg.Button == tea.MouseWheelUp {
 				m.reviewScroll -= 3
 			} else {
 				m.reviewScroll += 3
@@ -380,10 +380,10 @@ func (m Model) reviewMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		var cmd tea.Cmd
-		m.output, cmd = m.output.Update(msg)
+		m.output, cmd = m.output.Update(msg.raw)
 		return m, cmd
-	case tea.MouseButtonLeft:
-		if msg.Action != tea.MouseActionPress {
+	case tea.MouseLeft:
+		if msg.action != mousePress {
 			return m, nil
 		}
 		if msg.Y >= m.bodyHeight() {
