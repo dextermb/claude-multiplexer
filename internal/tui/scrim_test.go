@@ -54,3 +54,31 @@ func TestOverlayInCentresInItsRegion(t *testing.T) {
 		t.Fatalf("the dialog must sit in the centre of rows 1 to 3, got %q", lines)
 	}
 }
+
+func TestASessionDialogFadesOnlyItsSessionPanes(t *testing.T) {
+	m, mgr := newTestModel(t, "")
+	m = start(t, m, 140, 30)
+	m, _ = step(t, m, key("esc"))
+	m = spawn(t, m, mgr, "alpha", t.TempDir())
+	m.confirm = "alpha"
+
+	var sidebar, prompt string
+	for _, line := range strings.Split(m.screen(), "\n") {
+		plain := visible(line)
+		if strings.Contains(plain, "SESSIONS (") {
+			sidebar = line
+		}
+		if strings.Contains(plain, "─ PROMPT") {
+			prompt = line
+		}
+	}
+	for name, line := range map[string]string{"sidebar": sidebar, "prompt": prompt} {
+		if line == "" || strings.Contains(line, "38;2;38;38;38m") {
+			t.Errorf("the %s row must stay bright under a session dialog: %q", name, line)
+		}
+	}
+	pane := strings.Split(m.paneView(), "\n")
+	if len(pane) <= barHeight || !strings.Contains(strings.Join(pane[barHeight:], "\n"), "38;2;38;38;38m") {
+		t.Fatal("the session output must fade under a session dialog")
+	}
+}
