@@ -1,7 +1,6 @@
 package tui
 
 import (
-	"image/color"
 	"strconv"
 	"strings"
 
@@ -193,45 +192,21 @@ func (m Model) reviewHunkLines(h git.Hunk, width int, marked bool) []string {
 	newLine := h.NewStart
 	for _, line := range h.Body {
 		number := ""
-		var tint color.Color
-		mark := rowStyle
-		switch {
-		case strings.HasPrefix(line, "+"):
-			tint, mark = colPositiveBg, diffAddStyle
-			number = strconv.Itoa(newLine)
-			newLine++
-		case strings.HasPrefix(line, "-"):
-			tint, mark = colDangerBg, diffDelStyle
-		default:
+		if !strings.HasPrefix(line, "-") {
 			number = strconv.Itoa(newLine)
 			newLine++
 		}
-		paint := func(style lipgloss.Style) lipgloss.Style {
-			if tint != nil {
-				return style.Background(tint)
-			}
-			return style
-		}
+		tint, mark := diffLineTint(line)
 		for i, chunk := range wrapHard(line, content) {
-			row := paint(keyStyle).Render(edge)
+			row := tinted(keyStyle, tint).Render(edge)
 			if m.reviewLineNumbers {
 				gutter := ""
 				if i == 0 {
 					gutter = number
 				}
-				row += paint(diffNumStyle).Render(padLeft(gutter, diffNumGutter-1) + " ")
+				row += tinted(diffNumStyle, tint).Render(padLeft(gutter, diffNumGutter-1) + " ")
 			}
-			text := chunk
-			if i == 0 && tint != nil {
-				row += paint(mark).Render(chunk[:1])
-				text = chunk[1:]
-			}
-			used := lipgloss.Width(row) - 1
-			if m.reviewLineNumbers {
-				used -= diffNumGutter
-			}
-			row += paint(fgStyle(colSecondary)).Width(maxInt(content-used, 0)).Render(text)
-			out = append(out, row)
+			out = append(out, row+diffChunk(chunk, i == 0, tint, mark, colSecondary, content))
 		}
 	}
 	return out

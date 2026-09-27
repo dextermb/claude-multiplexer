@@ -63,7 +63,7 @@ to. Amber would give busy and waiting one colour, and inversion means the focus.
 
 Three tints (`colPositiveBg`, `colWarningBg`, `colDangerBg`) sit behind a notice
 row, and the positive and danger tints sit behind an added and a removed row of
-the review diff. They are for truecolor. A 256-colour terminal draws each one as
+a diff, in the diff panel and on the review screen. They are for truecolor. A 256-colour terminal draws each one as
 xterm 232, a near-black that hardly shows, so there the `+` and `−` marks carry
 the hue alone.
 

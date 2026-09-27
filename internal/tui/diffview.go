@@ -240,29 +240,31 @@ func (m Model) renderDiffBody(text string, current int) []string {
 		if isDiffHeader(line) {
 			continue
 		}
-		style := rowStyle
+		header := strings.HasPrefix(line, "@@")
 		number := ""
 		switch {
-		case strings.HasPrefix(line, "@@"):
-			style = diffHunkStyle
+		case header:
 			newLine = hunkNewStart(line)
-		case strings.HasPrefix(line, "+"):
-			style = diffAddStyle
-			number = strconv.Itoa(newLine)
-			newLine++
-		case strings.HasPrefix(line, "-"):
-			style = diffDelStyle
-		default:
+		case !strings.HasPrefix(line, "-"):
 			number = strconv.Itoa(newLine)
 			newLine++
 		}
+		tint, mark := diffLineTint(line)
 		for i, chunk := range wrapHard(line, content) {
 			marked := len(out) == current
-			lineStyle := style
+			code := colSecondary
 			if marked && !m.diffLineNumbers {
-				lineStyle = lineStyle.Foreground(colFg)
+				code = colFg
 			}
-			row := lineStyle.Render(chunk)
+			var row string
+			if header {
+				row = diffHunkStyle.Width(content).Render(chunk)
+				if marked && !m.diffLineNumbers {
+					row = diffHunkStyle.Foreground(colFg).Width(content).Render(chunk)
+				}
+			} else {
+				row = diffChunk(chunk, i == 0, tint, mark, code, content)
+			}
 			if m.diffLineNumbers {
 				gutter := ""
 				if i == 0 {
@@ -272,7 +274,7 @@ func (m Model) renderDiffBody(text string, current int) []string {
 				if marked {
 					numStyle = diffCurNumStyle
 				}
-				row = numStyle.Render(padLeft(gutter, diffNumGutter-1)+" ") + row
+				row = tinted(numStyle, tint).Render(padLeft(gutter, diffNumGutter-1)+" ") + row
 			}
 			out = append(out, row)
 		}

@@ -274,3 +274,28 @@ func TestReviewMarksTheSelectedHunkAtItsEdge(t *testing.T) {
 		}
 	}
 }
+
+func TestTheDiffPanelTintsTheChangedRows(t *testing.T) {
+	m, _ := newTestModel(t, "")
+	m = start(t, m, 160, 30)
+	m.diffPanel = true
+	text := "@@ -1,2 +1,2 @@\n same\n-old\n+new"
+	rows := m.renderDiffBody(text, -1)
+	if len(rows) != 4 {
+		t.Fatalf("rows = %d, want 4", len(rows))
+	}
+	if !strings.Contains(rows[2], "48;2;20;8;8") || !strings.Contains(rows[3], "48;2;6;17;10") {
+		t.Fatalf("the changed rows need the danger and positive tints:\n%q\n%q", rows[2], rows[3])
+	}
+	if strings.Contains(rows[1], "48;2;") {
+		t.Fatalf("an unchanged row takes no tint: %q", rows[1])
+	}
+	for _, row := range rows[1:] {
+		if w := lipgloss.Width(row); w != m.diffInner() {
+			t.Fatalf("a row is %d wide, want the panel width %d: %q", w, m.diffInner(), row)
+		}
+	}
+	if current := m.renderDiffBody(text, 3)[3]; !strings.Contains(current, "38;2;255;255;255") {
+		t.Fatalf("the current line keeps its white text: %q", current)
+	}
+}
