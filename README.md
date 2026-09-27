@@ -1,5 +1,14 @@
 # multiplexer
 
+![Workspace](assets/v1.0.0/workspace.png)
+
+| ![Code Review](assets/v1.0.0/code-review-view.png) | ![Key bindings](assets/v1.0.0/keys-dialog.png) | ![Questions](assets/v1.0.0/question-dialog.png) |
+| -------------------------------------------------- | ---------------------------------------------- | ----------------------------------------------- |
+
+_Images shown are from v1.0.0_
+
+<br />
+
 The multiplexer supervises many Claude Code sessions at the same time. Each
 session is a `claude` child process in headless mode, with its own directory and
 its own conversation. One terminal interface shows them all: a list of sessions,
@@ -85,7 +94,7 @@ plain text, and it never renders markdown.
   type, and `Tab` grows the path. In the prompt box, an `@` word completes to a
   path in the same way.
 - **Preset prompts.** Keep a prompt with holes in it, such as `Look up Linear
-  issue {{issue}}`. Press `t` to pick one and fill it in, or type
+issue {{issue}}`. Press `t` to pick one and fill it in, or type
   `/linear ENG-123`. A new session can start with one.
 - **Files by drag.** Drop a file on the window and its path goes into the
   prompt, unescaped and quoted where needed.
@@ -104,11 +113,11 @@ plain text, and it never renders markdown.
 
 State goes under `~/.claude-multiplexer/sessions/<name>/`:
 
-| File | What it holds |
-|---|---|
-| `transcript.jsonl` | Every event of the conversation, as JSON Lines |
-| `meta.json` | The directory, the working directory, the model, the effort, the title, the Claude session id, the totals, the creator, the control grant, and the archive flag |
-| `mcp.json` | Where the session reaches the multiplexer's own tools, and the token that names it |
+| File               | What it holds                                                                                                                                                   |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `transcript.jsonl` | Every event of the conversation, as JSON Lines                                                                                                                  |
+| `meta.json`        | The directory, the working directory, the model, the effort, the title, the Claude session id, the totals, the creator, the control grant, and the archive flag |
+| `mcp.json`         | Where the session reaches the multiplexer's own tools, and the token that names it                                                                              |
 
 `cmux --root <path>` moves that directory. `just clean-state` removes it.
 
@@ -120,20 +129,20 @@ caps it. `--config <path>` names another file. See
 
 ## Documentation
 
-| Page | Read it for |
-|---|---|
-| [docs/tui.md](docs/tui.md) | The interface: the layout, and a page for each part of it |
-| [docs/config.md](docs/config.md) | The settings file, the editor, and the file manager |
-| [docs/templates.md](docs/templates.md) | Writing a preset prompt, its fields, and the three ways in |
-| [docs/markdown.md](docs/markdown.md) | What is rendered, the heading rule, and the raw toggle |
-| [docs/manager.md](docs/manager.md) | Sessions in memory, the event bus, storage, and archiving |
-| [docs/sessions.md](docs/sessions.md) | One child process: its states, its queue, and its transcript |
-| [docs/protocol.md](docs/protocol.md) | The stream-json wire format, and what Claude Code really sends |
-| [docs/mcp.md](docs/mcp.md) | The tools a session can call: renaming itself, and driving its neighbours |
-| [docs/peers.md](docs/peers.md) | Sharing usage between hosts, remote sessions, the reserve, and the tools |
-| [docs/scheduler.md](docs/scheduler.md) | Durable, recurring tasks: the record, the two run modes, and the clock |
-| [docs/caching.md](docs/caching.md) | What a turn pays for: the prompt cache, its lifetime, and what invalidates it |
-| [docs/cost.md](docs/cost.md) | What the host spends: the window on the total, the ledger, and what it estimates |
+| Page                                   | Read it for                                                                      |
+| -------------------------------------- | -------------------------------------------------------------------------------- |
+| [docs/tui.md](docs/tui.md)             | The interface: the layout, and a page for each part of it                        |
+| [docs/config.md](docs/config.md)       | The settings file, the editor, and the file manager                              |
+| [docs/templates.md](docs/templates.md) | Writing a preset prompt, its fields, and the three ways in                       |
+| [docs/markdown.md](docs/markdown.md)   | What is rendered, the heading rule, and the raw toggle                           |
+| [docs/manager.md](docs/manager.md)     | Sessions in memory, the event bus, storage, and archiving                        |
+| [docs/sessions.md](docs/sessions.md)   | One child process: its states, its queue, and its transcript                     |
+| [docs/protocol.md](docs/protocol.md)   | The stream-json wire format, and what Claude Code really sends                   |
+| [docs/mcp.md](docs/mcp.md)             | The tools a session can call: renaming itself, and driving its neighbours        |
+| [docs/peers.md](docs/peers.md)         | Sharing usage between hosts, remote sessions, the reserve, and the tools         |
+| [docs/scheduler.md](docs/scheduler.md) | Durable, recurring tasks: the record, the two run modes, and the clock           |
+| [docs/caching.md](docs/caching.md)     | What a turn pays for: the prompt cache, its lifetime, and what invalidates it    |
+| [docs/cost.md](docs/cost.md)           | What the host spends: the window on the total, the ledger, and what it estimates |
 
 `docs/plans/` holds the thinking that came before the code. It records what is
 still ahead. It is not a specification, so do not follow it.
@@ -174,4 +183,3 @@ The licence covers the multiplexer itself. It does not cover the work the
 sessions do, or the code they write.
 
 Copyright © 2026 Dexter Marks-Barber.
-
