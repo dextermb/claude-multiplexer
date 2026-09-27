@@ -250,8 +250,11 @@ func TestReviewTintsTheAddedAndRemovedRows(t *testing.T) {
 	if strings.Contains(rows[1], "48;2;") {
 		t.Fatalf("an unchanged row takes no tint: %q", rows[1])
 	}
-	if !strings.Contains(added, "38;2;198;198;198") {
-		t.Fatalf("the code of a changed row is secondary grey, only the mark takes the hue: %q", added)
+	if strings.Contains(added, "38;2;198;198;198") || !strings.Contains(added, "38;2;74;222;128") {
+		t.Fatalf("the code of an added row is green, not grey: %q", added)
+	}
+	if strings.Contains(removed, "38;2;198;198;198") || !strings.Contains(removed, "38;2;255;102;102") {
+		t.Fatalf("the code of a removed row is red, not grey: %q", removed)
 	}
 	for _, row := range rows {
 		if w := lipgloss.Width(row); w != 40 {
@@ -294,6 +297,9 @@ func TestTheDiffPanelTintsTheChangedRows(t *testing.T) {
 		if w := lipgloss.Width(row); w != m.diffInner() {
 			t.Fatalf("a row is %d wide, want the panel width %d: %q", w, m.diffInner(), row)
 		}
+	}
+	if strings.Contains(rows[3], "38;2;198;198;198") || !strings.Contains(rows[3], "38;2;74;222;128") {
+		t.Fatalf("the code of an added row in the panel is green: %q", rows[3])
 	}
 	if current := m.renderDiffBody(text, 3)[3]; !strings.Contains(current, "38;2;255;255;255") {
 		t.Fatalf("the current line keeps its white text: %q", current)

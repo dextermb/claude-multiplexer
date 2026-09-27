@@ -252,7 +252,7 @@ func (m Model) renderDiffBody(text string, current int) []string {
 		tint, mark := diffLineTint(line)
 		for i, chunk := range wrapHard(line, content) {
 			marked := len(out) == current
-			code := colSecondary
+			var code color.Color
 			if marked && !m.diffLineNumbers {
 				code = colFg
 			}

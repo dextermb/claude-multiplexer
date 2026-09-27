@@ -55,8 +55,8 @@ Each row shows a fold mark, a status letter, the path, and the file's own
 
 `Enter` expands the selected file, and its coloured diff shows below the row.
 `Enter` again collapses it. `Space` does the same as `Enter` here. An inserted
-row has a faint green tint across the row, and a deleted row a faint red tint.
-Only the `+` or `−` mark takes the hue, and the code stays secondary grey. A hunk
+row has a faint green tint across the row and green text, and a deleted row a
+faint red tint and red text. The current line keeps its white text. A hunk
 header is dimmed grey. The review screen draws its rows the same way, from
 `diffChunk` in `internal/tui/diffrows.go`. See [theme.md](theme.md) for the
 tints. The panel drops the git file

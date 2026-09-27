@@ -52,9 +52,9 @@ and the hunks:
 
 The selected file inverts (white fill, black text). Each row of the selected
 hunk starts with a white `▌`, and its `@@` header inverts. An added row has a
-faint green tint across the row, and a removed row a faint red tint. Only the
-`+` or `−` mark takes the hue, and the code stays secondary grey, so the tints
-show in the selected hunk too. The diff side scrolls to keep the selected
+faint green tint across the row, and its text is green. A removed row has a
+faint red tint, and its text is red. The edge mark leaves the tints in place, so
+they show in the selected hunk too. The diff side scrolls to keep the selected
 hunk in view.
 
 `n` shows a gutter with the new-side line number of each line, the same as `d n`

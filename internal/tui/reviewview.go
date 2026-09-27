@@ -206,7 +206,7 @@ func (m Model) reviewHunkLines(h git.Hunk, width int, marked bool) []string {
 				}
 				row += tinted(diffNumStyle, tint).Render(padLeft(gutter, diffNumGutter-1) + " ")
 			}
-			out = append(out, row+diffChunk(chunk, i == 0, tint, mark, colSecondary, content))
+			out = append(out, row+diffChunk(chunk, i == 0, tint, mark, nil, content))
 		}
 	}
 	return out
