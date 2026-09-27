@@ -12,7 +12,8 @@ func TestChoiceStartsAtTheCurrentValue(t *testing.T) {
 func TestChoiceMovesAndApplies(t *testing.T) {
 	d := newChoiceDialog(settingEffort, "alpha", "low")
 	d.Update(key("down"))
-	res, _ := d.Update(key("enter"))
+	res, cmd := d.Update(key("enter"))
+	res = settle(t, d.Update, res, cmd)
 	if res != formSubmitted {
 		t.Fatalf("enter must submit, got %v", res)
 	}

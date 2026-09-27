@@ -25,16 +25,49 @@ func TestDefaultBarSpecMatchesTheBuiltinOrder(t *testing.T) {
 	if err != nil {
 		t.Fatalf("DefaultBarSpec(status): %v", err)
 	}
-	if got := ids(status.Left); !equalStrings(got, []string{"sessions", "busy", "cost", "status"}) {
+	if got := ids(status.Left); !equalStrings(got, []string{"hints"}) {
 		t.Fatalf("status left = %v", got)
 	}
-	if got := ids(status.Right); !equalStrings(got, []string{"hints"}) {
+	if got := ids(status.Right); !equalStrings(got, []string{"status"}) {
 		t.Fatalf("status right = %v", got)
+	}
+
+	band, err := DefaultBarSpec(BarBand)
+	if err != nil {
+		t.Fatalf("DefaultBarSpec(band): %v", err)
+	}
+	if len(band.Left) != 0 {
+		t.Fatalf("band left = %v, want none", ids(band.Left))
+	}
+	if got := ids(band.Right); !equalStrings(got, []string{"sessions", "busy", "waiting", "failed", "cost"}) {
+		t.Fatalf("band right = %v", got)
+	}
+}
+
+func TestTheStatusBarKeepsItsOldIDsOnEitherSide(t *testing.T) {
+	bars := &Bars{Status: &BarSpec{
+		Left:  []BarElement{{ID: "sessions"}, {ID: "busy"}, {ID: "cost"}, {ID: "status"}},
+		Right: []BarElement{{ID: "hints"}, {ID: "sessions"}},
+	}}
+	if err := ValidateBars(bars); err != nil {
+		t.Fatalf("an older status bar must still load: %v", err)
+	}
+}
+
+func TestTheBandHasNoLeftSide(t *testing.T) {
+	if err := ValidateBars(&Bars{Band: &BarSpec{Left: []BarElement{{ID: "busy"}}}}); err == nil {
+		t.Fatal("bars.band.left must be an error")
+	}
+	if err := ValidateBars(&Bars{Band: &BarSpec{Right: []BarElement{{ID: "waiting"}, {ID: "model"}}}}); err != nil {
+		t.Fatalf("the band takes its ids and the session ids: %v", err)
+	}
+	if err := ValidateBars(&Bars{Band: &BarSpec{Right: []BarElement{{ID: "hints"}}}}); err == nil {
+		t.Fatal("hints is not a band element")
 	}
 }
 
 func TestDefaultBarSpecMatchesTheBuiltinIDs(t *testing.T) {
-	for _, bar := range []string{BarSession, BarStatus} {
+	for _, bar := range BarNames {
 		spec, err := DefaultBarSpec(bar)
 		if err != nil {
 			t.Fatalf("DefaultBarSpec(%s): %v", bar, err)

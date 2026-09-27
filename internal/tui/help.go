@@ -3,9 +3,7 @@ package tui
 import (
 	"strings"
 
-	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/dextermb/claude-multiplexer/internal/config"
+	"charm.land/lipgloss/v2"
 	"github.com/dextermb/claude-multiplexer/internal/keys"
 )
 
@@ -163,6 +161,9 @@ func displayKeys(km keys.Keymap, a keys.Action) string {
 
 // statusHints lists the keys that work on their own, for the status bar.
 func (m Model) statusHints() string {
+	if m.reviewMode {
+		return m.reviewHints()
+	}
 	order := []keys.Action{
 		keys.GlobalNewSession, keys.GlobalPresets,
 		keys.TargetSession, keys.TargetList, keys.TargetOutput,
@@ -180,6 +181,98 @@ func (m Model) statusHints() string {
 	return strings.Join(out, " · ")
 }
 
+// reviewHints lists the keys of the review screen, from the same keymap.
+func (m Model) reviewHints() string {
+	pair := func(next, prev keys.Action, word string) string {
+		a, b := firstKey(m.keys, next), firstKey(m.keys, prev)
+		if a == "" || b == "" {
+			return ""
+		}
+		return a + "/" + b + " " + word
+	}
+	one := func(a keys.Action, word string) string {
+		if k := firstKey(m.keys, a); k != "" {
+			return k + " " + word
+		}
+		return ""
+	}
+	var out []string
+	for _, hint := range []string{
+		pair(keys.ReviewHunkNext, keys.ReviewHunkPrev, "hunk"),
+		pair(keys.ReviewFileNext, keys.ReviewFilePrev, "file"),
+		one(keys.ReviewExplainHunk, "explain"),
+		one(keys.ReviewExplainFile, "explain the file"),
+		one(keys.ReviewNumbers, "numbers"),
+		one(keys.ReviewFocusNext, "pane"),
+		"esc workspace",
+	} {
+		if hint != "" {
+			out = append(out, hint)
+		}
+	}
+	return strings.Join(out, " · ")
+}
+
+// styleHints sets each key of a hint list in white between dimmed brackets, and
+// its word in grey, on the status bar: [n] new.
+func styleHints(plain string) string {
+	return bracketHints(plain, statusSepStyle, statusKeyStyle, statusMutedStyle)
+}
+
+// paneHints sets a hint list the same way, on the black ground of a pane.
+func paneHints(plain string) string {
+	return bracketHints(plain, fgStyle(colDimmed), keyStyle, fgStyle(colMuted))
+}
+
+func bracketHints(plain string, sep, key, word lipgloss.Style) string {
+	if plain == "…" {
+		return sep.Render(plain)
+	}
+	parts := strings.Split(plain, " · ")
+	for i, part := range parts {
+		if part == "…" {
+			parts[i] = sep.Render(part)
+			continue
+		}
+		k, w, _ := strings.Cut(part, " ")
+		parts[i] = sep.Render("[") + key.Render(k) + sep.Render("]") + word.Render(" "+w)
+	}
+	return strings.Join(parts, word.Render("  "))
+}
+
+// fitHints keeps the whole hints that fit in width, as styleHints sets them, and
+// marks with an ellipsis that more are left.
+func fitHints(plain string, width int) string {
+	parts := strings.Split(plain, " · ")
+	hint := func(i int) int { return lipgloss.Width(parts[i]) + 2 }
+	used := 0
+	for i := range parts {
+		if i > 0 {
+			used += 2
+		}
+		used += hint(i)
+	}
+	if used <= width {
+		return plain
+	}
+	used, keep := 0, 0
+	for i := range parts {
+		w := hint(i)
+		if i > 0 {
+			w += 2
+		}
+		if used+w+3 > width {
+			break
+		}
+		used += w
+		keep++
+	}
+	if keep == 0 {
+		return "…"
+	}
+	return strings.Join(parts[:keep], " · ") + " · …"
+}
+
 // sequenceHints lists the action keys of a target, for the status bar.
 func (m Model) sequenceHints(target keys.Action) string {
 	ctx, ok := keys.TargetContext(target)
@@ -193,119 +286,4 @@ func (m Model) sequenceHints(target keys.Action) string {
 		}
 	}
 	return strings.Join(out, " · ")
-}
-
-type help struct {
-	filter textinput.Model
-	offset int
-}
-
-func newHelp() *help {
-	filter := textinput.New()
-	filter.Placeholder = "search the keys"
-	filter.Prompt = "> "
-	filter.CharLimit = 40
-	filter.Width = 30
-	filter.Focus()
-	return &help{filter: filter}
-}
-
-func (h *help) Update(msg tea.Msg) (bool, tea.Cmd) {
-	if key, ok := msg.(tea.KeyMsg); ok {
-		switch key.String() {
-		case "esc", "enter":
-			return false, nil
-		case "up", "ctrl+k":
-			if h.offset > 0 {
-				h.offset--
-			}
-			return true, nil
-		case "down", "ctrl+j":
-			h.offset++
-			return true, nil
-		}
-	}
-	var cmd tea.Cmd
-	h.filter, cmd = h.filter.Update(msg)
-	h.offset = 0
-	return true, cmd
-}
-
-func (h *help) rows(km keys.Keymap, cmds []config.Command, width int) []string {
-	needle := strings.ToLower(strings.TrimSpace(h.filter.Value()))
-	var (
-		out   []string
-		group string
-	)
-	for _, item := range bindings {
-		shown := item.keys
-		if item.action != "" {
-			shown = displayKeys(km, item.action)
-		}
-		if needle != "" &&
-			!strings.Contains(strings.ToLower(shown), needle) &&
-			!strings.Contains(strings.ToLower(item.what), needle) &&
-			!strings.Contains(strings.ToLower(item.group), needle) {
-			continue
-		}
-		if item.group != group {
-			group = item.group
-			out = append(out, titleStyle.Render(group))
-		}
-		out = append(out, "  "+fieldLabelStyle.Render(pad(shown, 17))+truncate(item.what, width-21))
-	}
-	for _, c := range cmds {
-		if needle != "" &&
-			!strings.Contains(strings.ToLower(c.Keys), needle) &&
-			!strings.Contains(strings.ToLower(c.Label), needle) &&
-			!strings.Contains("your commands", needle) {
-			continue
-		}
-		if group != "Your commands" {
-			group = "Your commands"
-			out = append(out, titleStyle.Render(group))
-		}
-		out = append(out, "  "+fieldLabelStyle.Render(pad(c.Keys, 17))+truncate(c.Label, width-21))
-	}
-	return out
-}
-
-func (h *help) View(km keys.Keymap, cmds []config.Command, width, height int) string {
-	inner := modalInner(width)
-	window := height - 10
-	if window < 3 {
-		window = 3
-	}
-
-	rows := h.rows(km, cmds, inner)
-	if h.offset > len(rows)-window {
-		h.offset = len(rows) - window
-	}
-	if h.offset < 0 {
-		h.offset = 0
-	}
-
-	var b strings.Builder
-	b.WriteString(titleStyle.Render("Keys"))
-	b.WriteString("\n\n")
-	b.WriteString(h.filter.View())
-	b.WriteString("\n\n")
-
-	if len(rows) == 0 {
-		b.WriteString(hintStyle.Render("No key matches that."))
-	}
-	end := h.offset + window
-	if end > len(rows) {
-		end = len(rows)
-	}
-	for _, row := range rows[h.offset:end] {
-		b.WriteString(row + "\n")
-	}
-
-	footer := "esc close"
-	if len(rows) > window {
-		footer = "↑↓ scroll · " + footer
-	}
-	b.WriteString("\n" + hintStyle.Render(footer))
-	return modalStyle.Width(inner).Render(b.String())
 }

@@ -39,7 +39,7 @@ func TestDiffPanelListsFilesAndCounts(t *testing.T) {
 	)
 
 	text := visible(strings.Join(m.diffPanelLines(), "\n"))
-	for _, want := range []string{"Changes · 2", "app.go", "+12", "−3", "git.go", "+40"} {
+	for _, want := range []string{"CHANGES · 2", "app.go", "+12", "−3", "git.go", "+40"} {
 		if !strings.Contains(text, want) {
 			t.Errorf("the panel does not show %q:\n%s", want, text)
 		}
@@ -89,7 +89,7 @@ func TestDiffPanelGroupsByDirectory(t *testing.T) {
 	}}
 
 	text := visible(strings.Join(m.diffPanelLines(), "\n"))
-	for _, want := range []string{"Changes · 2", "api", "web", "main.go"} {
+	for _, want := range []string{"CHANGES · 2", "API", "WEB", "main.go"} {
 		if !strings.Contains(text, want) {
 			t.Errorf("the grouped panel does not show %q:\n%s", want, text)
 		}
@@ -233,20 +233,20 @@ func TestOpeningThePanelResizesTheOutput(t *testing.T) {
 	m, _ = step(t, m, key("esc"))
 	m = spawn(t, m, mgr, "alpha", t.TempDir())
 
-	full := m.output.Width
+	full := m.output.Width()
 	next, _ := m.openDiffPanel()
 	m = next.(Model)
-	if m.output.Width == full {
+	if m.output.Width() == full {
 		t.Fatal("opening the panel must shrink the output width")
 	}
-	if m.output.Width != m.outputWidth() {
-		t.Fatalf("output width = %d, want outputWidth %d", m.output.Width, m.outputWidth())
+	if m.output.Width() != m.outputWidth() {
+		t.Fatalf("output width = %d, want outputWidth %d", m.output.Width(), m.outputWidth())
 	}
 
 	next, _ = m.closeDiffPanel()
 	m = next.(Model)
-	if m.output.Width != full {
-		t.Fatalf("closing must restore the output width to %d, got %d", full, m.output.Width)
+	if m.output.Width() != full {
+		t.Fatalf("closing must restore the output width to %d, got %d", full, m.output.Width())
 	}
 }
 
@@ -596,7 +596,7 @@ func TestLineNumbersToggle(t *testing.T) {
 	}
 }
 
-func TestTheSelectedFileHasThePurpleBackground(t *testing.T) {
+func TestTheSelectedFileInverts(t *testing.T) {
 	m := diffModel()
 	m.diffs["a"] = oneGroup(
 		git.FileChange{Status: "M", Path: "a.txt"},
@@ -606,10 +606,10 @@ func TestTheSelectedFileHasThePurpleBackground(t *testing.T) {
 
 	lines := m.diffPanelLines()
 	selected, other := lines[3], lines[2]
-	if !strings.Contains(selected, "48;5;62") {
-		t.Errorf("the selected row must carry the purple background:\n%q", selected)
+	if !strings.Contains(selected, "38;2;0;0;0;48;2;255;255;255") {
+		t.Errorf("the selected row must invert:\n%q", selected)
 	}
-	if strings.Contains(other, "48;5;62") {
+	if strings.Contains(other, "48;2;255;255;255") {
 		t.Errorf("an unselected row must not carry the background:\n%q", other)
 	}
 }

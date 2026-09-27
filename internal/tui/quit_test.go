@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 )
 
 func TestQuitStopsEverySession(t *testing.T) {
@@ -16,11 +16,11 @@ func TestQuitStopsEverySession(t *testing.T) {
 	m = spawn(t, m, mgr, "alpha", dir)
 	m = spawn(t, m, mgr, "beta", dir)
 
-	m, cmd := step(t, m, tea.KeyMsg{Type: tea.KeyCtrlC})
+	m, cmd := step(t, m, key("ctrl+c"))
 	if m.quitting || cmd != nil {
 		t.Fatal("one ctrl+c must not quit")
 	}
-	m, cmd = step(t, m, tea.KeyMsg{Type: tea.KeyCtrlC})
+	m, cmd = step(t, m, key("ctrl+c"))
 	if !m.quitting || cmd == nil {
 		t.Fatal("a second ctrl+c must start the shutdown")
 	}
@@ -48,7 +48,7 @@ func TestCtrlCClearsThePromptBeforeItQuits(t *testing.T) {
 	m = spawn(t, m, mgr, "alpha", t.TempDir())
 
 	m.prompt.SetValue("a prompt I no longer want")
-	m, cmd := step(t, m, tea.KeyMsg{Type: tea.KeyCtrlC})
+	m, cmd := step(t, m, key("ctrl+c"))
 	if m.prompt.Value() != "" {
 		t.Fatalf("the prompt was not cleared, it holds %q", m.prompt.Value())
 	}
@@ -59,7 +59,7 @@ func TestCtrlCClearsThePromptBeforeItQuits(t *testing.T) {
 		t.Errorf("the status does not warn about the next press:\n%s", m.statusView())
 	}
 
-	m, cmd = step(t, m, tea.KeyMsg{Type: tea.KeyCtrlC})
+	m, cmd = step(t, m, key("ctrl+c"))
 	if !m.quitting || cmd == nil {
 		t.Fatal("the second ctrl+c must quit")
 	}
@@ -71,16 +71,16 @@ func TestAnyOtherKeyDisarmsTheQuit(t *testing.T) {
 	m, _ = step(t, m, key("esc"))
 	m = spawn(t, m, mgr, "alpha", t.TempDir())
 
-	m, _ = step(t, m, tea.KeyMsg{Type: tea.KeyCtrlC})
+	m, _ = step(t, m, key("ctrl+c"))
 	if !m.armedQuit {
 		t.Fatal("the first ctrl+c must arm the quit")
 	}
 
-	m, _ = step(t, m, tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("h")})
+	m, _ = step(t, m, key("h"))
 	if m.armedQuit {
 		t.Fatal("another key must disarm the quit")
 	}
-	m, cmd := step(t, m, tea.KeyMsg{Type: tea.KeyCtrlC})
+	m, cmd := step(t, m, key("ctrl+c"))
 	if m.quitting || cmd != nil {
 		t.Fatal("ctrl+c after another key must clear, not quit")
 	}
@@ -92,7 +92,7 @@ func TestCtrlCClosesTheFormAndTheConfirmation(t *testing.T) {
 	if m.form == nil {
 		t.Fatal("the form must be open")
 	}
-	m, _ = step(t, m, tea.KeyMsg{Type: tea.KeyCtrlC})
+	m, _ = step(t, m, key("ctrl+c"))
 	if m.form != nil {
 		t.Fatal("ctrl+c must close the form")
 	}
@@ -107,7 +107,7 @@ func TestCtrlCClosesTheFormAndTheConfirmation(t *testing.T) {
 	if m.confirm == "" {
 		t.Fatal("x must ask for a confirmation")
 	}
-	m, _ = step(t, m, tea.KeyMsg{Type: tea.KeyCtrlC})
+	m, _ = step(t, m, key("ctrl+c"))
 	if m.confirm != "" {
 		t.Fatal("ctrl+c must drop the confirmation")
 	}

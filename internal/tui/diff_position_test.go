@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/git"
@@ -77,21 +77,21 @@ func TestHorizontalDiffPanelShrinksOutputViewport(t *testing.T) {
 	m.layouts = map[string]config.Layout{"stack": {DiffPosition: posPtr(config.DiffBottom), DiffSize: sizePtr(10)}}
 	m.activeLayout = "stack"
 	m.applyLayout()
-	tall := m.output.Height
+	tall := m.output.Height()
 
 	next, _ := m.openDiffPanel()
 	m = next.(Model)
-	if m.output.Height >= tall {
-		t.Fatalf("output viewport height = %d, want less than %d (shrunk for the panel)", m.output.Height, tall)
+	if m.output.Height() >= tall {
+		t.Fatalf("output viewport height = %d, want less than %d (shrunk for the panel)", m.output.Height(), tall)
 	}
-	if m.output.Height != m.outputHeight() {
-		t.Fatalf("output viewport height = %d, want outputHeight %d", m.output.Height, m.outputHeight())
+	if m.output.Height() != m.outputHeight() {
+		t.Fatalf("output viewport height = %d, want outputHeight %d", m.output.Height(), m.outputHeight())
 	}
 
 	next, _ = m.closeDiffPanel()
 	m = next.(Model)
-	if m.output.Height != tall {
-		t.Fatalf("closing must restore the output viewport height to %d, got %d", tall, m.output.Height)
+	if m.output.Height() != tall {
+		t.Fatalf("closing must restore the output viewport height to %d, got %d", tall, m.output.Height())
 	}
 }
 

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/git"
@@ -225,7 +225,7 @@ func (m Model) closeDiffPanel() (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m Model) diffKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+func (m Model) diffKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	entries := m.diffEntries()
 	if msg.String() == "esc" {
 		return m.closeDiffPanel()
@@ -509,7 +509,7 @@ func (m Model) setSidebar(hidden bool) (tea.Model, tea.Cmd) {
 	if hidden && m.focus == focusSidebar {
 		m.focus = focusOutput
 	}
-	m.output.Width = m.outputWidth()
+	m.output.SetWidth(m.outputWidth())
 	m.rebuildOutput()
 	return m, nil
 }

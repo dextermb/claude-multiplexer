@@ -21,7 +21,7 @@ open directory. See [sessions.md](sessions.md) and
 
 ## The count in the bar
 
-The session bar shows the inserted lines in green and the deleted lines in red,
+The session bar shows the inserted lines in the positive colour and the deleted lines in the danger colour,
 for example `+120 −30`. The count is the total of the changes against
 `origin/HEAD`.
 
@@ -51,12 +51,15 @@ files, one to a row:
 
 Each row shows a fold mark, a status letter, the path, and the file's own
 `+I −D`. The status letter is the git letter: `M` (modified), `A` (added),
-`D` (deleted), or `R` (renamed). The selected file has a blue background.
+`D` (deleted), or `R` (renamed). The selected file inverts (white fill, black text).
 
 `Enter` expands the selected file, and its coloured diff shows below the row.
-`Enter` again collapses it. `Space` does the same as `Enter` here. The diff
-colours are green for an inserted line, red for a deleted line, and blue for a
-hunk header. The panel drops the git file
+`Enter` again collapses it. `Space` does the same as `Enter` here. An inserted
+row has a faint green tint across the row and green text, and a deleted row a
+faint red tint and red text. The current line keeps its white text. A hunk
+header is dimmed grey. The review screen draws its rows the same way, from
+`diffChunk` in `internal/tui/diffrows.go`. See [theme.md](theme.md) for the
+tints. The panel drops the git file
 header, because a narrow panel has no room for it. A long line wraps to the panel
 width.
 
@@ -105,7 +108,7 @@ horizontal sides, so the panel is a wide band above or below the output.
 
 A vertical panel has a border on the side next to the output, and a horizontal
 band has a rule on the same side: a line above a bottom band, and below a top
-band. The border carries the highlight colour when the panel holds the focus.
+band. The border turns white when the panel holds the focus.
 The band is flush with the output on the left, and takes the full output width,
 so the output shrinks to give the band its rows. The rule sits inside those
 rows, so the band and the output together still fit the pane.
@@ -162,8 +165,8 @@ line of an open diff, like the paragraph motions of vim. An empty line is a diff
 line with no code, once its marker and its line number are removed.
 
 The panel marks the current line, the top line of the view, so you see where a
-jump lands. When the line numbers are off, the current line is bold. When they
-are on, the line number is bold.
+jump lands. When the line numbers are off, the current line is white. When they
+are on, the line number is white.
 
 `d +` grows the panel, and `d -` shrinks it. The keys change the width on a
 vertical side, and the height on a horizontal side. The size has a minimum, and a

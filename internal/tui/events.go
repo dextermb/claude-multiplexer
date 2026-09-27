@@ -1,9 +1,9 @@
 package tui
 
 import (
-	"github.com/charmbracelet/bubbles/textarea"
-	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
+	"charm.land/bubbles/v2/textarea"
+	"charm.land/bubbles/v2/textinput"
+	tea "charm.land/bubbletea/v2"
 	"github.com/dextermb/claude-multiplexer/internal/manager"
 )
 
@@ -97,12 +97,14 @@ func (m Model) handleEvent(ev manager.Event) (tea.Model, tea.Cmd) {
 	switch {
 	case gap || widthChanged || replaced:
 		m.rebuildOutput()
-	case ev.Session == m.sel && len(ev.Lines) > 0:
+	case ev.Session == m.sel && len(ev.Lines) > 0 && ev.Seq > m.outputSeq:
 		m.appendOutput(ev.Lines)
 	case ev.Session == m.sel:
 		m.setContent()
 	}
 	if turnEnded {
+		m.tickCalls()
+		m.setContent()
 		m.resetBlockCursor()
 	}
 	cmds := []tea.Cmd{waitEvent(m.sub)}
@@ -202,6 +204,7 @@ func (m Model) handleSpin() (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 	m.spinFrame++
+	m.tickCalls()
 	m.setContent()
 	return m, spinTick()
 }

@@ -6,16 +6,16 @@ session runs and what it plans. The jobs sit above the tasks.
 
 ```
 ┌─────────────────────────────────┬──────────────────────────────┐
-│ › add the panel                 │ Jobs · 1/2                   │
+│ › add the panel                 │ JOBS · 1/2                   │
 │ → TaskCreate Draw the panel     │                              │
-│ ← result                        │ ⚙ build the binary           │
-│ echo: add the panel             │ ✓ run the tests              │
+│ ← result                        │ ■ running build the binary   │
+│ echo: add the panel             │ ✓ done    run the tests      │
 │                                 │                              │
-│                                 │ Tasks · 1/3                  │
+│                                 │ TASKS · 1/3                  │
 │                                 │                              │
-│                                 │ ✔ Add the render type        │
-│                                 │ ◐ Wiring the manager         │
-│                                 │ ○ Draw the panel             │
+│                                 │ [✓] Add the render type      │
+│                                 │ [■] Wiring the manager       │
+│                                 │ [ ] Draw the panel           │
 └─────────────────────────────────┴──────────────────────────────┘
 ```
 
@@ -38,35 +38,36 @@ The jobs section lists every background job, the running ones first, then the
 finished ones, in start order. The header counts the running jobs against the
 total, for example `Jobs · 1/2`.
 
-Each row shows a status glyph, then the job description:
+Each row shows a status glyph and a status word in the state colour, then the
+job description:
 
-| Glyph | Status | Colour |
+| Glyph | Word | Colour |
 |---|---|---|
-| `⚙` | running | Amber |
-| `✓` | done | Green |
-| `✗` | failed | Red |
-| `⊗` | killed | Muted |
+| `■` | `running` | warning (amber) |
+| `✓` | `done` | positive (green) |
+| `×` | `failed` | danger (red) |
+| `×` | `killed` | dimmed grey |
 
 A finished job is muted, so the eye goes to the work that still runs.
 
 ## The tasks section
 
-The section lists every task, one to a row, with a status glyph:
+The section lists every task, one to a row, with a status box. The tasks have no
+hue: grey tells the status, so the colour stays free for the state of the
+session.
 
-| Glyph | Status | Colour |
+| Box | Status | Colour |
 |---|---|---|
-| `○` | pending | Muted |
-| `◐` | in progress | Amber, bold |
-| `✔` | completed | Green |
+| `[ ]` | pending | muted grey |
+| `[■]` | in progress | white |
+| `[✓]` | completed | dimmed grey |
 
 The header counts the completed tasks against the total, for example
-`Tasks · 1/3`. A completed task is muted, so the eye goes to the work that is
+`TASKS · 1/3`. A completed task is muted, so the eye goes to the work that is
 left.
 
 A pending or a completed task shows its `content`. The one in-progress task
-shows its `activeForm` instead, so the running task reads in the present. When
-the session is busy, the `◐` becomes the running spinner, so the active task
-moves. This matches the spinner in the sidebar.
+shows its `activeForm` instead, so the running task reads in the present.
 
 Each task has three parts:
 
@@ -118,7 +119,7 @@ always on the right, but a layout may put the diff panel on another side. See
 A long list is taller than the panel, so the panel scrolls. To scroll it, first
 give it the focus. `s k` moves the focus to the panel, and `Tab` reaches it too,
 after the output. The panel takes the focus only when it shows. A focused panel
-draws its left border in the highlight colour, the same as the diff panel.
+draws its left border in white, the same as the diff panel.
 
 While the panel holds the focus, `j`, `k`, `up`, and `down` scroll one line, `u`
 and `d` scroll half a panel, `pgup` and `pgdown` scroll a whole panel, and `g`

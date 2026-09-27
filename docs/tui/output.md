@@ -11,7 +11,7 @@ you return to the bottom.
 
 The pane shows the turns of the session, not the turns of its local agents. A
 local agent is a job, and its turns go to that job's output, which you open from
-the jobs dialog. The pane keeps the job's lifecycle line (`⚙ started`) and the
+the jobs dialog. The pane keeps the job's lifecycle line (`■ started`) and the
 agent's final report, which returns as a parent turn. See
 [sessions/jobs.md](sessions/jobs.md).
 
@@ -21,19 +21,26 @@ recedes:
 
 | Class | What it is | Colour |
 |---|---|---|
-| `ClassPrompt` | What you asked, marked `› ` | Violet, bold, with inline emphasis (see [markdown.md](../markdown.md)) |
-| `ClassText` | What the assistant says | Rendered as markdown |
-| `ClassToolUse` | A tool call, such as `→ Bash ls` | Blue |
-| `ClassToolResult` | What the tool returned | Muted |
-| `ClassMeta` | The `init` line, the turn result, and state changes | Muted, darkest |
-| `ClassThinking` | Thinking, when the verbose flag is on | Muted, italic |
-| `ClassStderr` | A line from the child stderr | Amber |
-| `ClassError` | A failure, or a line that is not JSON | Red |
+| `ClassPrompt` | What you asked, marked `› ` | Heading grey, with inline emphasis (see [markdown.md](../markdown.md)) |
+| `ClassText` | What the assistant says | Rendered as markdown, in secondary grey |
+| `ClassToolUse` | A tool call, such as `→ Bash ls` | One row: the tool name as an uppercase label, the input in secondary grey, and a note (see [tool-calls.md](tool-calls.md)) |
+| `ClassToolResult` | What the tool returned | Muted grey, or folded into the call row |
+| `ClassMeta` | The `init` line and state changes | Dimmed grey |
+| `ClassResult` | The turn result, such as `✓ done · 3.2s · …` | The mark and the word in green (`✗ error` in red), the rest dimmed |
+| `ClassThinking` | Thinking, when the verbose flag is on | Dimmed grey |
+| `ClassStderr` | A line from the child stderr | Warning (amber) |
+| `ClassError` | A failure, or a line that is not JSON | Danger (red) |
+| `ClassBash` | A `!` command and its output | Secondary grey |
 | `ClassSkill` | The content of a skill, loaded into the transcript | Muted markdown, capped to one row |
+| `ClassJob` | A background job starts or stops, such as `✓ done · b1` | The mark and the word in the status colour, the rest dimmed |
 
 What the assistant says is rendered as markdown, so a heading, a list, and a
 code fence all read as themselves. Press `o m` for the raw text. See
 [markdown.md](../markdown.md).
+
+A tool call draws as one row, `→ READ   internal/auth/middleware.go  412 lines`.
+The result of a read, an edit, or a search folds into that row. See
+[tool-calls.md](tool-calls.md).
 
 Your prompt appears the moment you send it. The interface holds a copy and
 shows it at once, so there is no wait for the round trip through Claude Code.
@@ -42,7 +49,7 @@ Claude Code then echoes the turn back through the stream. See
 copy, so the prompt is never shown twice. The echoed prompt is in the transcript
 for a later replay, and the pane reads as a conversation.
 
-A slash command echoes as a `» /name` line, not a violet prompt. So the drop
+A slash command echoes as a `» /name` line, not a prompt. So the drop
 keys on the echo of the turn, and not on the prompt line. The manager marks the
 replay of a turn you sent, a prompt or a slash command. The interface drops the
 held copy on that mark. An injected callback, such as a task notification, is
@@ -85,22 +92,22 @@ across the tool result, and marks the next user text message `ClassSkill`. A
 one-line printer draws the row count in place of the whole dump.
 
 The pane renders the dump as markdown, the same as a message. Every heading
-renders as bold text, so a `#` heading in a skill does not draw large. See
+renders as uppercase text, so a `#` heading in a skill does not draw large. See
 [../markdown.md](../markdown.md).
 
 ```
-→ Bash ./scripts/build.sh
+→ BASH   ./scripts/build.sh
 ← go: downloading github.com/charmbracelet/bubbletea v1.3.4
   go: downloading github.com/charmbracelet/lipgloss v1.1.0
   … 18 more rows of the body …
-▸ ⋯ 4193 more lines
+▸ [+] 4193 more lines
 ```
 
 The cap counts the rows the pane draws, after the text is wrapped to the width
 of the pane. So one block never takes more than the cap and one marker row,
 however wide its lines are.
 
-An open block draws every row, and its marker says `⋯ show less`. The first row
+An open block draws every row, and its marker says `[−] show less`. The first row
 of the block holds its place on the screen while it opens and closes, so the
 text under your eyes does not jump.
 
@@ -108,7 +115,9 @@ text under your eyes does not jump.
 the block cursor, and it names the block that `Enter` opens. `Space` does the
 same as `Enter` here. `]` and `[` move it
 to the next capped block and to the block before, and the pane scrolls to it
-only when it is out of sight. A click on any marker row opens that block.
+only when it is out of sight. A click on any marker row opens that block. A
+folded tool result has no marker row: its call row is the marker. See
+[tool-calls.md](tool-calls.md).
 
 The cursor sits on the newest capped block. It returns there at the end of every
 turn, and when you select another session, because that is the block you most
@@ -149,10 +158,11 @@ column.
 
 ## Text as it arrives
 
-Before the first word arrives, the pane shows a spinner and the word
-`thinking…` below your prompt. It marks the gap between the send and the first
-token, so the session never looks stuck. The spinner shows while the session is
-busy and no text streams yet. The first token replaces it.
+Before the first word arrives, the pane shows the word `thinking…` below your
+prompt. It marks the gap between the send and the first token, so the session
+never looks stuck. The word shows while the session is busy and no text streams
+yet. The first token replaces it. The busy timer in the list and the session bar
+shows that the turn still runs.
 
 The pane shows the answer while the model writes it. The unfinished text sits
 below the settled lines and ends with a `▌`, so you can tell what is still
@@ -175,7 +185,7 @@ Claude Code injects some turns as a synthetic user message whose text is one XML
 wrapper. A background job that stops between sessions arrives as
 `<task-notification>`. A slash command arrives as `<command-name>`. A local
 command writes `<local-command-stdout>`, and the harness appends
-`<system-reminder>`. Without help, the pane draws the raw XML as a violet prompt,
+`<system-reminder>`. Without help, the pane draws the raw XML as a prompt,
 as though you typed it.
 
 So the renderer knows these wrappers and draws each as a muted `ClassMeta` line,
@@ -184,13 +194,13 @@ status line:
 
 | Wrapper | The line |
 |---|---|
-| `<task-notification>` | `⚙ <status> · <summary>`, the job vocabulary (see [sessions/jobs.md](sessions/jobs.md)) |
+| `<task-notification>` | `<mark> <status> · <summary>`, such as `✓ done · …`, the job vocabulary (see [sessions/jobs.md](sessions/jobs.md)) |
 | `<command-name>` | `» /name args` |
 | `<local-command-stdout>` | `← <output>` |
 | `<local-command-caveat>` | dropped |
 | `<system-reminder>` | `· system reminder`, one faint marker for each |
 
-The renderer reads each text block on its own. So a real prompt keeps its violet
+The renderer reads each text block on its own. So a real prompt keeps its prompt
 line, and a `<system-reminder>` appended after it collapses to the marker. A
 live `task_notification` system event stays silent, because the sidebar and the
 job list already show the job; see [sessions/jobs.md](sessions/jobs.md).
@@ -198,11 +208,15 @@ job list already show the job; see [sessions/jobs.md](sessions/jobs.md).
 ## How the output stays correct
 
 The interface subscribes to the manager bus and appends the lines of each event
-for the selected session. Two rules keep the pane honest:
+for the selected session. Three rules keep the pane honest:
 
-- A change of selection rebuilds the pane from `Lines(name)`.
+- A change of selection rebuilds the pane from `LinesAt(name)`.
 - A gap in the sequence number means the bus dropped an event, so the pane is
   rebuilt as well, and not appended to.
+- A rebuild reads the buffer, which can hold the lines of an event that still
+  waits in the channel. `LinesAt` also gives the sequence of the last event in
+  the buffer, and the pane does not append an event at or below it. Without
+  this rule, a rebuild while events wait draws their lines twice.
 
 A rebuild of the same session keeps your place, the blocks you opened, and the
 block cursor. A rebuild also runs when the sidebar reloads its stored sessions,

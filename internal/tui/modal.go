@@ -1,6 +1,6 @@
 package tui
 
-import tea "github.com/charmbracelet/bubbletea"
+import tea "charm.land/bubbletea/v2"
 
 // modalRegion says where a modal draws, and whether it blocks the mouse wheel.
 // See docs/tui.md "Where a dialog draws".

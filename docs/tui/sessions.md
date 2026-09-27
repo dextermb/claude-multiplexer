@@ -8,7 +8,7 @@ The sidebar, and what a row means. For the keys that drive it, see
 | Page | Read it for |
 |---|---|
 | [sessions/jobs.md](sessions/jobs.md) | Background jobs: the four places one shows, and the jobs dialog |
-| [sessions/bars.md](sessions/bars.md) | The session bar and the status bar, and what each drops when narrow |
+| [sessions/bars.md](sessions/bars.md) | The session bar, the band, and the status bar, and what each drops when narrow |
 
 ## The sections
 
@@ -145,8 +145,9 @@ stable, so a row does not jump as its state changes.
 ## Reading a row
 
 A row starts with a state glyph in the state colour, then the display name, then
-the muted session flags, then `⚙n` when `n` background jobs run, then `⇢n` when
-`n` prompts wait in the queue. The display name is the title
+the muted session flags, then `jn` when `n` background jobs run, then `qn` when
+`n` prompts wait in the queue. The row ends with a state word in the state
+colour. The display name is the title
 when the session has one, and the name when it does not. Press `s n` to set the
 title. See [keys.md](./keys.md).
 
@@ -164,17 +165,19 @@ reads `HC`:
 A control session that heads its own group takes no `C`, because the group header
 already marks it.
 
-The glyph tells the state at a glance:
+The glyph and the word tell the state together. The colour is never the only
+mark:
 
-| Glyph | State | Colour |
+| Glyph | Word | Colour |
 |---|---|---|
-| `◌` | starting | blue |
-| `⠋` (animated) | busy | amber |
-| `●` | idle | green |
-| `?` | waiting | magenta |
-| `●` | failed | red |
-| `○` | stored | gray |
-| `·` | archived | faint gray |
+| `■` | `start` | dimmed grey |
+| `■` | `busy 0:42` | warning (amber) |
+| `■` | `idle` | positive (green) |
+| `■` | `waiting` | info (blue) |
+| `■` | `failed` | danger (red) |
+| `■` | `exited` | dimmed grey |
+| `·` | `stored` | dimmed grey |
+| `·` | `archived` | faint grey |
 
 A `waiting` row asked a question and holds for the answer. See
 [input.md](./input.md).
@@ -182,10 +185,16 @@ A `waiting` row asked a question and holds for the answer. See
 A row marked `C` can prompt, stop, and archive the other sessions. Give a
 session that mark only when you mean it. See [mcp/grant.md](../mcp/grant.md).
 
-The busy glyph is the dot spinner (`⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏`). It turns while any
-session runs a turn, and it is the same spinner the output pane shows for
-`thinking…`. The selected row is shown with a blue background, and the focused
-pane (the list, the prompt, or the output) carries a blue left edge.
+A busy row shows how long its turn has run, such as `busy 0:42`. Claude Code
+reports no start time for a turn, so the interface records the time a session
+becomes busy when it refreshes the list, and it
+forgets the time when the session stops being busy. The timer is the only thing
+on the screen that moves on its own. There is no spinner.
+
+The selected row inverts (white fill, black text) when the list has the focus.
+When another pane has the focus, the selected row keeps a grey band. The label of
+the focused pane inverts in its rule: `SESSIONS (n)` for the list, the session
+name for the output. See [theme.md](./theme.md) and [../tui.md](../tui.md).
 
 Select a stored row and the pane shows that conversation, replayed from its
 transcript. It is a record: you cannot type into it. Press `Enter` and the
@@ -201,12 +210,12 @@ Only a session that finished at least one turn is remembered. See
 ## The prompt queue
 
 When a session is busy, a prompt you send waits in the session queue, and the row
-shows `⇢n` for the `n` prompts that wait. Press `Enter` on an empty prompt to send
+shows `qn` for the `n` prompts that wait, and the session bar shows `queued (n)`. Press `Enter` on an empty prompt to send
 the next queued prompt at once. Press `Backspace` on an empty prompt to remove the
 newest queued prompt, bottom to top; each press removes one.
 
 `Backspace` never removes the prompt already handed to Claude. The write loop takes
-the in-flight prompt off the front of the queue before it sends it, so `⇢n` counts
+the in-flight prompt off the front of the queue before it sends it, so `qn` counts
 only the prompts that still wait. `Backspace` acts only when that count is above
 zero, and removes the tail of the queue. To stop the in-flight prompt, press `Esc`,
 which interrupts the turn and drops the whole queue. See [keys.md](./keys.md).

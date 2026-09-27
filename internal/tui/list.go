@@ -1,7 +1,9 @@
 package tui
 
 import (
-	tea "github.com/charmbracelet/bubbletea"
+	"time"
+
+	tea "charm.land/bubbletea/v2"
 	"github.com/dextermb/claude-multiplexer/internal/mcp"
 	"github.com/dextermb/claude-multiplexer/internal/session"
 )
@@ -88,6 +90,7 @@ func (m *Model) refresh() {
 	}
 	view := deriveSidebar(m.gatherSidebarInputs())
 	m.rows, m.groups, m.lines = view.rows, view.groups, view.lines
+	m.trackBusy()
 	m.syncJobsModal()
 
 	if m.selLine() < 0 {
@@ -98,6 +101,28 @@ func (m *Model) refresh() {
 	}
 	m.clampOffset()
 	m.applyLayout()
+}
+
+// trackBusy records when each session became busy, for the timer beside its
+// state word. See docs/tui/sessions.md.
+func (m *Model) trackBusy() {
+	if m.busySince == nil {
+		m.busySince = make(map[string]time.Time)
+	}
+	busy := make(map[string]bool, len(m.rows))
+	for _, item := range m.rows {
+		if item.live && item.state == session.StateBusy {
+			busy[item.name] = true
+			if _, seen := m.busySince[item.name]; !seen {
+				m.busySince[item.name] = time.Now()
+			}
+		}
+	}
+	for name := range m.busySince {
+		if !busy[name] {
+			delete(m.busySince, name)
+		}
+	}
 }
 
 // followSelection derives the state that trails the selection, so a caller sets

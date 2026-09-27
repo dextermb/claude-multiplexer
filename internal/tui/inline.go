@@ -4,7 +4,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 )
 
 type spanKind uint8
@@ -31,15 +31,10 @@ func inlineEmphasis(text string, base lipgloss.Style) string {
 	var b strings.Builder
 	for _, sp := range spans {
 		switch sp.kind {
-		case spanItalic:
-			b.WriteString(base.Italic(true).Render(sp.text))
-		case spanBold:
-			b.WriteString(base.Bold(true).Render(sp.text))
+		case spanItalic, spanBold:
+			b.WriteString(base.Foreground(colFg).Render(sp.text))
 		case spanCode:
-			b.WriteString(base.Bold(false).
-				Foreground(lipgloss.Color("219")).
-				Background(lipgloss.Color("237")).
-				Render(" " + sp.text + " "))
+			b.WriteString(base.Foreground(colFg).Background(colCode).Render(" " + sp.text + " "))
 		default:
 			b.WriteString(base.Render(sp.text))
 		}

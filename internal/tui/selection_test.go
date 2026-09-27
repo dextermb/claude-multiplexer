@@ -3,7 +3,7 @@ package tui
 import (
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 )
 
 func TestSelectedText(t *testing.T) {
@@ -62,12 +62,19 @@ func TestDragInTheOutputCopies(t *testing.T) {
 	copyToClipboard = func(s string) error { got = s; return nil }
 	t.Cleanup(func() { copyToClipboard = orig })
 
-	drag := func(x, y int, action tea.MouseAction) tea.MouseMsg {
-		return tea.MouseMsg{X: x, Y: y, Action: action, Button: tea.MouseButtonLeft}
+	drag := func(x, y int, action mouseAction) tea.MouseMsg {
+		mouse := tea.Mouse{X: x, Y: bandHeight + y, Button: tea.MouseLeft}
+		switch action {
+		case mouseRelease:
+			return tea.MouseReleaseMsg(mouse)
+		case mouseMotion:
+			return tea.MouseMotionMsg(mouse)
+		}
+		return tea.MouseClickMsg(mouse)
 	}
-	m, _ = step(t, m, drag(sidebarWidth+gutterWidth, barHeight, tea.MouseActionPress))
-	m, _ = step(t, m, drag(sidebarWidth+gutterWidth+6, barHeight+1, tea.MouseActionMotion))
-	m, _ = step(t, m, drag(sidebarWidth+gutterWidth+6, barHeight+1, tea.MouseActionRelease))
+	m, _ = step(t, m, drag(sidebarWidth+gutterWidth, barHeight, mousePress))
+	m, _ = step(t, m, drag(sidebarWidth+gutterWidth+6, barHeight+1, mouseMotion))
+	m, _ = step(t, m, drag(sidebarWidth+gutterWidth+6, barHeight+1, mouseRelease))
 
 	if want := "hello world\nsecond"; got != want {
 		t.Fatalf("clipboard = %q, want %q", got, want)
@@ -86,11 +93,11 @@ func TestAClickClearsTheSelection(t *testing.T) {
 	m.setContent()
 	m.selection = selRange{active: true, anchor: pos{0, 0}, cursor: pos{0, 5}}
 
-	m, _ = step(t, m, tea.MouseMsg{
-		X: sidebarWidth + gutterWidth, Y: barHeight, Action: tea.MouseActionPress, Button: tea.MouseButtonLeft,
+	m, _ = step(t, m, tea.MouseClickMsg{
+		X: sidebarWidth + gutterWidth, Y: bandHeight + barHeight, Button: tea.MouseLeft,
 	})
-	m, _ = step(t, m, tea.MouseMsg{
-		X: sidebarWidth + gutterWidth, Y: barHeight, Action: tea.MouseActionRelease, Button: tea.MouseButtonLeft,
+	m, _ = step(t, m, tea.MouseReleaseMsg{
+		X: sidebarWidth + gutterWidth, Y: bandHeight + barHeight, Button: tea.MouseLeft,
 	})
 	if m.selection.active {
 		t.Fatal("a click with no drag must leave no selection")

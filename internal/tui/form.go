@@ -5,10 +5,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/textarea"
-	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/textarea"
+	"charm.land/bubbles/v2/textinput"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 
 	"github.com/dextermb/claude-multiplexer/internal/manager"
 	"github.com/dextermb/claude-multiplexer/internal/session"
@@ -110,13 +110,14 @@ func newForm(dir string, defaults newSessionDefaults, peers, hoistable []string)
 	placeholders[fieldDir] = dir
 	placeholders[fieldName] = "taken from the directory"
 	for i := range f.inputs {
-		input := textinput.New()
+		input := newTextInput()
 		input.Placeholder = placeholders[i]
+		input.Prompt = ""
 		input.CharLimit = 512
-		input.Width = 40
+		input.SetWidth(40)
 		f.inputs[i] = input
 	}
-	f.firstArea = textarea.New()
+	f.firstArea = newTextArea()
 	f.firstArea.Placeholder = "optional, and /preset works here"
 	f.firstArea.CharLimit = 512
 	f.firstArea.ShowLineNumbers = false
@@ -249,7 +250,7 @@ func (f *form) completeDir() bool {
 }
 
 func (f *form) Update(msg tea.Msg) (formResult, tea.Cmd) {
-	if key, ok := msg.(tea.KeyMsg); ok {
+	if key, ok := msg.(tea.KeyPressMsg); ok {
 		switch key.String() {
 		case "esc":
 			return formCancelled, nil
@@ -447,23 +448,22 @@ func (f *form) View(width int) string {
 	b.WriteString(titleStyle.Render("New session"))
 	b.WriteString("\n\n")
 	inner := modalInner(width)
+	room := inner - 4
 	for i := range f.inputs {
 		if !f.visible(i) {
 			continue
 		}
 		if i == fieldFirst {
-			f.firstArea.SetWidth(inner - 4)
-			b.WriteString(fieldLabelStyle.Render(fieldLabels[i]))
-			b.WriteString("\n")
-			b.WriteString(f.firstArea.View())
+			b.WriteString("\n" + f.labelView(i, 0) + "\n")
+			b.WriteString(f.firstView(room))
 			b.WriteString("\n")
 			continue
 		}
-		b.WriteString(fieldLabelStyle.Render(pad(fieldLabels[i], 16)))
+		b.WriteString(f.labelView(i, 16))
 		if f.isSelect(i) {
-			b.WriteString(f.selectView(i))
+			b.WriteString(f.selectView(i, room-16))
 		} else {
-			b.WriteString(f.inputs[i].View())
+			b.WriteString(f.inputView(i, room-16))
 		}
 		b.WriteString("\n")
 		if i == fieldDir && f.focus == fieldDir {
@@ -478,15 +478,68 @@ func (f *form) View(width int) string {
 		b.WriteString("\n" + errorStyle.Render(f.err) + "\n")
 	}
 	b.WriteString("\n" + hintStyle.Render(f.hint()))
-	return modalStyle.Width(inner).Render(b.String())
+	return modalStyle.Width(inner + 2).Render(b.String())
 }
 
-func (f *form) selectView(i int) string {
-	label := f.selects[i].label()
+// labelView is the name of a field, white when the field has the focus.
+func (f *form) labelView(i, width int) string {
+	style := fieldLabelStyle
 	if i == f.focus {
-		return selectArrowStyle.Render("‹ ") + selectValueStyle.Render(label) + selectArrowStyle.Render(" ›")
+		style = labelStyle.Foreground(colFg)
 	}
-	return rowStyle.Render("  " + label)
+	text := fieldLabels[i]
+	if width > 0 {
+		text = pad(text, width)
+	}
+	return style.Render(text)
+}
+
+// inputView sets a text input in brackets, white when it has the focus.
+func (f *form) inputView(i, room int) string {
+	bracket := fgStyle(colStrong)
+	if i == f.focus {
+		bracket = keyStyle
+	}
+	w := maxInt(8, room-4)
+	f.inputs[i].SetWidth(w - 1)
+	f.inputs[i].SetCursor(f.inputs[i].Position())
+	body := lipgloss.NewStyle().Width(w).MaxWidth(w).Render(f.inputs[i].View())
+	return bracket.Render("[ ") + body + bracket.Render(" ]")
+}
+
+// selectView shows every option of a short list, the chosen one filled, so the
+// choice reads at a glance. A list too wide for the row shows only its value,
+// between the arrows that change it. See docs/tui/input.md.
+func (f *form) selectView(i, room int) string {
+	s := f.selects[i]
+	var parts []string
+	for j, label := range s.labels {
+		if j == s.cursor {
+			parts = append(parts, invertStyle.Render(" "+label+" "))
+		} else {
+			parts = append(parts, rowStyle.Render(" "+label+" "))
+		}
+	}
+	if row := strings.Join(parts, " "); lipgloss.Width(row) <= room {
+		return row
+	}
+	arrows := selectArrowStyle
+	if i == f.focus {
+		arrows = keyStyle
+	}
+	return arrows.Render("‹ ") + selectValueStyle.Render(s.label()) + arrows.Render(" ›")
+}
+
+// firstView sets the first prompt in a box, with a white border when it has the
+// focus.
+func (f *form) firstView(room int) string {
+	border := colStrong
+	if f.focus == fieldFirst {
+		border = colFg
+	}
+	f.firstArea.SetWidth(room - 4)
+	return lipgloss.NewStyle().Border(lipgloss.NormalBorder()).BorderForeground(border).
+		Padding(0, 1).Width(room).Render(f.firstArea.View())
 }
 
 func (f *form) hint() string {

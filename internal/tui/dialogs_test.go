@@ -34,21 +34,21 @@ func jobsOpen(t *testing.T, width, height int) Model {
 
 func TestSessionDialogKeepsTheSidebar(t *testing.T) {
 	m := jobsOpen(t, 100, 24)
-	view := visible(m.View())
-	if !strings.Contains(view, "Background jobs") {
+	view := visible(m.screen())
+	if !strings.Contains(view, "BACKGROUND JOBS") {
 		t.Fatalf("the jobs dialog must draw:\n%s", view)
 	}
 	if !strings.Contains(view, foldOpenMark) {
 		t.Fatalf("the sidebar must stay beside the dialog:\n%s", view)
 	}
-	if !strings.Contains(view, "starting") {
+	if !strings.Contains(view, "■ start") {
 		t.Fatalf("the bar must stay above the dialog:\n%s", view)
 	}
 }
 
 func TestSessionDialogLeavesTheSidebarColumns(t *testing.T) {
 	m := jobsOpen(t, 100, 24)
-	for _, line := range strings.Split(visible(m.View()), "\n") {
+	for _, line := range strings.Split(visible(m.screen()), "\n") {
 		if strings.Contains(line, "Background jobs") {
 			if column := strings.Index(line, "Background jobs"); column < sidebarWidth {
 				t.Fatalf("the dialog starts at column %d, inside the sidebar:\n%s", column, line)
@@ -67,16 +67,21 @@ func TestBodyDialogCoversTheSidebar(t *testing.T) {
 	if m.help == nil {
 		t.Fatal("? must open the key list")
 	}
-	view := visible(m.View())
-	if strings.Contains(view, foldOpenMark) {
-		t.Fatalf("the key list belongs to no session, so it covers the sidebar:\n%s", view)
+	raw := m.screen()
+	at := strings.Index(raw, foldOpenMark)
+	if at < 0 {
+		t.Fatalf("the sidebar must stay under the key list, as a faint copy:\n%s", visible(raw))
+	}
+	lastCode := raw[strings.LastIndex(raw[:at], "\x1b["):at]
+	if !strings.Contains(lastCode, "38;2;38;38;38m") {
+		t.Fatalf("the key list belongs to no session, so the sidebar under it is faint, got %q", lastCode)
 	}
 }
 
 func TestSessionDialogFitsANarrowTerminal(t *testing.T) {
 	const width = 60
 	m := jobsOpen(t, width, 20)
-	for i, line := range strings.Split(visible(m.View()), "\n") {
+	for i, line := range strings.Split(visible(m.screen()), "\n") {
 		if got := len([]rune(line)); got > width {
 			t.Fatalf("line %d is %d columns wide, the terminal is %d:\n%s", i, got, width, line)
 		}

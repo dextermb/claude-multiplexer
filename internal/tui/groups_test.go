@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/dextermb/claude-multiplexer/internal/session"
 )
@@ -87,7 +87,7 @@ func TestEveryGroupHasAHeaderLine(t *testing.T) {
 	}
 
 	view := visible(m.sidebarView())
-	for _, want := range []string{"one", "two", "api", "docs", "web"} {
+	for _, want := range []string{"ONE", "TWO", "api", "docs", "web"} {
 		if !strings.Contains(view, want) {
 			t.Errorf("the sidebar has no %q:\n%s", want, view)
 		}
@@ -110,7 +110,7 @@ func TestAFoldedGroupHidesItsRows(t *testing.T) {
 	if strings.Contains(view, "api") || strings.Contains(view, "docs") {
 		t.Errorf("a folded group still shows its rows:\n%s", view)
 	}
-	if !strings.Contains(view, "one") || !strings.Contains(view, "web") {
+	if !strings.Contains(view, "ONE") || !strings.Contains(view, "web") {
 		t.Errorf("a folded group must keep its header, and its neighbours:\n%s", view)
 	}
 
@@ -192,11 +192,12 @@ func TestTheHeaderOfAFoldedGroupShowsTheMostUrgentRow(t *testing.T) {
 	)
 	m.setFold(dirPrefix+"/work/one", true)
 
-	header := visible(m.groupHeader(m.groups[0]))
+	raw := m.groupHeader(m.groups[0])
+	header := visible(raw)
 	if !strings.Contains(header, foldShutMark) {
 		t.Errorf("header = %q, want the folded mark", header)
 	}
-	if !strings.Contains(header, "?") {
+	if !strings.Contains(raw, "38;2;96;165;250m■") {
 		t.Errorf("header = %q, want the glyph of the waiting session", header)
 	}
 	if !strings.Contains(header, "2") {
@@ -300,8 +301,8 @@ func TestAClickOnAHeaderFoldsTheGroup(t *testing.T) {
 		t.Fatalf("groups = %d, want one for each directory", len(m.groups))
 	}
 
-	m, _ = step(t, m, tea.MouseMsg{
-		X: 3, Y: titleHeight, Action: tea.MouseActionPress, Button: tea.MouseButtonLeft,
+	m, _ = step(t, m, tea.MouseClickMsg{
+		X: 3, Y: bandHeight + titleHeight, Button: tea.MouseLeft,
 	})
 	if !m.groups[0].folded {
 		t.Fatal("a click on a header must fold that group")
@@ -310,8 +311,8 @@ func TestAClickOnAHeaderFoldsTheGroup(t *testing.T) {
 		t.Fatal("the folded group still shows its row")
 	}
 
-	m, _ = step(t, m, tea.MouseMsg{
-		X: 3, Y: titleHeight, Action: tea.MouseActionPress, Button: tea.MouseButtonLeft,
+	m, _ = step(t, m, tea.MouseClickMsg{
+		X: 3, Y: bandHeight + titleHeight, Button: tea.MouseLeft,
 	})
 	if m.groups[0].folded {
 		t.Fatal("a second click must unfold the group")

@@ -5,8 +5,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-
-	tea "github.com/charmbracelet/bubbletea"
 )
 
 func tree(t *testing.T, names ...string) string {
@@ -122,11 +120,11 @@ func TestTabCompletesTheDirectoryFieldBeforeItMoves(t *testing.T) {
 	m.form.inputs[fieldDir].SetValue(filepath.Join(root, "works"))
 	m.form.inputs[fieldDir].CursorEnd()
 	m.form.suggest()
-	if !strings.Contains(visible(m.View()), "workshop") {
-		t.Errorf("the form does not suggest the directories:\n%s", visible(m.View()))
+	if !strings.Contains(visible(m.screen()), "workshop") {
+		t.Errorf("the form does not suggest the directories:\n%s", visible(m.screen()))
 	}
 
-	m, _ = step(t, m, tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("h")})
+	m, _ = step(t, m, key("h"))
 	m, _ = step(t, m, key("tab"))
 	want := filepath.Join(root, "workshop") + string(filepath.Separator)
 	if got := m.form.inputs[fieldDir].Value(); got != want {
@@ -155,7 +153,7 @@ func TestShiftTabWalksBackwardsThroughTheSuggestions(t *testing.T) {
 		t.Fatalf("matches = %v", m.form.matches)
 	}
 
-	m, _ = step(t, m, tea.KeyMsg{Type: tea.KeyShiftTab})
+	m, _ = step(t, m, key("shift+tab"))
 	if got := m.form.inputs[fieldDir].Value(); got != root+sep+"gamma"+sep {
 		t.Fatalf("first shift+tab gave %q, want the last suggestion", got)
 	}
@@ -163,13 +161,13 @@ func TestShiftTabWalksBackwardsThroughTheSuggestions(t *testing.T) {
 		t.Fatal("shift+tab must stay on the path line while it walks")
 	}
 
-	m, _ = step(t, m, tea.KeyMsg{Type: tea.KeyShiftTab})
+	m, _ = step(t, m, key("shift+tab"))
 	if got := m.form.inputs[fieldDir].Value(); got != root+sep+"beta"+sep {
 		t.Fatalf("second shift+tab gave %q", got)
 	}
 
-	m, _ = step(t, m, tea.KeyMsg{Type: tea.KeyShiftTab})
-	m, _ = step(t, m, tea.KeyMsg{Type: tea.KeyShiftTab})
+	m, _ = step(t, m, key("shift+tab"))
+	m, _ = step(t, m, key("shift+tab"))
 	if got := m.form.inputs[fieldDir].Value(); got != root+sep+"gamma"+sep {
 		t.Fatalf("the walk must wrap, got %q", got)
 	}
@@ -185,7 +183,7 @@ func TestTabWalksForwardOnceTheWalkHasStarted(t *testing.T) {
 	m.form.inputs[fieldDir].CursorEnd()
 	m.form.suggest()
 
-	m, _ = step(t, m, tea.KeyMsg{Type: tea.KeyShiftTab})
+	m, _ = step(t, m, key("shift+tab"))
 	m, _ = step(t, m, key("tab"))
 	if got := m.form.inputs[fieldDir].Value(); got != root+sep+"alpha"+sep {
 		t.Fatalf("tab gave %q, want the walk to wrap forward", got)
@@ -205,15 +203,15 @@ func TestTypingEndsTheWalk(t *testing.T) {
 	m.form.inputs[fieldDir].CursorEnd()
 	m.form.suggest()
 
-	m, _ = step(t, m, tea.KeyMsg{Type: tea.KeyShiftTab})
+	m, _ = step(t, m, key("shift+tab"))
 	if m.form.picked < 0 {
 		t.Fatal("the walk did not start")
 	}
-	m, _ = step(t, m, tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("x")})
+	m, _ = step(t, m, key("x"))
 	if m.form.picked >= 0 {
 		t.Fatal("typing must end the walk")
 	}
-	m, _ = step(t, m, tea.KeyMsg{Type: tea.KeyShiftTab})
+	m, _ = step(t, m, key("shift+tab"))
 	if m.form.focus == fieldDir {
 		t.Fatal("with no match left, shift+tab should have moved the focus")
 	}
@@ -226,7 +224,7 @@ func TestShiftTabMovesFieldsWhenThereIsNothingToWalk(t *testing.T) {
 	if m.form.focus != fieldName {
 		t.Fatalf("focus = %d", m.form.focus)
 	}
-	m, _ = step(t, m, tea.KeyMsg{Type: tea.KeyShiftTab})
+	m, _ = step(t, m, key("shift+tab"))
 	if m.form.focus != fieldDir {
 		t.Fatalf("shift+tab must move back a field, focus = %d", m.form.focus)
 	}
@@ -241,7 +239,7 @@ func TestTheHintMarksTheChosenSuggestion(t *testing.T) {
 	m.form.suggest()
 
 	plain := m.form.View(100)
-	m, _ = step(t, m, tea.KeyMsg{Type: tea.KeyShiftTab})
+	m, _ = step(t, m, key("shift+tab"))
 	marked := m.form.View(100)
 	if plain == marked {
 		t.Fatal("the chosen suggestion must look different")

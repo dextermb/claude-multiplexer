@@ -4,10 +4,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/charmbracelet/bubbles/textarea"
-	"github.com/charmbracelet/bubbles/textinput"
-	"github.com/charmbracelet/bubbles/viewport"
-	tea "github.com/charmbracelet/bubbletea"
+	"charm.land/bubbles/v2/textarea"
+	"charm.land/bubbles/v2/textinput"
+	"charm.land/bubbles/v2/viewport"
+	tea "charm.land/bubbletea/v2"
 	"github.com/dextermb/claude-multiplexer/internal/commands"
 	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/keys"
@@ -67,6 +67,7 @@ type Model struct {
 	replays        map[string][]render.Line
 	partials       map[string]string
 	queued         map[string][]string
+	busySince      map[string]time.Time
 	history        []string
 	histIdx        int
 	histDraft      string
@@ -143,6 +144,8 @@ type Model struct {
 	sidebarHidden bool
 	taskScroll    int
 	outputFor     string
+	outputSeq     uint64
+	tools         toolPairs
 
 	width      int
 	height     int
@@ -174,9 +177,9 @@ func New(opts Options) Model {
 		}
 	}
 
-	prompt := textarea.New()
-	prompt.Placeholder = "Type a prompt, then press Enter"
-	prompt.Prompt = "> "
+	prompt := newTextArea()
+	prompt.Placeholder = "type a prompt"
+	prompt.Prompt = "› "
 	prompt.ShowLineNumbers = false
 	prompt.CharLimit = 0
 	prompt.SetHeight(config.DefaultPromptMin)
@@ -185,6 +188,7 @@ func New(opts Options) Model {
 		replays:         make(map[string][]render.Line),
 		partials:        make(map[string]string),
 		queued:          make(map[string][]string),
+		busySince:       make(map[string]time.Time),
 		todos:           make(map[string][]protocol.Todo),
 		questions:       make(map[string]*questionDialog),
 		diffs:           make(map[string]projectDiff),
@@ -203,7 +207,7 @@ func New(opts Options) Model {
 		mgr:             opts.Manager,
 		peering:         len(opts.Manager.PeerNames()) > 0,
 		sub:             opts.Manager.Subscribe(manager.DefaultSubscriberBuffer),
-		output:          viewport.New(0, 0),
+		output:          viewport.New(),
 		prompt:          prompt,
 		search:          newSearchInput(),
 		pathPicked:      -1,
@@ -225,7 +229,7 @@ func New(opts Options) Model {
 }
 
 func Run(opts Options) error {
-	program := tea.NewProgram(New(opts), tea.WithAltScreen(), tea.WithMouseCellMotion())
+	program := tea.NewProgram(New(opts))
 	_, err := program.Run()
 	return err
 }
@@ -340,18 +344,25 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case commandOutputMsg:
 		return m.handleCommandOutput(msg)
 	case tea.MouseMsg:
-		return m.handleMouse(msg)
-	case tea.KeyMsg:
+		ev := newMouseEvent(msg)
+		if ev.Y < bandHeight {
+			return m, nil
+		}
+		ev.Y -= bandHeight
+		return m.handleMouse(ev)
+	case tea.PasteMsg:
+		return m.handlePaste(msg.Content)
+	case tea.KeyPressMsg:
 		if isMouseArtifact(msg) {
 			return m, nil
 		}
 		m.inBurst = m.burstAware && m.burst.key(time.Now())
-		if msg.Paste {
-			return m.handlePaste(string(msg.Runes))
-		}
 		return m.handleKey(msg)
 	}
 
+	if m.modal != nil {
+		return m.routeModal(msg)
+	}
 	var cmd tea.Cmd
 	promptFocused := m.focus == focusPrompt || (m.reviewMode && m.reviewFocus == reviewPrompt)
 	if promptFocused && m.form == nil {
@@ -365,8 +376,8 @@ func (m Model) resize(width, height int) (tea.Model, tea.Cmd) {
 	m.height = height
 	m.ready = true
 
-	m.output.Width = m.outputWidth()
-	m.output.Height = m.outputHeight()
+	m.output.SetWidth(m.outputWidth())
+	m.output.SetHeight(m.outputHeight())
 	m.prompt.SetWidth(width - gutterWidth)
 	m.rebuildOutput()
 
@@ -396,6 +407,13 @@ func (m *Model) ensureAnimating() tea.Cmd {
 	}
 	m.animating = true
 	return spinTick()
+}
+
+func minInt(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 func maxInt(a, b int) int {

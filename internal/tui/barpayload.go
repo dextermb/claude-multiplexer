@@ -1,6 +1,10 @@
 package tui
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	"github.com/dextermb/claude-multiplexer/internal/config"
+)
 
 // The JSON a custom bar element reads on stdin. A session element reads the
 // selected session, and a status element reads the totals. See
@@ -113,8 +117,12 @@ func (m Model) sessionPayload(item row) []byte {
 }
 
 func (m Model) statusPayload() []byte {
+	return m.totalsPayload(config.BarStatus)
+}
+
+func (m Model) totalsPayload(bar string) []byte {
 	live, busy := m.liveBusy()
-	return marshalPayload(barPayload{Bar: "status", Totals: &barTotalsData{
+	return marshalPayload(barPayload{Bar: bar, Totals: &barTotalsData{
 		Sessions:   live,
 		Busy:       busy,
 		Cost:       m.cost,

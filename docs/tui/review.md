@@ -8,12 +8,13 @@ and the capped blocks. See [diff.md](diff.md) for the diff the screen reads,
 [output.md](output.md) for the blocks, and [keys.md](keys.md) for the key model.
 
 ```
- review · alpha · +120 −30 · 3 files          │ Explanation
+ MULTIPLEXER  WORKSPACE  REVIEW  KEYS             alpha · ■ busy 0:58 · $0.9100
+─ DIFF · ALPHA (3 FILES · +120 −30) ──────────┬─ EXPLANATION ──────────────────
                                               │
  M internal/tui/app.go            +12 −3      │ › Explain the change at
    @@ -1,3 +1,4 @@ func A()                    │   internal/tui/diff.go:128-131.
     one                                       │ ● reads internal/tui/diff.go
-   +two                                       │   ⋯ 12 more lines
+   +two                                       │   [+] 12 more lines
  A internal/git/hunks.go          +48 −0      │ This hunk caches the open-file map
    @@ -0,0 +1,48 @@                            │ before the lookup, so the toggle
    +package git                               │ does not allocate on every keypress.
@@ -49,8 +50,11 @@ and the hunks:
 - `pgup` and `pgdown` scroll the diff a page.
 - `n` shows or hides the new-side line numbers of the diff.
 
-The selected file has a blue background. The selected hunk sits on a subtle
-grey band, and its header is bold. The diff side scrolls to keep the selected
+The selected file inverts (white fill, black text). Each row of the selected
+hunk starts with a white `▌`, and its `@@` header inverts. An added row has a
+faint green tint across the row, and its text is green. A removed row has a
+faint red tint, and its text is red. The edge mark leaves the tints in place, so
+they show in the selected hunk too. The diff side scrolls to keep the selected
 hunk in view.
 
 `n` shows a gutter with the new-side line number of each line, the same as `d n`
@@ -59,13 +63,20 @@ The gutter narrows the text, so a long line may re-wrap, and the diff side scrol
 to keep the selected hunk in view. See [diff.md](diff.md).
 
 `tab` moves the focus across the split: the diff, then the explanation, then the
-prompt, then back to the diff. The focused pane has a blue header, so it is clear
-which side takes the keys. The prompt bar shows "follow-up" when the prompt has
-the focus.
+prompt, then back to the diff. Each pane has its label set in a rule, and the
+label of the focused pane inverts, so it is clear
+which side takes the keys. The prompt rule reads `FOLLOW-UP → name`, and it
+inverts when the prompt has the focus.
 
 `esc` closes the screen. In the prompt, `esc` returns the focus to the diff. The
 sidebar hides while the screen is open, for the full width, and returns when the
 screen closes.
+
+The screen has no session bar. The band names the session under review in the
+place of the counts: its name, its state, its pull requests, and its cost. The
+diff rule gives the file count and the line counts. The status bar lists the
+keys of the screen, from the same keymap as the rest of the interface, such as
+`[j/k] hunk  [}/{] file  [e] explain`.
 
 The screen is modal, so it captures every key. The two-key sequences (`s`, `l`,
 `o`, `d`) do not start while it is open, because their actions would move the

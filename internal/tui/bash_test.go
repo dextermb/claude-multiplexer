@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/dextermb/claude-multiplexer/internal/render"
 )
@@ -64,8 +64,8 @@ func TestBangShowsOutputAndDoesNotReachClaude(t *testing.T) {
 	if !found {
 		t.Fatalf("the output is not in the session lines: %v", render.Text(m.mgr.Lines(m.sel)))
 	}
-	if !strings.Contains(visible(m.View()), "hello") {
-		t.Fatalf("the pane does not show the output:\n%s", m.View())
+	if !strings.Contains(visible(m.screen()), "hello") {
+		t.Fatalf("the pane does not show the output:\n%s", m.screen())
 	}
 }
 

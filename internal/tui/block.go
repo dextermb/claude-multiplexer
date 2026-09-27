@@ -30,12 +30,12 @@ func blocks(lines []render.Line) []block {
 
 func markerText(hidden int) string {
 	if hidden <= 0 {
-		return "⋯ show less"
+		return "[−] show less"
 	}
 	if hidden == 1 {
-		return "⋯ 1 more line"
+		return "[+] 1 more line"
 	}
-	return fmt.Sprintf("⋯ %d more lines", hidden)
+	return fmt.Sprintf("[+] %d more lines", hidden)
 }
 
 func (m Model) markerRow(hidden int, under bool) string {

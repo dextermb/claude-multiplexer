@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	"github.com/dextermb/claude-multiplexer/internal/keys"
 	"github.com/dextermb/claude-multiplexer/internal/update"
 )
@@ -127,7 +127,7 @@ func (m Model) bannerHeight() int {
 }
 
 func (m Model) updateBannerView() string {
-	text := fmt.Sprintf("⚠ update available: %s is newer than %s. Press %s to dismiss for a day.",
+	text := fmt.Sprintf("■ update available: %s is newer than %s. Press %s to dismiss for a day.",
 		m.updateTag, m.versionLabel(), m.dismissUpdateKey())
 	return updateBannerStyle.Width(m.width).Render(truncate(text, m.width-2))
 }

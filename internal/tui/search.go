@@ -3,12 +3,12 @@ package tui
 import (
 	"strings"
 
-	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
+	"charm.land/bubbles/v2/textinput"
+	tea "charm.land/bubbletea/v2"
 )
 
 func newSearchInput() textinput.Model {
-	in := textinput.New()
+	in := newTextInput()
 	in.Placeholder = "filter sessions"
 	in.Prompt = "/ "
 	in.CharLimit = 64
@@ -65,7 +65,7 @@ func (m *Model) clearSearch() {
 // searchKey handles a key while the search box is focused. The first esc blurs
 // the box but keeps the needle, so the list stays narrowed; enter or an arrow
 // key steps the focus into the results.
-func (m Model) searchKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+func (m Model) searchKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "esc":
 		m.searchOn = false
@@ -87,6 +87,6 @@ func (m Model) searchKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 // searchView draws the search box at the top of the sidebar.
 func (m Model) searchView() string {
 	width := m.sidebarInnerCols()
-	m.search.Width = width - 2
+	m.search.SetWidth(width - 2)
 	return searchStyle.Width(width).Render(m.search.View())
 }

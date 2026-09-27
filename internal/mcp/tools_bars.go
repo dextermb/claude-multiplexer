@@ -9,16 +9,16 @@ import (
 	"github.com/dextermb/claude-multiplexer/internal/config"
 )
 
-// addBarDefaultsTool gives every session the default composition of the two
-// status bars, so an agent reads the default, then writes a copy it edits with
+// addBarDefaultsTool gives every session the default composition of the three
+// bars, so an agent reads the default, then writes a copy it edits with
 // set_config. See docs/config/bars.md.
 func (s *Server) addBarDefaultsTool(server *sdk.Server) {
 	sdk.AddTool(server, &sdk.Tool{
 		Name: ToolBarDefaults,
-		Description: "The default composition of the two status bars: the session bar and the status bar. " +
-			"Each is an ordered list of element ids, with left and right sides. " +
+		Description: "The default composition of the three bars: the session bar, the status bar, and the band at the top. " +
+			"Each is an ordered list of element ids, with left and right sides; the band has a right side only. " +
 			"Read this to see the built-in elements and their order, then write a copy with " +
-			ToolSetConfig + " on 'bars.session' or 'bars.status' to reorder them, remove one, or add a custom script element.",
+			ToolSetConfig + " on 'bars.session', 'bars.status' or 'bars.band' to reorder them, remove one, or add a custom script element.",
 	}, func(_ context.Context, _ *sdk.CallToolRequest, _ struct{}) (*sdk.CallToolResult, barDefaultsOut, error) {
 		out, err := barDefaults()
 		return nil, out, err
@@ -28,6 +28,7 @@ func (s *Server) addBarDefaultsTool(server *sdk.Server) {
 type barDefaultsOut struct {
 	Session barSpecOut `json:"session"`
 	Status  barSpecOut `json:"status"`
+	Band    barSpecOut `json:"band"`
 	Note    string     `json:"note"`
 }
 
@@ -48,10 +49,15 @@ func barDefaults() (barDefaultsOut, error) {
 	if err != nil {
 		return barDefaultsOut{}, err
 	}
+	band, err := barSpecOutFor(config.BarBand)
+	if err != nil {
+		return barDefaultsOut{}, err
+	}
 	return barDefaultsOut{
 		Session: session,
 		Status:  status,
-		Note: "Write a copy with " + ToolSetConfig + " on 'bars.session' or 'bars.status'. " +
+		Band:    band,
+		Note: "Write a copy with " + ToolSetConfig + " on 'bars.session', 'bars.status' or 'bars.band'. " +
 			"A bare string is a built-in id. An object {\"script\":\"path.sh\",\"label\":\"name\"} runs a Go, Python, or Bash script and shows its first line of output.",
 	}, nil
 }

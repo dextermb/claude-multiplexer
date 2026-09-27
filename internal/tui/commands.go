@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	"github.com/dextermb/claude-multiplexer/internal/manager"
 	"github.com/dextermb/claude-multiplexer/internal/peer"
 	"github.com/dextermb/claude-multiplexer/internal/session"

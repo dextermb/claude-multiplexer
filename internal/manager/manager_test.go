@@ -572,7 +572,7 @@ func TestReplayRebuildsThePastOutput(t *testing.T) {
 	retire(t, m, name)
 
 	replay := strings.Join(render.Text(m.Replay(name)), "\n")
-	for _, want := range []string{"› remember this", "echo: remember this", "✓ success"} {
+	for _, want := range []string{"› remember this", "echo: remember this", "✓ done"} {
 		if !strings.Contains(replay, want) {
 			t.Errorf("the replay has no %q:\n%s", want, replay)
 		}

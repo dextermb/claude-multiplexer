@@ -3,7 +3,7 @@ package tui
 import (
 	"strings"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 
 	"github.com/dextermb/claude-multiplexer/internal/config"
 )
@@ -35,7 +35,7 @@ func (m *Model) syncPromptHeight() {
 	}
 	atBottom := m.output.AtBottom()
 	m.prompt.SetHeight(rows)
-	m.output.Height = m.outputHeight()
+	m.output.SetHeight(m.outputHeight())
 	if atBottom {
 		m.output.GotoBottom()
 	}

@@ -4,7 +4,7 @@ import (
 	"sort"
 	"strings"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 )
 
 // layoutSwitch is the dialog that activates a layout for the selected session or
@@ -42,7 +42,7 @@ func newLayoutSwitch(session string, names []string, activeSession, activeGlobal
 func (d *layoutSwitch) count() int { return len(d.names) + 1 }
 
 func (d *layoutSwitch) Update(msg tea.Msg) (formResult, tea.Cmd) {
-	key, ok := msg.(tea.KeyMsg)
+	key, ok := msg.(tea.KeyPressMsg)
 	if !ok {
 		return formOpen, nil
 	}
@@ -153,10 +153,10 @@ func (d *layoutSwitch) View(width int) string {
 	active := d.active()
 	labels := append([]string{"default"}, d.names...)
 	for i, label := range labels {
-		mark := "○"
+		mark := "( )"
 		isActive := (i == 0 && active == "") || (i > 0 && d.names[i-1] == active)
 		if isActive {
-			mark = "◉"
+			mark = "(●)"
 		}
 		rowText := mark + " " + label
 		if i == d.cursor {
@@ -171,5 +171,5 @@ func (d *layoutSwitch) View(width int) string {
 		b.WriteString("\n" + hintStyle.Render(truncate("Use the save_layout tool to make a layout.", rowWidth)))
 	}
 	b.WriteString("\n" + hintStyle.Render("↑↓ move · tab scope · enter apply · esc cancel"))
-	return modalStyle.Width(inner).Render(b.String())
+	return modalStyle.Width(inner + 2).Render(b.String())
 }

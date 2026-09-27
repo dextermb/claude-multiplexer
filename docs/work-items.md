@@ -192,8 +192,8 @@ status. The code is `internal/manager/workitems_poll.go`.
 
 The mirror shows in three places:
 
-- **The output pane status bar** shows the status of the selected session, next
-  to the effort.
+- **The session bar** shows the status of the selected session, next to the
+  effort.
 - **The sidebar groups** a session that links to a work item by its status. The
   status groups form a cluster above the directory groups, in status order, and
   each header names the status. A session with a link, but no status yet, sits

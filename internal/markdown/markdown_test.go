@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/charmbracelet/glamour/styles"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/glamour/v2/styles"
+	"charm.land/lipgloss/v2"
 )
 
 func plain(text string) string {
@@ -26,7 +26,7 @@ func TestRenderDropsTheMarkupAndKeepsTheWords(t *testing.T) {
 	if strings.Contains(out, "**") {
 		t.Errorf("the asterisks survived:\n%s", out)
 	}
-	for _, want := range []string{"The cache layer", "three", "problems"} {
+	for _, want := range []string{"THE CACHE LAYER", "three", "problems"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("the words were lost, %q is missing:\n%s", want, out)
 		}
@@ -100,13 +100,13 @@ func TestEveryHeadingLevelRendersTheSame(t *testing.T) {
 				level, plain(got), plain(first))
 		}
 	}
-	if !strings.Contains(first, ";1m") && !strings.Contains(first, "[1m") {
-		t.Errorf("a heading must be bold: %q", first)
+	if strings.Contains(first, ";1m") || strings.Contains(first, "[1m") {
+		t.Errorf("a heading must not be bold: %q", first)
 	}
 	if strings.Contains(first, "48;5;") {
 		t.Errorf("a heading must have no background block: %q", first)
 	}
-	if got := plain(first); !strings.Contains(got, "Findings") || strings.Contains(got, "#") {
+	if got := plain(first); !strings.Contains(got, "FINDINGS") || strings.Contains(got, "#") {
 		t.Errorf("heading = %q", got)
 	}
 }
@@ -123,7 +123,7 @@ func TestMutedRendersEverythingInOneGrey(t *testing.T) {
 	if strings.Contains(out, "38;2;") {
 		t.Errorf("a truecolour code survived, so the code block kept its highlighter:\n%q", out)
 	}
-	if got := plain(out); !strings.Contains(got, "Heading") || !strings.Contains(got, "func main") {
+	if got := plain(out); !strings.Contains(got, "HEADING") || !strings.Contains(got, "func main") {
 		t.Errorf("the words were lost: %q", got)
 	}
 }
@@ -156,7 +156,7 @@ func TestUnclassifiedCharacterHasNoBackground(t *testing.T) {
 }
 
 func TestPaneStyleLeavesTheSharedChromaAlone(t *testing.T) {
-	paneStyle()
+	paneStyle(darkTone)
 	if styles.DarkStyleConfig.CodeBlock.Chroma.Error.BackgroundColor == nil {
 		t.Fatal("paneStyle changed the shared dark style")
 	}

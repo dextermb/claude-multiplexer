@@ -1,16 +1,17 @@
 package tui
 
 import (
+	"sort"
 	"strings"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 	"github.com/dextermb/claude-multiplexer/internal/render"
 )
 
 func (m *Model) rebuildOutput() {
 	sameSession := m.sel != "" && m.sel == m.outputFor
 	keepOffset := sameSession && !m.output.AtBottom()
-	offset := m.output.YOffset
+	offset := m.output.YOffset()
 	cursor := m.blockCursor
 	m.selection = selRange{}
 	if !sameSession {
@@ -25,10 +26,13 @@ func (m *Model) rebuildOutput() {
 		m.output.SetContent("")
 		return
 	}
+	m.outputSeq = 0
 	lines := m.linesFor(m.sel)
-	m.output.Width = m.outputWidth()
-	m.output.Height = m.outputHeight()
+	m.output.SetWidth(m.outputWidth())
+	m.output.SetHeight(m.outputHeight())
 	m.shownLines = append([]render.Line(nil), lines...)
+	m.tools.reset()
+	m.tools.index(m.shownLines, 0)
 	m.redrawBlocks()
 	if sameSession && m.isCapped(cursor) {
 		m.setBlockCursor(cursor)
@@ -49,6 +53,7 @@ func (m *Model) appendOutput(lines []render.Line) {
 	m.shownLines = append(m.shownLines, lines...)
 	// An event brings whole blocks, so the first line it brings starts one.
 	m.shownLines[from].Cont = false
+	m.tools.index(m.shownLines, from)
 	chunk := m.drawBlocks(from)
 	if m.outputText == "" {
 		m.outputText = chunk
@@ -66,6 +71,7 @@ func (m *Model) clearBlocks() {
 	m.markerAt = make(map[int]int)
 	m.blockStart = make(map[int]int)
 	m.hiddenRows = make(map[int]int)
+	m.tools.clearRows()
 }
 
 // redrawBlocks draws every block again, keeping which blocks are open. It runs
@@ -82,9 +88,28 @@ func (m *Model) drawBlocks(from int) string {
 	if from > 0 {
 		row = rowCount(m.outputText)
 	}
+	all := blocks(m.shownLines)
+	blockAt := make(map[int]int, len(all))
+	for index, blk := range all {
+		blockAt[blk.from] = index
+	}
 	var parts []string
-	for index, blk := range blocks(m.shownLines) {
+	for index, blk := range all {
 		if blk.from < from {
+			continue
+		}
+		id, kind := m.toolBlock(blk)
+		if kind == callBlock {
+			m.blockStart[index] = row
+			rows := m.callBlockRows(id, row, blockAt)
+			row += len(rows)
+			parts = append(parts, strings.Join(rows, "\n"))
+			continue
+		}
+		if kind != plainBlock && m.tools.call[id] < from {
+			m.attachResult(index, id, kind == foldedResult)
+		}
+		if kind == foldedResult {
 			continue
 		}
 		rows, hidden, marked := m.blockRows(index, blk)
@@ -97,6 +122,7 @@ func (m *Model) drawBlocks(from int) string {
 		row += len(rows)
 		parts = append(parts, strings.Join(rows, "\n"))
 	}
+	sort.SliceStable(m.capped, func(i, j int) bool { return m.markerAt[m.capped[i]] < m.markerAt[m.capped[j]] })
 	return strings.Join(parts, "\n")
 }
 
@@ -119,6 +145,10 @@ func (m *Model) setBlockCursor(index int) {
 	for _, at := range []int{was, index} {
 		row, ok := m.markerAt[at]
 		if !ok || row >= len(rows) {
+			continue
+		}
+		if id, folded := m.tools.folded[at]; folded && !m.expanded[at] {
+			rows[row] = m.callRowView(id, at == index)
 			continue
 		}
 		rows[row] = m.markerRow(m.hiddenRows[at], at == index)
@@ -171,9 +201,9 @@ func (m *Model) moveBlockCursor(delta int) {
 func (m *Model) showBlock(index int) {
 	top, bottom := m.blockStart[index], m.markerAt[index]
 	switch {
-	case top < m.output.YOffset:
+	case top < m.output.YOffset():
 		m.output.SetYOffset(top)
-	case bottom >= m.output.YOffset+m.outputHeight():
+	case bottom >= m.output.YOffset()+m.outputHeight():
 		m.output.SetYOffset(bottom - m.outputHeight() + 1)
 	}
 }
@@ -181,7 +211,7 @@ func (m *Model) showBlock(index int) {
 // toggleBlock opens or closes a block, and holds its first row where it was, so
 // the text under your eyes does not jump.
 func (m *Model) toggleBlock(index int) {
-	anchor := m.blockStart[index] - m.output.YOffset
+	anchor := m.blockStart[index] - m.output.YOffset()
 	m.expanded[index] = !m.expanded[index]
 	m.blockCursor = index
 	m.redrawBlocks()
@@ -216,7 +246,7 @@ func (m Model) liveView() string {
 		parts = append(parts, m.wrap(render.PromptLines(text)))
 	}
 	if m.thinkingSelected() {
-		parts = append(parts, spinnerStyle.Render(spinnerFrame(m.spinFrame)+" thinking…"))
+		parts = append(parts, spinnerStyle.Render("thinking…"))
 	}
 	if len(parts) == 0 {
 		return ""
@@ -239,7 +269,9 @@ func (m *Model) linesFor(name string) []render.Line {
 		m.todos[name] = m.mgr.Todos(name)
 		return lines
 	}
-	return m.mgr.Lines(name)
+	lines, seq := m.mgr.LinesAt(name)
+	m.outputSeq = seq
+	return lines
 }
 
 func (m Model) wrap(lines []render.Line) string {
@@ -262,6 +294,18 @@ func (m Model) wrap(lines []render.Line) string {
 		if line.Class == render.ClassPrompt && !m.showRaw {
 			styled := inlineEmphasis(text, classStyle(render.ClassPrompt))
 			wrapped = append(wrapped, lipgloss.NewStyle().Width(width).Render(styled))
+			continue
+		}
+		if line.Class == render.ClassToolUse && !m.showRaw {
+			wrapped = append(wrapped, toolLineView(text, width))
+			continue
+		}
+		if line.Class == render.ClassJob && !m.showRaw {
+			wrapped = append(wrapped, jobLineView(text, width))
+			continue
+		}
+		if line.Class == render.ClassResult && !m.showRaw {
+			wrapped = append(wrapped, resultLineView(text, width))
 			continue
 		}
 		wrapped = append(wrapped, classStyle(line.Class).Width(width).Render(text))

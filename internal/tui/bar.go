@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 
 	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/manager"
@@ -117,12 +117,18 @@ func (m Model) barView() string {
 	return m.barViewWidth(m.outputWidth())
 }
 
+// barViewWidth is the head of the output pane: the session name set in the
+// rule, and a row of details under it. See docs/tui/sessions/bars.md.
 func (m Model) barViewWidth(width int) string {
+	focused := m.focus == focusOutput
 	item, ok := m.selectedRow()
 	if !ok {
-		return barStyle.Width(width).Render(barMutedStyle.Render(" no session"))
+		return ruleLabel("no session", width, focused) + "\n" + barLine(width, "", "", width)
 	}
+	return ruleLabel(item.displayName(), width, focused) + "\n" + m.barDetails(item, width)
+}
 
+func (m Model) barDetails(item row, width int) string {
 	lefts, rights := m.barLefts(item), m.barRights(item)
 	for _, pair := range barLadder(len(lefts), len(rights)) {
 		left := lefts[pair[0]]
@@ -131,10 +137,7 @@ func (m Model) barViewWidth(width int) string {
 			return barLine(width, left, right, gap)
 		}
 	}
-
-	room := maxInt(3, width-1)
-	left := barNameStyle.Render(" " + truncate(item.displayName(), room))
-	return barLine(width, left, "", maxInt(0, width-lipgloss.Width(left)))
+	return barLine(width, "", "", width)
 }
 
 func barLadder(lefts, rights int) [][2]int {
@@ -156,8 +159,7 @@ func barLadder(lefts, rights int) [][2]int {
 }
 
 func barLine(width int, left, right string, gap int) string {
-	return barStyle.MaxHeight(1).Width(width).
-		Render(left + barStyle.Render(strings.Repeat(" ", gap)) + right)
+	return barStyle.MaxHeight(1).Width(width).Render(left + strings.Repeat(" ", gap) + right)
 }
 
 type barSeg struct {
@@ -170,6 +172,9 @@ type barSeg struct {
 func (m Model) leftSegs(item row) []barSeg {
 	var segs []barSeg
 	for _, e := range m.barSpec(config.BarSession).Left {
+		if !e.Custom() && e.ID == "name" {
+			continue
+		}
 		segs = append(segs, m.sessionLeftSeg(item, e)...)
 	}
 	return segs
@@ -204,41 +209,22 @@ func (m Model) sessionLeftSeg(item row, e config.BarElement) []barSeg {
 	return nil
 }
 
-// barLefts renders the left side, from the full set of segments down to the
-// first, so the ladder sheds the trailing segments to make the line fit.
+// barLefts renders the left side, from the full set of segments down to none,
+// so the ladder sheds the trailing segments to make the line fit.
 func (m Model) barLefts(item row) []string {
 	segs := m.leftSegs(item)
-	if len(segs) == 0 {
-		return []string{renderLeft(nil)}
-	}
-	out := make([]string, 0, len(segs))
-	for n := len(segs); n >= 1; n-- {
-		out = append(out, renderLeft(segs[:n]))
+	out := make([]string, 0, len(segs)+1)
+	for n := len(segs); n >= 0; n-- {
+		out = append(out, strings.TrimPrefix(renderSegs(segs[:n]), " "))
 	}
 	return out
-}
-
-func renderLeft(segs []barSeg) string {
-	if len(segs) == 0 {
-		return barNameStyle.Render(" ")
-	}
-	var b strings.Builder
-	for i, seg := range segs {
-		if i == 0 {
-			b.WriteString(seg.style.Render(" " + seg.text))
-			continue
-		}
-		b.WriteString(barMutedStyle.Render(" · "))
-		b.WriteString(seg.style.Render(seg.text))
-	}
-	return b.String()
 }
 
 func (m Model) barRights(item row) []string {
 	segs := m.rightSegs(item)
 	out := make([]string, 0, len(segs)+1)
 	for n := len(segs); n >= 0; n-- {
-		out = append(out, renderRight(segs[:n]))
+		out = append(out, renderSegs(segs[:n]))
 	}
 	return out
 }
@@ -257,7 +243,7 @@ func (m Model) sessionRightSeg(item row, e config.BarElement) []barSeg {
 	}
 	switch e.ID {
 	case "state":
-		return []barSeg{{item.label, item.style().Background(barBackground)}}
+		return []barSeg{{rowGlyph(item) + " " + m.stateWord(item), item.style()}}
 	case "diff":
 		if d, ok := m.diffs[item.name]; ok && d.anyRepo() && !d.stat().Empty() {
 			return []barSeg{{barDiffCount(d.stat()), barStyle}}
@@ -290,11 +276,11 @@ func (m Model) sessionRightSeg(item row, e config.BarElement) []barSeg {
 		}
 	case "jobs":
 		if item.jobs > 0 {
-			return []barSeg{{fmt.Sprintf("⚙%d", item.jobs), barMutedStyle}}
+			return []barSeg{{fmt.Sprintf("jobs (%d)", item.jobs), barMutedStyle}}
 		}
 	case "queued":
 		if item.queued > 0 {
-			return []barSeg{{fmt.Sprintf("⇢%d", item.queued), barMutedStyle}}
+			return []barSeg{{fmt.Sprintf("queued (%d)", item.queued), barMutedStyle}}
 		}
 	case "tokens":
 		if item.input+item.output > 0 {
@@ -321,18 +307,20 @@ func contextLabel(item row) string {
 	return fmt.Sprintf("ctx %s", formatCount(item.context))
 }
 
-func renderRight(segs []barSeg) string {
+// renderSegs sets segments apart with dimmed dots, with one space at each end.
+func renderSegs(segs []barSeg) string {
 	if len(segs) == 0 {
 		return ""
 	}
 	var b strings.Builder
+	b.WriteString(" ")
 	for i, seg := range segs {
 		if i > 0 {
-			b.WriteString(barMutedStyle.Render(" · "))
+			b.WriteString(barSepStyle.Render(" · "))
 		}
 		b.WriteString(seg.style.Render(seg.text))
 	}
-	b.WriteString(barStyle.Render(" "))
+	b.WriteString(" ")
 	return b.String()
 }
 
@@ -366,24 +354,44 @@ func (m Model) statusView() string {
 		return statusStyle.Width(m.width).Render(errorStyle.Render(truncate(m.errText, m.width-2)))
 	}
 	if m.seq != nil {
-		hints := truncate(m.sequenceHints(m.seq.target), m.width-6)
-		return statusStyle.Width(m.width).Render(
-			statusKeyStyle.Render(targetLabel(m.keys, m.seq.target)) + statusMutedStyle.Render("  "+hints))
+		label := invertStyle.Render(" " + targetLabel(m.keys, m.seq.target) + " → ")
+		hints := fitHints(m.sequenceHints(m.seq.target), m.width-lipgloss.Width(label)-4)
+		return statusStyle.Width(m.width).Render(label + statusMutedStyle.Render("  ") + styleHints(hints))
 	}
-	left := m.statusLeftSegs()
-	right := m.statusRight()
+	spec := m.barSpec(config.BarStatus)
+	left, right := m.statusParts(spec.Left), m.statusParts(spec.Right)
 	return statusStyle.Width(m.width).Render(statusLine(m.width-2, left, right))
 }
 
-func (m Model) statusLeftSegs() []barSeg {
-	var segs []barSeg
-	for _, e := range m.barSpec(config.BarStatus).Left {
-		segs = append(segs, m.statusLeftSeg(e)...)
-	}
-	return segs
+// statusPart is one element of the status bar. A hint list is kept plain, so it
+// can shed hints to fit the width it gets.
+type statusPart struct {
+	text  string
+	hints string
 }
 
-func (m Model) statusLeftSeg(e config.BarElement) []barSeg {
+func (p statusPart) render(width int) string {
+	if p.hints != "" {
+		return styleHints(fitHints(p.hints, width))
+	}
+	return p.text
+}
+
+func (m Model) statusParts(elements []config.BarElement) []statusPart {
+	var parts []statusPart
+	for _, e := range elements {
+		if !e.Custom() && e.ID == "hints" {
+			parts = append(parts, statusPart{hints: m.statusHints()})
+			continue
+		}
+		for _, seg := range m.statusSeg(e) {
+			parts = append(parts, statusPart{text: seg.style.Render(seg.text)})
+		}
+	}
+	return parts
+}
+
+func (m Model) statusSeg(e config.BarElement) []barSeg {
 	if e.Custom() {
 		return m.customSegs(config.BarStatus, "", e)
 	}
@@ -434,52 +442,82 @@ func statusRestyle(segs []barSeg) []barSeg {
 	return segs
 }
 
-func (m Model) statusRight() string {
-	var parts []string
-	for _, e := range m.barSpec(config.BarStatus).Right {
-		if e.Custom() {
-			if text, ok := m.barOutput(config.BarStatus, "", e.Label); ok && text != "" {
-				parts = append(parts, m.barStyleFor(config.BarStatus, e.Style).Render(text))
+// statusLine fits the two sides in the width. A hint list is the one part that
+// shrinks, so the other parts keep their text: it sheds hints first, and only
+// when it is down to its ellipsis do the other parts drop, from the right side
+// first. See docs/config/bars.md.
+func statusLine(width int, left, right []statusPart) string {
+	for {
+		need := fixedWidth(left) + fixedWidth(right) + 1
+		if need <= width {
+			extra := width - need
+			l, r := joinParts(left, fixedWidth(left)+extra), joinParts(right, fixedWidth(right))
+			if !hasHints(left) {
+				r = joinParts(right, fixedWidth(right)+extra)
 			}
-			continue
+			return statusFill(l, r, maxInt(0, width-lipgloss.Width(l)-lipgloss.Width(r)))
 		}
-		if e.ID == "hints" {
-			parts = append(parts, statusMutedStyle.Render(m.statusHints()))
-			continue
-		}
-		for _, seg := range m.statusSessionSeg(e) {
-			parts = append(parts, seg.style.Render(seg.text))
+		var ok bool
+		if right, ok = dropFixed(right); !ok {
+			if left, ok = dropFixed(left); !ok {
+				return ""
+			}
 		}
 	}
-	return strings.Join(parts, statusMutedStyle.Render("  "))
 }
 
-func statusSegs(segs []barSeg) string {
-	parts := make([]string, len(segs))
-	for i, seg := range segs {
-		parts[i] = seg.style.Render(seg.text)
+// fixedWidth is the width a side takes with each hint list cut to its ellipsis.
+func fixedWidth(parts []statusPart) int {
+	w := 0
+	for i, p := range parts {
+		if i > 0 {
+			w += lipgloss.Width(statusSepStyle.Render(" · "))
+		}
+		if p.hints != "" {
+			w++
+			continue
+		}
+		w += lipgloss.Width(p.text)
 	}
-	return strings.Join(parts, statusMutedStyle.Render(" · "))
+	return w
 }
 
-func statusLine(width int, left []barSeg, right string) string {
-	if len(left) == 0 {
-		if gap := width - lipgloss.Width(right); gap >= 0 {
-			return statusFill("", right, gap)
-		}
-		return statusMutedStyle.Render(truncate(right, width))
-	}
-	full := statusSegs(left)
-	if gap := width - lipgloss.Width(full) - lipgloss.Width(right); gap >= 0 {
-		return statusFill(full, right, gap)
-	}
-	for n := len(left); n >= 1; n-- {
-		side := statusSegs(left[:n])
-		if gap := width - lipgloss.Width(side); gap >= 0 {
-			return statusFill(side, "", gap)
+func hasHints(parts []statusPart) bool {
+	for _, p := range parts {
+		if p.hints != "" {
+			return true
 		}
 	}
-	return statusMutedStyle.Render(truncate(left[0].text, width))
+	return false
+}
+
+func dropFixed(parts []statusPart) ([]statusPart, bool) {
+	for i := len(parts) - 1; i >= 0; i-- {
+		if parts[i].hints == "" {
+			return append(parts[:i:i], parts[i+1:]...), true
+		}
+	}
+	return parts, false
+}
+
+// joinParts sets the parts apart with dimmed dots, and gives a hint list the
+// width that the other parts leave.
+func joinParts(parts []statusPart, width int) string {
+	sep := statusSepStyle.Render(" · ")
+	fixed := 0
+	for i, p := range parts {
+		if i > 0 {
+			fixed += lipgloss.Width(sep)
+		}
+		if p.hints == "" {
+			fixed += lipgloss.Width(p.text)
+		}
+	}
+	out := make([]string, len(parts))
+	for i, p := range parts {
+		out[i] = p.render(width - fixed)
+	}
+	return strings.Join(out, sep)
 }
 
 func statusFill(left, right string, gap int) string {

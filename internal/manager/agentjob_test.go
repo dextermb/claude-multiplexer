@@ -46,7 +46,7 @@ func TestAgentTurnsGoToTheJobNotThePane(t *testing.T) {
 	}
 
 	pane := strings.Join(render.Text(m.Lines(name)), "\n")
-	if !strings.Contains(pane, "⚙ started") || !strings.Contains(pane, "echo: agent") {
+	if !strings.Contains(pane, "■ started") || !strings.Contains(pane, "echo: agent") {
 		t.Fatalf("the pane lost the lifecycle line or the parent turn:\n%s", pane)
 	}
 	for _, hidden := range []string{"Read render.go", "40 lines"} {
@@ -75,7 +75,7 @@ func TestAgentTurnsGoToTheJobNotThePane(t *testing.T) {
 
 	retire(t, m, name)
 	replay := strings.Join(render.Text(m.Replay(name)), "\n")
-	if !strings.Contains(replay, "⚙ started") || !strings.Contains(replay, "echo: agent") {
+	if !strings.Contains(replay, "■ started") || !strings.Contains(replay, "echo: agent") {
 		t.Fatalf("the replay lost the lifecycle line or the parent turn:\n%s", replay)
 	}
 	for _, hidden := range []string{"Read render.go", "40 lines"} {

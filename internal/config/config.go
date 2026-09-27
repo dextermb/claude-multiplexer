@@ -20,7 +20,7 @@ const FileName = "config.json"
 const DefaultBlockCap = 20
 
 // DefaultQuestionCap is the lines the question modal draws of one option label
-// or one option description before it caps them. See docs/tui/input.md.
+// or one option description before it caps them. See docs/tui/questions.md.
 const DefaultQuestionCap = 2
 
 // DefaultSkillCap is the rows a skill dump draws before the pane caps it. A
@@ -30,7 +30,7 @@ const DefaultSkillCap = 1
 
 // The buckets a block cap keys by. A block takes the bucket of its first line.
 // The question buckets cap the question modal, not the pane. See
-// docs/tui/output.md and docs/tui/input.md.
+// docs/tui/output.md and docs/tui/questions.md.
 const (
 	BucketPrompt              = "prompt"
 	BucketMessage             = "message"
@@ -324,7 +324,7 @@ func ResolveBlockCaps(cfg Config) map[string]int {
 // The built-in layout dimensions, used when no layout sets one. See
 // docs/config.md and docs/tui.md.
 const (
-	DefaultSidebarSize = 26
+	DefaultSidebarSize = 30
 	DefaultTaskSize    = 32
 	DefaultDiffSize    = 32
 	DefaultDiffRows    = 12

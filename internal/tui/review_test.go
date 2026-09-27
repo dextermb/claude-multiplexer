@@ -4,8 +4,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/charmbracelet/bubbles/textarea"
-	tea "github.com/charmbracelet/bubbletea"
+	"charm.land/bubbles/v2/textarea"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/x/ansi"
 	"github.com/dextermb/claude-multiplexer/internal/git"
 	"github.com/dextermb/claude-multiplexer/internal/manager"
 )
@@ -155,10 +157,10 @@ func TestReviewEnterHidesSidebarAndLeaveRestores(t *testing.T) {
 	if m.focus != focusReview {
 		t.Fatalf("the focus must move to the review screen, got %v", m.focus)
 	}
-	if m.output.Width != m.reviewExplainWidth() {
-		t.Fatalf("the output pane must size to the explain width %d, got %d", m.reviewExplainWidth(), m.output.Width)
+	if m.output.Width() != m.reviewExplainWidth()-1 {
+		t.Fatalf("the output pane must size to the explain width %d less its one column of padding, got %d", m.reviewExplainWidth(), m.output.Width())
 	}
-	if view := visible(m.View()); !strings.Contains(view, "Explanation") {
+	if view := visible(m.screen()); !strings.Contains(view, "EXPLANATION") {
 		t.Fatalf("the review view must show the explanation pane:\n%s", view)
 	}
 
@@ -182,7 +184,7 @@ func TestReviewMouseKeepsTheFocusOnTheScreen(t *testing.T) {
 
 	// A left click used to set m.focus by the region, which moved it off the
 	// review screen and broke tab and esc.
-	click := tea.MouseMsg{Action: tea.MouseActionPress, Button: tea.MouseButtonLeft, X: 2, Y: 3}
+	click := tea.MouseClickMsg{Button: tea.MouseLeft, X: 2, Y: 3}
 	m, _ = step(t, m, click)
 	if m.focus != focusReview {
 		t.Fatalf("a click must keep the focus on the review screen, got %v", m.focus)
@@ -191,7 +193,7 @@ func TestReviewMouseKeepsTheFocusOnTheScreen(t *testing.T) {
 		t.Fatalf("a click on the left must focus the diff side, got %v", m.reviewFocus)
 	}
 
-	right := tea.MouseMsg{Action: tea.MouseActionPress, Button: tea.MouseButtonLeft, X: m.width - 3, Y: 3}
+	right := tea.MouseClickMsg{Button: tea.MouseLeft, X: m.width - 3, Y: 3}
 	m, _ = step(t, m, right)
 	if m.reviewFocus != reviewExplain {
 		t.Fatalf("a click on the right must focus the explanation, got %v", m.reviewFocus)
@@ -231,5 +233,75 @@ func TestReviewCapturesSequenceKeys(t *testing.T) {
 	m, _ = step(t, m, key("esc"))
 	if m.reviewMode {
 		t.Fatal("esc must still close the review screen")
+	}
+}
+
+func TestReviewTintsTheAddedAndRemovedRows(t *testing.T) {
+	var m Model
+	h := git.Hunk{Header: "@@ -1,2 +1,2 @@", NewStart: 1, Body: []string{" same", "-old", "+new"}}
+	rows := m.reviewHunkLines(h, 40, false)
+	if len(rows) != 4 {
+		t.Fatalf("rows = %d, want the header and three lines", len(rows))
+	}
+	removed, added := rows[2], rows[3]
+	if !strings.Contains(removed, "48;2;20;8;8") || !strings.Contains(added, "48;2;6;17;10") {
+		t.Fatalf("the changed rows need the danger and positive tints:\n%q\n%q", removed, added)
+	}
+	if strings.Contains(rows[1], "48;2;") {
+		t.Fatalf("an unchanged row takes no tint: %q", rows[1])
+	}
+	if strings.Contains(added, "38;2;198;198;198") || !strings.Contains(added, "38;2;74;222;128") {
+		t.Fatalf("the code of an added row is green, not grey: %q", added)
+	}
+	if strings.Contains(removed, "38;2;198;198;198") || !strings.Contains(removed, "38;2;255;102;102") {
+		t.Fatalf("the code of a removed row is red, not grey: %q", removed)
+	}
+	for _, row := range rows {
+		if w := lipgloss.Width(row); w != 40 {
+			t.Fatalf("a row is %d wide, want the full 40, so the tint spans the row: %q", w, row)
+		}
+	}
+}
+
+func TestReviewMarksTheSelectedHunkAtItsEdge(t *testing.T) {
+	var m Model
+	h := git.Hunk{Header: "@@ -1,1 +1,1 @@", NewStart: 1, Body: []string{"-old", "+new"}}
+	for _, row := range m.reviewHunkLines(h, 40, true) {
+		if !strings.HasPrefix(ansi.Strip(row), "▌") {
+			t.Fatalf("each row of the selected hunk starts with the edge mark: %q", ansi.Strip(row))
+		}
+	}
+	for _, row := range m.reviewHunkLines(h, 40, false) {
+		if strings.HasPrefix(ansi.Strip(row), "▌") {
+			t.Fatalf("a hunk that is not selected has no edge mark: %q", ansi.Strip(row))
+		}
+	}
+}
+
+func TestTheDiffPanelTintsTheChangedRows(t *testing.T) {
+	m, _ := newTestModel(t, "")
+	m = start(t, m, 160, 30)
+	m.diffPanel = true
+	text := "@@ -1,2 +1,2 @@\n same\n-old\n+new"
+	rows := m.renderDiffBody(text, -1)
+	if len(rows) != 4 {
+		t.Fatalf("rows = %d, want 4", len(rows))
+	}
+	if !strings.Contains(rows[2], "48;2;20;8;8") || !strings.Contains(rows[3], "48;2;6;17;10") {
+		t.Fatalf("the changed rows need the danger and positive tints:\n%q\n%q", rows[2], rows[3])
+	}
+	if strings.Contains(rows[1], "48;2;") {
+		t.Fatalf("an unchanged row takes no tint: %q", rows[1])
+	}
+	for _, row := range rows[1:] {
+		if w := lipgloss.Width(row); w != m.diffInner() {
+			t.Fatalf("a row is %d wide, want the panel width %d: %q", w, m.diffInner(), row)
+		}
+	}
+	if strings.Contains(rows[3], "38;2;198;198;198") || !strings.Contains(rows[3], "38;2;74;222;128") {
+		t.Fatalf("the code of an added row in the panel is green: %q", rows[3])
+	}
+	if current := m.renderDiffBody(text, 3)[3]; !strings.Contains(current, "38;2;255;255;255") {
+		t.Fatalf("the current line keeps its white text: %q", current)
 	}
 }

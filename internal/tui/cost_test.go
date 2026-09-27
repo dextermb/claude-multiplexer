@@ -19,7 +19,7 @@ func TestTheStatusBarNamesNoWindowForTheWholeHistory(t *testing.T) {
 	}
 }
 
-func TestTheStatusBarDrawsTheWindowedTotal(t *testing.T) {
+func TestTheBandDrawsTheWindowedTotal(t *testing.T) {
 	m, mgr := newTestModel(t, "")
 	storeSession(t, mgr, "kept", t.TempDir(), "hello")
 	m = start(t, m, 100, 24)
@@ -31,7 +31,7 @@ func TestTheStatusBarDrawsTheWindowedTotal(t *testing.T) {
 	if m.cost != 0.25 {
 		t.Fatalf("cost = %v, want the one turn of today", m.cost)
 	}
-	if view := m.View(); !strings.Contains(view, "$0.2500 1d") {
-		t.Fatalf("the status bar does not draw the windowed total:\n%s", view)
+	if view := visible(m.screen()); !strings.Contains(view, "$0.2500 / 1d") {
+		t.Fatalf("the band does not draw the windowed total:\n%s", view)
 	}
 }

@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
+	"charm.land/bubbles/v2/textinput"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 
 	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/protocol"
@@ -25,10 +26,11 @@ func newQuestionDialog(session string, questions []protocol.Question) *questionD
 	d := &questionDialog{session: session, questions: questions}
 	for range questions {
 		d.chosen = append(d.chosen, make(map[int]bool))
-		input := textinput.New()
+		input := newTextInput()
 		input.Placeholder = "or type an answer"
+		input.Prompt = ""
 		input.CharLimit = 512
-		input.Width = 40
+		input.SetWidth(40)
 		d.text = append(d.text, input)
 	}
 	d.syncFocus()
@@ -52,7 +54,7 @@ func (d *questionDialog) syncFocus() {
 }
 
 func (d *questionDialog) Update(msg tea.Msg) (formResult, tea.Cmd) {
-	key, ok := msg.(tea.KeyMsg)
+	key, ok := msg.(tea.KeyPressMsg)
 	if !ok {
 		return formOpen, nil
 	}
@@ -70,7 +72,7 @@ func (d *questionDialog) Update(msg tea.Msg) (formResult, tea.Cmd) {
 			return formSubmitted, nil
 		}
 		return formOpen, nil
-	case " ":
+	case "space":
 		if !d.onText() {
 			d.toggle(d.cursor)
 			return formOpen, nil
@@ -170,7 +172,7 @@ func questionCap(caps map[string]int, bucket string) int {
 }
 
 // capLines keeps at most cap lines and reports the rest as hidden. A focused
-// option draws in full, and a cap below zero never caps. See docs/tui/input.md.
+// option draws in full, and a cap below zero never caps. See docs/tui/questions.md.
 func capLines(lines []string, cap int, focused bool) ([]string, int) {
 	if focused || cap < 0 || len(lines) <= cap {
 		return lines, 0
@@ -178,49 +180,63 @@ func capLines(lines []string, cap int, focused bool) ([]string, int) {
 	return lines[:cap:cap], len(lines) - cap
 }
 
+// View draws the dialog inline, at the top of the output pane: a label set in a
+// rule, the question, the options, and the answer field. See docs/tui/questions.md.
 func (d *questionDialog) View(width int, caps map[string]int) string {
-	inner := modalInner(width)
+	inner := width
 	optionCap := questionCap(caps, config.BucketQuestionOption)
 	descriptionCap := questionCap(caps, config.BucketQuestionDescription)
 
 	question := d.current()
 	var b strings.Builder
+	head := "a question for you"
 	if len(d.questions) > 1 {
-		b.WriteString(titleStyle.Render(fmt.Sprintf("Question %d of %d", d.step+1, len(d.questions))))
-	} else {
-		b.WriteString(titleStyle.Render("A question for you"))
+		head = fmt.Sprintf("question %d of %d", d.step+1, len(d.questions))
 	}
+	b.WriteString(ruleLabel(head, inner, true))
 	b.WriteString("\n\n")
-	b.WriteString(questionTextStyle.Width(inner - 2).Render(question.Question))
+	b.WriteString(questionTextStyle.Width(inner - 2).Render(" " + question.Question))
 	b.WriteString("\n")
+	choose := "choose one"
 	if question.MultiSelect {
-		b.WriteString(hintStyle.Render("choose one or more"))
-		b.WriteString("\n")
+		choose = "choose one or more"
 	}
-	b.WriteString("\n")
+	b.WriteString(hintStyle.Width(inner - 2).Render(" " + choose + " · the answer goes to " + d.session + " as the next prompt"))
+	b.WriteString("\n\n")
 
-	rowWidth := inner - 4
-	textWidth := rowWidth - 4
+	rowWidth := inner - 2
+	textWidth := rowWidth - 6
+	labelCol := optionLabelColumn(question.Options, textWidth)
 	for i, option := range question.Options {
-		mark := "○"
+		mark := "( )"
 		if d.chosen[d.step][i] {
-			mark = "◉"
+			mark = "(●)"
 		}
 		focused := i == d.cursor
 
+		quiet := hintStyle
+		if focused {
+			quiet = lipgloss.NewStyle()
+		}
 		var content []string
+		if line, ok := inlineOption(option, labelCol, textWidth, quiet); ok {
+			content = append(content, line)
+		}
 		labelLines, labelHidden := capLines(wrapText(option.Label, textWidth), optionCap, focused)
+		if len(content) > 0 {
+			labelLines, labelHidden = nil, 0
+		}
 		content = append(content, labelLines...)
 		if labelHidden > 0 {
-			content = append(content, hintStyle.Render(markerText(labelHidden)))
+			content = append(content, quiet.Render(markerText(labelHidden)))
 		}
-		if option.Description != "" {
+		if option.Description != "" && len(labelLines) > 0 {
 			descLines, descHidden := capLines(wrapText(option.Description, textWidth), descriptionCap, focused)
 			for _, line := range descLines {
-				content = append(content, hintStyle.Render(line))
+				content = append(content, quiet.Render(line))
 			}
 			if descHidden > 0 {
-				content = append(content, hintStyle.Render(markerText(descHidden)))
+				content = append(content, quiet.Render(markerText(descHidden)))
 			}
 		}
 		if len(content) == 0 {
@@ -232,25 +248,59 @@ func (d *questionDialog) View(width int, caps map[string]int) string {
 			if j == 0 {
 				block.WriteString(mark + " " + line)
 			} else {
-				block.WriteString("\n    " + line)
+				block.WriteString("\n      " + line)
 			}
 		}
 		if focused {
-			b.WriteString(selectedRowStyle.Width(rowWidth).Render("▸ " + block.String()))
+			b.WriteString(" " + selectedRowStyle.Width(rowWidth).Render("▸ "+block.String()))
 		} else {
-			b.WriteString(rowStyle.Width(rowWidth).Render("  " + block.String()))
+			b.WriteString(" " + rowStyle.Width(rowWidth).Render("  "+block.String()))
 		}
 		b.WriteString("\n")
 	}
 
 	b.WriteString("\n")
-	b.WriteString(fieldLabelStyle.Render("  "))
-	b.WriteString(d.text[d.step].View())
+	b.WriteString(d.answerView(inner))
 	b.WriteString("\n")
 
 	if d.err != "" {
 		b.WriteString("\n" + errorStyle.Render(d.err))
 	}
-	b.WriteString("\n\n" + hintStyle.Render("↑↓ move · space choose · enter send · esc cancel"))
-	return modalStyle.Width(inner).Render(b.String())
+	b.WriteString("\n\n " + paneHints("↑/↓ move · space choose · enter send · esc dismiss"))
+	return b.String()
+}
+
+// optionLabelColumn is the width of the label column when every short label
+// sits on one row with its description, and 0 when the options are too wide.
+func optionLabelColumn(options []protocol.Option, textWidth int) int {
+	widest := 0
+	for _, option := range options {
+		widest = maxInt(widest, lipgloss.Width(option.Label))
+	}
+	if widest == 0 || widest+3 > textWidth/2 {
+		return 0
+	}
+	return widest + 3
+}
+
+// inlineOption draws a short option on one row: the label in its column, and
+// the description after it, muted.
+func inlineOption(option protocol.Option, labelCol, textWidth int, quiet lipgloss.Style) (string, bool) {
+	if labelCol == 0 || lipgloss.Width(option.Description) > textWidth-labelCol {
+		return "", false
+	}
+	pad := strings.Repeat(" ", labelCol-lipgloss.Width(option.Label))
+	return option.Label + pad + quiet.Render(option.Description), true
+}
+
+// answerView is the free-text answer in brackets, white when it has the focus.
+func (d *questionDialog) answerView(width int) string {
+	label, bracket := fieldLabelStyle, fgStyle(colStrong)
+	if d.onText() {
+		label, bracket = labelStyle.Foreground(colFg), keyStyle
+	}
+	w := maxInt(8, minInt(64, width-14))
+	d.text[d.step].SetWidth(w - 1)
+	body := lipgloss.NewStyle().Width(w).MaxWidth(w).Render(d.text[d.step].View())
+	return label.Render(" answer   ") + bracket.Render("[ ") + body + bracket.Render(" ]")
 }

@@ -4,39 +4,27 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 	"github.com/dextermb/claude-multiplexer/internal/git"
 )
 
 const reviewMinExplain = 24
 
-// reviewSelBg is the subtle band behind the selected hunk on the diff side.
-var reviewSelBg = lipgloss.Color("237")
-
-// reviewHeadOn is the header of the focused pane, and reviewHeadOff the header
-// of an unfocused pane, so the split shows which side takes the keys.
-var (
-	reviewHeadOn  = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("231")).Background(lipgloss.Color("62"))
-	reviewHeadOff = diffMetaStyle
-)
-
-// reviewHeader draws a pane header that shows the focus: a blue bar and a filled
-// label when focused, a muted label otherwise. See docs/tui/review.md.
+// reviewHeader draws a pane header as a label set in a rule, inverted when the
+// pane holds the focus, so the split shows which side takes the keys. See
+// docs/tui/review.md.
 func reviewHeader(title string, width int, focused bool) string {
-	if focused {
-		return lipgloss.NewStyle().Width(width).Render(focusEdgeStyle.Render("▌") + reviewHeadOn.Render(" "+title+" "))
-	}
-	return lipgloss.NewStyle().Width(width).Render("  " + reviewHeadOff.Render(title))
+	return ruleLabel(title, width, focused)
 }
 
-// reviewView draws the review screen: the session bar, then the split of the
-// diff and the explanation thread. See docs/tui/review.md.
+// reviewView draws the review screen: the split of the diff and the explanation
+// thread. The band names the session. See docs/tui/review.md.
 func (m Model) reviewView() string {
-	return lipgloss.JoinVertical(lipgloss.Left, m.barViewWidth(m.baseOutputWidth()), m.reviewSplit())
+	return m.reviewSplit()
 }
 
 func (m Model) reviewHeight() int {
-	if h := m.bodyHeight() - barHeight; h > 1 {
+	if h := m.bodyHeight(); h > 1 {
 		return h
 	}
 	return 1
@@ -72,7 +60,7 @@ func (m Model) reviewSplit() string {
 	diffLines, _ := m.reviewDiffContent(diffW)
 	left := reviewBlock(diffLines, m.reviewScroll, diffW, height)
 	right := m.reviewExplainPane()
-	sep := reviewRule(height)
+	sep := reviewRule(height, isRule(strings.SplitN(left, "\n", 2)[0]))
 	return lipgloss.JoinHorizontal(lipgloss.Top, left, sep, right)
 }
 
@@ -80,8 +68,9 @@ func (m Model) reviewSplit() string {
 // pane, so the reply carries the block cursor and its capped blocks. See
 // docs/tui/review.md.
 func (m Model) reviewExplainPane() string {
-	head := reviewHeader("Explanation", m.reviewExplainWidth(), m.reviewFocus == reviewExplain)
-	return lipgloss.JoinVertical(lipgloss.Left, head, m.output.View())
+	head := reviewHeader("explanation", m.reviewExplainWidth(), m.reviewFocus == reviewExplain)
+	body := lipgloss.NewStyle().PaddingLeft(1).Render(m.output.View())
+	return lipgloss.JoinVertical(lipgloss.Left, head, body)
 }
 
 func reviewBlock(lines []string, scroll, width, height int) string {
@@ -94,10 +83,15 @@ func reviewBlock(lines []string, scroll, width, height int) string {
 	return lipgloss.NewStyle().Width(width).Height(height).MaxHeight(height).Render(strings.Join(window, "\n"))
 }
 
-func reviewRule(height int) string {
+// reviewRule is the rule between the diff and the explanation. It joins the
+// header rules with a junction when the diff header is on the screen.
+func reviewRule(height int, headed bool) string {
 	col := make([]string, height)
 	for i := range col {
-		col[i] = diffMetaStyle.Render("│")
+		col[i] = ruleStyle.Render("│")
+	}
+	if headed && height > 0 {
+		col[0] = ruleStyle.Render("┬")
 	}
 	return strings.Join(col, "\n")
 }
@@ -115,12 +109,10 @@ func (m Model) reviewDiffContent(width int) (lines []string, selLine int) {
 		return []string{diffMetaStyle.Render("not a git repository")}, -1
 	}
 	entries := m.diffEntries()
-	label := reviewHeader("Review · "+m.sel, width, m.reviewFocus == reviewDiff)
 	stat := p.stat()
-	counts := diffAddStyle.Render("+"+strconv.Itoa(stat.Insertions)) + " " +
-		diffDelStyle.Render("−"+strconv.Itoa(stat.Deletions)) + "  " +
-		diffMetaStyle.Render(plural(len(entries), "file"))
-	lines = append(lines, label, counts, "")
+	title := "diff · " + m.sel + " (" + plural(len(entries), "file") + " · +" +
+		strconv.Itoa(stat.Insertions) + " −" + strconv.Itoa(stat.Deletions) + ")"
+	lines = append(lines, reviewHeader(title, width, m.reviewFocus == reviewDiff), "")
 	if len(entries) == 0 {
 		return append(lines, diffMetaStyle.Render("no changes")), -1
 	}
@@ -176,60 +168,46 @@ func (m Model) reviewFileRow(index int, entry diffEntry, width int) string {
 	return left + strings.Repeat(" ", gap) + rightCounts
 }
 
-// reviewHunkLines colours a hunk and wraps it to the diff width. When the line
-// numbers are on it prefixes each row with a gutter of the new-side line number,
-// the same as the diff panel. A removed line has no new-side number, so its
-// gutter is blank. See docs/tui/review.md.
+// reviewHunkLines colours a hunk and wraps it to the diff width. An added row
+// and a removed row take a faint tint across the row, and only their mark takes
+// the hue. The selected hunk carries a white edge mark on each row, so the tints
+// still show under it. With the line numbers on, a gutter holds the new-side
+// number, and a removed line leaves it blank. See docs/tui/review.md.
 func (m Model) reviewHunkLines(h git.Hunk, width int, marked bool) []string {
-	content := width
+	content := width - 1
 	if m.reviewLineNumbers {
 		content -= diffNumGutter
 	}
-	if content < 1 {
-		content = 1
+	content = maxInt(content, 1)
+	edge := " "
+	if marked {
+		edge = "▌"
 	}
 	var out []string
-	render := func(style lipgloss.Style, text, number string) {
-		for i, chunk := range wrapHard(text, content) {
-			if marked {
-				style = style.Background(reviewSelBg).Width(content)
-			}
-			row := style.Render(chunk)
+	if marked {
+		out = append(out, invertStyle.Width(width).MaxWidth(width).Render(truncate(edge+h.Header, width)))
+	} else {
+		out = append(out, diffHunkStyle.Width(width).Render(edge+truncate(h.Header, width-1)))
+	}
+	newLine := h.NewStart
+	for _, line := range h.Body {
+		number := ""
+		if !strings.HasPrefix(line, "-") {
+			number = strconv.Itoa(newLine)
+			newLine++
+		}
+		tint, mark := diffLineTint(line)
+		for i, chunk := range wrapHard(line, content) {
+			row := tinted(keyStyle, tint).Render(edge)
 			if m.reviewLineNumbers {
 				gutter := ""
 				if i == 0 {
 					gutter = number
 				}
-				numStyle := diffNumStyle
-				if marked {
-					numStyle = diffCurNumStyle.Background(reviewSelBg)
-				}
-				row = numStyle.Render(padLeft(gutter, diffNumGutter-1)+" ") + row
+				row += tinted(diffNumStyle, tint).Render(padLeft(gutter, diffNumGutter-1) + " ")
 			}
-			out = append(out, row)
+			out = append(out, row+diffChunk(chunk, i == 0, tint, mark, nil, content))
 		}
-	}
-	headerStyle := diffHunkStyle
-	if marked {
-		headerStyle = headerStyle.Bold(true)
-	}
-	render(headerStyle, h.Header, "")
-	newLine := h.NewStart
-	for _, line := range h.Body {
-		style := rowStyle
-		number := ""
-		switch {
-		case strings.HasPrefix(line, "+"):
-			style = diffAddStyle
-			number = strconv.Itoa(newLine)
-			newLine++
-		case strings.HasPrefix(line, "-"):
-			style = diffDelStyle
-		default:
-			number = strconv.Itoa(newLine)
-			newLine++
-		}
-		render(style, line, number)
 	}
 	return out
 }

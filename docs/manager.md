@@ -153,8 +153,7 @@ after it appends that event's lines. So the count never leads the buffer: when
 `Snapshot` shows five turns, `Lines` already holds those five turns.
 
 The pump writes the cost ledger from the same snapshot, one line per prompt.
-That file is the only record that dates a cost, and the status bar total reads
-it. See [cost.md](cost.md).
+That file is the only record that dates a cost, and the band total reads it. See [cost.md](cost.md).
 
 Each session event carries the snapshot as of that event, because the session
 reads the stream on one goroutine and the pump appends the lines on another. The

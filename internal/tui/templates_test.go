@@ -7,8 +7,6 @@ import (
 	"testing"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
-
 	"github.com/dextermb/claude-multiplexer/internal/manager"
 	"github.com/dextermb/claude-multiplexer/internal/render"
 )
@@ -27,7 +25,7 @@ func writeTemplate(t *testing.T, root, name, body string) {
 func typeInto(t *testing.T, m Model, text string) Model {
 	t.Helper()
 	for _, r := range text {
-		m, _ = step(t, m, tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m, _ = step(t, m, key(string(r)))
 	}
 	return m
 }
@@ -61,8 +59,8 @@ func TestThePickerFillsThePromptFromATemplate(t *testing.T) {
 	if pickerOf(m) == nil {
 		t.Fatal("t must open the picker")
 	}
-	view := visible(m.View())
-	for _, want := range []string{"Preset prompts", "/linear", "Work a Linear issue", "/review"} {
+	view := visible(m.screen())
+	for _, want := range []string{"PRESET PROMPTS", "/linear", "Work a Linear issue", "/review"} {
 		if !strings.Contains(view, want) {
 			t.Errorf("the picker does not show %q:\n%s", want, view)
 		}
@@ -72,7 +70,7 @@ func TestThePickerFillsThePromptFromATemplate(t *testing.T) {
 	if pickerOf(m) != nil || fieldsOf(m) == nil {
 		t.Fatal("choosing a template must open the field form")
 	}
-	if got := visible(m.View()); !strings.Contains(got, "issue") || !strings.Contains(got, "focus") {
+	if got := visible(m.screen()); !strings.Contains(got, "ISSUE") || !strings.Contains(got, "FOCUS") {
 		t.Errorf("the form does not ask for the fields:\n%s", got)
 	}
 

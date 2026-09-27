@@ -11,9 +11,8 @@ import (
 	"testing"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
-	"github.com/muesli/termenv"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 
 	"github.com/dextermb/claude-multiplexer/internal/manager"
 	"github.com/dextermb/claude-multiplexer/internal/render"
@@ -36,7 +35,6 @@ func TestMain(m *testing.M) {
 		os.RemoveAll(dir)
 		os.Exit(1)
 	}
-	lipgloss.SetColorProfile(termenv.ANSI256)
 
 	code := m.Run()
 	os.RemoveAll(dir)
@@ -73,26 +71,41 @@ func step(t *testing.T, m Model, msg tea.Msg) (Model, tea.Cmd) {
 	return model, cmd
 }
 
-func key(name string) tea.KeyMsg {
-	switch name {
-	case "enter":
-		return tea.KeyMsg{Type: tea.KeyEnter}
-	case "esc":
-		return tea.KeyMsg{Type: tea.KeyEsc}
-	case "tab":
-		return tea.KeyMsg{Type: tea.KeyTab}
-	case "down":
-		return tea.KeyMsg{Type: tea.KeyDown}
-	case "up":
-		return tea.KeyMsg{Type: tea.KeyUp}
-	case "ctrl+s":
-		return tea.KeyMsg{Type: tea.KeyCtrlS}
-	case "ctrl+l":
-		return tea.KeyMsg{Type: tea.KeyCtrlL}
-	case "ctrl+o":
-		return tea.KeyMsg{Type: tea.KeyCtrlO}
+// key builds the key press a terminal sends for a key name, such as "enter",
+// "ctrl+s", "shift+tab", "G", or a run of typed text.
+func key(name string) tea.KeyPressMsg {
+	named := map[string]rune{
+		"enter": tea.KeyEnter, "esc": tea.KeyEscape, "tab": tea.KeyTab,
+		"up": tea.KeyUp, "down": tea.KeyDown, "left": tea.KeyLeft, "right": tea.KeyRight,
+		"backspace": tea.KeyBackspace, "delete": tea.KeyDelete, "space": tea.KeySpace,
+		"pgup": tea.KeyPgUp, "pgdown": tea.KeyPgDown, "home": tea.KeyHome, "end": tea.KeyEnd,
 	}
-	return tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(name)}
+	var mod tea.KeyMod
+	rest := name
+	for _, p := range []struct {
+		prefix string
+		mod    tea.KeyMod
+	}{{"ctrl+", tea.ModCtrl}, {"alt+", tea.ModAlt}, {"shift+", tea.ModShift}} {
+		if strings.HasPrefix(rest, p.prefix) && len(rest) > len(p.prefix) {
+			mod |= p.mod
+			rest = strings.TrimPrefix(rest, p.prefix)
+		}
+	}
+	if code, ok := named[rest]; ok {
+		msg := tea.KeyPressMsg{Code: code, Mod: mod}
+		if code == tea.KeySpace && mod == 0 {
+			msg.Text = " "
+		}
+		return msg
+	}
+	runes := []rune(rest)
+	if mod != 0 {
+		return tea.KeyPressMsg{Code: runes[0], Mod: mod}
+	}
+	if len(runes) == 1 {
+		return tea.KeyPressMsg{Code: runes[0], Text: rest}
+	}
+	return tea.KeyPressMsg{Code: tea.KeyExtended, Text: rest}
 }
 
 func TestNewFormDir(t *testing.T) {
@@ -149,14 +162,14 @@ func TestTheFormOpensWhenThereAreNoSessions(t *testing.T) {
 	if m.form == nil {
 		t.Fatal("the new session form must open when the list is empty")
 	}
-	if view := m.View(); !strings.Contains(view, "New session") {
+	if view := m.screen(); !strings.Contains(view, "NEW SESSION") {
 		t.Fatalf("view does not show the form:\n%s", view)
 	}
 	m, _ = step(t, m, key("esc"))
 	if m.form != nil {
 		t.Fatal("esc must close the form")
 	}
-	if view := m.View(); !strings.Contains(view, "No sessions yet") {
+	if view := m.screen(); !strings.Contains(view, "No sessions yet") {
 		t.Fatalf("view does not show the empty state:\n%s", view)
 	}
 }
@@ -169,8 +182,8 @@ func TestTheFormRejectsADirectoryThatDoesNotExist(t *testing.T) {
 	if m.form == nil {
 		t.Fatal("the form must stay open when the directory is wrong")
 	}
-	if !strings.Contains(m.View(), "no such directory") {
-		t.Fatalf("view does not show the reason:\n%s", m.View())
+	if !strings.Contains(m.screen(), "no such directory") {
+		t.Fatalf("view does not show the reason:\n%s", m.screen())
 	}
 }
 
@@ -183,7 +196,7 @@ func TestTheSidebarListsEverySessionAndMarksTheSelectedOne(t *testing.T) {
 	m = spawn(t, m, mgr, "alpha", dir)
 	m = spawn(t, m, mgr, "beta", dir)
 
-	view := m.View()
+	view := m.screen()
 	for _, want := range []string{"alpha", "beta"} {
 		if !strings.Contains(view, want) {
 			t.Errorf("view has no %q:\n%s", want, view)
@@ -204,8 +217,8 @@ func TestAClickInTheSidebarSelectsASession(t *testing.T) {
 	m = spawn(t, m, mgr, "beta", dir)
 
 	// The first line of the sidebar is the group header, so the rows follow it.
-	m, _ = step(t, m, tea.MouseMsg{
-		X: 3, Y: titleHeight + 1, Action: tea.MouseActionPress, Button: tea.MouseButtonLeft,
+	m, _ = step(t, m, tea.MouseClickMsg{
+		X: 3, Y: bandHeight + titleHeight + 1, Button: tea.MouseLeft,
 	})
 	if m.sel != "alpha" {
 		t.Fatalf("selected = %q, want alpha", m.sel)
@@ -214,8 +227,8 @@ func TestAClickInTheSidebarSelectsASession(t *testing.T) {
 		t.Fatal("a click in the sidebar must move the focus there")
 	}
 
-	m, _ = step(t, m, tea.MouseMsg{
-		X: 3, Y: titleHeight + 2, Action: tea.MouseActionPress, Button: tea.MouseButtonLeft,
+	m, _ = step(t, m, tea.MouseClickMsg{
+		X: 3, Y: bandHeight + titleHeight + 2, Button: tea.MouseLeft,
 	})
 	if m.sel != "beta" {
 		t.Fatalf("selected = %q, want beta", m.sel)
@@ -228,8 +241,8 @@ func TestAClickBelowTheListChangesNothing(t *testing.T) {
 	m, _ = step(t, m, key("esc"))
 	m = spawn(t, m, mgr, "alpha", t.TempDir())
 
-	m, _ = step(t, m, tea.MouseMsg{
-		X: 3, Y: titleHeight + 5, Action: tea.MouseActionPress, Button: tea.MouseButtonLeft,
+	m, _ = step(t, m, tea.MouseClickMsg{
+		X: 3, Y: bandHeight + titleHeight + 5, Button: tea.MouseLeft,
 	})
 	if m.sel != "alpha" {
 		t.Fatalf("selected = %q, want alpha", m.sel)
@@ -306,10 +319,10 @@ func TestTheOutputPaneScrollsWithTheKeys(t *testing.T) {
 		t.Fatalf("no indicator belongs at the bottom, got %q", m.scrollIndicator())
 	}
 
-	bottom := m.output.YOffset
+	bottom := m.output.YOffset()
 	m, _ = step(t, m, key("k"))
-	if m.output.YOffset != bottom-1 {
-		t.Fatalf("k moved the offset to %d, want %d", m.output.YOffset, bottom-1)
+	if m.output.YOffset() != bottom-1 {
+		t.Fatalf("k moved the offset to %d, want %d", m.output.YOffset(), bottom-1)
 	}
 	if m.scrollIndicator() == "" {
 		t.Fatal("the bar must show the position once you scroll up")
@@ -320,9 +333,9 @@ func TestTheOutputPaneScrollsWithTheKeys(t *testing.T) {
 
 	m, _ = step(t, m, key("g"))
 	if !m.output.AtTop() {
-		t.Fatalf("g must go to the top, offset %d", m.output.YOffset)
+		t.Fatalf("g must go to the top, offset %d", m.output.YOffset())
 	}
-	m, _ = step(t, m, tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("G")})
+	m, _ = step(t, m, key("G"))
 	if !m.output.AtBottom() {
 		t.Fatal("G must go back to the bottom")
 	}
@@ -344,15 +357,15 @@ func TestNewOutputDoesNotStealYourPlace(t *testing.T) {
 	fill(&m, 200)
 
 	m.output.GotoTop()
-	before := m.output.YOffset
+	before := m.output.YOffset()
 	m.lastSeq = 5
 	m, _ = step(t, m, eventMsg(manager.Event{
 		Seq:     6,
 		Session: m.sel,
 		Lines:   []render.Line{{Class: render.ClassText, Text: "something new"}},
 	}))
-	if m.output.YOffset != before {
-		t.Fatalf("the pane jumped from %d to %d", before, m.output.YOffset)
+	if m.output.YOffset() != before {
+		t.Fatalf("the pane jumped from %d to %d", before, m.output.YOffset())
 	}
 
 	m.output.GotoBottom()
@@ -372,8 +385,8 @@ func TestAClickInTheOutputFocusesIt(t *testing.T) {
 	m, _ = step(t, m, key("esc"))
 	m = spawn(t, m, mgr, "alpha", t.TempDir())
 
-	m, _ = step(t, m, tea.MouseMsg{
-		X: sidebarWidth + 5, Y: 3, Action: tea.MouseActionPress, Button: tea.MouseButtonLeft,
+	m, _ = step(t, m, tea.MouseClickMsg{
+		X: sidebarWidth + 5, Y: bandHeight + 3, Button: tea.MouseLeft,
 	})
 	if m.focus != focusOutput {
 		t.Fatalf("focus = %v, want the output", m.focus)
@@ -396,7 +409,7 @@ func TestThePromptSendsToTheSelectedSession(t *testing.T) {
 		t.Fatal("tab must move the focus to the prompt")
 	}
 	for _, r := range "hello" {
-		m, _ = step(t, m, tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m, _ = step(t, m, key(string(r)))
 	}
 	m, _ = step(t, m, key("enter"))
 	if m.prompt.Value() != "" {
@@ -425,8 +438,8 @@ func TestSendWithoutASessionReportsTheReason(t *testing.T) {
 	if m.errText != "no session is selected" {
 		t.Fatalf("errText = %q", m.errText)
 	}
-	if !strings.Contains(m.View(), "no session is selected") {
-		t.Fatalf("the status bar hides the error:\n%s", m.View())
+	if !strings.Contains(m.screen(), "no session is selected") {
+		t.Fatalf("the status bar hides the error:\n%s", m.screen())
 	}
 }
 
@@ -466,8 +479,8 @@ func TestStopAsksForConfirmationFirst(t *testing.T) {
 	if m.confirm != "alpha" {
 		t.Fatalf("confirm = %q, want alpha", m.confirm)
 	}
-	if !strings.Contains(m.View(), "Stop session") {
-		t.Fatalf("the confirmation is not shown:\n%s", m.View())
+	if !strings.Contains(m.screen(), "STOP SESSION") {
+		t.Fatalf("the confirmation is not shown:\n%s", m.screen())
 	}
 	m, _ = step(t, m, key("n"))
 	if m.confirm != "" {
@@ -505,7 +518,7 @@ func TestTheViewFillsTheWindowExactly(t *testing.T) {
 		name string
 		view string
 	}{
-		{"normal", m.View()},
+		{"normal", m.screen()},
 	} {
 		lines := strings.Split(state.view, "\n")
 		if len(lines) != m.height {
@@ -543,7 +556,7 @@ func TestTheSessionBarShowsTheNumbers(t *testing.T) {
 	m.refresh()
 
 	bar := m.barView()
-	for _, want := range []string{"alpha", "fake-model", "auto", "idle", "$0.2500"} {
+	for _, want := range []string{"ALPHA", "fake-model", "auto", "idle", "$0.2500"} {
 		if !strings.Contains(bar, want) {
 			t.Errorf("the bar has no %q:\n%s", want, bar)
 		}
@@ -556,8 +569,8 @@ func TestTheSessionBarShowsTheNumbers(t *testing.T) {
 	if lipgloss.Width(bar) != m.outputWidth() {
 		t.Errorf("the bar is %d wide, want %d", lipgloss.Width(bar), m.outputWidth())
 	}
-	if strings.Contains(bar, "\n") {
-		t.Error("the bar must stay on one line")
+	if rows := strings.Count(bar, "\n") + 1; rows != barHeight {
+		t.Errorf("the bar has %d rows, want the name rule and one row of details", rows)
 	}
 }
 
@@ -585,10 +598,10 @@ func TestTheSessionBarDropsDetailsBeforeTheName(t *testing.T) {
 			t.Errorf("width %d: the bar is %d wide, want %d:\n%s",
 				width, lipgloss.Width(bar), m.outputWidth(), bar)
 		}
-		if strings.Contains(bar, "\n") {
-			t.Errorf("width %d: the bar must stay on one line", width)
+		if rows := strings.Count(bar, "\n") + 1; rows != barHeight {
+			t.Errorf("width %d: the bar has %d rows, want %d", width, rows, barHeight)
 		}
-		if !strings.Contains(bar, "alpha") {
+		if !strings.Contains(bar, "ALPHA") {
 			t.Errorf("width %d: the name must survive:\n%s", width, bar)
 		}
 		if width == 140 {
@@ -625,7 +638,7 @@ func TestTheSessionBarSaysWhenThereIsNoSession(t *testing.T) {
 	m, _ := newTestModel(t, "")
 	m = start(t, m, 90, 24)
 	m, _ = step(t, m, key("esc"))
-	if !strings.Contains(m.barView(), "no session") {
+	if !strings.Contains(m.barView(), "NO SESSION") {
 		t.Fatalf("bar = %q", m.barView())
 	}
 }
@@ -650,7 +663,7 @@ func TestMetaLinesAreMutedAndTextIsNot(t *testing.T) {
 	}
 }
 
-func TestTheStatusBarCountsTheSessions(t *testing.T) {
+func TestTheBandCountsTheSessions(t *testing.T) {
 	m, mgr := newTestModel(t, "")
 	m = start(t, m, 120, 30)
 	m, _ = step(t, m, key("esc"))
@@ -658,23 +671,44 @@ func TestTheStatusBarCountsTheSessions(t *testing.T) {
 	m = spawn(t, m, mgr, "alpha", dir)
 	m = spawn(t, m, mgr, "beta", dir)
 
-	status := m.statusView()
-	for _, want := range []string{"2 sessions", "$0.0000", "q quit"} {
-		if !strings.Contains(status, want) {
-			t.Errorf("status %q has no %q", status, want)
+	band := visible(m.bandView())
+	for _, want := range []string{"sessions (2 · 2 live)", "$0.0000"} {
+		if !strings.Contains(band, want) {
+			t.Errorf("band %q has no %q", band, want)
 		}
 	}
-	if strings.Contains(status, "busy") {
-		t.Errorf("status %q shows a busy count when no session is busy", status)
+	if strings.Contains(band, "busy") {
+		t.Errorf("band %q shows a busy count when no session is busy", band)
+	}
+	if status := visible(m.statusView()); !strings.Contains(status, "[q] quit") {
+		t.Errorf("status %q has no key hints", status)
 	}
 
-	for i := range m.rows {
-		if m.rows[i].live {
-			m.rows[i].state = session.StateBusy
-			break
+	m.rows[0].state = session.StateBusy
+	m.rows[1].state = session.StateWaiting
+	band = visible(m.bandView())
+	for _, want := range []string{"1 busy", "1 waiting"} {
+		if !strings.Contains(band, want) {
+			t.Errorf("band %q has no %q", band, want)
 		}
 	}
-	if busy := m.statusView(); !strings.Contains(busy, "1 busy") {
-		t.Errorf("status %q has no %q with one busy session", busy, "1 busy")
+}
+
+func TestANarrowBandKeepsWhatCallsYou(t *testing.T) {
+	m, mgr := newTestModel(t, "")
+	m = start(t, m, 120, 30)
+	m, _ = step(t, m, key("esc"))
+	dir := t.TempDir()
+	m = spawn(t, m, mgr, "alpha", dir)
+	m = spawn(t, m, mgr, "beta", dir)
+	m.rows[0].state = session.StateBusy
+	m.rows[1].state = session.StateWaiting
+
+	got := visible(m.bandRight(22))
+	if !strings.Contains(got, "1 busy · 1 waiting") || strings.Contains(got, "sessions") || strings.Contains(got, "$") {
+		t.Fatalf("a narrow band = %q, want the busy and waiting counts only", got)
+	}
+	if got := visible(m.bandRight(10)); !strings.Contains(got, "1 waiting") {
+		t.Fatalf("the narrowest band = %q, want the waiting count", got)
 	}
 }

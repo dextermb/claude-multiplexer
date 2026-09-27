@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/manager"
@@ -102,7 +102,7 @@ func TestQuestionWrapsLongOptionText(t *testing.T) {
 }
 
 func TestQuestionCapsAnUnfocusedOption(t *testing.T) {
-	long := "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen"
+	long := "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty twenty-one twenty-two"
 	q := []protocol.Question{{
 		Question: "Pick one",
 		Header:   "Pick",
@@ -127,7 +127,7 @@ func TestQuestionCapsAnUnfocusedOption(t *testing.T) {
 }
 
 func TestQuestionUnlimitedCapNeverCapsAnOption(t *testing.T) {
-	long := "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen"
+	long := "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty twenty-one twenty-two"
 	q := []protocol.Question{{
 		Question: "Pick one",
 		Header:   "Pick",
@@ -186,7 +186,7 @@ func TestEventOpensTheQuestionDialogAndSubmitSends(t *testing.T) {
 	if m.questions["alpha"] == nil {
 		t.Fatal("a question event must open the dialog for its session")
 	}
-	if view := m.View(); !strings.Contains(visible(view), "Which colour do you prefer?") {
+	if view := m.screen(); !strings.Contains(visible(view), "Which colour do you prefer?") {
 		t.Fatalf("the view does not show the question:\n%s", visible(view))
 	}
 
@@ -236,7 +236,7 @@ func TestQuestionDoesNotStealSelection(t *testing.T) {
 	if m.questions["beta"] == nil {
 		t.Fatal("the question must attach to the session that asked")
 	}
-	if view := m.View(); strings.Contains(visible(view), "Which colour do you prefer?") {
+	if view := m.screen(); strings.Contains(visible(view), "Which colour do you prefer?") {
 		t.Fatal("the pane of another session must not show the question")
 	}
 }
@@ -255,7 +255,7 @@ func TestAPasteOnTheOtherRowGoesToTheDialog(t *testing.T) {
 		t.Fatal("the cursor must sit on the Other row")
 	}
 
-	m, _ = step(t, m, tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("teal"), Paste: true})
+	m, _ = step(t, m, tea.PasteMsg{Content: "teal"})
 	if got := m.questions["alpha"].text[0].Value(); got != "teal" {
 		t.Fatalf("the Other input = %q, want the pasted text", got)
 	}
@@ -278,5 +278,31 @@ func TestQuestionIgnoresKeysUntilItsPaneHasFocus(t *testing.T) {
 	m, _ = step(t, m, key(" "))
 	if got := m.questions["alpha"].chosen[0]; len(got) != 0 {
 		t.Fatal("a key must not reach the dialog while the pane is not focused")
+	}
+}
+
+func TestAShortDescriptionSitsOnItsOptionRow(t *testing.T) {
+	q := colourQuestion(false)
+	q[0].Options = []protocol.Option{{Label: "Red", Description: "You prefer red."}, {Label: "Blue", Description: "You prefer blue."}}
+	d := newQuestionDialog("alpha", q)
+	rows := strings.Split(visible(d.View(80, defaultCaps())), "\n")
+	var red string
+	for _, row := range rows {
+		if strings.Contains(row, "Red") {
+			red = row
+		}
+	}
+	if !strings.Contains(red, "You prefer red.") {
+		t.Fatalf("the description must share the option row, got %q", red)
+	}
+}
+
+func TestTheQuestionSaysWhereTheAnswerGoes(t *testing.T) {
+	d := newQuestionDialog("alpha", colourQuestion(false))
+	view := visible(d.View(100, defaultCaps()))
+	for _, want := range []string{"choose one · the answer goes to alpha as the next prompt", "[space] choose", "[esc] dismiss"} {
+		if !strings.Contains(view, want) {
+			t.Errorf("the dialog is missing %q:\n%s", want, view)
+		}
 	}
 }

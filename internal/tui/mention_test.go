@@ -4,8 +4,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-
-	tea "github.com/charmbracelet/bubbletea"
 )
 
 func mentionModel(t *testing.T, dir string) Model {
@@ -23,7 +21,7 @@ func mentionModel(t *testing.T, dir string) Model {
 func typed(t *testing.T, m Model, text string) Model {
 	t.Helper()
 	for _, r := range text {
-		m, _ = step(t, m, tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m, _ = step(t, m, key(string(r)))
 	}
 	return m
 }
@@ -68,7 +66,7 @@ func TestAMentionSuggestsFilesAndDirectories(t *testing.T) {
 	if strings.Join(names, ",") != strings.Join(want, ",") {
 		t.Fatalf("matches = %v, want %v", names, want)
 	}
-	view := visible(m.View())
+	view := visible(m.screen())
 	for _, name := range want {
 		if !strings.Contains(view, name) {
 			t.Errorf("the view does not offer %q:\n%s", name, view)
@@ -178,8 +176,8 @@ func TestShiftTabWalksTheMentionMatches(t *testing.T) {
 	if m.prompt.Value() != "@assets"+string(filepath.Separator) {
 		t.Fatalf("prompt = %q, want the last match first", m.prompt.Value())
 	}
-	if !strings.Contains(visible(m.View()), "assets") {
-		t.Fatalf("the view does not mark the walked name:\n%s", visible(m.View()))
+	if !strings.Contains(visible(m.screen()), "assets") {
+		t.Fatalf("the view does not mark the walked name:\n%s", visible(m.screen()))
 	}
 
 	m, _ = step(t, m, key("shift+tab"))
@@ -241,7 +239,7 @@ func TestAMentionIsNotCompletedAwayFromTheEnd(t *testing.T) {
 	m := mentionModel(t, dir)
 
 	m = typed(t, m, "@ap")
-	m.prompt.SetCursor(2)
+	m.prompt.SetCursorColumn(2)
 	m, _ = step(t, m, key("tab"))
 	if m.prompt.Value() != "@ap" {
 		t.Fatalf("prompt = %q, want no change while the cursor sits inside", m.prompt.Value())

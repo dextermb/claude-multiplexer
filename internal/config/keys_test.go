@@ -54,6 +54,8 @@ func TestKeysListsTheSchema(t *testing.T) {
 		{"bars.session.right", "array"},
 		{"bars.status.left", "array"},
 		{"bars.status.right", "array"},
+		{"bars.band.left", "array"},
+		{"bars.band.right", "array"},
 		{"keybindings.targets.session", "array"},
 		{"keybindings.targets.list", "array"},
 		{"keybindings.targets.output", "array"},

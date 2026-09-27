@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 
 	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/manager"
@@ -60,7 +60,7 @@ func TestABlockOfTwentyLinesDrawsNoMarker(t *testing.T) {
 		t.Fatalf("a block of %d lines must not be capped", cap)
 	}
 	view := visible(m.outputText)
-	if strings.Contains(view, "⋯") {
+	if strings.Contains(view, "more lines") {
 		t.Fatalf("the pane must draw no marker:\n%s", view)
 	}
 	if !strings.Contains(view, fmt.Sprintf("line %d", cap)) {
@@ -74,7 +74,7 @@ func TestABlockOfMoreThanTwentyLinesShowsTwentyAndAMarker(t *testing.T) {
 	m.appendOutput([]render.Line{{Class: render.ClassToolResult, Text: body(cap + 1)}})
 
 	view := visible(m.outputText)
-	if !strings.Contains(view, "⋯ 1 more line") {
+	if !strings.Contains(view, "[+] 1 more line") {
 		t.Fatalf("the marker must count the one line it hides:\n%s", view)
 	}
 	if strings.Contains(view, fmt.Sprintf("line %d", cap+1)) {
@@ -97,7 +97,7 @@ func TestEnterOpensTheBlockUnderTheCursorAndClosesItAgain(t *testing.T) {
 	if !strings.Contains(view, "line 50") {
 		t.Fatalf("an open block draws every line:\n%s", view)
 	}
-	if !strings.Contains(view, "⋯ show less") {
+	if !strings.Contains(view, "[−] show less") {
 		t.Fatalf("an open block keeps a marker that closes it:\n%s", view)
 	}
 
@@ -106,7 +106,7 @@ func TestEnterOpensTheBlockUnderTheCursorAndClosesItAgain(t *testing.T) {
 	if strings.Contains(view, "line 50") {
 		t.Fatalf("enter must close the block again:\n%s", view)
 	}
-	if !strings.Contains(view, "⋯ 30 more lines") {
+	if !strings.Contains(view, "[+] 30 more lines") {
 		t.Fatalf("the marker must return:\n%s", view)
 	}
 }
@@ -203,11 +203,10 @@ func TestAClickOnAMarkerOpensThatBlock(t *testing.T) {
 	index := m.capped[0]
 	m.output.SetYOffset(0)
 
-	m, _ = step(t, m, tea.MouseMsg{
-		Action: tea.MouseActionPress,
-		Button: tea.MouseButtonLeft,
+	m, _ = step(t, m, tea.MouseClickMsg{
+		Button: tea.MouseLeft,
 		X:      sidebarWidth + gutterWidth + 2,
-		Y:      barHeight + m.markerAt[index] - m.output.YOffset,
+		Y:      bandHeight + barHeight + m.markerAt[index] - m.output.YOffset(),
 	})
 	if !m.expanded[index] {
 		t.Fatal("a click on the marker row must open the block")
@@ -227,7 +226,7 @@ func TestTheViewFillsTheWindowWithABlockOpenAndClosed(t *testing.T) {
 		if open {
 			m, _ = step(t, m, key("enter"))
 		}
-		lines := strings.Split(m.View(), "\n")
+		lines := strings.Split(m.screen(), "\n")
 		if len(lines) != m.height {
 			t.Fatalf("open=%v: the view has %d lines, want %d", open, len(lines), m.height)
 		}
@@ -251,7 +250,7 @@ func TestTheSettingsChangeTheCap(t *testing.T) {
 
 	m, _ = step(t, m, settingsMsg{caps: capsAll(5)})
 	view := visible(m.outputText)
-	if !strings.Contains(view, "⋯ 25 more lines") {
+	if !strings.Contains(view, "[+] 25 more lines") {
 		t.Fatalf("a cap of 5 hides 25 rows:\n%s", view)
 	}
 	if strings.Contains(view, "line 6") {
@@ -260,7 +259,7 @@ func TestTheSettingsChangeTheCap(t *testing.T) {
 
 	m, _ = step(t, m, settingsMsg{caps: capsAll(0)})
 	view = visible(m.outputText)
-	if len(m.capped) != 0 || strings.Contains(view, "⋯") {
+	if len(m.capped) != 0 || strings.Contains(view, "more lines") {
 		t.Fatalf("a cap of 0 caps nothing:\n%s", view)
 	}
 	if !strings.Contains(view, "line 30") {
@@ -300,7 +299,7 @@ func TestAPerTypeCapDiffersByBucket(t *testing.T) {
 	if !strings.Contains(view, "line 30") {
 		t.Fatalf("a message never caps, so it draws every row:\n%s", view)
 	}
-	if !strings.Contains(view, "⋯ 27 more lines") {
+	if !strings.Contains(view, "[+] 27 more lines") {
 		t.Fatalf("a tool result caps at three, hiding 27:\n%s", view)
 	}
 }

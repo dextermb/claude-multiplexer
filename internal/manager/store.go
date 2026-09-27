@@ -205,6 +205,19 @@ func (m *Manager) Lines(name string) []render.Line {
 	return item.lines.all()
 }
 
+// LinesAt returns the lines with the bus sequence of the last event they hold,
+// so a viewer that draws them can skip a waiting event that is already drawn.
+func (m *Manager) LinesAt(name string) ([]render.Line, uint64) {
+	if re := m.remote(name); re != nil {
+		return re.lines.snapshot()
+	}
+	item, err := m.entry(name)
+	if err != nil {
+		return nil, 0
+	}
+	return item.lines.snapshot()
+}
+
 func (m *Manager) AppendLines(name string, lines []render.Line) error {
 	item, err := m.entry(name)
 	if err != nil {

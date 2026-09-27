@@ -39,7 +39,7 @@ func TestWorkItemSessionsGroupByStatus(t *testing.T) {
 	if !strings.Contains(view, "alpha-1") {
 		t.Fatalf("a renamed work-item session must show its key as its name:\n%s", view)
 	}
-	if !strings.Contains(view, "In Review") {
+	if !strings.Contains(view, "IN REVIEW") {
 		t.Fatalf("a status group must show the status as its header:\n%s", view)
 	}
 }

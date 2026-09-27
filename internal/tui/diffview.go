@@ -1,23 +1,24 @@
 package tui
 
 import (
+	"image/color"
 	"path/filepath"
 	"strconv"
 	"strings"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 	"github.com/dextermb/claude-multiplexer/internal/config"
 )
 
 // diffBandStyle is the style of a horizontal diff panel: a plain band, flush
 // with the output and its full width, with one border row that separates it from
 // the output. The rule is above a bottom panel and below a top panel, and it
-// carries the highlight colour when the panel holds the focus. A vertical panel
-// keeps the left border of sidePanelStyle. See docs/tui/diff.md.
+// carries the accent colour when the panel holds the focus. A vertical panel
+// keeps the left border that sideColumn draws. See docs/tui/diff.md.
 func diffBandStyle(focused, bottom bool) lipgloss.Style {
-	color := lipgloss.Color("240")
+	var color color.Color = colBorder
 	if focused {
-		color = lipgloss.Color("62")
+		color = colAccent
 	}
 	return lipgloss.NewStyle().
 		Border(lipgloss.NormalBorder(), bottom, false, !bottom, false).
@@ -30,11 +31,11 @@ func (m Model) diffPanelView() string {
 		height := m.diffContentHeight()
 		block := m.diffWindow(lines, height)
 		bottom := m.layout.DiffPosition == config.DiffBottom
-		return diffBandStyle(m.focus == focusDiff, bottom).Width(m.diffPanelWidth()).Height(height).Render(block)
+		return diffBandStyle(m.focus == focusDiff, bottom).Width(m.diffPanelWidth()).Height(height + 1).Render(block)
 	}
 	height := m.diffPanelHeight()
 	block := m.diffWindow(lines, height)
-	return sidePanelStyle(m.focus == focusDiff).Width(m.diffPanelWidth() - 1).Height(height).Render(block)
+	return sideColumn(strings.Split(block, "\n"), m.diffPanelWidth(), height, m.focus == focusDiff)
 }
 
 // diffWindow is the slice of panel lines the view shows, scrolled and clamped to
@@ -59,7 +60,7 @@ func (m Model) diffPanelLines() []string {
 	if m.diffHorizontal() {
 		return m.diffGridLines(p)
 	}
-	out := []string{taskHeaderStyle.Render("Changes · " + strconv.Itoa(p.totalFiles())), ""}
+	out := []string{ruleLabel("changes · "+strconv.Itoa(p.totalFiles()), m.diffPanelWidth()-1, m.focus == focusDiff), ""}
 	multi := len(p.groups) > 1
 	if !multi && p.totalFiles() == 0 {
 		return append(out, diffMetaStyle.Render("no changes"))
@@ -239,29 +240,31 @@ func (m Model) renderDiffBody(text string, current int) []string {
 		if isDiffHeader(line) {
 			continue
 		}
-		style := rowStyle
+		header := strings.HasPrefix(line, "@@")
 		number := ""
 		switch {
-		case strings.HasPrefix(line, "@@"):
-			style = diffHunkStyle
+		case header:
 			newLine = hunkNewStart(line)
-		case strings.HasPrefix(line, "+"):
-			style = diffAddStyle
-			number = strconv.Itoa(newLine)
-			newLine++
-		case strings.HasPrefix(line, "-"):
-			style = diffDelStyle
-		default:
+		case !strings.HasPrefix(line, "-"):
 			number = strconv.Itoa(newLine)
 			newLine++
 		}
+		tint, mark := diffLineTint(line)
 		for i, chunk := range wrapHard(line, content) {
 			marked := len(out) == current
-			lineStyle := style
+			var code color.Color
 			if marked && !m.diffLineNumbers {
-				lineStyle = lineStyle.Bold(true)
+				code = colFg
 			}
-			row := lineStyle.Render(chunk)
+			var row string
+			if header {
+				row = diffHunkStyle.Width(content).Render(chunk)
+				if marked && !m.diffLineNumbers {
+					row = diffHunkStyle.Foreground(colFg).Width(content).Render(chunk)
+				}
+			} else {
+				row = diffChunk(chunk, i == 0, tint, mark, code, content)
+			}
 			if m.diffLineNumbers {
 				gutter := ""
 				if i == 0 {
@@ -271,7 +274,7 @@ func (m Model) renderDiffBody(text string, current int) []string {
 				if marked {
 					numStyle = diffCurNumStyle
 				}
-				row = numStyle.Render(padLeft(gutter, diffNumGutter-1)+" ") + row
+				row = tinted(numStyle, tint).Render(padLeft(gutter, diffNumGutter-1)+" ") + row
 			}
 			out = append(out, row)
 		}

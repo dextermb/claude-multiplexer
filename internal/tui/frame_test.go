@@ -27,8 +27,8 @@ func TestFrameHoldsNoControlCharacter(t *testing.T) {
 	}
 	m.partials = map[string]string{}
 	m.setPartial("a", "streaming\rover the pane")
-	m.output.Width = m.outputWidth()
-	m.output.Height = m.outputHeight()
+	m.output.SetWidth(m.outputWidth())
+	m.output.SetHeight(m.outputHeight())
 	m.redrawBlocks()
 	m.setContent()
 	for i, row := range strings.Split(m.reviewSplit(), "\n") {

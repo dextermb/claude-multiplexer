@@ -1,18 +1,20 @@
 package tui
 
 import (
+	tea "charm.land/bubbletea/v2"
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 	"github.com/dextermb/claude-multiplexer/internal/config"
 	"github.com/dextermb/claude-multiplexer/internal/protocol"
 	"github.com/dextermb/claude-multiplexer/internal/session"
 )
 
 func (m Model) bodyHeight() int {
-	height := m.height - m.promptHeight() - statusHeight - m.bannerHeight()
+	height := m.height - bandHeight - m.promptHeight() - statusHeight - m.bannerHeight()
 	if height < 1 {
 		return 1
 	}
@@ -74,8 +76,8 @@ func (m *Model) applyLayout() {
 	}
 	m.layout = config.ResolveLayout(m.layouts, m.activeLayout, name)
 	m.syncPromptHeight()
-	m.output.Width = m.outputWidth()
-	m.output.Height = m.outputHeight()
+	m.output.SetWidth(m.outputWidth())
+	m.output.SetHeight(m.outputHeight())
 }
 
 // sidebarCols is the width of the session list sidebar, from the layout, kept
@@ -126,7 +128,7 @@ func (m Model) baseOutputWidth() int {
 
 func (m Model) outputWidth() int {
 	if m.reviewMode {
-		return m.reviewExplainWidth()
+		return m.reviewExplainWidth() - 1
 	}
 	if m.showSidePanel() && !m.sidePanelHorizontal() {
 		return m.baseOutputWidth() - m.sidePanelWidth()
@@ -174,30 +176,51 @@ func (m Model) showSidePanel() bool {
 	return m.baseOutputWidth()-m.taskCols() >= minOutputWithPanel
 }
 
-func (m Model) View() string {
-	if !m.ready {
-		return "starting…"
+func (m Model) View() tea.View {
+	v := tea.NewView(m.screen())
+	v.AltScreen = true
+	if m.mouseOn {
+		v.MouseMode = tea.MouseModeCellMotion
 	}
-	body := withEdge(m.paneView(), m.focus == focusOutput)
+	return v
+}
+
+// screen draws the whole frame, painted on the ground.
+func (m Model) screen() string {
+	if !m.ready {
+		return paintGround("starting…", m.width, m.height)
+	}
+	body := withGutter(m.paneView())
 	if !m.sidebarHidden {
 		body = lipgloss.JoinHorizontal(lipgloss.Top, m.sidebarView(), body)
 	}
-	if dialog, ok := m.bodyDialogView(); ok {
-		body = dialog
-	}
-	prompt := withEdge(promptPanelStyle.Width(m.width-gutterWidth).Render(m.promptView()), m.focus == focusPrompt)
-	parts := []string{body, prompt, m.statusView()}
+	prompt := m.promptRule() + "\n" + withGutter(lipgloss.NewStyle().Width(m.width-gutterWidth).Render(m.promptView()))
+	parts := []string{m.bandView(), body, prompt, m.statusView()}
 	if m.updateVisible() {
 		parts = append(parts, m.updateBannerView())
 	}
-	return lipgloss.JoinVertical(lipgloss.Left, parts...)
+	frame := lipgloss.JoinVertical(lipgloss.Left, parts...)
+	if dialog, ok := m.bodyDialogView(); ok {
+		frame = overlayIn(frame, dialog, m.width, lipgloss.Height(frame), bandHeight, m.bodyHeight())
+	}
+	return paintGround(frame, m.width, m.height)
 }
 
-// A session dialog draws in the pane, not over the whole body; see docs/tui.md.
+// A session dialog draws in the pane, under its head rule, over a faint copy of
+// the pane; see docs/tui.md.
 func (m Model) paneView() string {
-	if dialog, ok := m.sessionDialogView(); ok {
-		return lipgloss.JoinVertical(lipgloss.Left, m.barView(), dialog)
+	pane := m.livePane()
+	dialog, ok := m.sessionDialogView()
+	if !ok {
+		return pane
 	}
+	lines := strings.Split(pane, "\n")
+	under := strings.Join(lines[barHeight:], "\n")
+	body := overlay(under, dialog, m.baseOutputWidth(), len(lines)-barHeight)
+	return strings.Join(lines[:barHeight], "\n") + "\n" + body
+}
+
+func (m Model) livePane() string {
 	if m.reviewMode {
 		return m.reviewView()
 	}
@@ -221,10 +244,10 @@ func (m Model) paneView() string {
 func (m Model) sessionDialogView() (string, bool) {
 	width, height := m.baseOutputWidth(), m.outputHeight()
 	if m.confirm != "" {
-		return centre(width, height, m.confirmView(width)), true
+		return m.confirmView(width), true
 	}
 	if m.modal != nil && m.modal.region() == modalPane {
-		return centre(width, height, m.modal.view(width, height)), true
+		return m.modal.view(width, height), true
 	}
 	return "", false
 }
@@ -232,32 +255,20 @@ func (m Model) sessionDialogView() (string, bool) {
 func (m Model) bodyDialogView() (string, bool) {
 	width, height := m.width, m.bodyHeight()
 	if m.help != nil {
-		return centre(width, height, m.help.View(m.keys, m.commands.List(), width, height)), true
+		return m.help.View(m.keys, m.commands.List(), width, height), true
 	}
 	if m.form != nil {
-		return centre(width, height, m.form.View(width)), true
+		return m.form.View(width), true
 	}
 	if m.modal != nil && m.modal.region() == modalBody {
-		return centre(width, height, m.modal.view(width, height)), true
+		return m.modal.view(width, height), true
 	}
 	return "", false
 }
 
-func withEdge(block string, on bool) string {
-	ch := " "
-	if on {
-		ch = focusEdgeStyle.Render(edgeMark)
-	}
-	height := lipgloss.Height(block)
-	edge := make([]string, height)
-	for i := range edge {
-		edge[i] = ch
-	}
-	return lipgloss.JoinHorizontal(lipgloss.Top, strings.Join(edge, "\n"), block)
-}
-
 func (m Model) sidebarView() string {
 	rows := make([]string, 0, m.bodyHeight())
+	rows = append(rows, ruleLabel(fmt.Sprintf("sessions (%d)", len(m.rows)), m.sidebarInnerCols(), m.focus == focusSidebar))
 
 	if m.searchActive() {
 		rows = append(rows, m.searchView())
@@ -281,42 +292,76 @@ func (m Model) sidebarView() string {
 	for len(rows) < m.bodyHeight() {
 		rows = append(rows, strings.Repeat(" ", m.sidebarInnerCols()))
 	}
-	block := sidebarStyle.Width(m.sidebarInnerCols()).Height(m.bodyHeight()).Render(strings.Join(rows, "\n"))
-	return withEdge(block, m.focus == focusSidebar)
+	inner := m.sidebarInnerCols()
+	if len(rows) > m.bodyHeight() {
+		rows = rows[:m.bodyHeight()]
+	}
+	border := borderColumn(rows, false)
+	for i, line := range rows {
+		rows[i] = lipgloss.NewStyle().Width(inner).MaxWidth(inner).Render(line) + border[i]
+	}
+	return withGutter(strings.Join(rows, "\n"))
 }
 
 func (m Model) sessionRow(item row) string {
 	width := m.sidebarInnerCols()
-	counts := ""
+	tail := ""
+	if flags := rowFlags(item); flags != "" {
+		tail += " " + flags
+	}
 	if item.jobs > 0 {
-		counts += fmt.Sprintf(" ⚙%d", item.jobs)
+		tail += fmt.Sprintf(" j%d", item.jobs)
 	}
 	if item.queued > 0 {
-		counts += fmt.Sprintf(" ⇢%d", item.queued)
+		tail += fmt.Sprintf(" q%d", item.queued)
 	}
-	flagText := ""
-	if flags := rowFlags(item); flags != "" {
-		flagText = " " + flags
-	}
-	nameWidth := width - 3 - lipgloss.Width(flagText) - lipgloss.Width(counts)
+	word := " " + m.stateWord(item) + " "
+	nameWidth := width - 3 - lipgloss.Width(tail) - lipgloss.Width(word)
 	if nameWidth < 1 {
 		nameWidth = 1
 	}
-	glyph := rowGlyph(item, m.spinFrame)
+	glyph := rowGlyph(item)
+	name := " " + pad(item.displayName(), nameWidth)
 	if item.name == m.sel {
-		rest := " " + pad(item.displayName(), nameWidth) + flagText + counts
-		return selectedRowStyle.Render(" ") +
-			item.style().Background(lipgloss.Color("62")).Render(glyph) +
-			selectedRowStyle.Width(width-2).Render(rest)
+		base, state := subduedStyle, item.style().Background(colSubdued)
+		if m.focus == focusSidebar {
+			base, state = invertStyle, invertStyle
+		}
+		return base.Render(" ") + state.Render(glyph) + base.Render(name+tail) + state.Render(word)
 	}
 	nameStyle := rowStyle
 	if item.archived || item.hosted {
 		nameStyle = rowMutedStyle
 	}
-	return " " + item.style().Render(glyph) +
-		nameStyle.Render(" "+pad(item.displayName(), nameWidth)) +
-		rowMutedStyle.Render(flagText) +
-		nameStyle.Render(counts)
+	return " " + item.style().Render(glyph) + nameStyle.Render(name) +
+		rowMutedStyle.Render(tail) + item.style().Render(word)
+}
+
+// stateWord names the state of a session next to its colour, so the colour is
+// never the only mark. A busy session shows how long its turn has run. See
+// docs/tui/sessions.md.
+func (m Model) stateWord(item row) string {
+	if !item.live {
+		return item.label
+	}
+	switch item.state {
+	case session.StateStarting:
+		return "start"
+	case session.StateBusy:
+		return "busy " + elapsed(time.Since(m.busySince[item.name]))
+	}
+	return item.state.String()
+}
+
+func elapsed(d time.Duration) string {
+	if d < 0 {
+		d = 0
+	}
+	secs := int(d / time.Second)
+	if secs >= 3600 {
+		return fmt.Sprintf("%d:%02d:%02d", secs/3600, secs/60%60, secs%60)
+	}
+	return fmt.Sprintf("%d:%02d", secs/60, secs%60)
 }
 
 // rowFlags is the muted single-letter flags for a session row, concatenated in a
@@ -370,7 +415,7 @@ func (m Model) groupHeader(item group) string {
 	if item.folded {
 		lead := row{live: item.live, archived: item.archived, state: item.state}
 		mark = foldShutMark
-		glyph = lead.style().Render(rowGlyph(lead, m.spinFrame)) + " "
+		glyph = lead.style().Render(rowGlyph(lead)) + " "
 	}
 	label := item.label
 	if item.creator {
@@ -392,7 +437,8 @@ func (m Model) groupHeader(item group) string {
 
 func (m Model) outputView() string {
 	if q := m.questions[m.sel]; q != nil {
-		return centre(m.outputWidth(), m.outputHeight(), q.View(m.outputWidth(), m.caps))
+		return lipgloss.NewStyle().Width(m.outputWidth()).Height(m.outputHeight()).
+			MaxHeight(m.outputHeight()).Render("\n" + q.View(m.outputWidth()-1, m.caps))
 	}
 	if len(m.rows) == 0 {
 		text := "No sessions yet.\n\nPress n to start one.\nPress ctrl+c to quit."
@@ -415,8 +461,7 @@ func (m Model) sidePanelView() string {
 	if end > len(lines) {
 		end = len(lines)
 	}
-	block := strings.Join(lines[scroll:end], "\n")
-	return sidePanelStyle(m.focus == focusTask).Width(m.taskCols() - 1).Height(height).Render(block)
+	return sideColumn(lines[scroll:end], m.taskCols(), height, m.focus == focusTask)
 }
 
 func (m Model) taskPanelLines() []string {
@@ -428,7 +473,7 @@ func (m Model) taskPanelLines() []string {
 				running++
 			}
 		}
-		rows = append(rows, taskHeaderStyle.Render(fmt.Sprintf("Jobs · %d/%d", running, len(jobs))), "")
+		rows = append(rows, ruleLabel(fmt.Sprintf("jobs · %d/%d", running, len(jobs)), m.taskCols()-1, m.focus == focusTask), "")
 		for _, job := range jobs {
 			rows = append(rows, m.panelJobRow(job))
 		}
@@ -443,11 +488,9 @@ func (m Model) taskPanelLines() []string {
 				done++
 			}
 		}
-		rows = append(rows, taskHeaderStyle.Render(fmt.Sprintf("Tasks · %d/%d", done, len(todos))), "")
-		item, ok := m.selectedRow()
-		busy := ok && item.live && item.state == session.StateBusy
+		rows = append(rows, ruleLabel(fmt.Sprintf("tasks · %d/%d", done, len(todos)), m.taskCols()-1, m.focus == focusTask && len(rows) == 0), "")
 		for _, todo := range todos {
-			rows = append(rows, m.taskRow(todo, busy))
+			rows = append(rows, m.taskRow(todo))
 		}
 	}
 	return rows
@@ -455,16 +498,6 @@ func (m Model) taskPanelLines() []string {
 
 func (m *Model) clampTaskScroll() {
 	m.taskScroll = clampScroll(m.taskScroll, len(m.taskPanelLines()), m.bodyHeight())
-}
-
-// sidePanelStyle is the border of a side panel: the highlight colour when the
-// panel holds the focus, and the muted colour otherwise. The task panel and the
-// diff panel share it.
-func sidePanelStyle(focused bool) lipgloss.Style {
-	if focused {
-		return taskPanelStyle.BorderForeground(lipgloss.Color("62"))
-	}
-	return taskPanelStyle
 }
 
 func (m Model) panelJobRow(job session.Job) string {
@@ -476,25 +509,23 @@ func (m Model) panelJobRow(job session.Job) string {
 	if !job.Status.Running() {
 		textStyle = rowMutedStyle
 	}
-	return jobStyle(job.Status).Render(jobGlyph(job.Status)) + " " + textStyle.Render(truncate(desc, m.taskInnerCols()-2))
+	status := jobStyle(job.Status).Render(job.Status.Glyph() + " " + pad(job.Status.String(), 8))
+	return status + textStyle.Render(truncate(desc, m.taskInnerCols()-10))
 }
 
-func (m Model) taskRow(todo protocol.Todo, busy bool) string {
-	glyph, glyphStyle, textStyle := "○", taskPendingStyle, rowStyle
+func (m Model) taskRow(todo protocol.Todo) string {
+	box, style := "[ ]", taskPendingStyle
 	text := todo.Content
 	switch todo.Status {
 	case protocol.TodoCompleted:
-		glyph, glyphStyle, textStyle = "✔", taskDoneStyle, rowMutedStyle
+		box, style = "[✓]", taskDoneStyle
 	case protocol.TodoInProgress:
-		glyph, glyphStyle = "◐", taskActiveStyle
+		box, style = "[■]", taskActiveStyle
 		if todo.ActiveForm != "" {
 			text = todo.ActiveForm
 		}
-		if busy {
-			glyph = spinnerFrame(m.spinFrame)
-		}
 	}
-	return glyphStyle.Render(glyph) + " " + textStyle.Render(truncate(text, m.taskInnerCols()-2))
+	return style.Render(box + " " + truncate(text, m.taskInnerCols()-4))
 }
 
 func plural(n int, word string) string {
@@ -504,41 +535,58 @@ func plural(n int, word string) string {
 	return fmt.Sprintf("%d %ss", n, word)
 }
 
+// promptView is the text area and the hint row under it, set to the right. The
+// rule above it names the session; see promptRule.
 func (m Model) promptView() string {
-	label := "prompt"
-	if m.sel != "" {
-		label = m.sel
-	}
-	if m.reviewMode {
-		if m.reviewFocus == reviewPrompt {
-			return promptLabelStyle.Render(label+" — follow-up ⌁ ") + "\n" + m.prompt.View()
-		}
-		return hintStyle.Render(label+" — tab to the prompt to ask a follow-up") + "\n" + m.prompt.View()
-	}
-	if hint, ok := m.mentionHint(); ok {
-		return hint + "\n" + m.prompt.View()
-	}
-	if names := completionNames(m.templates, m.prompt.Value()); len(names) > 0 && m.focus == focusPrompt {
-		return hintStyle.Render(truncate(strings.Join(names, "  ")+"   tab completes", m.width-2)) +
-			"\n" + m.prompt.View()
-	}
-	if item, ok := m.selectedRow(); ok && !item.running() {
-		return hintStyle.Render(label+" — not running, press Enter to resume") + "\n" + m.prompt.View()
-	}
-	if item, ok := m.selectedRow(); ok && item.state == session.StateBusy && m.focus == focusPrompt {
-		hint := label + " — esc stops"
-		if len(m.queued[m.sel]) > 0 {
-			hint += " · enter sends queued"
-		}
-		return hintStyle.Render(hint) + "\n" + m.prompt.View()
-	}
-	if m.focus == focusPrompt {
-		return promptLabelStyle.Render(label+" ⌁ ") + "\n" + m.prompt.View()
-	}
-	return hintStyle.Render(label+" — press Enter or Tab to type") + "\n" + m.prompt.View()
+	width := m.width - gutterWidth
+	hint := lipgloss.NewStyle().Width(width).MaxWidth(width).Align(lipgloss.Right).Render(m.promptHint() + " ")
+	return m.prompt.View() + "\n" + hint
 }
 
+func (m Model) promptHint() string {
+	if m.reviewMode {
+		if m.reviewFocus == reviewPrompt {
+			return hintStyle.Render("ask about the diff · enter sends · esc back")
+		}
+		return hintStyle.Render("tab to the prompt to ask a follow-up")
+	}
+	if hint, ok := m.mentionHint(); ok {
+		return hint
+	}
+	if names := completionNames(m.templates, m.prompt.Value()); len(names) > 0 && m.focus == focusPrompt {
+		return hintStyle.Render(truncate(strings.Join(names, "  ")+"   tab completes", m.width-2))
+	}
+	item, ok := m.selectedRow()
+	switch {
+	case ok && !item.running():
+		return hintStyle.Render("not running · enter resumes it")
+	case ok && item.state == session.StateBusy && m.focus == focusPrompt:
+		hint := "esc stops the turn"
+		if len(m.queued[m.sel]) > 0 {
+			hint += " · enter sends the queued prompt"
+		}
+		return hintStyle.Render(hint)
+	case m.focus == focusPrompt:
+		return hintStyle.Render("enter sends · ctrl+j new line · @ adds a file · ! runs a command")
+	}
+	return hintStyle.Render("enter or tab to type")
+}
+
+// confirmView asks before a stop. The stop is the one destructive action, so its
+// button takes the danger colour. See docs/tui/theme.md.
 func (m Model) confirmView(width int) string {
-	return modalStyle.Width(modalInner(width)).Render(fmt.Sprintf("Stop session %q?\n\n%s",
-		m.confirm, hintStyle.Render("y stop · any other key cancel")))
+	inner := modalInner(width)
+	keep := fgStyle(colStrong).Render("[ ") + rowStyle.Render("keep running") + fgStyle(colStrong).Render(" ]")
+	stop := lipgloss.NewStyle().Foreground(colAccentFg).Background(colDanger).Padding(0, 2).Render("stop session")
+
+	var b strings.Builder
+	b.WriteString(titleStyle.Render("Stop session"))
+	b.WriteString("\n")
+	b.WriteString(hintStyle.Render("for " + m.confirm))
+	b.WriteString("\n\n")
+	b.WriteString(rowStyle.Render("the running turn ends and the session stops · enter resumes it later"))
+	b.WriteString("\n\n")
+	b.WriteString(keep + "   " + stop)
+	b.WriteString("\n\n" + hintStyle.Render("y or enter stops · any other key keeps it running"))
+	return modalStyle.Width(inner + 2).Render(b.String())
 }

@@ -27,6 +27,8 @@ const (
 	ClassError
 	ClassBash
 	ClassSkill
+	ClassJob
+	ClassResult
 )
 
 // BucketFor names the block-cap bucket a class falls in. See docs/tui/output.md.
@@ -60,6 +62,10 @@ type Line struct {
 	// At is the time of the event that started this block. It is set only on a
 	// block's first line (Cont is false); every other line holds the zero time.
 	At time.Time
+	// Tool is the tool use id on a tool call and on its result, so the pane can
+	// pair them. Note is what an edit call changed, such as "+3 −12".
+	Tool string `json:",omitempty"`
+	Note string `json:",omitempty"`
 }
 
 // Print returns the line a one-line printer shows for each line: the summary
@@ -137,7 +143,7 @@ func (r Renderer) protocolLines(ev protocol.Event) []Line {
 	case ev.Type == protocol.TypeUser && ev.Message != nil:
 		return r.userLines(ev.Message, ev.IsReplay)
 	case ev.Type == protocol.TypeResult && ev.Result != nil:
-		return []Line{{Class: ClassMeta, Text: r.resultLine(ev.Result)}}
+		return []Line{{Class: ClassResult, Text: r.resultLine(ev.Result)}}
 	case ev.Type == protocol.TypeSystem && ev.Task != nil:
 		return taskLines(ev.Subtype, ev.Task)
 	case ev.Type == protocol.TypeStreamEvent:
@@ -173,14 +179,18 @@ func taskLines(subtype string, task *protocol.Task) []Line {
 		if label == "" {
 			label = task.TaskID
 		}
-		return []Line{{Class: ClassMeta, Text: "⚙ started · " + label}}
+		return []Line{{Class: ClassJob, Text: session.JobRunning.Glyph() + " started · " + label}}
 	case protocol.SubtypeTaskUpdated:
 		if task.Patch == nil || task.Patch.Status == "" {
 			return nil
 		}
-		return []Line{{Class: ClassMeta, Text: "⚙ " + session.StatusWord(task.Patch.Status) + " · " + task.TaskID}}
+		return []Line{{Class: ClassJob, Text: jobHead(session.StatusOf(task.Patch.Status)) + " · " + task.TaskID}}
 	}
 	return nil
+}
+
+func jobHead(status session.JobStatus) string {
+	return status.Glyph() + " " + status.String()
 }
 
 func PromptLines(text string) []Line {
@@ -246,14 +256,15 @@ func (r Renderer) nonTextLines(block protocol.Block) []Line {
 	switch block.Type {
 	case "thinking":
 		if r.Verbose && block.Thinking != "" {
-			return []Line{{Class: ClassThinking, Text: "  thinking: " + r.clip(block.Thinking)}}
+			return []Line{{Class: ClassThinking, Text: "thinking · " + r.clip(block.Thinking)}}
 		}
 	case "tool_use":
 		return []Line{{Class: ClassToolUse,
-			Text: fmt.Sprintf("→ %s %s", block.Name, r.clip(summariseInput(block.Input)))}}
+			Text: fmt.Sprintf("→ %s %s", block.Name, r.clip(summariseInput(block.Input))),
+			Tool: block.ID, Note: editNote(block.Name, block.Input)}}
 	case "tool_result":
 		text, summary := r.toolResultLine(block)
-		return []Line{{Class: ClassToolResult, Text: text, Summary: summary}}
+		return []Line{{Class: ClassToolResult, Text: text, Summary: summary, Tool: block.ToolUseID}}
 	}
 	return nil
 }
@@ -287,6 +298,9 @@ func (r Renderer) toolResultLine(block protocol.Block) (string, string) {
 
 func (r Renderer) resultLine(res *protocol.Result) string {
 	headline := "✓ " + res.Subtype
+	if res.Subtype == "success" {
+		headline = "✓ done"
+	}
 	if res.IsError {
 		headline = "✗ error"
 	}
@@ -324,10 +338,23 @@ func summariseInput(raw json.RawMessage) string {
 	if err := json.Unmarshal(raw, &fields); err != nil {
 		return string(raw)
 	}
-	for _, key := range []string{"command", "file_path", "path", "pattern", "query", "prompt", "description"} {
+	if pattern, ok := fields["pattern"].(string); ok && pattern != "" {
+		if path, ok := fields["path"].(string); ok && path != "" {
+			return pattern + " " + path
+		}
+		return pattern
+	}
+	for _, key := range []string{"command", "file_path", "path", "query", "prompt", "description", "subject"} {
 		if value, ok := fields[key].(string); ok && value != "" {
 			return value
 		}
+	}
+	if id, ok := fields["taskId"].(string); ok && id != "" {
+		status, _ := fields["status"].(string)
+		return strings.TrimSpace(id + " " + status)
+	}
+	if questions, ok := fields["questions"].([]any); ok {
+		return plural(len(questions), "question")
 	}
 	compact, err := json.Marshal(fields)
 	if err != nil {

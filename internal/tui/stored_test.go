@@ -73,12 +73,12 @@ func TestStoredSessionsFillTheSidebar(t *testing.T) {
 	storeSession(t, mgr, "yesterday", dir, "what did we do")
 	m = start(t, m, 100, 24)
 
-	view := m.View()
+	view := m.screen()
 	if !strings.Contains(view, "yesterday") {
 		t.Fatalf("the stored session is missing from the sidebar:\n%s", view)
 	}
-	if g := rowGlyph(m.rows[0], 0); g != "○" {
-		t.Fatalf("the stored glyph is %q, want ○", g)
+	if g, w := rowGlyph(m.rows[0]), m.stateWord(m.rows[0]); g != "·" || w != "stored" {
+		t.Fatalf("the stored mark is %q %q, want · stored", g, w)
 	}
 	if m.form != nil {
 		t.Fatal("the form must not open when there is stored work to show")
@@ -135,7 +135,7 @@ func TestEnterResumesAStoredSession(t *testing.T) {
 	if !ok || !item.live {
 		t.Fatalf("the resumed session is not live: %+v", item)
 	}
-	if !strings.Contains(m.View(), "old") {
+	if !strings.Contains(m.screen(), "old") {
 		t.Fatal("the resumed session left the sidebar")
 	}
 }
@@ -158,15 +158,15 @@ func TestArchivingHidesASessionAndAShowsItAgain(t *testing.T) {
 	if len(m.rows) != 0 {
 		t.Fatalf("rows = %+v, want none after archiving", m.rows)
 	}
-	if !strings.Contains(m.View(), "Press l a to show them") {
-		t.Fatalf("the empty state does not mention the archive:\n%s", m.View())
+	if !strings.Contains(m.screen(), "Press l a to show them") {
+		t.Fatalf("the empty state does not mention the archive:\n%s", m.screen())
 	}
 
 	m, _ = chord(t, m, "l", "a")
 	if len(m.rows) != 1 || !m.rows[0].archived {
 		t.Fatalf("rows = %+v, want the archived session back", m.rows)
 	}
-	if g := rowGlyph(m.rows[0], 0); g != "·" {
+	if g := rowGlyph(m.rows[0]); g != "·" {
 		t.Fatalf("the archived glyph is %q, want ·", g)
 	}
 
@@ -241,7 +241,7 @@ func TestAnExitedSessionResumesAndKeepsItsHistory(t *testing.T) {
 	}
 	m.refresh()
 
-	if !strings.Contains(m.promptView(), "press Enter to resume") {
+	if !strings.Contains(m.promptView(), "enter resumes it") {
 		t.Fatalf("the prompt does not offer a resume:\n%s", m.promptView())
 	}
 

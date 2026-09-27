@@ -5,8 +5,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
-
 	"github.com/dextermb/claude-multiplexer/internal/config"
 )
 
@@ -45,7 +43,7 @@ func TestLayoutSwitchStartsOnTheSessionLayoutAndTogglesScope(t *testing.T) {
 	if isDefault || name != "b" {
 		t.Fatalf("the cursor must start on the session layout, got %q default=%v", name, isDefault)
 	}
-	d.Update(tea.KeyMsg{Type: tea.KeyTab})
+	d.Update(key("tab"))
 	if !d.allSessions {
 		t.Fatal("tab must switch the scope to all sessions")
 	}
@@ -79,7 +77,7 @@ func TestLayoutSwitchDefaultRowIsFirstAndClears(t *testing.T) {
 	if name, isDefault := d.choice(); !isDefault || name != "" {
 		t.Fatalf("with no session layout the cursor must start on default, got %q default=%v", name, isDefault)
 	}
-	d.Update(tea.KeyMsg{Type: tea.KeyDown})
+	d.Update(key("down"))
 	if name, isDefault := d.choice(); isDefault || name != "a" {
 		t.Fatalf("down from default must land on the first layout, got %q default=%v", name, isDefault)
 	}

@@ -9,17 +9,17 @@ func userEvent(t *testing.T, content string) []Line {
 
 func TestCallbackTaskNotification(t *testing.T) {
 	got := userEvent(t, `"<task-notification>\n<task-id>b67xcvk3g</task-id>\n<status>stopped</status>\n<summary>No completion record was found.</summary>\n</task-notification>"`)
-	if len(got) != 1 || got[0].Class != ClassMeta {
+	if len(got) != 1 || got[0].Class != ClassJob {
 		t.Fatalf("lines = %v", got)
 	}
-	if got[0].Text != "⚙ killed · No completion record was found." {
+	if got[0].Text != "× killed · No completion record was found." {
 		t.Fatalf("text = %q", got[0].Text)
 	}
 }
 
 func TestCallbackTaskNotificationFallsBackToID(t *testing.T) {
 	got := userEvent(t, `"<task-notification>\n<task-id>b1</task-id>\n<status>completed</status>\n</task-notification>"`)
-	if len(got) != 1 || got[0].Text != "⚙ done · b1" {
+	if len(got) != 1 || got[0].Text != "✓ done · b1" {
 		t.Fatalf("lines = %v", got)
 	}
 }

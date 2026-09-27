@@ -2,6 +2,25 @@
 
 The prompt box, a file dropped on the window, and the new session form.
 
+## The prompt label and the hint
+
+The rule above the prompt holds its label, `PROMPT → name`, set at the start of
+the pane column so it never covers the junction of the sidebar. The label
+inverts while the prompt has the focus. On the review screen it reads
+`FOLLOW-UP → name`.
+
+The row under the prompt text is a hint, set to the right and dimmed. It
+follows the focus and the state of the session:
+
+| When | The hint |
+|---|---|
+| The prompt has the focus | `enter sends · ctrl+j new line · @ adds a file · ! runs a command` |
+| The session is busy and the prompt has the focus | `esc stops the turn`, and `· enter sends the queued prompt` when a prompt waits |
+| The session is not running | `not running · enter resumes it` |
+| Another pane has the focus | `enter or tab to type` |
+
+An `@` path or a `/preset` name in progress replaces the hint with its matches.
+
 ## The size of the box
 
 The box holds one row of text, and it grows to four as you type. It counts the
@@ -106,7 +125,7 @@ the field takes the folder that holds it.
 
 A paste or a drop into an open question dialog goes into the text field of that
 dialog, not the prompt, when the output pane has the focus and the cursor sits
-on that field. See "Answering a question" below.
+on that field. See [questions.md](questions.md).
 
 ### When a terminal does not mark the drop
 
@@ -144,54 +163,11 @@ runs as a key command. Put the focus on the prompt box before you paste.
 A paste that holds `\r\n` goes into the box with `\n`. This also cleans a
 clipboard that a Windows file filled and a different platform reads.
 
-The timing rule exists because Bubble Tea v1 gives no way to read the Windows
+The timing rule exists because Bubble Tea v1 gave no way to read the Windows
 console through its escape-sequence parser, which is the path that understands
-bracketed paste. Bubble Tea v2 holds a Windows parser that marks a paste
-correctly. An upgrade to v2 removes the need for this rule.
-
-## Answering a question
-
-A session asks the human a multiple-choice question with the `AskUserQuestion`
-tool. When that tool arrives, the session interrupts its turn and waits, and its
-sidebar row shows a `?`. See [sessions.md](../sessions.md) and
-[protocol.md](../protocol.md).
-
-The dialog belongs to the session that asked. It draws in the output pane of
-that session only, in place of the output, and only when that session is
-selected. So a question never moves the selection. You move between sessions
-while a question waits, and each waiting session keeps its own dialog. The
-dialog shows one question at a time, with its options and a text field.
-
-The dialog takes keys only when its session is selected and the output pane has
-the focus. So focus the output pane to answer.
-
-- `↑` and `↓` move through the options and the text field.
-- `Space` chooses the option under the cursor. A single-choice question keeps
-  only the last option. A multi-choice question keeps every option you mark.
-- Type in the text field to give a free answer next to the options, or in place
-  of them. A paste into the text field goes into the field, not the prompt.
-- `Enter` sends the answer. With more than one question, it steps to the next
-  one first.
-- `Tab` and `Shift+Tab` move the focus out of the pane, so you can leave the
-  dialog and switch sessions without an answer.
-- `Esc` dismisses the dialog without an answer.
-
-A long option label or a long option description wraps across lines. The dialog
-caps each at a small number of lines and draws a marker for the rest. The option
-under the cursor draws in full, so you read the rest by moving to it. The
-`question_option` and `question_description` caps set the line count, and default
-to 2. See [../config.md](../config.md).
-
-The answer goes back as the next prompt, one labelled line for each question,
-because the child already closed the tool call. For example, a choice of `Blue`
-with a note reads `Colour: Blue (a lighter shade)`. The answer moves the session
-from `waiting` to `busy`, and the focus returns to the prompt box, so you type
-the next prompt without a step through the panes.
-
-The child answers the tool itself with an error, so that error and the model's
-follow-up line both stay in the transcript. A second question that arrives while
-the first one waits is not shown. The status bar notes it, and the human can ask
-the session again.
+bracketed paste. The multiplexer now runs on Bubble Tea v2, which holds a
+Windows parser that marks a paste. The rule stays until a test on Windows
+confirms that a paste arrives as one piece there.
 
 ## The new session form
 
@@ -217,6 +193,13 @@ The select fields do not take typed text. `↑` and `↓`, and `Tab`, move betwe
 the fields. `←` and `→` change the value of the select you are on, and the value
 wraps at each end. Each select opens on a default option, and the settings file
 sets that option; see [../config/new-session.md](../config/new-session.md).
+
+The label of the field you are on is white, and the others are grey. A text
+field sits in `[ ]` brackets, white when it has the focus. A select shows all of
+its options in one row, and the chosen one is filled white, so every choice reads
+at a glance. A select too wide for the row, such as a long host list, shows only
+its value between `‹` and `›`. The first prompt sits in a box, with a white
+border when it has the focus.
 
 The model and the effort have a `default` option. This option sends nothing, so
 Claude Code takes the model or the effort from your project or global
