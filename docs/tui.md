@@ -83,16 +83,20 @@ draws here, but it keeps the side panel beside it. See
  status                                              │
 ```
 
-A **body dialog** names no session, so it covers the sidebar and the pane
-together, over a faint copy of both. The new session form, the preset picker, the preset field form, and
-the key list draw here.
+A **body dialog** names no session, so it sits in the centre of the sidebar and
+the pane together. The whole screen fades under it: the band, the panes, the
+prompt, and the status bar. So nothing but the dialog reads as live, and the
+prompt does not look as if it takes your keys. The new session form, the preset
+picker, the preset field form, and the key list draw here.
 
 A dialog is at most two columns narrower than its region, so a narrow terminal
 never pushes the sidebar out of line.
 
-The faint copy is the scrim. `overlay` in `internal/tui/scrim.go` strips the
+The faint copy is the scrim. `overlayIn` in `internal/tui/scrim.go` strips the
 colours from the region, draws its text in one dark grey (`colScrim`), and lays
-the dialog over its centre with the Lip Gloss compositor. So you still see where
+the dialog over the centre of its rows with the Lip Gloss compositor. A body
+dialog fades the whole frame but centres in the body rows. A session dialog
+fades its pane only. So you still see where
 you are, but only the dialog reads as live.
 
 ## The modal seam

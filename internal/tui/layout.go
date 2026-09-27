@@ -194,15 +194,16 @@ func (m Model) screen() string {
 	if !m.sidebarHidden {
 		body = lipgloss.JoinHorizontal(lipgloss.Top, m.sidebarView(), body)
 	}
-	if dialog, ok := m.bodyDialogView(); ok {
-		body = overlay(body, dialog, m.width, m.bodyHeight())
-	}
 	prompt := m.promptRule() + "\n" + withGutter(lipgloss.NewStyle().Width(m.width-gutterWidth).Render(m.promptView()))
 	parts := []string{m.bandView(), body, prompt, m.statusView()}
 	if m.updateVisible() {
 		parts = append(parts, m.updateBannerView())
 	}
-	return paintGround(lipgloss.JoinVertical(lipgloss.Left, parts...), m.width, m.height)
+	frame := lipgloss.JoinVertical(lipgloss.Left, parts...)
+	if dialog, ok := m.bodyDialogView(); ok {
+		frame = overlayIn(frame, dialog, m.width, lipgloss.Height(frame), bandHeight, m.bodyHeight())
+	}
+	return paintGround(frame, m.width, m.height)
 }
 
 // A session dialog draws in the pane, under its head rule, over a faint copy of
