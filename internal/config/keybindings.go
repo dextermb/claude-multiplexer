@@ -102,6 +102,9 @@ type OutputPaneKeys struct {
 	HalfDown    []string `json:"halfDown,omitempty"`
 	Top         []string `json:"top,omitempty"`
 	Bottom      []string `json:"bottom,omitempty"`
+	Find        []string `json:"find,omitempty"`
+	FindNext    []string `json:"findNext,omitempty"`
+	FindPrev    []string `json:"findPrev,omitempty"`
 }
 
 // SidebarKeys move through the list.

@@ -88,6 +88,34 @@ scroll up it holds your place, and new output no longer moves the text under
 you. The session bar then shows how far up you are, such as `↑ 62%`. Press `G`
 to return to the bottom and start following again.
 
+## Searching the output
+
+`/` opens a find box in the status row and searches the output pane backwards,
+from the top of what you can see towards the start of the session. So the prompt
+or the answer you scrolled past is the first hit. The pane moves as you type.
+
+`Enter` keeps the hit and closes the box, and the status row then shows the
+count, such as `/parser  2/7`. `n` steps to the next hit in the direction of the
+search, which is upwards, and `N` steps the other way. Both wrap around the
+pane, and the status row says `wrapped` when they do.
+
+A needle that starts with `>` reads the prompt rows alone. So `/>` steps from
+prompt to prompt with no text at all, and `/>fix` finds the prompt that holds
+"fix". A plain needle reads every row, and it ignores case.
+
+The row of the current hit is marked, the same as the marked hunk of the review
+screen. See [../review.md](../review.md).
+
+`Esc` in the box drops the needle and returns the pane to where it was. After
+`Enter`, `Esc` on the pane drops the needle and leaves the pane where it is.
+While a needle is live, `n` and `N` step the hits instead of opening the new
+session form, so clear the needle with `Esc` to get `n` back.
+
+The search reads the rows the pane draws. A closed block hides its rows, so the
+search does not find them until you open the block. The three keys are in the
+keymap, so they can be rebound. See
+[../../config/keybindings.md](../../config/keybindings.md).
+
 ## Opening a large block
 
 A block of more than 20 rows draws its first 20 rows and a marker row, such as

@@ -64,6 +64,7 @@ type Model struct {
 	archivedWindow string
 	search         textinput.Model
 	searchOn       bool
+	find           findState
 	replays        map[string][]render.Line
 	partials       map[string]string
 	queued         map[string][]string
@@ -210,6 +211,7 @@ func New(opts Options) Model {
 		output:          viewport.New(),
 		prompt:          prompt,
 		search:          newSearchInput(),
+		find:            newFindState(),
 		pathPicked:      -1,
 		blockCursor:     -1,
 		caps:            config.ResolveBlockCaps(config.Config{}),

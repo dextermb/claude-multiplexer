@@ -141,6 +141,8 @@ job panel).
 | `u`, `d` | Scroll the output by half a pane |
 | `pgup`, `pgdown` | Scroll the output by a page |
 | `g`, `G`, `home`, `end` | Go to the top of the output, and to the bottom |
+| `/` (in the output) | Search the output backwards. See [keys/navigation.md](keys/navigation.md) |
+| `n`, `N` (in the output) | Step through the hits of the search, while a needle is live |
 | `?` | Show every key, with a search |
 | `ctrl+t` | Turn the mouse on or off |
 | `q` | Stop every session, and quit |

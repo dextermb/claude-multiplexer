@@ -231,7 +231,8 @@ func (m *Model) setPartial(name, text string) {
 func (m *Model) setContent() {
 	atBottom := m.output.AtBottom()
 	m.content = m.outputText + m.liveView()
-	m.output.SetContent(m.highlight(m.content))
+	m.refreshFind()
+	m.output.SetContent(m.highlight(m.findPaint(m.content)))
 	if atBottom {
 		m.output.GotoBottom()
 	}
