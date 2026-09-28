@@ -394,6 +394,28 @@ func TestTheEditorKeyOpensAWindowEditorForEveryProjectDirectory(t *testing.T) {
 	}
 }
 
+func TestAProjectEditorOpensEveryProjectDirectoryInOneWindow(t *testing.T) {
+	seen := recordLaunches(t)
+	m, one, two := projectModel(t, "zed")
+
+	m, cmd := chord(t, m, "s", "E")
+	_ = run(t, m, cmd)
+
+	if len(*seen) != 1 {
+		t.Fatalf("s E launched %d programs, want one window for the whole project", len(*seen))
+	}
+	got := (*seen)[0]
+	if got.line != "zed "+one+" "+two {
+		t.Fatalf("the editor ran %q, want zed with both directories", got.line)
+	}
+	if got.terminal {
+		t.Error("zed must not take the terminal")
+	}
+	if got.dir != one {
+		t.Fatalf("cmd.Dir = %q, want the first directory %q", got.dir, one)
+	}
+}
+
 func TestATerminalEditorTakesEveryProjectDirectoryAsAnArgument(t *testing.T) {
 	seen := recordLaunches(t)
 	m, one, two := projectModel(t, "nvim")

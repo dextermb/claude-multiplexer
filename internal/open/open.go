@@ -14,10 +14,12 @@ import (
 // ErrNoEditor says that no source named an editor.
 var ErrNoEditor = errors.New("no editor: set --editor, $EDITOR, or the config file")
 
-// Target is one program to start, and whether it wants the terminal.
+// Target is one program to start, the directory it starts in, and whether it
+// wants the terminal.
 type Target struct {
 	Command  string
 	Args     []string
+	Dir      string
 	Terminal bool
 }
 
@@ -37,15 +39,33 @@ var terminalEditors = map[string]bool{
 	"vis":   true,
 }
 
+// projectEditors are the editors that take several directories as one project
+// window, by base name. See docs/config/editor.md.
+var projectEditors = map[string]bool{
+	"zed":     true,
+	"zeditor": true,
+}
+
 // IsTerminalEditor reports whether a command line names a known terminal
 // editor. It reads the base name, so a full path still matches.
 func IsTerminalEditor(command string) bool {
+	return terminalEditors[baseName(command)]
+}
+
+// IsProjectEditor reports whether a command line names an editor that opens
+// several directories as one project window.
+func IsProjectEditor(command string) bool {
+	return projectEditors[baseName(command)]
+}
+
+// baseName is the name of the program of a command line, without a directory
+// and without the Windows suffix.
+func baseName(command string) string {
 	fields := strings.Fields(command)
 	if len(fields) == 0 {
-		return false
+		return ""
 	}
-	name := filepath.Base(fields[0])
-	return terminalEditors[strings.TrimSuffix(name, ".exe")]
+	return strings.TrimSuffix(filepath.Base(fields[0]), ".exe")
 }
 
 // Editor builds the command that opens dir in the editor.
@@ -61,8 +81,36 @@ func Editor(cfg config.Config, dir string) (Target, error) {
 	return Target{
 		Command:  fields[0],
 		Args:     append(fields[1:], dir),
+		Dir:      dir,
 		Terminal: terminal,
 	}, nil
+}
+
+// Editors builds the commands that open every directory of dirs. One command
+// takes several directories when the editor holds the terminal, or when it
+// opens them as one project. Every other editor gets one command, and one
+// window, for each directory.
+func Editors(cfg config.Config, dirs []string) ([]Target, error) {
+	if len(dirs) == 0 {
+		return nil, nil
+	}
+	first, err := Editor(cfg, dirs[0])
+	if err != nil {
+		return nil, err
+	}
+	if first.Terminal || IsProjectEditor(cfg.Editor) {
+		first.Args = append(first.Args, dirs[1:]...)
+		return []Target{first}, nil
+	}
+	targets := []Target{first}
+	for _, dir := range dirs[1:] {
+		target, err := Editor(cfg, dir)
+		if err != nil {
+			return nil, err
+		}
+		targets = append(targets, target)
+	}
+	return targets, nil
 }
 
 // FileManager builds the command that opens dir in the file manager of the
@@ -70,11 +118,11 @@ func Editor(cfg config.Config, dir string) (Target, error) {
 func FileManager(dir string) Target {
 	switch runtime.GOOS {
 	case "darwin":
-		return Target{Command: "open", Args: []string{dir}}
+		return Target{Command: "open", Args: []string{dir}, Dir: dir}
 	case "windows":
-		return Target{Command: "explorer", Args: []string{dir}}
+		return Target{Command: "explorer", Args: []string{dir}, Dir: dir}
 	default:
-		return Target{Command: "xdg-open", Args: []string{dir}}
+		return Target{Command: "xdg-open", Args: []string{dir}, Dir: dir}
 	}
 }
 

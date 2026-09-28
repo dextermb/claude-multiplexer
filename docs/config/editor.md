@@ -59,7 +59,8 @@ interface. The interface stays on the screen, and the status bar shows
 `opened <dir>`. The editor keeps running after the interface stops.
 
 For a session with a project, a window editor opens one window for each
-directory of the set. A terminal editor cannot open several windows, because it
+directory of the set. A project editor is the exception, and opens one window
+for the whole set. A terminal editor cannot open several windows, because it
 holds the terminal, so it takes every directory as an argument of one process
 instead (for example `nvim api web`).
 
@@ -74,6 +75,27 @@ Three sources say which kind an editor is. The first one that speaks wins:
 The list reads the base name of the command, so `/usr/local/bin/nvim` is a
 terminal editor. An editor the list does not name is a window editor, so say
 `--editor-terminal yes` for a terminal editor that is not on the list.
+
+## The project editor
+
+Some window editors take several directories as one project, in one window.
+Zed is one of them: `zed api web` opens a single window that holds both
+directories, and each directory is a root of the project. See
+[the Zed documentation](https://zed.dev/docs/windows-and-projects#from-the-cli).
+
+So a session with a project opens one window, not one window for each
+directory, when the editor is on this list:
+
+| Base name | Editor |
+|---|---|
+| `zed` | Zed |
+| `zeditor` | Zed, under the name some Linux packages give it |
+
+The list reads the base name of the command, the same as the list of terminal
+editors, so `/usr/local/bin/zed --wait api web` is one project window. An
+editor the list does not name still gets one window for each directory.
+
+The interface starts the command in the first directory of the set.
 
 ## The file manager
 
