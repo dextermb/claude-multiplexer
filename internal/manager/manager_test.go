@@ -1061,3 +1061,57 @@ func TestTheRecordOfALiveSessionTakesAReadWhileThePumpWrites(t *testing.T) {
 	close(stop)
 	<-done
 }
+
+func TestResumeThatStopsBeforeATurnKeepsTheHistory(t *testing.T) {
+	m := newTestManager(t)
+	dir := t.TempDir()
+	name, err := m.Spawn(context.Background(), Spec{Name: "kept", Dir: dir})
+	if err != nil {
+		t.Fatalf("Spawn: %v", err)
+	}
+	runOneTurn(t, m, name, "first")
+	waitForMeta(t, m, name)
+	retire(t, m, name)
+	waitFor(t, 10*time.Second, func() bool { return len(m.Stored()) == 1 })
+
+	resumed, err := m.Resume(context.Background(), m.Stored()[0])
+	if err != nil {
+		t.Fatalf("Resume: %v", err)
+	}
+	sub := m.Subscribe(64)
+	defer sub.Close()
+	retire(t, m, resumed)
+	waitForClose(t, sub, resumed)
+
+	if _, err := os.Stat(filepath.Join(m.Root(), "sessions", "kept")); err != nil {
+		t.Fatalf("a resumed session that ran no turn lost its directory: %v", err)
+	}
+	meta, err := ReadMeta(filepath.Join(m.Root(), "sessions", "kept", "meta.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if meta.Turns != 1 {
+		t.Fatalf("meta = %+v, want the turn of the earlier run", meta)
+	}
+	replay := strings.Join(render.Text(m.Replay("kept")), "\n")
+	if !strings.Contains(replay, "› first") {
+		t.Fatalf("the transcript lost the earlier turn:\n%s", replay)
+	}
+}
+
+// waitForClose waits for the pump of a session to finish, which is the last
+// step that may delete the directory of the session.
+func waitForClose(t *testing.T, sub *Subscription, name string) {
+	t.Helper()
+	deadline := time.After(10 * time.Second)
+	for {
+		select {
+		case ev := <-sub.C:
+			if ev.Closed && ev.Session == name {
+				return
+			}
+		case <-deadline:
+			t.Fatalf("the pump of %s did not close", name)
+		}
+	}
+}
