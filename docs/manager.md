@@ -29,6 +29,10 @@ A session that finishes at least one turn is written to
 its directory is removed when it ends. So a mistake, or a start that failed,
 never reaches the list you see tomorrow.
 
+The count is the lifetime count, not the count of the last run. A resumed
+session that you stop before its first turn keeps the turns of the earlier runs,
+so its directory and its transcript stay.
+
 `Meta` holds the name, the title, the directory, the model, the permission mode,
 the Claude session identifier, the lifetime turn count and cost, the tokens, the
 control grant, the creator, and the archive flag. The counts are lifetime totals: a resumed

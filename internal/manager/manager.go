@@ -229,7 +229,7 @@ func (m *Manager) pump(item *entry) {
 	item.setSnapshot(final)
 	meta := item.metaCopy()
 	name := meta.Name
-	if child.Turns == 0 {
+	if final.Turns == 0 {
 		_ = os.RemoveAll(sessionDir(m.opts.Root, name))
 		if meta.TempDir && meta.Dir != "" {
 			_ = os.RemoveAll(meta.Dir)
