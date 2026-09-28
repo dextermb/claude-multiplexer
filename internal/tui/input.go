@@ -142,6 +142,10 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m.searchKey(msg)
 	}
 
+	if m.find.on {
+		return m.findKey(msg)
+	}
+
 	// The review screen is modal, so it captures every key before the two-key
 	// sequences and the pane handlers, which would otherwise move the focus off
 	// the screen. See docs/tui/review.md.
@@ -174,6 +178,18 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	}
 
 	key := msg.String()
+	// The step keys of a live needle run before the global keys, because n
+	// starts a new session while no needle is live. See docs/tui/keys/navigation.md.
+	if m.focus == focusOutput && m.find.live() {
+		if a, ok := m.keys.Action(keys.CtxOutputPane, key); ok {
+			switch a {
+			case keys.OutputPaneFindNext:
+				return m.stepFind(false)
+			case keys.OutputPaneFindPrev:
+				return m.stepFind(true)
+			}
+		}
+	}
 	if a, ok := m.keys.Action(keys.CtxGlobal, key); ok && globalEverywhere(key) {
 		return m.runGlobal(a)
 	}
@@ -288,6 +304,10 @@ func (m *Model) recordHistory(text string) {
 func (m Model) outputKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	m.clearSelection()
 	if msg.String() == "esc" {
+		if m.find.live() {
+			m.clearFind()
+			return m, nil
+		}
 		if next, cmd, ok := m.stopBusy(); ok {
 			return next, cmd
 		}
@@ -332,6 +352,12 @@ func (m Model) outputKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.output.GotoTop()
 	case keys.OutputPaneBottom:
 		m.output.GotoBottom()
+	case keys.OutputPaneFind:
+		return m.openFind()
+	case keys.OutputPaneFindNext:
+		return m.stepFind(false)
+	case keys.OutputPaneFindPrev:
+		return m.stepFind(true)
 	}
 	return m, nil
 }

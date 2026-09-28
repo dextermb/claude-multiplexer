@@ -91,6 +91,9 @@ const (
 	OutputPaneHalfDown    Action = "outputPane.halfDown"
 	OutputPaneTop         Action = "outputPane.top"
 	OutputPaneBottom      Action = "outputPane.bottom"
+	OutputPaneFind        Action = "outputPane.find"
+	OutputPaneFindNext    Action = "outputPane.findNext"
+	OutputPaneFindPrev    Action = "outputPane.findPrev"
 
 	SidebarUp    Action = "sidebar.up"
 	SidebarDown  Action = "sidebar.down"
@@ -215,6 +218,9 @@ var Defaults = []Def{
 	{OutputPaneHalfDown, CtxOutputPane, []string{"d", "ctrl+d"}, "output: scroll down half a pane"},
 	{OutputPaneTop, CtxOutputPane, []string{"g", "home"}, "output: go to the top"},
 	{OutputPaneBottom, CtxOutputPane, []string{"G", "end"}, "output: go to the bottom"},
+	{OutputPaneFind, CtxOutputPane, []string{"/"}, "output: search the pane backwards"},
+	{OutputPaneFindNext, CtxOutputPane, []string{"n"}, "output: step to the next hit"},
+	{OutputPaneFindPrev, CtxOutputPane, []string{"N"}, "output: step to the previous hit"},
 
 	{SidebarUp, CtxSidebar, []string{"up", "k"}, "list: move up"},
 	{SidebarDown, CtxSidebar, []string{"down", "j"}, "list: move down"},

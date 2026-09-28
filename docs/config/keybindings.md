@@ -130,6 +130,8 @@ of a two-key sequence; the other contexts are the panes.
 | `outputPane.toPrompt` | `i` | `sidebar.up` | `up`, `k` |
 | `outputPane.up` | `up`, `k` | `sidebar.down` | `down`, `j` |
 | `outputPane.down` | `down`, `j` | `sidebar.enter` | `enter`, `i` |
+| `outputPane.find` | `/` | `outputPane.findNext` | `n` |
+| `outputPane.findPrev` | `N` | | |
 | `prompt.send` | `enter` | `prompt.newline` | `ctrl+j` |
 | `prompt.unqueueLast` | `backspace` | | |
 

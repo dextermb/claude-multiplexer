@@ -353,6 +353,9 @@ func (m Model) statusView() string {
 	if m.errText != "" {
 		return statusStyle.Width(m.width).Render(errorStyle.Render(truncate(m.errText, m.width-2)))
 	}
+	if view, ok := m.findStatus(); ok {
+		return statusStyle.Width(m.width).Render(view)
+	}
 	if m.seq != nil {
 		label := invertStyle.Render(" " + targetLabel(m.keys, m.seq.target) + " → ")
 		hints := fitHints(m.sequenceHints(m.seq.target), m.width-lipgloss.Width(label)-4)
