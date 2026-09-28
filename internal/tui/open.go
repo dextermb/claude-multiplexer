@@ -41,7 +41,7 @@ func (m Model) openInFiles() (tea.Model, tea.Cmd) {
 	m.errText = ""
 	var cmds []tea.Cmd
 	for _, dir := range item.diffDirs() {
-		cmds = append(cmds, launchCmd("file manager", dir, open.FileManager(dir)))
+		cmds = append(cmds, launchCmd("file manager", open.FileManager(dir)))
 	}
 	return m, tea.Batch(cmds...)
 }
@@ -56,26 +56,15 @@ func (m Model) openInEditor() (tea.Model, tea.Cmd) {
 		m.errText = err.Error()
 		return m, nil
 	}
-	dirs := item.diffDirs()
-	m.errText = ""
-	first, err := open.Editor(settings, dirs[0])
+	targets, err := open.Editors(settings, item.diffDirs())
 	if err != nil {
 		m.errText = err.Error()
 		return m, nil
 	}
-	if first.Terminal {
-		// A terminal editor holds the terminal, so it opens every directory as an argument of one process, not one window each.
-		args := append(append([]string{}, first.Args...), dirs[1:]...)
-		return m, launchCmd("editor", dirs[0], open.Target{Command: first.Command, Args: args, Terminal: true})
-	}
-	cmds := []tea.Cmd{launchCmd("editor", dirs[0], first)}
-	for _, dir := range dirs[1:] {
-		target, err := open.Editor(settings, dir)
-		if err != nil {
-			m.errText = err.Error()
-			return m, nil
-		}
-		cmds = append(cmds, launchCmd("editor", dir, target))
+	m.errText = ""
+	var cmds []tea.Cmd
+	for _, target := range targets {
+		cmds = append(cmds, launchCmd("editor", target))
 	}
 	return m, tea.Batch(cmds...)
 }
@@ -90,11 +79,11 @@ func (m Model) editorSettings() (config.Config, error) {
 	return config.Resolve(m.opts.Config, file, config.LoadClaude(m.opts.ClaudePaths...)), nil
 }
 
-func launchCmd(what, dir string, target open.Target) tea.Cmd {
+func launchCmd(what string, target open.Target) tea.Cmd {
 	cmd := exec.Command(target.Command, target.Args...)
-	cmd.Dir = dir
+	cmd.Dir = target.Dir
 	done := func(err error) tea.Msg {
-		return openedMsg{what: what, dir: dir, terminal: target.Terminal, err: err}
+		return openedMsg{what: what, dir: target.Dir, terminal: target.Terminal, err: err}
 	}
 	if target.Terminal {
 		return launchTerminal(cmd, done)

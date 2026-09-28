@@ -113,3 +113,109 @@ func TestNoEditorIsAnError(t *testing.T) {
 		t.Fatalf("err = %v, want ErrNoEditor", err)
 	}
 }
+
+func TestAProjectEditorTakesEveryDirectoryAsOneWindow(t *testing.T) {
+	targets, err := Editors(config.Config{Editor: "zed"}, []string{"/tmp/one", "/tmp/two"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(targets) != 1 {
+		t.Fatalf("built %d commands, want one project window", len(targets))
+	}
+	got := targets[0]
+	if got.Command != "zed" {
+		t.Fatalf("command = %q, want zed", got.Command)
+	}
+	if line := strings.Join(got.Args, " "); line != "/tmp/one /tmp/two" {
+		t.Fatalf("args = %q, want both directories", line)
+	}
+	if got.Dir != "/tmp/one" {
+		t.Fatalf("dir = %q, want the first directory", got.Dir)
+	}
+	if got.Terminal {
+		t.Fatal("zed must not take the terminal")
+	}
+}
+
+func TestAProjectEditorKeepsItsFlags(t *testing.T) {
+	targets, err := Editors(config.Config{Editor: "/opt/bin/zed --wait"}, []string{"/tmp/one", "/tmp/two"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(targets) != 1 {
+		t.Fatalf("built %d commands, want one project window", len(targets))
+	}
+	if line := strings.Join(targets[0].Args, " "); line != "--wait /tmp/one /tmp/two" {
+		t.Fatalf("args = %q, want the flag then both directories", line)
+	}
+}
+
+func TestAWindowEditorGetsOneCommandForEachDirectory(t *testing.T) {
+	targets, err := Editors(config.Config{Editor: "code -n"}, []string{"/tmp/one", "/tmp/two"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(targets) != 2 {
+		t.Fatalf("built %d commands, want one for each directory", len(targets))
+	}
+	if line := strings.Join(targets[0].Args, " "); line != "-n /tmp/one" {
+		t.Fatalf("the first args = %q, want %q", line, "-n /tmp/one")
+	}
+	if line := strings.Join(targets[1].Args, " "); line != "-n /tmp/two" {
+		t.Fatalf("the second args = %q, want %q", line, "-n /tmp/two")
+	}
+	if targets[1].Dir != "/tmp/two" {
+		t.Fatalf("the second dir = %q, want %q", targets[1].Dir, "/tmp/two")
+	}
+}
+
+func TestATerminalEditorGetsOneCommandForEveryDirectory(t *testing.T) {
+	targets, err := Editors(config.Config{Editor: "nvim"}, []string{"/tmp/one", "/tmp/two"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(targets) != 1 {
+		t.Fatalf("built %d commands, want one that holds the terminal", len(targets))
+	}
+	if line := strings.Join(targets[0].Args, " "); line != "/tmp/one /tmp/two" {
+		t.Fatalf("args = %q, want both directories", line)
+	}
+	if !targets[0].Terminal {
+		t.Fatal("nvim must take the terminal")
+	}
+}
+
+func TestOneDirectoryGivesOneCommand(t *testing.T) {
+	for _, editor := range []string{"zed", "code", "nvim"} {
+		targets, err := Editors(config.Config{Editor: editor}, []string{"/tmp/work"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(targets) != 1 || strings.Join(targets[0].Args, " ") != "/tmp/work" {
+			t.Errorf("%q built %v, want one command for the one directory", editor, targets)
+		}
+	}
+}
+
+func TestNoEditorIsAnErrorForTheSet(t *testing.T) {
+	if _, err := Editors(config.Config{}, []string{"/tmp/one"}); !errors.Is(err, ErrNoEditor) {
+		t.Fatalf("err = %v, want ErrNoEditor", err)
+	}
+	targets, err := Editors(config.Config{}, nil)
+	if err != nil || targets != nil {
+		t.Fatalf("no directory gave %v, %v, want nothing", targets, err)
+	}
+}
+
+func TestTheProjectEditorList(t *testing.T) {
+	for _, name := range []string{"zed", "/usr/local/bin/zed", "zed --wait", "zeditor"} {
+		if !IsProjectEditor(name) {
+			t.Errorf("%q must open several directories as one project", name)
+		}
+	}
+	for _, name := range []string{"", "code", "nvim", "subl"} {
+		if IsProjectEditor(name) {
+			t.Errorf("%q must not open several directories as one project", name)
+		}
+	}
+}
