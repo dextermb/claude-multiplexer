@@ -43,6 +43,7 @@ var bindings = []binding{
 	{group: "The session (s)", action: keys.SessionMode, what: "Change the permission mode"},
 	{group: "The session (s)", action: keys.SessionControl, what: "Turn control on or off for the session"},
 	{group: "The session (s)", action: keys.SessionClearHold, what: "Clear the context hold, so the session takes a prompt again"},
+	{group: "The session (s)", action: keys.SessionFind, what: "Search the output pane backwards, and > for the prompts alone"},
 
 	{group: "The list (l)", action: keys.ListFold, what: "Fold or unfold the group of the selected session"},
 	{group: "The list (l)", action: keys.ListFoldOthers, what: "Fold every group but this one"},
@@ -94,6 +95,8 @@ var bindings = []binding{
 	{group: "The output", action: keys.OutputPaneBlockNext, what: "Move the cursor between the capped blocks"},
 	{group: "The output", action: keys.OutputPaneOpenBlock, what: "Open or close the block under the cursor"},
 	{group: "The output", action: keys.OutputPaneToPrompt, what: "Move to the prompt"},
+	{group: "The output", action: keys.OutputPaneFindNext, what: "Step to the next hit of the search, while a needle is live"},
+	{group: "The output", action: keys.OutputPaneFindPrev, what: "Step the other way through the hits"},
 
 	{group: "The list and the output", keys: "?", what: "Show this list"},
 	{group: "The list and the output", action: keys.GlobalQuit, what: "Stop every session, and quit"},
@@ -117,6 +120,7 @@ var briefWord = map[keys.Action]string{
 	keys.SessionDiff: "diff", keys.SessionReview: "review", keys.SessionEditor: "editor",
 	keys.SessionModel: "model", keys.SessionEffort: "effort", keys.SessionMode: "mode",
 	keys.SessionControl: "control", keys.SessionClearHold: "hold",
+	keys.SessionFind: "find",
 
 	keys.ListFold: "fold", keys.ListFoldOthers: "others", keys.ListUnfold: "unfold",
 	keys.ListArchived: "archived", keys.ListSearch: "search", keys.ListSidebar: "sidebar",

@@ -32,14 +32,39 @@ func filler(n int) []string {
 
 func typeFind(t *testing.T, m Model, text string) Model {
 	t.Helper()
+	m, _ = step(t, m, key("s"))
 	m, _ = step(t, m, key("/"))
 	if !m.find.on {
-		t.Fatal("/ must open the find box")
+		t.Fatal("s / must open the find box")
 	}
 	for _, r := range text {
 		m, _ = step(t, m, key(string(r)))
 	}
 	return m
+}
+
+func TestTheChordOpensTheBoxFromAnyPane(t *testing.T) {
+	rows := append([]string{"fix the parser"}, filler(40)...)
+	m := findModel(t, rows...)
+
+	m.focus = focusSidebar
+	m, _ = step(t, m, key("s"))
+	m, _ = step(t, m, key("/"))
+	if !m.find.on || m.focus != focusOutput {
+		t.Fatalf("s / from the list: on = %v, focus = %v", m.find.on, m.focus)
+	}
+	m, _ = step(t, m, key("esc"))
+
+	m.focus = focusPrompt
+	m.prompt.Focus()
+	m, _ = step(t, m, key("ctrl+s"))
+	m, _ = step(t, m, key("/"))
+	if !m.find.on || m.focus != focusOutput {
+		t.Fatalf("ctrl+s / from the prompt: on = %v, focus = %v", m.find.on, m.focus)
+	}
+	if m.prompt.Value() != "" {
+		t.Fatalf("the chord typed into the prompt: %q", m.prompt.Value())
+	}
 }
 
 func TestParseFind(t *testing.T) {
