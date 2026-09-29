@@ -46,7 +46,7 @@ func paneStyle(t tone) ansi.StyleConfig {
 	style.H5 = heading
 	style.H6 = heading
 
-	style.Strong = ansi.StylePrimitive{Color: &t.strong}
+	style.Strong = ansi.StylePrimitive{Color: &t.strong, Bold: boolPtr(true)}
 	style.Emph = ansi.StylePrimitive{Color: &t.strong, Italic: &no}
 	style.BlockQuote.Color = &t.muted
 	quote := "│ "
@@ -91,14 +91,14 @@ func mutedStyle(t tone) ansi.StyleConfig {
 	return style
 }
 
-// headingStyle sets every level the same way: uppercase in the heading grey,
-// with one blank line after it. See docs/markdown.md.
+// headingStyle sets every level the same way: bold in the heading grey, with
+// one blank line after it. See docs/markdown.md.
 func headingStyle(t tone) ansi.StyleBlock {
 	return ansi.StyleBlock{
 		StylePrimitive: ansi.StylePrimitive{
 			BlockSuffix: "\n",
 			Color:       &t.heading,
-			Upper:       boolPtr(true),
+			Bold:        boolPtr(true),
 		},
 	}
 }

@@ -33,8 +33,8 @@ inherit it, and the code block drops its highlighter. See
 ## A prompt gets inline emphasis only
 
 A prompt keeps its identity: the heading grey and the `› ` marker. On top of
-that, three inline forms render. The interface sets no bold and no italic (see
-[tui/theme.md](./tui/theme.md)), so emphasis is white:
+that, three inline forms render. The inline path sets no weight, so emphasis is
+white:
 
 | Markup | Result |
 |---|---|
@@ -50,14 +50,33 @@ An underscore in a word does not open emphasis, so `some_var_name` stays plain.
 A mark that does not close, such as a lone `_`, also stays plain. The whole
 prompt renders on the code path in `internal/tui/inline.go`.
 
-## Every heading is uppercase, and nothing more
+## The pane never changes the words
+
+What the model wrote is what the pane shows. The renderer changes the colour and
+the weight of a span, and it removes the markup, but it does not change a
+letter. A heading keeps the case the model typed, and so does a bold span.
+
+The interface uppercases its own labels, such as a pane name or a tool name, and
+those are the words of the multiplexer. The words of the model are its own. See
+[tui/theme.md](./tui/theme.md).
+
+## Every heading is bold, and nothing more
 
 A terminal pane is narrow, and a large heading block looks wrong in it. So every
-heading level, from `#` to `######`, renders the same way: uppercase text in the
-heading grey, with one blank line after it. There is no background block, no coloured bar, and no `#`
-marks.
+heading level, from `#` to `######`, renders the same way: bold text in the
+heading grey, with one blank line after it. There is no background block, no
+coloured bar, and no `#` marks.
 
 So a document with headings keeps its structure, and the pane keeps one voice.
+
+## Bold is bold, and emphasis is white
+
+A `**bold**` span renders bold in the strong white. An `_emphasis_` span renders
+in the same white with no italic, because an italic is hard to read in many
+terminal fonts.
+
+These two are the only places the output pane sets a weight. Everything else in
+the interface keeps the one weight of the theme.
 
 ## Code is highlighted in greys
 
