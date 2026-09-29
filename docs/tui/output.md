@@ -15,7 +15,7 @@ the jobs dialog. The pane keeps the job's lifecycle line (`■ started`) and the
 agent's final report, which returns as a parent turn. See
 [sessions/jobs.md](sessions/jobs.md).
 
-`/` searches the pane backwards, and `/>` steps from prompt to prompt. See
+`s /` searches the pane backwards, and `s />` steps from prompt to prompt. See
 [keys/navigation.md](keys/navigation.md).
 
 The renderer gives each line a class, and the interface gives each class a

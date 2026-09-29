@@ -79,6 +79,8 @@ func findHits(content, needle string, prompts bool) []int {
 }
 
 func (m Model) openFind() (tea.Model, tea.Cmd) {
+	m.focus = focusOutput
+	m.prompt.Blur()
 	m.find.on = true
 	m.find.origin = m.output.YOffset()
 	m.find.row = -1

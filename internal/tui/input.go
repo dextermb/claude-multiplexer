@@ -352,8 +352,6 @@ func (m Model) outputKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.output.GotoTop()
 	case keys.OutputPaneBottom:
 		m.output.GotoBottom()
-	case keys.OutputPaneFind:
-		return m.openFind()
 	case keys.OutputPaneFindNext:
 		return m.stepFind(false)
 	case keys.OutputPaneFindPrev:

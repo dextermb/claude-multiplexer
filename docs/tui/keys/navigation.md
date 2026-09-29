@@ -90,17 +90,19 @@ to return to the bottom and start following again.
 
 ## Searching the output
 
-`/` opens a find box in the status row and searches the output pane backwards,
-from the top of what you can see towards the start of the session. So the prompt
-or the answer you scrolled past is the first hit. The pane moves as you type.
+`s /` opens a find box in the status row and searches the output pane
+backwards, from the top of what you can see towards the start of the session.
+So the prompt or the answer you scrolled past is the first hit. The box takes
+the focus from wherever you were, and the pane moves as you type. In the prompt
+box, use `ctrl+s /`, because a plain `s` there is text.
 
 `Enter` keeps the hit and closes the box, and the status row then shows the
 count, such as `/parser  2/7`. `n` steps to the next hit in the direction of the
 search, which is upwards, and `N` steps the other way. Both wrap around the
 pane, and the status row says `wrapped` when they do.
 
-A needle that starts with `>` reads the prompt rows alone. So `/>` steps from
-prompt to prompt with no text at all, and `/>fix` finds the prompt that holds
+A needle that starts with `>` reads the prompt rows alone. So `s />` steps from
+prompt to prompt with no text at all, and `s />fix` finds the prompt that holds
 "fix". A plain needle reads every row, and it ignores case.
 
 The row of the current hit is marked, the same as the marked hunk of the review

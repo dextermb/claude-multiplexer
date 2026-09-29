@@ -46,6 +46,7 @@ type SessionKeys struct {
 	Mode       []string `json:"mode,omitempty"`
 	Control    []string `json:"control,omitempty"`
 	ClearHold  []string `json:"clearHold,omitempty"`
+	Find       []string `json:"find,omitempty"`
 }
 
 // ListKeys are the second keys after the list target.
@@ -102,7 +103,6 @@ type OutputPaneKeys struct {
 	HalfDown    []string `json:"halfDown,omitempty"`
 	Top         []string `json:"top,omitempty"`
 	Bottom      []string `json:"bottom,omitempty"`
-	Find        []string `json:"find,omitempty"`
 	FindNext    []string `json:"findNext,omitempty"`
 	FindPrev    []string `json:"findPrev,omitempty"`
 }

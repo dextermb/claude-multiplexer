@@ -50,6 +50,7 @@ const (
 	SessionMode       Action = "session.mode"
 	SessionControl    Action = "session.control"
 	SessionClearHold  Action = "session.clearHold"
+	SessionFind       Action = "session.find"
 
 	ListFold       Action = "list.fold"
 	ListFoldOthers Action = "list.foldOthers"
@@ -91,7 +92,6 @@ const (
 	OutputPaneHalfDown    Action = "outputPane.halfDown"
 	OutputPaneTop         Action = "outputPane.top"
 	OutputPaneBottom      Action = "outputPane.bottom"
-	OutputPaneFind        Action = "outputPane.find"
 	OutputPaneFindNext    Action = "outputPane.findNext"
 	OutputPaneFindPrev    Action = "outputPane.findPrev"
 
@@ -177,6 +177,7 @@ var Defaults = []Def{
 	{SessionMode, CtxSession, []string{"p"}, "session: change the permission mode"},
 	{SessionControl, CtxSession, []string{"C"}, "session: turn control on or off"},
 	{SessionClearHold, CtxSession, []string{"h"}, "session: clear the context hold"},
+	{SessionFind, CtxSession, []string{"/"}, "session: search the output pane backwards"},
 
 	{ListFold, CtxList, []string{"f"}, "list: fold or unfold the group"},
 	{ListFoldOthers, CtxList, []string{"F"}, "list: fold every group but this one"},
@@ -218,7 +219,6 @@ var Defaults = []Def{
 	{OutputPaneHalfDown, CtxOutputPane, []string{"d", "ctrl+d"}, "output: scroll down half a pane"},
 	{OutputPaneTop, CtxOutputPane, []string{"g", "home"}, "output: go to the top"},
 	{OutputPaneBottom, CtxOutputPane, []string{"G", "end"}, "output: go to the bottom"},
-	{OutputPaneFind, CtxOutputPane, []string{"/"}, "output: search the pane backwards"},
 	{OutputPaneFindNext, CtxOutputPane, []string{"n"}, "output: step to the next hit"},
 	{OutputPaneFindPrev, CtxOutputPane, []string{"N"}, "output: step to the previous hit"},
 

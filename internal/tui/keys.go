@@ -128,6 +128,7 @@ var chordActions = map[keys.Action]action{
 	keys.SessionMode:       func(m Model) (tea.Model, tea.Cmd) { return m.openChoice(settingMode) },
 	keys.SessionControl:    Model.toggleControl,
 	keys.SessionClearHold:  Model.clearContextHold,
+	keys.SessionFind:       Model.openFind,
 
 	keys.ListFold:       Model.toggleFold,
 	keys.ListFoldOthers: Model.foldOthers,
