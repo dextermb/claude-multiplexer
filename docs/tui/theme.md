@@ -91,6 +91,11 @@ interface sets no bold and no italic. Hierarchy comes from case, colour, and
 rules. Labels, titles, and group names are uppercase through
 `lipgloss.Style.Transform`, so the text in the code stays in lowercase.
 
+The rendered markdown of the output pane is the one exception. There a heading
+and a `**bold**` span are bold, because the pane must not change the words the
+model wrote, and case is therefore not available as a mark. See
+[../markdown.md](../markdown.md).
+
 ## Key hints
 
 A key hint reads `[n] new`: the brackets dimmed, the key white, and the word

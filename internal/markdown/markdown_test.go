@@ -26,7 +26,7 @@ func TestRenderDropsTheMarkupAndKeepsTheWords(t *testing.T) {
 	if strings.Contains(out, "**") {
 		t.Errorf("the asterisks survived:\n%s", out)
 	}
-	for _, want := range []string{"THE CACHE LAYER", "three", "problems"} {
+	for _, want := range []string{"The cache layer", "three", "problems"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("the words were lost, %q is missing:\n%s", want, out)
 		}
@@ -100,14 +100,33 @@ func TestEveryHeadingLevelRendersTheSame(t *testing.T) {
 				level, plain(got), plain(first))
 		}
 	}
-	if strings.Contains(first, ";1m") || strings.Contains(first, "[1m") {
-		t.Errorf("a heading must not be bold: %q", first)
+	if !strings.Contains(first, ";1m") && !strings.Contains(first, "[1m") {
+		t.Errorf("a heading must be bold: %q", first)
 	}
 	if strings.Contains(first, "48;5;") {
 		t.Errorf("a heading must have no background block: %q", first)
 	}
-	if got := plain(first); !strings.Contains(got, "FINDINGS") || strings.Contains(got, "#") {
+	if got := plain(first); !strings.Contains(got, "Findings") || strings.Contains(got, "#") {
 		t.Errorf("heading = %q", got)
+	}
+}
+
+func TestRenderKeepsTheCaseTheModelWrote(t *testing.T) {
+	r := New()
+	sample := "## A Heading Here\n\nSome **bold text** and plain words.\n"
+	got := plain(r.Render(sample, 60))
+	for _, word := range []string{"A Heading Here", "bold text"} {
+		if !strings.Contains(got, word) {
+			t.Errorf("the case of %q was changed: %q", word, got)
+		}
+	}
+}
+
+func TestStrongIsBold(t *testing.T) {
+	r := New()
+	out := r.Render("Some **bold text** here.", 60)
+	if !strings.Contains(out, ";1m") && !strings.Contains(out, "[1m") {
+		t.Errorf("bold must render bold: %q", out)
 	}
 }
 
@@ -123,7 +142,7 @@ func TestMutedRendersEverythingInOneGrey(t *testing.T) {
 	if strings.Contains(out, "38;2;") {
 		t.Errorf("a truecolour code survived, so the code block kept its highlighter:\n%q", out)
 	}
-	if got := plain(out); !strings.Contains(got, "HEADING") || !strings.Contains(got, "func main") {
+	if got := plain(out); !strings.Contains(got, "Heading") || !strings.Contains(got, "func main") {
 		t.Errorf("the words were lost: %q", got)
 	}
 }

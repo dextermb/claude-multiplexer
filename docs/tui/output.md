@@ -95,7 +95,7 @@ across the tool result, and marks the next user text message `ClassSkill`. A
 one-line printer draws the row count in place of the whole dump.
 
 The pane renders the dump as markdown, the same as a message. Every heading
-renders as uppercase text, so a `#` heading in a skill does not draw large. See
+renders as bold text, so a `#` heading in a skill does not draw large. See
 [../markdown.md](../markdown.md).
 
 ```
