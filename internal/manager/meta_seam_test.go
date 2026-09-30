@@ -81,3 +81,46 @@ func TestTurnWritesDoNotClobberLocks(t *testing.T) {
 		return err == nil && snap.Turns > 0
 	})
 }
+
+// TestWriteMetaNeverShowsAHalfWrittenRecord proves a reader never meets a
+// record that is part way through a write. A pump writes the record of a
+// session while a scan reads every record, so a write in place let a scan read
+// an empty file and report the session as gone.
+func TestWriteMetaNeverShowsAHalfWrittenRecord(t *testing.T) {
+	root := t.TempDir()
+	path := metaPath(root, "busy")
+	base := Meta{Name: "busy", Dir: root, Turns: 1}
+	if err := writeMeta(path, base); err != nil {
+		t.Fatalf("writeMeta: %v", err)
+	}
+
+	stop := make(chan struct{})
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for i := 0; ; i++ {
+			select {
+			case <-stop:
+				return
+			default:
+			}
+			next := base
+			next.Stderr = make([]string, 40)
+			for j := range next.Stderr {
+				next.Stderr[j] = fmt.Sprintf("line %d of write %d", j, i)
+			}
+			_ = writeMeta(path, next)
+		}
+	}()
+
+	for i := 0; i < 2000; i++ {
+		if _, err := ReadMeta(path); err != nil {
+			close(stop)
+			wg.Wait()
+			t.Fatalf("read %d met a broken record: %v", i, err)
+		}
+	}
+	close(stop)
+	wg.Wait()
+}

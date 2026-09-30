@@ -134,7 +134,7 @@ func (m *Manager) Archive(name string, archived bool) error {
 		return fmt.Errorf("%w: %s", ErrStillLive, name)
 	}
 
-	err := mutateStoredMeta(metaPath(m.opts.Root, name), func(meta *Meta) error {
+	apply := func(meta *Meta) error {
 		meta.Archived = archived
 		if archived {
 			meta.ArchivedAt = time.Now()
@@ -142,7 +142,13 @@ func (m *Manager) Archive(name string, archived bool) error {
 			meta.ArchivedAt = time.Time{}
 		}
 		return nil
-	})
+	}
+	var err error
+	if live {
+		_, err = item.mutateMeta(apply)
+	} else {
+		err = mutateStoredMeta(metaPath(m.opts.Root, name), apply)
+	}
 	if err != nil {
 		return err
 	}

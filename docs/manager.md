@@ -35,7 +35,9 @@ so its directory and its transcript stay.
 
 `Meta` holds the name, the title, the directory, the model, the permission mode,
 the Claude session identifier, the lifetime turn count and cost, the tokens, the
-control grant, the creator, and the archive flag. The counts are lifetime totals: a resumed
+control grant, the creator, and the archive flag. A session that ends with an
+error adds the reason: `error`, `exit_code`, and the last lines of `stderr`. See
+[sessions/lifecycle.md](./sessions/lifecycle.md). The counts are lifetime totals: a resumed
 session adds to them, and does not restart them.
 
 | Method | What it does |
@@ -197,7 +199,12 @@ starts, so a path resolves without the lock held.
 A stored session has no entry and no pump, so no writer competes for its record.
 A change to a stored session (a title, an archive, a layout) goes through
 `mutateStoredMeta`, which reads the file, applies the change, and writes it back,
-with no lock.
+with no lock. A session that still holds an entry uses `entry.mutateMeta`, even
+after its child stopped, because the entry is the writer that competes.
+
+Both seams replace the file by a rename. A scan of the records runs while a pump
+writes one, so a write in place let the scan read a file that was part way
+through, and report the session as gone.
 
 ## The tools a session can call
 
