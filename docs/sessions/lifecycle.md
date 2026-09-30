@@ -96,6 +96,11 @@ A reuse-mode schedule works the same way. The stop ends the session after the
 turn, and the next fire resumes it from its Claude session id, so it keeps its
 memory. An archive clears on the resume, so the reuse session comes back.
 
+A stop that reports an error still archives. The child is dead either way, and
+`Archive` refuses a session that is still live, so the archive is safe. Before
+this, a child that took more than the 5-second grace to exit was killed, the
+kill made the stop report an error, and the session stayed in the list for good.
+
 ## Auto-archive stopped sessions
 
 The `autoArchiveDays` setting archives a stopped session on its own, after it is
