@@ -96,6 +96,31 @@ A reuse-mode schedule works the same way. The stop ends the session after the
 turn, and the next fire resumes it from its Claude session id, so it keeps its
 memory. An archive clears on the resume, so the reuse session comes back.
 
+A stop that reports an error still archives. The child is dead either way, and
+`Archive` refuses a session that is still live, so the archive is safe. Before
+this, a child that took more than the 5-second grace to exit was killed, the
+kill made the stop report an error, and the session stayed in the list for good.
+
+## The failure record
+
+A session that ends with an error writes the reason to its own `meta.json`:
+
+| Field | What it holds |
+|---|---|
+| `error` | The text of the first error the session met. |
+| `exit_code` | The exit status of the child, when the error is an exit. A child that a signal stopped reads as `-1`. |
+| `stderr` | The last 20 lines the child wrote to stderr. |
+
+The manager writes the record when the pump ends, and only for a session that
+ran at least one turn. A session that ends in a clean way writes an empty
+record, so the record of an earlier run does not stay. A resume clears the
+record too, because the run it describes is over.
+
+The record exists because a notice is not a report. The manager publishes a
+notice on the bus, and the notice reaches a subscriber that listens at that
+moment and nothing else. So a session that failed in the night had no way to
+say why.
+
 ## Auto-archive stopped sessions
 
 The `autoArchiveDays` setting archives a stopped session on its own, after it is

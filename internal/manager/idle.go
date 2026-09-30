@@ -43,21 +43,25 @@ func (m *Manager) maybeIdleAction(item *entry, snap session.Snapshot) {
 
 // idleAct stops the session, and archives it when asked. It runs in its own
 // goroutine, not in the pump, because the stop closes stdin and the pump must
-// keep draining events for the session to exit. See docs/sessions/lifecycle.md.
+// keep draining events for the session to exit. A stop that reports an error
+// still archives, because the session is dead either way and Archive refuses a
+// session that is still live. See docs/sessions/lifecycle.md.
 func (m *Manager) idleAct(name string, archive bool) {
 	ctx, cancel := context.WithTimeout(context.Background(), session.DefaultStopGrace)
 	defer cancel()
-	if err := m.Stop(ctx, name); err != nil {
-		m.notify(name, name+" failed to stop when idle: "+err.Error(), false)
-		return
+	stopErr := m.Stop(ctx, name)
+	if stopErr != nil {
+		m.notify(name, name+" failed to stop when idle: "+stopErr.Error(), false)
 	}
-	if archive {
-		if err := m.Archive(name, true); err != nil {
-			m.notify(name, name+" failed to archive when idle: "+err.Error(), false)
-			return
+	if !archive {
+		if stopErr == nil {
+			m.notify(name, name+" stopped itself when idle", false)
 		}
-		m.notify(name, name+" archived itself when idle", true)
 		return
 	}
-	m.notify(name, name+" stopped itself when idle", false)
+	if err := m.Archive(name, true); err != nil {
+		m.notify(name, name+" failed to archive when idle: "+err.Error(), false)
+		return
+	}
+	m.notify(name, name+" archived itself when idle", true)
 }

@@ -98,7 +98,11 @@ func (m *Manager) Spawn(ctx context.Context, spec Spec) (string, error) {
 		item.lines.append([]render.Line{{Class: render.ClassMeta, Text: "— resumed —"}})
 		if stored, err := ReadMeta(item.path); err == nil {
 			stored.Archived = false
+			stored.Error = ""
+			stored.ExitCode = nil
+			stored.Stderr = nil
 			item.setMeta(stored)
+			clearFailure(item.path)
 			item.base = totals{
 				turns:      stored.Turns,
 				cost:       stored.Cost,

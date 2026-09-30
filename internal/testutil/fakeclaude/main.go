@@ -212,6 +212,10 @@ func main() {
 			"session_id":     sessionID,
 		})
 	}
+	if os.Getenv("FAKECLAUDE_MODE") == "failonstop" {
+		fmt.Fprintln(os.Stderr, "fakeclaude: refused to shut down cleanly")
+		os.Exit(3)
+	}
 }
 
 func runInterruptible(sessionID string) {

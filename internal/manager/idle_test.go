@@ -69,3 +69,28 @@ func TestIdleActionWaitsForTheFirstTurn(t *testing.T) {
 		t.Fatalf("state = %v, want a live session before its first turn", snap.State)
 	}
 }
+
+func TestSessionArchivesItselfWhenTheStopFails(t *testing.T) {
+	t.Setenv("FAKECLAUDE_MODE", "failonstop")
+	m := newTestManager(t)
+	name, err := m.Spawn(context.Background(), Spec{Dir: t.TempDir()})
+	if err != nil {
+		t.Fatalf("Spawn: %v", err)
+	}
+	if err := m.SetIdleAction(name, false, true); err != nil {
+		t.Fatalf("SetIdleAction: %v", err)
+	}
+	if err := m.Send(name, "hello"); err != nil {
+		t.Fatalf("Send: %v", err)
+	}
+
+	path := filepath.Join(m.Root(), "sessions", name, "meta.json")
+	waitFor(t, 10*time.Second, func() bool {
+		meta, err := ReadMeta(path)
+		return err == nil && meta.Archived
+	})
+
+	if _, err := m.Snapshot(name); err == nil {
+		t.Errorf("the archive left the entry behind")
+	}
+}

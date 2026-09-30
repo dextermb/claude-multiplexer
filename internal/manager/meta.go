@@ -37,6 +37,9 @@ type Meta struct {
 	TempDir          bool       `json:"temp_dir,omitempty"`
 	Archived         bool       `json:"archived"`
 	ArchivedAt       time.Time  `json:"archived_at,omitempty"`
+	Error            string     `json:"error,omitempty"`
+	ExitCode         *int       `json:"exit_code,omitempty"`
+	Stderr           []string   `json:"stderr,omitempty"`
 	WorkItemProvider string     `json:"workitem_provider,omitempty"`
 	WorkItemKey      string     `json:"workitem_key,omitempty"`
 	WorkItemURL      string     `json:"workitem_url,omitempty"`
@@ -113,15 +116,41 @@ func sameStrings(a, b []string) bool {
 	return true
 }
 
+// writeMeta replaces the record at path in one step. It writes a temporary file
+// beside the record and renames it, because a reader scans the records while a
+// pump writes one, and a truncated file reads as a session that is gone.
 func writeMeta(path string, meta Meta) error {
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
 	data, err := json.MarshalIndent(meta, "", "  ")
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, append(data, '\n'), 0o644)
+	temp, err := os.CreateTemp(dir, ".meta-*.json")
+	if err != nil {
+		return err
+	}
+	name := temp.Name()
+	if _, err := temp.Write(append(data, '\n')); err != nil {
+		temp.Close()
+		os.Remove(name)
+		return err
+	}
+	if err := temp.Close(); err != nil {
+		os.Remove(name)
+		return err
+	}
+	if err := os.Chmod(name, 0o644); err != nil {
+		os.Remove(name)
+		return err
+	}
+	if err := os.Rename(name, path); err != nil {
+		os.Remove(name)
+		return err
+	}
+	return nil
 }
 
 // mutateStoredMeta reads the record at path, applies fn, and writes it back. A

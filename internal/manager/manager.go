@@ -234,6 +234,8 @@ func (m *Manager) pump(item *entry) {
 		if meta.TempDir && meta.Dir != "" {
 			_ = os.RemoveAll(meta.Dir)
 		}
+	} else {
+		m.rememberFailure(item, final, item.sess.Stderr())
 	}
 	m.bus.Publish(Event{
 		Session:  name,
